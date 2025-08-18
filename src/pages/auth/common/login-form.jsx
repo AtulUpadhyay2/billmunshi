@@ -37,23 +37,32 @@ const LoginForm = () => {
       const response = await login(data);
 
       if (response.error) {
-        throw new Error(response.error.message);
+        console.error('Response error:', response.error);
+        throw new Error(response.error.data?.message || response.error.data?.detail || "Login failed");
       }
 
-      if (response.data.error) {
+      if (response.data?.error) {
         throw new Error(response.data.error);
       }
 
-      if (!response.data.token) {
-        throw new Error("Invalid credentials");
+      // Check if we have the expected response structure
+      if (!response.data?.access || !response.data?.user) {
+        console.error('Invalid response structure:', response.data);
+        throw new Error("Invalid response from server");
       }
 
-      dispatch(setUser(data));
-      navigate("/dashboard");
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      // Dispatch the complete response data to store
+      dispatch(setUser({
+        user: response.data.user,
+        access: response.data.access,
+        refresh: response.data.refresh
+      }));
+
       toast.success("Login Successful");
+      navigate("/dashboard");
     } catch (error) {
-      toast.error(error.message);
+      console.error("Login error:", error);
+      toast.error(error.message || "Login failed. Please try again.");
     }
   };
 
@@ -64,20 +73,20 @@ const LoginForm = () => {
       <Textinput
         name="email"
         label="email"
-        defaultValue="dashcode@gmail.com"
         type="email"
         register={register}
         error={errors.email}
         className="h-[48px]"
+        placeholder="Enter your email"
       />
       <Textinput
         name="password"
-        label="passwrod"
+        label="password"
         type="password"
-        defaultValue="dashcode"
         register={register}
         error={errors.password}
         className="h-[48px]"
+        placeholder="Enter your password"
       />
       <div className="flex justify-between">
         <Checkbox

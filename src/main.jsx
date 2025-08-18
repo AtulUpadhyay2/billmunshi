@@ -9,7 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Provider } from "react-redux";
 import store from "./store";
 import "react-toastify/dist/ReactToastify.css";
-import "./server";
+// import "./server"; // Commented out to disable Mirage and use real APIs
 ReactDOM.createRoot(document.getElementById("root")).render(
   <>
     <BrowserRouter>
