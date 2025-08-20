@@ -111,6 +111,10 @@ const CalenderPage = lazy(() => import("./pages/app/calendar"));
 
 const EcommercePage = lazy(() => import("./pages/ecommerce"));
 
+// Zoho
+const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
+const ZohoExpenseBill = lazy(() => import("./pages/zoho/expense-bill"));
+
 import Loading from "@/components/Loading";
 import { ProductDetails } from "./pages/ecommerce/productDetails";
 import Cart from "./pages/ecommerce/cart";
@@ -223,6 +227,10 @@ function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="sellers" element={<Sellers />} />
           <Route path="invoice-ecommerce" element={<InvoiceEPage />} />
+
+          {/** Zoho */}
+          <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
+          <Route path="zoho/expense-bill" element={<ZohoExpenseBill />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>

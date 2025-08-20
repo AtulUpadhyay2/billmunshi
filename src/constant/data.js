@@ -18,15 +18,15 @@ export const menuItems = [
   {
     title: "Vendor Bill",
     isHide: true,
-    icon: "heroicons-outline:document",
-    link: "#",
+    icon: "heroicons-outline:document-text",
+    link: "zoho/vendor-bill",
   },
 
   {
     title: "Expense Bill",
     isHide: true,
-    icon: "heroicons-outline:document",
-    link: "#",
+    icon: "heroicons-outline:clipboard",
+    link: "zoho/expense-bill",
   },
 
   {
@@ -70,14 +70,14 @@ export const menuItems = [
   {
     title: "Vendor Bill",
     isHide: true,
-    icon: "heroicons-outline:document",
+    icon: "heroicons-outline:document-text",
     link: "vendor-bill",
   },
 
   {
     title: "Expense Bill",
     isHide: true,
-    icon: "heroicons-outline:document",
+    icon: "heroicons-outline:clipboard",
     link: "expense-bill",
   },
 
