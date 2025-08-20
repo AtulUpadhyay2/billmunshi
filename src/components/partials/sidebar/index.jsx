@@ -62,7 +62,7 @@ const Sidebar = () => {
           scrollableNodeProps={{ ref: scrollableNodeRef }}
         >
           <Navmenu menus={menuItems} />
-          {!collapsed && (
+          {/* {!collapsed && (
             <div className="bg-slate-900 mb-16 mt-24 p-4 relative text-center rounded-2xl text-white">
               <img
                 src={svgRabitImage}
@@ -81,7 +81,7 @@ const Sidebar = () => {
                 </button>
               </div>
             </div>
-          )}
+          )} */}
         </SimpleBar>
       </div>
     </div>
