@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const storedUser = JSON.parse(localStorage.getItem("user"));
 const storedToken = localStorage.getItem("access_token");
+const storedSelectedOrg = JSON.parse(localStorage.getItem("selected_org"));
 
 export const authSlice = createSlice({
   name: "auth",
@@ -10,6 +11,7 @@ export const authSlice = createSlice({
     isAuth: !!(storedUser && storedToken),
     accessToken: storedToken || null,
     refreshToken: localStorage.getItem("refresh_token") || null,
+    selectedOrganization: storedSelectedOrg || null,
   },
   reducers: {
     setUser: (state, action) => {
@@ -18,25 +20,57 @@ export const authSlice = createSlice({
       state.accessToken = access;
       state.refreshToken = refresh;
       state.isAuth = true;
+      // initialize selected organization
+      const organizations = Array.isArray(user?.organizations)
+        ? user.organizations
+        : [];
+      // If there's a stored org matching the new user's orgs, keep it; otherwise default to first
+      let nextSelected = null;
+      if (organizations.length > 0) {
+        if (state.selectedOrganization) {
+          const match = organizations.find(
+            (o) => o.id === state.selectedOrganization.id
+          );
+          nextSelected = match || organizations[0];
+        } else if (storedSelectedOrg) {
+          const match = organizations.find((o) => o.id === storedSelectedOrg.id);
+          nextSelected = match || organizations[0];
+        } else {
+          nextSelected = organizations[0];
+        }
+      }
+      state.selectedOrganization = nextSelected;
       
       // Store in localStorage
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
+      if (nextSelected) {
+        localStorage.setItem("selected_org", JSON.stringify(nextSelected));
+      } else {
+        localStorage.removeItem("selected_org");
+      }
+    },
+    setSelectedOrganization: (state, action) => {
+      const org = action.payload; // {id, name, ...}
+      state.selectedOrganization = org;
+      localStorage.setItem("selected_org", JSON.stringify(org));
     },
     logOut: (state, action) => {
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuth = false;
+      state.selectedOrganization = null;
       
       // Clear from localStorage
       localStorage.removeItem("user");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
+      localStorage.removeItem("selected_org");
     },
   },
 });
 
-export const { setUser, logOut } = authSlice.actions;
+export const { setUser, setSelectedOrganization, logOut } = authSlice.actions;
 export default authSlice.reducer;
