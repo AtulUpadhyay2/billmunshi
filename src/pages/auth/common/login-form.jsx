@@ -85,6 +85,7 @@ const LoginForm = () => {
         type="password"
         register={register}
         error={errors.password}
+        hasicon={true}
         className="h-[48px]"
         placeholder="Enter your password"
       />
