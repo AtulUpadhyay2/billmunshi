@@ -51,6 +51,9 @@ const LoginForm = () => {
         throw new Error("Invalid response from server");
       }
 
+      // Check if user has any organizations
+      const userOrganizations = response.data.user?.organizations || [];
+      
       // Dispatch the complete response data to store
       dispatch(setUser({
         user: response.data.user,
@@ -59,7 +62,13 @@ const LoginForm = () => {
       }));
 
       toast.success("Login Successful");
-      navigate("/dashboard");
+      
+      // Redirect based on organization availability
+      if (userOrganizations.length === 0) {
+        navigate("/no-organization");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message || "Login failed. Please try again.");

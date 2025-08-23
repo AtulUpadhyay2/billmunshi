@@ -21,6 +21,7 @@ const ForgotPass3 = lazy(() => import("./pages/auth/forgot-password3"));
 const LockScreen = lazy(() => import("./pages/auth/lock-screen"));
 const LockScreen2 = lazy(() => import("./pages/auth/lock-screen2"));
 const LockScreen3 = lazy(() => import("./pages/auth/lock-screen3"));
+const NoOrganization = lazy(() => import("./pages/auth/no-organization"));
 const Error = lazy(() => import("./pages/404"));
 
 import Layout from "./layout/Layout";
@@ -145,6 +146,7 @@ function App() {
           <Route path="/lock-screen" element={<LockScreen />} />
           <Route path="/lock-screen2" element={<LockScreen2 />} />
           <Route path="/lock-screen3" element={<LockScreen3 />} />
+          <Route path="/no-organization" element={<NoOrganization />} />
         </Route>
         <Route path="/*" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />

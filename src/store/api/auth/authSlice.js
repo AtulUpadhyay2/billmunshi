@@ -56,6 +56,26 @@ export const authSlice = createSlice({
       state.selectedOrganization = org;
       localStorage.setItem("selected_org", JSON.stringify(org));
     },
+    updateUserOrganizations: (state, action) => {
+      // This action allows updating user organizations without a full login
+      const organizations = action.payload;
+      if (state.user) {
+        state.user.organizations = organizations;
+        localStorage.setItem("user", JSON.stringify(state.user));
+        
+        // Update selected organization if needed
+        if (organizations.length === 0) {
+          state.selectedOrganization = null;
+          localStorage.removeItem("selected_org");
+        } else if (state.selectedOrganization) {
+          const match = organizations.find(o => o.id === state.selectedOrganization.id);
+          if (!match) {
+            state.selectedOrganization = organizations[0];
+            localStorage.setItem("selected_org", JSON.stringify(organizations[0]));
+          }
+        }
+      }
+    },
     logOut: (state, action) => {
       state.user = null;
       state.accessToken = null;
@@ -72,5 +92,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setUser, setSelectedOrganization, logOut } = authSlice.actions;
+export const { setUser, setSelectedOrganization, updateUserOrganizations, logOut } = authSlice.actions;
 export default authSlice.reducer;

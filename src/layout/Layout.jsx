@@ -26,8 +26,11 @@ const Layout = () => {
   useEffect(() => {
     if (!isAuth || !user) {
       navigate("/");
+    } else if (user && (!user.organizations || user.organizations.length === 0)) {
+      // If user is authenticated but has no organizations, redirect to no-organization page
+      navigate("/no-organization");
     }
-  }, [isAuth, navigate]);
+  }, [isAuth, user, navigate]);
   const switchHeaderClass = () => {
     if (menuType === "horizontal" || menuHidden) {
       return "ltr:ml-0 rtl:mr-0";
