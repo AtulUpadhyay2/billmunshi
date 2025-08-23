@@ -11,6 +11,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useLoginMutation } from "@/store/api/auth/authApiSlice";
 import { setUser } from "@/store/api/auth/authSlice";
 import { toast } from "react-toastify";
+import OrganizationSelectModal from "@/components/partials/auth/OrganizationSelectModal";
 const schema = yup
   .object({
     email: yup.string().email("Invalid email").required("Email is Required"),
@@ -19,6 +20,9 @@ const schema = yup
   .required();
 const LoginForm = () => {
   const [login, { isLoading, isError, error, isSuccess }] = useLoginMutation();
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [userOrganizations, setUserOrganizations] = useState([]);
+  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   const dispatch = useDispatch();
 
@@ -54,19 +58,35 @@ const LoginForm = () => {
       // Check if user has any organizations
       const userOrganizations = response.data.user?.organizations || [];
       
-      // Dispatch the complete response data to store
-      dispatch(setUser({
+      // Store login data for potential use after organization selection
+      setPendingLoginData({
         user: response.data.user,
         access: response.data.access,
         refresh: response.data.refresh
-      }));
+      });
 
       toast.success("Login Successful");
       
-      // Redirect based on organization availability
+      // Handle organization logic
       if (userOrganizations.length === 0) {
+        // No organizations - dispatch user data and redirect to no-organization page
+        dispatch(setUser({
+          user: response.data.user,
+          access: response.data.access,
+          refresh: response.data.refresh
+        }));
         navigate("/no-organization");
+      } else if (userOrganizations.length > 1) {
+        // More than 2 organizations - show selection modal
+        setUserOrganizations(userOrganizations);
+        setShowOrgModal(true);
       } else {
+        // 1 or 2 organizations - dispatch user data and redirect to dashboard
+        dispatch(setUser({
+          user: response.data.user,
+          access: response.data.access,
+          refresh: response.data.refresh
+        }));
         navigate("/dashboard");
       }
     } catch (error) {
@@ -75,50 +95,75 @@ const LoginForm = () => {
     }
   };
 
+  const handleOrganizationSelect = (selectedOrg) => {
+    // Dispatch the user data with the selected organization
+    if (pendingLoginData) {
+      dispatch(setUser(pendingLoginData));
+      setShowOrgModal(false);
+      navigate("/dashboard");
+    }
+  };
+
+  const handleCloseOrgModal = () => {
+    setShowOrgModal(false);
+    // Clear pending data if user cancels
+    setPendingLoginData(null);
+    setUserOrganizations([]);
+  };
+
   const [checked, setChecked] = useState(false);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 ">
-      <Textinput
-        name="email"
-        label="email"
-        type="email"
-        register={register}
-        error={errors.email}
-        className="h-[48px]"
-        placeholder="Enter your email"
-      />
-      <Textinput
-        name="password"
-        label="password"
-        type="password"
-        register={register}
-        error={errors.password}
-        hasicon={true}
-        className="h-[48px]"
-        placeholder="Enter your password"
-      />
-      <div className="flex justify-between">
-        <Checkbox
-          value={checked}
-          onChange={() => setChecked(!checked)}
-          label="Keep me signed in"
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 ">
+        <Textinput
+          name="email"
+          label="email"
+          type="email"
+          register={register}
+          error={errors.email}
+          className="h-[48px]"
+          placeholder="Enter your email"
         />
-        <Link
-          to="/forgot-password"
-          className="text-sm text-slate-800 dark:text-slate-400 leading-6 font-medium"
-        >
-          Forgot Password?{" "}
-        </Link>
-      </div>
+        <Textinput
+          name="password"
+          label="password"
+          type="password"
+          register={register}
+          error={errors.password}
+          hasicon={true}
+          className="h-[48px]"
+          placeholder="Enter your password"
+        />
+        <div className="flex justify-between">
+          <Checkbox
+            value={checked}
+            onChange={() => setChecked(!checked)}
+            label="Keep me signed in"
+          />
+          <Link
+            to="/forgot-password"
+            className="text-sm text-slate-800 dark:text-slate-400 leading-6 font-medium"
+          >
+            Forgot Password?{" "}
+          </Link>
+        </div>
 
-      <Button
-        type="submit"
-        text="Sign in"
-        className="btn btn-dark block w-full text-center "
-        isLoading={isLoading}
+        <Button
+          type="submit"
+          text="Sign in"
+          className="btn btn-dark block w-full text-center "
+          isLoading={isLoading}
+        />
+      </form>
+
+      <OrganizationSelectModal
+        isOpen={showOrgModal}
+        onClose={handleCloseOrgModal}
+        organizations={userOrganizations}
+        onSelectOrganization={handleOrganizationSelect}
       />
-    </form>
+    </>
   );
 };
 
