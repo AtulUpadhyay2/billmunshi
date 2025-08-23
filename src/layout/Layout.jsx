@@ -8,6 +8,7 @@ import useSidebar from "@/hooks/useSidebar";
 import useContentWidth from "@/hooks/useContentWidth";
 import useMenulayout from "@/hooks/useMenulayout";
 import useMenuHidden from "@/hooks/useMenuHidden";
+import useProfileRefresh from "@/hooks/useProfileRefresh";
 import Footer from "@/components/partials/footer";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
@@ -22,6 +23,9 @@ const Layout = () => {
   const [collapsed] = useSidebar();
   const navigate = useNavigate();
   const { isAuth, user } = useSelector((state) => state.auth);
+
+  // Auto-refresh user profile data every 5 minutes
+  useProfileRefresh(5);
 
   useEffect(() => {
     if (!isAuth || !user) {

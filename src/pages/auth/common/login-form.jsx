@@ -8,7 +8,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useLoginMutation } from "@/store/api/auth/authApiSlice";
+import { useLoginMutation, useLazyGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import { setUser } from "@/store/api/auth/authSlice";
 import { toast } from "react-toastify";
 import OrganizationSelectModal from "@/components/partials/auth/OrganizationSelectModal";
@@ -20,6 +20,7 @@ const schema = yup
   .required();
 const LoginForm = () => {
   const [login, { isLoading, isError, error, isSuccess }] = useLoginMutation();
+  const [triggerGetProfile, { isLoading: isProfileLoading }] = useLazyGetProfileQuery();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [userOrganizations, setUserOrganizations] = useState([]);
   const [pendingLoginData, setPendingLoginData] = useState(null);
@@ -55,37 +56,55 @@ const LoginForm = () => {
         throw new Error("Invalid response from server");
       }
 
+      // Store initial login tokens
+      const loginTokens = {
+        access: response.data.access,
+        refresh: response.data.refresh
+      };
+
+      toast.success("Login Successful");
+
+      // Fetch fresh profile data from /me endpoint
+      const profileResult = await triggerGetProfile();
+      
+      if (profileResult.error) {
+        console.error('Profile fetch error:', profileResult.error);
+        // Fall back to login response data if profile fetch fails
+        var userData = response.data.user;
+      } else {
+        // Use fresh profile data
+        var userData = profileResult.data;
+      }
+
       // Check if user has any organizations
-      const userOrganizations = response.data.user?.organizations || [];
+      const userOrganizations = userData?.organizations || [];
       
       // Store login data for potential use after organization selection
       setPendingLoginData({
-        user: response.data.user,
-        access: response.data.access,
-        refresh: response.data.refresh
+        user: userData,
+        access: loginTokens.access,
+        refresh: loginTokens.refresh
       });
-
-      toast.success("Login Successful");
       
       // Handle organization logic
       if (userOrganizations.length === 0) {
         // No organizations - dispatch user data and redirect to no-organization page
         dispatch(setUser({
-          user: response.data.user,
-          access: response.data.access,
-          refresh: response.data.refresh
+          user: userData,
+          access: loginTokens.access,
+          refresh: loginTokens.refresh
         }));
         navigate("/no-organization");
       } else if (userOrganizations.length > 1) {
-        // More than 2 organizations - show selection modal
+        // More than 1 organization - show selection modal
         setUserOrganizations(userOrganizations);
         setShowOrgModal(true);
       } else {
-        // 1 or 2 organizations - dispatch user data and redirect to dashboard
+        // 1 organization - dispatch user data and redirect to dashboard
         dispatch(setUser({
-          user: response.data.user,
-          access: response.data.access,
-          refresh: response.data.refresh
+          user: userData,
+          access: loginTokens.access,
+          refresh: loginTokens.refresh
         }));
         navigate("/dashboard");
       }
@@ -153,7 +172,7 @@ const LoginForm = () => {
           type="submit"
           text="Sign in"
           className="btn btn-dark block w-full text-center "
-          isLoading={isLoading}
+          isLoading={isLoading || isProfileLoading}
         />
       </form>
 
