@@ -146,10 +146,6 @@ const ZohoCredentials = () => {
                                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Timestamps</h2>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Created At</h3>
-                                                <p className="text-sm text-blue-900 dark:text-blue-100">{formatDate(credentials.created_at)}</p>
-                                            </div>
-                                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                                                 <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Last Updated</h3>
                                                 <p className="text-sm text-blue-900 dark:text-blue-100">{formatDate(credentials.update_at)}</p>
                                             </div>
