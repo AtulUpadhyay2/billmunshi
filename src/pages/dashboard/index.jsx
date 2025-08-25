@@ -10,6 +10,7 @@ import RecentActivity from "@/components/partials/widget/recent-activity";
 import MostSales from "../../components/partials/widget/most-sales";
 import RadarChart from "../../components/partials/widget/chart/radar-chart";
 import HomeBredCurbs from "./HomeBredCurbs";
+import ModulesDebug from "@/components/ModulesDebug";
 
 const Dashboard = () => {
   const [filterMap, setFilterMap] = useState("usa");

@@ -9,6 +9,9 @@ import useDarkMode from "@/hooks/useDarkMode";
 import { Link } from "react-router-dom";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import Icon from "@/components/ui/Icon";
+import { useSelector } from "react-redux";
+import { useGetOrganizationModulesQuery } from "@/store/api/modules/modulesSlice";
+import { getFilteredMenuItems } from "@/utils/menuUtils";
 
 // import images
 import MobileLogo from "@/assets/images/logo/logo-c.svg";
@@ -34,6 +37,22 @@ const MobileMenu = ({ className = "custom-class" }) => {
   const [skin] = useSkin();
   const [isDark] = useDarkMode();
   const [mobileMenu, setMobileMenu] = useMobileMenu();
+
+  // Get selected organization from auth state
+  const { selectedOrganization } = useSelector((state) => state.auth);
+  
+  // Fetch modules for the selected organization
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
+    error: modulesError,
+  } = useGetOrganizationModulesQuery(selectedOrganization?.id, {
+    skip: !selectedOrganization?.id,
+  });
+
+  // Get filtered menu items based on enabled modules
+  const filteredMenuItems = getFilteredMenuItems(modulesData || []);
+
   return (
     <div
       className={`${className} fixed  top-0 bg-white dark:bg-slate-800 shadow-lg  h-full   w-[248px]`}
@@ -73,7 +92,13 @@ const MobileMenu = ({ className = "custom-class" }) => {
         className="sidebar-menu px-4 h-[calc(100%-80px)]"
         scrollableNodeProps={{ ref: scrollableNodeRef }}
       >
-        <Navmenu menus={menuItems} />
+        {modulesLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="text-slate-500">Loading modules...</div>
+          </div>
+        ) : (
+          <Navmenu menus={filteredMenuItems} />
+        )}
         {/* <div className="bg-slate-900 mb-24 lg:mb-10 mt-24 p-4 relative text-center rounded-2xl text-white">
           <img
             src={svgRabitImage}

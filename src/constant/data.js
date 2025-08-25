@@ -81,18 +81,18 @@ export const menuItems = [
     link: "expense-bill",
   },
 
-  {
-    title: "Config",
-    icon: "heroicons-outline:cog",
-    link: "#",
-    isHide: true,
-    child: [
-      {
-        childtitle: "Credentials",
-        childlink: "credentials",
-      }
-    ],
-  },
+  // {
+  //   title: "Config",
+  //   icon: "heroicons-outline:cog",
+  //   link: "#",
+  //   isHide: true,
+  //   child: [
+  //     {
+  //       childtitle: "Credentials",
+  //       childlink: "credentials",
+  //     }
+  //   ],
+  // },
 
   {
     isHeadr: true,

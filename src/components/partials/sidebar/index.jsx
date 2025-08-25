@@ -7,6 +7,9 @@ import useSidebar from "@/hooks/useSidebar";
 import useSemiDark from "@/hooks/useSemiDark";
 import useSkin from "@/hooks/useSkin";
 import svgRabitImage from "@/assets/images/svg/rabit.svg";
+import { useSelector } from "react-redux";
+import { useGetOrganizationModulesQuery } from "@/store/api/modules/modulesSlice";
+import { getFilteredMenuItems } from "@/utils/menuUtils";
 
 const Sidebar = () => {
   const scrollableNodeRef = useRef();
@@ -30,6 +33,22 @@ const Sidebar = () => {
   const [isSemiDark] = useSemiDark();
   // skin
   const [skin] = useSkin();
+
+  // Get selected organization from auth state
+  const { selectedOrganization } = useSelector((state) => state.auth);
+  
+  // Fetch modules for the selected organization
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
+    error: modulesError,
+  } = useGetOrganizationModulesQuery(selectedOrganization?.id, {
+    skip: !selectedOrganization?.id,
+  });
+
+  // Get filtered menu items based on enabled modules
+  const filteredMenuItems = getFilteredMenuItems(modulesData || []);
+
   return (
     <div className={isSemiDark ? "dark" : ""}>
       <div
@@ -61,7 +80,13 @@ const Sidebar = () => {
           className="sidebar-menu px-4 h-[calc(100%-80px)]"
           scrollableNodeProps={{ ref: scrollableNodeRef }}
         >
-          <Navmenu menus={menuItems} />
+          {modulesLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="text-slate-500">Loading modules...</div>
+            </div>
+          ) : (
+            <Navmenu menus={filteredMenuItems} />
+          )}
           {/* {!collapsed && (
             <div className="bg-slate-900 mb-16 mt-24 p-4 relative text-center rounded-2xl text-white">
               <img
