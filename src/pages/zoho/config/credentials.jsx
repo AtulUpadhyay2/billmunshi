@@ -102,7 +102,7 @@ const ZohoCredentials = () => {
                                 </div>
                             ) : (
                                 <div className="p-6 space-y-6">
-                                    {/* Basic Information */}
+                                    
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
                                             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Organization ID</h3>
@@ -118,7 +118,6 @@ const ZohoCredentials = () => {
                                         </div>
                                     </div>
 
-                                    {/* Sensitive Information */}
                                     <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
                                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Sensitive Information</h2>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -141,7 +140,6 @@ const ZohoCredentials = () => {
                                         </div>
                                     </div>
 
-                                    {/* Timestamps */}
                                     <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
                                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Timestamps</h2>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
