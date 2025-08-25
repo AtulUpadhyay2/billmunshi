@@ -37,27 +37,27 @@ export const menuItems = [
     child: [
       {
         childtitle: "Credentials",
-        childlink: "credentials",
+        childlink: "zoho/credentials",
       },
       {
         childtitle: "Chart of account",
-        childlink: "chart-of-account",
+        childlink: "zoho/chart-of-account",
       },
       {
         childtitle: "Taxes",
-        childlink: "taxes",
+        childlink: "zoho/taxes",
       },
       {
         childtitle: "TDS / TCS",
-        childlink: "tds-tcs",
+        childlink: "zoho/tds-tcs",
       },
       {
         childtitle: "Vendors",
-        childlink: "vendors",
+        childlink: "zoho/vendors",
       },
       {
         childtitle: "Vendors Credits",
-        childlink: "vendors-credits",
+        childlink: "zoho/vendors-credits",
       }
     ],
   },
