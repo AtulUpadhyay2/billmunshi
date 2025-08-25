@@ -81,8 +81,12 @@ const Sidebar = () => {
           scrollableNodeProps={{ ref: scrollableNodeRef }}
         >
           {modulesLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="text-slate-500">Loading modules...</div>
+            <div className="py-6">
+              <div className="animate-pulse space-y-4">
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mx-auto" />
+                ))}
+              </div>
             </div>
           ) : (
             <Navmenu menus={filteredMenuItems} />
