@@ -11,6 +11,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useLoginMutation, useLazyGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import { setUser } from "@/store/api/auth/authSlice";
 import { toast } from "react-toastify";
+import { handleApiError } from "@/utils/apiErrorHandler";
 import OrganizationSelectModal from "@/components/partials/auth/OrganizationSelectModal";
 const schema = yup
   .object({
@@ -110,7 +111,12 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error(error.message || "Login failed. Please try again.");
+      
+      // Use centralized error handler
+      const isTokenExpired = handleApiError(error, "Login failed. Please try again.");
+      
+      // If it's not a token expiration error, the handleApiError already showed the toast
+      // Token expiration errors are handled automatically by the error handler
     }
   };
 

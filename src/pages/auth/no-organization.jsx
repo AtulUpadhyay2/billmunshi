@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logOut, setUser } from "@/store/api/auth/authSlice";
 import { useLazyGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import { toast } from "react-toastify";
+import { handleApiError } from "@/utils/apiErrorHandler";
 
 // image import
 import LogoWhite from "@/assets/images/logo/logo-white.svg";
@@ -66,7 +67,12 @@ const NoOrganization = () => {
             }
         } catch (error) {
             console.error("Profile refresh error:", error);
-            toast.error(error.message || "Failed to refresh profile. Please try again.");
+            
+            // Use centralized error handler
+            const isTokenExpired = handleApiError(error, "Failed to refresh profile. Please try again.");
+            
+            // If token expired, user will be automatically logged out
+            // Otherwise, show the error that was already handled by handleApiError
         } finally {
             setIsRefreshing(false);
         }
@@ -93,8 +99,13 @@ const NoOrganization = () => {
                     setLastChecked(new Date());
                 }
             } catch (error) {
-                // Silently fail - don't show error to user for background checks
-                console.log("Background organization check failed:", error);
+                // Handle error with centralized error handler
+                const isTokenExpired = handleApiError(error);
+                
+                if (!isTokenExpired) {
+                    // Only log if it's not a token expiration (which is handled automatically)
+                    console.log("Background organization check failed:", error);
+                }
             }
         };
 

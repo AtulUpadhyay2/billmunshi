@@ -89,8 +89,29 @@ export const authSlice = createSlice({
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("selected_org");
     },
+    forceLogout: (state, action) => {
+      // Similar to logOut but can carry additional metadata for forced logouts
+      state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.isAuth = false;
+      state.selectedOrganization = null;
+      
+      // Clear from localStorage
+      localStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("selected_org");
+      
+      // Could redirect to login page with a message
+      if (typeof window !== 'undefined' && window.location) {
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
+      }
+    },
   },
 });
 
-export const { setUser, setSelectedOrganization, updateUserOrganizations, logOut } = authSlice.actions;
+export const { setUser, setSelectedOrganization, updateUserOrganizations, logOut, forceLogout } = authSlice.actions;
 export default authSlice.reducer;
