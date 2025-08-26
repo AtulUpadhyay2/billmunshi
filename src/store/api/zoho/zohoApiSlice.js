@@ -92,6 +92,24 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Vendors'],
     }),
+    getVendorCredits: builder.query({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/vendor-credits/`,
+        method: 'GET',
+      }),
+      providesTags: ['VendorCredits'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Vendor Credits API Error:', response);
+        return response;
+      },
+    }),
+    syncVendorCredits: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/vendor-credits/sync/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['VendorCredits'],
+    }),
   }),
 });
 
@@ -105,5 +123,7 @@ export const {
   useGetTdsTcsQuery,
   useSyncTdsTcsMutation,
   useGetVendorsQuery,
-  useSyncVendorsMutation
+  useSyncVendorsMutation,
+  useGetVendorCreditsQuery,
+  useSyncVendorCreditsMutation
 } = zohoApi;

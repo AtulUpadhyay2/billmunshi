@@ -120,6 +120,7 @@ const ZohoChartOfAccounts = lazy(() => import("./pages/zoho/config/chart-of-acco
 const ZohoTaxes = lazy(() => import("./pages/zoho/config/taxes"));
 const ZohoTdsTcs = lazy(() => import("./pages/zoho/config/tds-tcs"));
 const ZohoVendors = lazy(() => import("./pages/zoho/config/vendors"));
+const ZohoVendorsCredits = lazy(() => import("./pages/zoho/config/vendors-credits"));
 
 import Loading from "@/components/Loading";
 import { ProductDetails } from "./pages/ecommerce/productDetails";
@@ -243,6 +244,7 @@ function App() {
           <Route path="zoho/taxes" element={<ZohoTaxes />} />
           <Route path="zoho/tds-tcs" element={<ZohoTdsTcs />} />
           <Route path="zoho/vendors" element={<ZohoVendors />} />
+          <Route path="zoho/vendors-credits" element={<ZohoVendorsCredits />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>
