@@ -38,6 +38,24 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['ChartOfAccounts'],
     }),
+    getTaxes: builder.query({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/taxes/`,
+        method: 'GET',
+      }),
+      providesTags: ['Taxes'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Taxes API Error:', response);
+        return response;
+      },
+    }),
+    syncTaxes: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/taxes/sync/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Taxes'],
+    }),
   }),
 });
 
@@ -45,5 +63,7 @@ export const {
   useGetZohoCredentialsQuery, 
   useSyncZohoCredentialsMutation,
   useGetChartOfAccountsQuery,
-  useSyncChartOfAccountsMutation
+  useSyncChartOfAccountsMutation,
+  useGetTaxesQuery,
+  useSyncTaxesMutation
 } = zohoApi;
