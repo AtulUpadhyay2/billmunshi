@@ -56,6 +56,24 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Taxes'],
     }),
+    getTdsTcs: builder.query({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/tds-tcs/`,
+        method: 'GET',
+      }),
+      providesTags: ['TdsTcs'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('TDS/TCS API Error:', response);
+        return response;
+      },
+    }),
+    syncTdsTcs: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/tds-tcs/sync/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['TdsTcs'],
+    }),
   }),
 });
 
@@ -65,5 +83,7 @@ export const {
   useGetChartOfAccountsQuery,
   useSyncChartOfAccountsMutation,
   useGetTaxesQuery,
-  useSyncTaxesMutation
+  useSyncTaxesMutation,
+  useGetTdsTcsQuery,
+  useSyncTdsTcsMutation
 } = zohoApi;
