@@ -74,6 +74,24 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['TdsTcs'],
     }),
+    getVendors: builder.query({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/vendors/`,
+        method: 'GET',
+      }),
+      providesTags: ['Vendors'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Vendors API Error:', response);
+        return response;
+      },
+    }),
+    syncVendors: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/vendors/sync/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Vendors'],
+    }),
   }),
 });
 
@@ -85,5 +103,7 @@ export const {
   useGetTaxesQuery,
   useSyncTaxesMutation,
   useGetTdsTcsQuery,
-  useSyncTdsTcsMutation
+  useSyncTdsTcsMutation,
+  useGetVendorsQuery,
+  useSyncVendorsMutation
 } = zohoApi;
