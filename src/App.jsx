@@ -116,6 +116,7 @@ const EcommercePage = lazy(() => import("./pages/ecommerce"));
 const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
 const ZohoExpenseBill = lazy(() => import("./pages/zoho/expense-bill"));
 const ZohoCredentials = lazy(() => import("./pages/zoho/config/credentials"));
+const ZohoChartOfAccounts = lazy(() => import("./pages/zoho/config/chart-of-account"));
 
 import Loading from "@/components/Loading";
 import { ProductDetails } from "./pages/ecommerce/productDetails";
@@ -235,6 +236,7 @@ function App() {
           <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
           <Route path="zoho/expense-bill" element={<ZohoExpenseBill />} />
           <Route path="zoho/credentials" element={<ZohoCredentials />} />
+          <Route path="zoho/chart-of-account" element={<ZohoChartOfAccounts />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>

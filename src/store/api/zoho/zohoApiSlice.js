@@ -20,10 +20,30 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['ZohoCredentials'],
     }),
+    getChartOfAccounts: builder.query({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/chart-of-accounts/`,
+        method: 'GET',
+      }),
+      providesTags: ['ChartOfAccounts'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Chart of Accounts API Error:', response);
+        return response;
+      },
+    }),
+    syncChartOfAccounts: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/chart-of-accounts/sync/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['ChartOfAccounts'],
+    }),
   }),
 });
 
 export const { 
   useGetZohoCredentialsQuery, 
-  useSyncZohoCredentialsMutation 
+  useSyncZohoCredentialsMutation,
+  useGetChartOfAccountsQuery,
+  useSyncChartOfAccountsMutation
 } = zohoApi;
