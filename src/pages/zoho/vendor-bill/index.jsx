@@ -1,37 +1,48 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Card from "@/components/ui/Card";
-import { useGetVendorBillsQuery, useUpdateVendorBillMutation, useDeleteVendorBillMutation } from "@/store/api/zoho/vendorBillsApiSlice";
+import { useGetVendorBillsQuery, useUpdateVendorBillMutation, useDeleteVendorBillMutation, useUploadVendorBillsMutation } from "@/store/api/zoho/vendorBillsApiSlice";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import UploadBillModal from "@/components/modals/UploadBillModal";
+import { useSelector } from "react-redux";
 
 const ZohoVendorBill = () => {
-    const { data: vendorBillsData, error, isLoading, refetch } = useGetVendorBillsQuery();
+    const { selectedOrganization } = useSelector((state) => state.auth);
+    const { data: vendorBillsData, error, isLoading, refetch } = useGetVendorBillsQuery(selectedOrganization?.id, {
+        skip: !selectedOrganization?.id,
+    });
     const [updateVendorBill] = useUpdateVendorBillMutation();
     const [deleteVendorBill] = useDeleteVendorBillMutation();
+    const [uploadVendorBills] = useUploadVendorBillsMutation();
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
     const handleAction = async (billId, action) => {
         try {
             switch (action) {
                 case 'analyse':
-                    await updateVendorBill({ id: billId, status: 'Analysed' }).unwrap();
+                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Analysed' }).unwrap();
                     globalToast.success('Bill analysis completed');
                     break;
-                case 'verification':
-                    await updateVendorBill({ id: billId, status: 'Verified' }).unwrap();
+                case 'verify':
+                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
                     globalToast.success('Bill verification completed');
                     break;
                 case 'sync':
-                    await updateVendorBill({ id: billId, status: 'Synced' }).unwrap();
-                    globalToast.success('Bill synced successfully');
+                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Synced' }).unwrap();
+                    globalToast.success('Bill synced to Zoho');
+                    break;
+                case 'edit':
+                    // TODO: Implement edit functionality
+                    globalToast.info('Edit functionality coming soon');
                     break;
                 case 'delete':
-                    if (window.confirm('Are you sure you want to delete this vendor bill?')) {
-                        await deleteVendorBill(billId).unwrap();
+                    if (window.confirm('Are you sure you want to delete this bill?')) {
+                        await deleteVendorBill({ organizationId: selectedOrganization?.id, id: billId }).unwrap();
                         globalToast.success('Bill deleted successfully');
                     }
                     break;
                 default:
-                    break;
+                    globalToast.error('Unknown action');
             }
         } catch (error) {
             console.error('Action failed:', error);
@@ -55,6 +66,17 @@ const ZohoVendorBill = () => {
                 {status}
             </span>
         );
+    };
+
+    const handleUpload = async (formData) => {
+        try {
+            await uploadVendorBills({ organizationId: selectedOrganization?.id, formData }).unwrap();
+            globalToast.success('Bills uploaded successfully');
+            refetch(); // Refresh the list
+        } catch (error) {
+            console.error('Upload failed:', error);
+            globalToast.error(error?.data?.message || 'Failed to upload bills');
+        }
     };
 
     const renderActionButtons = (bill) => {
@@ -160,6 +182,15 @@ const ZohoVendorBill = () => {
         });
     };
 
+    if (!selectedOrganization?.id) {
+        return (
+            <div className="text-center py-8">
+                <div className="text-slate-500">No organization selected</div>
+                <div className="text-xs text-slate-400 mt-2">Please select an organization to view vendor bills</div>
+            </div>
+        );
+    }
+
     if (isLoading) return <Loading />;
     if (error) return <div className="text-red-500">Error loading vendor bills: {error.message}</div>;
 
@@ -186,10 +217,7 @@ const ZohoVendorBill = () => {
                         <button 
                             className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
                             title="Upload vendor bills"
-                            onClick={() => {
-                                // TODO: Implement file upload functionality
-                                console.log('Upload functionality to be implemented');
-                            }}
+                            onClick={() => setIsUploadModalOpen(true)}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
                                 viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" 
@@ -338,6 +366,13 @@ const ZohoVendorBill = () => {
                     </div>
                 )}
             </Card>
+
+            {/* Upload Modal */}
+            <UploadBillModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onUpload={handleUpload}
+            />
         </div>
     );
 };
