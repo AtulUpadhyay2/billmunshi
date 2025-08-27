@@ -20,6 +20,13 @@ export const zohoApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['ZohoCredentials'],
     }),
+    generateZohoToken: builder.mutation({
+      query: (organizationId) => ({
+        url: `zoho/${organizationId}/credentials/generate-token/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['ZohoCredentials'],
+    }),
     getChartOfAccounts: builder.query({
       query: (organizationId) => ({
         url: `zoho/${organizationId}/chart-of-accounts/`,
@@ -116,6 +123,7 @@ export const zohoApi = apiSlice.injectEndpoints({
 export const { 
   useGetZohoCredentialsQuery, 
   useSyncZohoCredentialsMutation,
+  useGenerateZohoTokenMutation,
   useGetChartOfAccountsQuery,
   useSyncChartOfAccountsMutation,
   useGetTaxesQuery,
