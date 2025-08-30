@@ -237,8 +237,7 @@ const ZohoVendorBill = () => {
                                 <thead className="bg-slate-200 dark:bg-slate-700">
                                     <tr>
                                         <th scope='col' className='table-th'>Sr. No</th>
-                                        <th scope='col' className='table-th'>Billmunshi Name</th>
-                                        <th scope='col' className='table-th'>File Type</th>
+                                        <th scope='col' className='table-th'>Document ID</th>
                                         <th scope='col' className='table-th'>Status</th>
                                         <th scope='col' className='table-th'>Created Date</th>
                                         <th scope='col' className='table-th'>Actions</th>
@@ -276,11 +275,6 @@ const ZohoVendorBill = () => {
                                                             </a>
                                                         )}
                                                     </div>
-                                                </td>
-                                                <td className="table-td">
-                                                    <span className="text-xs px-2 py-1 bg-slate-100 rounded-md">
-                                                        {bill.fileType}
-                                                    </span>
                                                 </td>
                                                 <td className="table-td">
                                                     {getStatusBadge(bill.status)}

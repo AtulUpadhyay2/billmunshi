@@ -44,7 +44,7 @@ export const menuItems = [
         childlink: "zoho/chart-of-account",
       },
       {
-        childtitle: "Taxes",
+        childtitle: "GST ledgers",
         childlink: "zoho/taxes",
       },
       {
@@ -52,13 +52,13 @@ export const menuItems = [
         childlink: "zoho/tds-tcs",
       },
       {
-        childtitle: "Vendors",
+        childtitle: "Vendor List",
         childlink: "zoho/vendors",
       },
-      {
-        childtitle: "Vendors Credits",
-        childlink: "zoho/vendors-credits",
-      }
+      // {
+      //   childtitle: "Vendors Credits",
+      //   childlink: "zoho/vendors-credits",
+      // }
     ],
   },
   
