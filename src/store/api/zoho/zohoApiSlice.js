@@ -46,8 +46,8 @@ export const zohoApi = apiSlice.injectEndpoints({
       invalidatesTags: ['ChartOfAccounts'],
     }),
     getTaxes: builder.query({
-      query: (organizationId) => ({
-        url: `zoho/${organizationId}/taxes/`,
+      query: ({ organizationId, page = 1 }) => ({
+        url: `zoho/${organizationId}/taxes/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['Taxes'],
