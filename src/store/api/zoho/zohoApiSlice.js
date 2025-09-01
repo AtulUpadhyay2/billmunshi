@@ -28,8 +28,8 @@ export const zohoApi = apiSlice.injectEndpoints({
       invalidatesTags: ['ZohoCredentials'],
     }),
     getChartOfAccounts: builder.query({
-      query: (organizationId) => ({
-        url: `zoho/${organizationId}/chart-of-accounts/`,
+      query: ({ organizationId, page = 1 }) => ({
+        url: `zoho/${organizationId}/chart-of-accounts/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['ChartOfAccounts'],
