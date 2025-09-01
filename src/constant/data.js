@@ -71,14 +71,14 @@ export const menuItems = [
     title: "Vendor Bill",
     isHide: true,
     icon: "heroicons-outline:document-text",
-    link: "vendor-bill",
+    link: "tally/vendor-bill",
   },
 
   {
     title: "Expense Bill",
     isHide: true,
     icon: "heroicons-outline:clipboard",
-    link: "expense-bill",
+    link: "tally/expense-bill",
   },
 
   // {

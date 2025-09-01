@@ -261,8 +261,8 @@ function App() {
           <Route path="zoho/vendors-credits" element={<ZohoVendorsCredits />} />
 
           {/** Tally */}
-          <Route path="vendor-bill" element={<TallyVendorBill />} />
-          <Route path="expense-bill" element={<TallyExpenseBill />} />
+          <Route path="tally/vendor-bill" element={<TallyVendorBill />} />
+          <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
 
           {/** Settings */}
           <Route path="api-keys" element={<ApiKeys />} />
