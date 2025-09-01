@@ -11,8 +11,10 @@ export const getFilteredMenuItems = (enabledModules = []) => {
     .filter(module => module.is_enabled)
     .map(module => module.module.toLowerCase());
 
+  console.log('Enabled modules:', enabledModuleNames);
+
   return menuItems.filter(item => {
-    // Always show Dashboard and Settings sections
+    // Always show Dashboard and Settings sections headers
     if (item.isHeadr && (item.title === "menu" || item.title === "Settings")) {
       return true;
     }
@@ -30,43 +32,41 @@ export const getFilteredMenuItems = (enabledModules = []) => {
       return true;
     }
 
-    // Handle Zoho section
+    // Handle Zoho section header
     if (item.isHeadr && item.title === "Zoho") {
       return enabledModuleNames.includes("zoho");
     }
     
     // Handle Zoho module items
-    if (item.link && (
-        item.link.startsWith("zoho/") || 
-        (item.child && item.child.some(child => 
-          child.childlink === "credentials" || 
-          child.childlink === "chart-of-account" ||
-          child.childlink === "taxes" ||
-          child.childlink === "tds-tcs" ||
-          child.childlink === "vendors" ||
-          child.childlink === "vendors-credits"
-        ))
-      )) {
+    if (item.link && item.link.startsWith("zoho/")) {
       return enabledModuleNames.includes("zoho");
     }
 
-    // Handle Tally section
+    // Handle Zoho Config items with child links
+    if (item.title === "Config" && item.child && 
+        item.child.some(child => child.childlink && child.childlink.startsWith("zoho/"))) {
+      return enabledModuleNames.includes("zoho");
+    }
+
+    // Handle Tally section header
     if (item.isHeadr && item.title === "Tally") {
       return enabledModuleNames.includes("tally");
     }
     
-    // Handle Tally module items
-    if (item.link && (
-        item.link === "vendor-bill" || 
-        item.link === "expense-bill" ||
-        (item.child && item.child.some(child => child.childlink === "credentials"))
-      )) {
-      // Check if this is a Tally-specific item (not in zoho/ path)
-      if (!item.link.startsWith("zoho/")) {
-        return enabledModuleNames.includes("tally");
-      }
+    // Handle Tally module items (those not starting with zoho/)
+    if (item.link && (item.link === "vendor-bill" || item.link === "expense-bill")) {
+      return enabledModuleNames.includes("tally");
     }
 
+    // Handle Tally Config items (if any in the future)
+    if (item.title === "Config" && item.child && 
+        item.child.some(child => 
+          child.childlink === "credentials" && !child.childlink.startsWith("zoho/")
+        )) {
+      return enabledModuleNames.includes("tally");
+    }
+
+    // Default: show items that don't belong to any specific module
     return true;
   });
 };

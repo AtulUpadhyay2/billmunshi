@@ -124,6 +124,17 @@ const ZohoTdsTcs = lazy(() => import("./pages/zoho/config/tds-tcs"));
 const ZohoVendors = lazy(() => import("./pages/zoho/config/vendors"));
 const ZohoVendorsCredits = lazy(() => import("./pages/zoho/config/vendors-credits"));
 
+// Tally
+const TallyVendorBill = lazy(() => import("./pages/tally/vendor-bill"));
+const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
+
+// Settings
+const ApiKeys = lazy(() => import("./pages/settings/api-keys"));
+const Members = lazy(() => import("./pages/settings/members"));
+
+// Test pages
+const ModulesTestPage = lazy(() => import("./pages/modules-test"));
+
 import Loading from "@/components/Loading";
 import { ProductDetails } from "./pages/ecommerce/productDetails";
 import Cart from "./pages/ecommerce/cart";
@@ -248,6 +259,17 @@ function App() {
           <Route path="zoho/tds-tcs" element={<ZohoTdsTcs />} />
           <Route path="zoho/vendors" element={<ZohoVendors />} />
           <Route path="zoho/vendors-credits" element={<ZohoVendorsCredits />} />
+
+          {/** Tally */}
+          <Route path="vendor-bill" element={<TallyVendorBill />} />
+          <Route path="expense-bill" element={<TallyExpenseBill />} />
+
+          {/** Settings */}
+          <Route path="api-keys" element={<ApiKeys />} />
+          <Route path="members" element={<Members />} />
+
+          {/* Test pages */}
+          <Route path="modules-test" element={<ModulesTestPage />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>

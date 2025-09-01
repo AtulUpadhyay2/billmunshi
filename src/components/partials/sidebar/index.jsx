@@ -49,6 +49,9 @@ const Sidebar = () => {
   // Get filtered menu items based on enabled modules
   const filteredMenuItems = getFilteredMenuItems(modulesData || []);
 
+  // Show error state if modules failed to load
+  const showError = modulesError && !modulesLoading;
+
   return (
     <div className={isSemiDark ? "dark" : ""}>
       <div
@@ -87,6 +90,14 @@ const Sidebar = () => {
                   <div key={i} className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mx-auto" />
                 ))}
               </div>
+            </div>
+          ) : showError ? (
+            <div className="py-6 px-2">
+              <div className="text-center text-red-500 text-sm">
+                <p>Failed to load modules</p>
+                <p className="text-xs mt-1">Using default menu</p>
+              </div>
+              <Navmenu menus={menuItems} />
             </div>
           ) : (
             <Navmenu menus={filteredMenuItems} />

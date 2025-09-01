@@ -6,7 +6,7 @@ export const modulesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getOrganizationModules: builder.query({
       query: (organizationId) => ({
-        url: `organizations/${organizationId}/modules/`,
+        url: `org/${organizationId}/modules/`,
         method: 'GET',
       }),
       providesTags: ['Modules'],
