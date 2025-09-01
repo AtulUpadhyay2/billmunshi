@@ -64,8 +64,8 @@ export const zohoApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Taxes'],
     }),
     getTdsTcs: builder.query({
-      query: (organizationId) => ({
-        url: `zoho/${organizationId}/tds-tcs/`,
+      query: ({ organizationId, page = 1 }) => ({
+        url: `zoho/${organizationId}/tds-tcs/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['TdsTcs'],
