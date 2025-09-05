@@ -6,6 +6,9 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       query: (organizationId) => ({
         url: `zoho/org/${organizationId}/vendor-bills/`,
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }),
       providesTags: ['VendorBill'],
       transformErrorResponse: (response, meta, arg) => {
@@ -17,6 +20,9 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       query: ({ organizationId, billId }) => ({
         url: `zoho/${organizationId}/vendor-bills/${billId}/`,
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }),
       providesTags: (result, error, { billId }) => [{ type: 'VendorBill', id: billId }],
     }),
@@ -25,19 +31,18 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
         url: `zoho/${organizationId}/vendor-bills/`,
         method: "POST",
         body: newBill,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }),
       invalidatesTags: ['VendorBill'],
     }),
     uploadVendorBills: builder.mutation({
       query: ({ organizationId, formData }) => ({
-        url: `zoho/${organizationId}/vendor-bills/`,
+        url: `zoho/org/${organizationId}/vendor-bills/upload/`,
         method: "POST",
         body: formData,
-        // Don't set Content-Type header, let the browser set it for FormData
-        prepareHeaders: (headers) => {
-          headers.delete('Content-Type');
-          return headers;
-        },
+        // Don't set any Content-Type header for FormData uploads
       }),
       invalidatesTags: ['VendorBill'],
     }),
@@ -46,6 +51,9 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
         url: `zoho/${organizationId}/vendor-bills/${id}/`,
         method: "PATCH",
         body: patch,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'VendorBill', id }],
     }),
@@ -53,6 +61,9 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       query: ({ organizationId, billId }) => ({
         url: `zoho/${organizationId}/vendor-bills/${billId}/`,
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }),
       invalidatesTags: ['VendorBill'],
     }),

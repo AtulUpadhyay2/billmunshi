@@ -68,13 +68,25 @@ const UploadBillModal = ({ isOpen, onClose, onUpload }) => {
             // Create FormData for file upload
             const formData = new FormData();
             
-            // Add files to FormData
-            files.forEach((file, index) => {
-                formData.append(`files`, file);
-            });
+            // Add files to FormData - try different approaches
+            if (files.length === 1) {
+                // Single file
+                formData.append('file', files[0]);
+            } else {
+                // Multiple files - try both approaches
+                files.forEach((file, index) => {
+                    formData.append('file', file); // Some servers expect same field name for multiple files
+                });
+            }
             
             // Add file type
             formData.append('fileType', fileType);
+            
+            // Debug: Log FormData contents
+            console.log('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
             
             // Call the upload function passed from parent
             await onUpload(formData);
