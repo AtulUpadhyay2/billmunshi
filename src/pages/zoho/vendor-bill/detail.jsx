@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 
@@ -7,6 +9,7 @@ const ZohoVendorBillDetail = () => {
     const [activeTab, setActiveTab] = useState('info');
     const [mobileMenu, setMobileMenu] = useMobileMenu();
     const [collapsed, setMenuCollapsed] = useSidebar();
+    const navigate = useNavigate();
 
     // Auto-close sidebar when component mounts
     useEffect(() => {
@@ -19,6 +22,16 @@ const ZohoVendorBillDetail = () => {
             setMenuCollapsed(true);
         }
     }, []); // Empty dependency array to run only on mount
+
+    // Handle back button click
+    const handleBackClick = () => {
+        // Open sidebar if it's collapsed
+        if (collapsed) {
+            setMenuCollapsed(false);
+        }
+        // Navigate back to vendor bill list
+        navigate('/zoho/vendor-bill');
+    };
 
     const tabs = [
         { id: 'info', label: 'Info' },
@@ -104,15 +117,27 @@ const ZohoVendorBillDetail = () => {
                 title="Vendor Bill Detail" 
                 noBorder
                 headerSlot={
-                    <button 
-                        className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                        title="Save"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                        </svg>
-                        Save
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleBackClick}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-500 border border-transparent rounded-lg shadow-sm hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
+                            title="Back"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Back
+                        </button>
+                        <button 
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
+                            title="Save"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                            </svg>
+                            Save
+                        </button>
+                    </div>
                 }
             >
                 <div className="flex flex-col lg:flex-row gap-6">
