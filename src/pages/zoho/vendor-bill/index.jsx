@@ -119,7 +119,7 @@ const ZohoVendorBill = () => {
                 <div className="flex gap-2 flex-wrap items-center">
                     <button 
                         onClick={() => handleAction(bill.id, 'verification')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md shadow-sm hover:bg-green-100 hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95"
+                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md shadow-sm hover:bg-blue-100 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
                         title="Start verification process"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
@@ -129,7 +129,7 @@ const ZohoVendorBill = () => {
                     </button>
                     <button 
                         onClick={() => handleAction(bill.id, 'sync')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md shadow-sm hover:bg-amber-100 hover:border-amber-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-amber-500 transition-all duration-200 active:scale-95"
+                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
                         title="Sync with system"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
@@ -146,7 +146,7 @@ const ZohoVendorBill = () => {
                 <div className="flex gap-2 flex-wrap items-center">
                     <button 
                         onClick={() => handleAction(bill.id, 'verification')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md shadow-sm hover:bg-green-100 hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95"
+                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md shadow-sm hover:bg-blue-100 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
                         title="Re-verify document"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
@@ -156,7 +156,7 @@ const ZohoVendorBill = () => {
                     </button>
                     <button 
                         onClick={() => handleAction(bill.id, 'sync')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md shadow-sm hover:bg-amber-100 hover:border-amber-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-amber-500 transition-all duration-200 active:scale-95"
+                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
                         title="Sync with system"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
