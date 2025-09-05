@@ -18,7 +18,7 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
     }),
     getVendorBill: builder.query({
       query: ({ organizationId, billId }) => ({
-        url: `zoho/${organizationId}/vendor-bills/${billId}/`,
+        url: `zoho/org/${organizationId}/vendor-bills/${billId}/`,
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
     }),
     createVendorBill: builder.mutation({
       query: ({ organizationId, ...newBill }) => ({
-        url: `zoho/${organizationId}/vendor-bills/`,
+        url: `zoho/org/${organizationId}/vendor-bills/`,
         method: "POST",
         body: newBill,
         headers: {
@@ -48,7 +48,7 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
     }),
     updateVendorBill: builder.mutation({
       query: ({ organizationId, id, ...patch }) => ({
-        url: `zoho/${organizationId}/vendor-bills/${id}/`,
+        url: `zoho/org/${organizationId}/vendor-bills/${id}/`,
         method: "PATCH",
         body: patch,
         headers: {
@@ -59,7 +59,7 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
     }),
     deleteVendorBill: builder.mutation({
       query: ({ organizationId, billId }) => ({
-        url: `zoho/${organizationId}/vendor-bills/${billId}/`,
+        url: `zoho/org/${organizationId}/vendor-bills/${billId}/`,
         method: "DELETE",
         headers: {
           'Content-Type': 'application/json',
