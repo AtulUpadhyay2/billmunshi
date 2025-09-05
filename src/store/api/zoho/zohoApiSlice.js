@@ -4,7 +4,7 @@ export const zohoApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getZohoCredentials: builder.query({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/credentials/`,
+        url: `zoho/org/${organizationId}/settings/credentials/`,
         method: 'GET',
       }),
       providesTags: ['ZohoCredentials'],
@@ -22,14 +22,14 @@ export const zohoApi = apiSlice.injectEndpoints({
     }),
     generateZohoToken: builder.mutation({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/credentials/generate-token/`,
+        url: `zoho/org/${organizationId}/settings/generate-token/`,
         method: 'POST',
       }),
       invalidatesTags: ['ZohoCredentials'],
     }),
     getChartOfAccounts: builder.query({
       query: ({ organizationId, page = 1 }) => ({
-        url: `zoho/${organizationId}/chart-of-accounts/${page ? `?page=${page}` : ''}`,
+        url: `zoho/org/${organizationId}/chart-of-accounts/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['ChartOfAccounts'],
@@ -40,14 +40,14 @@ export const zohoApi = apiSlice.injectEndpoints({
     }),
     syncChartOfAccounts: builder.mutation({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/chart-of-accounts/sync/`,
+        url: `zoho/org/${organizationId}/chart-of-accounts/sync/`,
         method: 'POST',
       }),
       invalidatesTags: ['ChartOfAccounts'],
     }),
     getTaxes: builder.query({
       query: ({ organizationId, page = 1 }) => ({
-        url: `zoho/${organizationId}/taxes/${page ? `?page=${page}` : ''}`,
+        url: `zoho/org/${organizationId}/taxes/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['Taxes'],
@@ -58,14 +58,14 @@ export const zohoApi = apiSlice.injectEndpoints({
     }),
     syncTaxes: builder.mutation({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/taxes/sync/`,
+        url: `zoho/org/${organizationId}/taxes/sync/`,
         method: 'POST',
       }),
       invalidatesTags: ['Taxes'],
     }),
     getTdsTcs: builder.query({
       query: ({ organizationId, page = 1 }) => ({
-        url: `zoho/${organizationId}/tds-tcs/${page ? `?page=${page}` : ''}`,
+        url: `zoho/org/${organizationId}/tds-tcs/${page ? `?page=${page}` : ''}`,
         method: 'GET',
       }),
       providesTags: ['TdsTcs'],
@@ -76,14 +76,14 @@ export const zohoApi = apiSlice.injectEndpoints({
     }),
     syncTdsTcs: builder.mutation({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/tds-tcs/sync/`,
+        url: `zoho/org/${organizationId}/tds-tcs/sync/`,
         method: 'POST',
       }),
       invalidatesTags: ['TdsTcs'],
     }),
     getVendors: builder.query({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/vendors/`,
+        url: `zoho/org/${organizationId}/vendors/`,
         method: 'GET',
       }),
       providesTags: ['Vendors'],
@@ -94,7 +94,7 @@ export const zohoApi = apiSlice.injectEndpoints({
     }),
     syncVendors: builder.mutation({
       query: (organizationId) => ({
-        url: `zoho/${organizationId}/vendors/sync/`,
+        url: `zoho/org/${organizationId}/vendors/sync/`,
         method: 'POST',
       }),
       invalidatesTags: ['Vendors'],

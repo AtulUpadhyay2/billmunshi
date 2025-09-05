@@ -33,12 +33,12 @@ const Taxes = () => {
         try {
             setIsSyncing(true);
             await syncTaxes(selectedOrganization.id).unwrap();
-            toast.success("Taxes synced successfully");
+            toast.success("Gst Ledgers synced successfully");
             setCurrentPage(1); // Reset to first page after sync
             refetch(); // Refresh the data after sync
         } catch (error) {
             console.error('Sync failed:', error);
-            toast.error(error?.data?.message || "Failed to sync taxes");
+            toast.error(error?.data?.message || "Failed to sync Gst Ledgers");
         } finally {
             setIsSyncing(false);
         }
