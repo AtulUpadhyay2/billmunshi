@@ -30,6 +30,7 @@ const ForgotPass = () => {
         label="email"
         type="email"
         register={register}
+        placeHolder="Enter your email"
         error={errors.email}
         className="h-[48px]"
       />
