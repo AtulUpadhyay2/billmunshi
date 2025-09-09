@@ -14,9 +14,6 @@ const Error = lazy(() => import("./pages/404"));
 import Layout from "./layout/Layout";
 import AuthLayout from "./layout/AuthLayout";
 
-// map page
-const MapPage = lazy(() => import("./pages/map"));
-
 // table pages
 const BasicTablePage = lazy(() => import("./pages/table/table-basic"));
 const TanstackTable = lazy(() => import("./pages/table/react-table"));
@@ -97,7 +94,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* App pages */}
-          <Route path="map" element={<MapPage />} />
+
           <Route path="table-basic" element={<BasicTablePage />} />
           <Route path="react-table" element={<TanstackTable />} />
           <Route path="invoice" element={<InvoicePage />} />
