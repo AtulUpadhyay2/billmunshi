@@ -50,10 +50,6 @@ const ChangelogPage = lazy(() => import("./pages/changelog"));
 const BasicWidget = lazy(() => import("./pages/widget/basic-widget"));
 const StatisticWidget = lazy(() => import("./pages/widget/statistic-widget"));
 
-const KanbanPage = lazy(() => import("./pages/app/kanban"));
-const CalenderPage = lazy(() => import("./pages/app/calendar"));
-
-
 const EcommercePage = lazy(() => import("./pages/ecommerce"));
 
 // Zoho
@@ -106,10 +102,6 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* App pages */}
-          <Route path="kanban" element={<KanbanPage />} />
-          <Route path="calender" element={<CalenderPage />} />
-
-
           <Route path="appex-chart" element={<AppexChartPage />} />
           <Route path="chartjs" element={<ChartJs />} />
           <Route path="recharts" element={<Recharts />} />
