@@ -38,9 +38,6 @@ const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const ApiKeys = lazy(() => import("./pages/settings/api-keys"));
 const Members = lazy(() => import("./pages/settings/members"));
 
-// Test pages
-const ModulesTestPage = lazy(() => import("./pages/modules-test"));
-
 import Loading from "@/components/Loading";
 
 function App() {
@@ -78,9 +75,6 @@ function App() {
           {/** Settings */}
           <Route path="api-keys" element={<ApiKeys />} />
           <Route path="members" element={<Members />} />
-
-          {/* Test pages */}
-          <Route path="modules-test" element={<ModulesTestPage />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>
