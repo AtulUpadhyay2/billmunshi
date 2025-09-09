@@ -18,12 +18,6 @@ import AuthLayout from "./layout/AuthLayout";
 const Profile = lazy(() => import("./pages/utility/profile"));
 const NotificationPage = lazy(() => import("./pages/utility/notifications"));
 
-// widget pages
-const BasicWidget = lazy(() => import("./pages/widget/basic-widget"));
-const StatisticWidget = lazy(() => import("./pages/widget/statistic-widget"));
-
-const EcommercePage = lazy(() => import("./pages/ecommerce"));
-
 // Zoho
 const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
 const ZohoVendorBillDetail = lazy(() => import("./pages/zoho/vendor-bill/detail"));
@@ -48,16 +42,6 @@ const Members = lazy(() => import("./pages/settings/members"));
 const ModulesTestPage = lazy(() => import("./pages/modules-test"));
 
 import Loading from "@/components/Loading";
-import { ProductDetails } from "./pages/ecommerce/productDetails";
-import Cart from "./pages/ecommerce/cart";
-import Wishlist from "./pages/ecommerce/wish-list";
-import Orders from "./pages/ecommerce/orders";
-import OrderDetails from "./pages/ecommerce/orderDetails";
-import Checkout from "./pages/ecommerce/checkout";
-import EditProduct from "./pages/ecommerce/edit-product";
-import Customers from "./pages/ecommerce/customers";
-import Sellers from "./pages/ecommerce/sellers";
-import AddProduct from "./pages/ecommerce/add-product";
 
 function App() {
   return (
@@ -74,21 +58,7 @@ function App() {
 
           {/* App pages */}
           <Route path="profile" element={<Profile />} />
-          <Route path="basic" element={<BasicWidget />} />
-          <Route path="statistic" element={<StatisticWidget />} />
           <Route path="notifications" element={<NotificationPage />} />
-
-          <Route path="products" element={<EcommercePage />} />
-          <Route path="products/:id" element={<ProductDetails />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="wishlist" element={<Wishlist />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="order-details" element={<OrderDetails />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="add-product" element={<AddProduct />} />
-          <Route path="edit-product" element={<EditProduct />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="sellers" element={<Sellers />} />
 
           {/** Zoho */}
           <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
