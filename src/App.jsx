@@ -14,22 +14,6 @@ const Error = lazy(() => import("./pages/404"));
 import Layout from "./layout/Layout";
 import AuthLayout from "./layout/AuthLayout";
 
-// forms components
-const InputPage = lazy(() => import("./pages/forms/input"));
-const TextareaPage = lazy(() => import("./pages/forms/textarea"));
-const CheckboxPage = lazy(() => import("./pages/forms/checkbox"));
-const RadioPage = lazy(() => import("./pages/forms/radio-button"));
-const SwitchPage = lazy(() => import("./pages/forms/switch"));
-const InputGroupPage = lazy(() => import("./pages/forms/input-group"));
-const InputlayoutPage = lazy(() => import("./pages/forms/input-layout"));
-const InputMask = lazy(() => import("./pages/forms/input-mask"));
-const FormValidation = lazy(() => import("./pages/forms/form-validation"));
-const FileInput = lazy(() => import("./pages/forms/file-input"));
-const FormRepeater = lazy(() => import("./pages/forms/form-repeater"));
-const FormWizard = lazy(() => import("./pages/forms/form-wizard"));
-const SelectPage = lazy(() => import("./pages/forms/select"));
-const Flatpicker = lazy(() => import("./pages/forms/date-time-picker"));
-
 // chart page
 const AppexChartPage = lazy(() => import("./pages/chart/appex-chart"));
 const ChartJs = lazy(() => import("./pages/chart/chartjs"));
@@ -139,22 +123,8 @@ function App() {
           <Route path="project-details" element={<ProjectDetailsPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="calender" element={<CalenderPage />} />
+          
 
-
-          <Route path="input" element={<InputPage />} />
-          <Route path="textarea" element={<TextareaPage />} />
-          <Route path="checkbox" element={<CheckboxPage />} />
-          <Route path="radio-button" element={<RadioPage />} />
-          <Route path="switch" element={<SwitchPage />} />
-          <Route path="input-group" element={<InputGroupPage />} />
-          <Route path="input-layout" element={<InputlayoutPage />} />
-          <Route path="input-mask" element={<InputMask />} />
-          <Route path="form-validation" element={<FormValidation />} />
-          <Route path="file-input" element={<FileInput />} />
-          <Route path="form-repeater" element={<FormRepeater />} />
-          <Route path="form-wizard" element={<FormWizard />} />
-          <Route path="select" element={<SelectPage />} />
-          <Route path="date-time-picker" element={<Flatpicker />} />
           <Route path="appex-chart" element={<AppexChartPage />} />
           <Route path="chartjs" element={<ChartJs />} />
           <Route path="recharts" element={<Recharts />} />
