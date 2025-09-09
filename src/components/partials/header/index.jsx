@@ -12,12 +12,8 @@ import SearchModal from "./Tools/SearchModal";
 import Profile from "./Tools/Profile";
 import OrgSwitcher from "./Tools/OrgSwitcher";
 import Notification from "./Tools/Notification";
-import Message from "./Tools/Message";
-import Language from "./Tools/Language";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
-import MonoChrome from "./Tools/MonoChrome";
-import HeaderCart from "./Tools/cart";
 
 const Header = ({ className = "custom-class" }) => {
   const [collapsed, setMenuCollapsed] = useSidebar();
