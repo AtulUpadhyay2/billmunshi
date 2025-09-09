@@ -50,15 +50,6 @@ const ChangelogPage = lazy(() => import("./pages/changelog"));
 const BasicWidget = lazy(() => import("./pages/widget/basic-widget"));
 const StatisticWidget = lazy(() => import("./pages/widget/statistic-widget"));
 
-// app page
-const TodoPage = lazy(() => import("./pages/app/todo"));
-const EmailPage = lazy(() => import("./pages/app/email"));
-const ChatPage = lazy(() => import("./pages/app/chat"));
-const ProjectPostPage = lazy(() => import("./pages/app/projects"));
-const ProjectDetailsPage = lazy(() =>
-  import("./pages/app/projects/project-details")
-);
-
 const KanbanPage = lazy(() => import("./pages/app/kanban"));
 const CalenderPage = lazy(() => import("./pages/app/calendar"));
 
@@ -115,15 +106,9 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* App pages */}
-          <Route path="todo" element={<TodoPage />} />
-          <Route path="email" element={<EmailPage />} />
-          <Route path="chat" element={<ChatPage />} />
-          <Route path="projects" element={<ProjectPostPage />} />
-          <Route path={"projects/:id"} element={<ProjectDetailsPage />} />
-          <Route path="project-details" element={<ProjectDetailsPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="calender" element={<CalenderPage />} />
-          
+
 
           <Route path="appex-chart" element={<AppexChartPage />} />
           <Route path="chartjs" element={<ChartJs />} />
