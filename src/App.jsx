@@ -18,24 +18,6 @@ const Error = lazy(() => import("./pages/404"));
 import Layout from "./layout/Layout";
 import AuthLayout from "./layout/AuthLayout";
 
-// components pages
-const Button = lazy(() => import("./pages/components/button"));
-const Dropdown = lazy(() => import("./pages/components/dropdown"));
-const Badges = lazy(() => import("./pages/components/badges"));
-const Colors = lazy(() => import("./pages/components/colors"));
-const Typography = lazy(() => import("./pages/components/typography"));
-const Alert = lazy(() => import("./pages/components/alert"));
-const Progressbar = lazy(() => import("./pages/components/progress-bar"));
-const Card = lazy(() => import("./pages/components/card"));
-const Image = lazy(() => import("./pages/components/image"));
-const Placeholder = lazy(() => import("./pages/components/placeholder"));
-const Tooltip = lazy(() => import("./pages/components/tooltip-popover"));
-const Modal = lazy(() => import("./pages/components/modal"));
-const Carousel = lazy(() => import("./pages/components/carousel"));
-const Pagination = lazy(() => import("./pages/components/pagination"));
-const TabsAc = lazy(() => import("./pages/components/tab-accordion"));
-const Video = lazy(() => import("./pages/components/video"));
-
 // forms components
 const InputPage = lazy(() => import("./pages/forms/input"));
 const TextareaPage = lazy(() => import("./pages/forms/textarea"));
@@ -164,23 +146,8 @@ function App() {
           <Route path="project-details" element={<ProjectDetailsPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="calender" element={<CalenderPage />} />
-          {/* Components pages */}
-          <Route path="button" element={<Button />} />
-          <Route path="dropdown" element={<Dropdown />} />
-          <Route path="badges" element={<Badges />} />
-          <Route path="colors" element={<Colors />} />
-          <Route path="typography" element={<Typography />} />
-          <Route path="alert" element={<Alert />} />
-          <Route path="progress-bar" element={<Progressbar />} />
-          <Route path="card" element={<Card />} />
-          <Route path="image" element={<Image />} />
-          <Route path="Placeholder" element={<Placeholder />} />
-          <Route path="tooltip-popover" element={<Tooltip />} />
-          <Route path="modal" element={<Modal />} />
-          <Route path="carousel" element={<Carousel />} />
-          <Route path="Paginations" element={<Pagination />} />
-          <Route path="tab-accordion" element={<TabsAc />} />
-          <Route path="video" element={<Video />} />
+
+
           <Route path="input" element={<InputPage />} />
           <Route path="textarea" element={<TextareaPage />} />
           <Route path="checkbox" element={<CheckboxPage />} />
