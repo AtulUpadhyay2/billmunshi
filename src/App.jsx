@@ -14,11 +14,6 @@ const Error = lazy(() => import("./pages/404"));
 import Layout from "./layout/Layout";
 import AuthLayout from "./layout/AuthLayout";
 
-// chart page
-const AppexChartPage = lazy(() => import("./pages/chart/appex-chart"));
-const ChartJs = lazy(() => import("./pages/chart/chartjs"));
-const Recharts = lazy(() => import("./pages/chart/recharts"));
-
 // map page
 const MapPage = lazy(() => import("./pages/map"));
 
@@ -102,9 +97,6 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* App pages */}
-          <Route path="appex-chart" element={<AppexChartPage />} />
-          <Route path="chartjs" element={<ChartJs />} />
-          <Route path="recharts" element={<Recharts />} />
           <Route path="map" element={<MapPage />} />
           <Route path="table-basic" element={<BasicTablePage />} />
           <Route path="react-table" element={<TanstackTable />} />
