@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBillQuery } from "@/store/api/zoho/vendorBillsApiSlice";
-import { useGetVendorsQuery } from "@/store/api/zoho/zohoApiSlice";
+import { useGetVendorsQuery, useGetChartOfAccountsQuery, useGetTaxesQuery } from "@/store/api/zoho/zohoApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 
@@ -26,6 +26,9 @@ const ZohoVendorBillDetail = () => {
 
     // State for managing item quantities
     const [itemQuantities, setItemQuantities] = useState([]);
+
+    // State for managing products from zoho_bill
+    const [products, setProducts] = useState([]);
 
     // Form state for bill summary
     const [billSummaryForm, setBillSummaryForm] = useState({
@@ -52,6 +55,18 @@ const ZohoVendorBillDetail = () => {
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendorsQuery(
         selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch chart of accounts for dropdown
+    const { data: chartOfAccountsData, isLoading: chartOfAccountsLoading } = useGetChartOfAccountsQuery(
+        { organizationId: selectedOrganization?.id, page: 1 },
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch taxes for dropdown
+    const { data: taxesData, isLoading: taxesLoading } = useGetTaxesQuery(
+        { organizationId: selectedOrganization?.id, page: 1 },
         { skip: !selectedOrganization?.id }
     );
 
@@ -85,6 +100,34 @@ const ZohoVendorBillDetail = () => {
 
             // Initialize notes from zoho_bill.note
             setNotes(zoho?.note || '');
+
+            // Initialize products from zoho_bill.products
+            if (zoho?.products && zoho.products.length > 0) {
+                setProducts(zoho.products.map(product => ({
+                    id: product.id,
+                    item_details: product.item_details || product.item_name || '',
+                    chart_of_accounts: product.chart_of_accounts || null,
+                    taxes: product.taxes || null,
+                    reverse_charge_tax_id: product.reverse_charge_tax_id || false,
+                    itc_eligibility: product.itc_eligibility || 'eligible',
+                    rate: product.rate || '',
+                    quantity: product.quantity || '',
+                    amount: product.amount || ''
+                })));
+            } else {
+                // Initialize with empty product if no products exist
+                setProducts([{
+                    id: Date.now(),
+                    item_details: '',
+                    chart_of_accounts: null,
+                    taxes: null,
+                    reverse_charge_tax_id: false,
+                    itc_eligibility: 'eligible',
+                    rate: '',
+                    quantity: '',
+                    amount: ''
+                }]);
+            }
 
             // Initialize item quantities
             if (data.items && data.items.length > 0) {
@@ -161,6 +204,50 @@ const ZohoVendorBillDetail = () => {
     const isPDF = (fileUrl) => {
         return fileUrl && (fileUrl.toLowerCase().includes('.pdf') || fileUrl.toLowerCase().includes('pdf'));
     };
+
+    // Product manipulation functions
+    const handleProductChange = (index, field, value) => {
+        setProducts(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            
+            // Auto-calculate amount when rate or quantity changes
+            if (field === 'rate' || field === 'quantity') {
+                const rate = field === 'rate' ? parseFloat(value) || 0 : parseFloat(updated[index].rate) || 0;
+                const quantity = field === 'quantity' ? parseFloat(value) || 0 : parseFloat(updated[index].quantity) || 0;
+                updated[index].amount = (rate * quantity).toString();
+            }
+            
+            return updated;
+        });
+    };
+
+    const addProduct = () => {
+        setProducts(prev => [...prev, {
+            id: Date.now(),
+            item_details: '',
+            chart_of_accounts: null,
+            taxes: null,
+            reverse_charge_tax_id: false,
+            itc_eligibility: 'eligible',
+            rate: '',
+            quantity: '',
+            amount: ''
+        }]);
+    };
+
+    const removeProduct = (index) => {
+        if (products.length > 1) {
+            setProducts(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    // ITC Eligibility options
+    const itcEligibilityOptions = [
+        { value: 'eligible', label: 'Eligible' },
+        { value: 'ineligible_section17', label: 'Ineligible Section 17' },
+        { value: 'ineligible_others', label: 'Ineligible Others' }
+    ];
     
     // Debug logging - check what we actually get from the API
     useEffect(() => {
@@ -495,34 +582,35 @@ const ZohoVendorBillDetail = () => {
                                                                 handleVendorSelect(selectedVendor);
                                                             }
                                                         }}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none appearance-none bg-white"
+                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
                                                         disabled={vendorsLoading}
                                                     >
-                                                        <option value="">
+                                                        <option value="" className="text-gray-500">
                                                             {vendorsLoading ? 'Loading vendors...' : 'Select a vendor...'}
                                                         </option>
                                                         {vendorsData?.results?.map((vendor) => (
-                                                            <option key={vendor.contactId} value={vendor.contactId}>
-                                                                {vendor.companyName || 'Unnamed Vendor'}
-                                                                {vendor.gstNo && ` (GST: ${vendor.gstNo})`}
+                                                            <option key={vendor.contactId} value={vendor.contactId} className="text-gray-900">
+                                                                {vendor.companyName}
                                                             </option>
                                                         ))}
                                                     </select>
                                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                                         {vendorsLoading ? (
-                                                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                                         ) : (
                                                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                             </svg>
                                                         )}
                                                     </div>
-                                                    {vendorsData?.results?.length === 0 && !vendorsLoading && (
-                                                        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                                                            No vendors found. Please sync vendors from Zoho first.
-                                                        </div>
-                                                    )}
                                                 </div>
+                                                
+                                                {/* No vendors notification */}
+                                                {vendorsData?.results?.length === 0 && !vendorsLoading && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
+                                                        No vendors found. Please sync vendors from Zoho first.
+                                                    </div>
+                                                )}
                                                 
                                                 {/* Bill To Badge - showing analysed_data.to.name */}
                                                 {analysedData?.to?.name && (
@@ -608,143 +696,231 @@ const ZohoVendorBillDetail = () => {
 
                             {/* Product Information Section */}
                             <div className="p-8 border-b border-gray-200">
-                                {/* Items Section */}
+                                {/* Products Section */}
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
                                         <div className="flex items-center gap-2">
                                             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                             </svg>
-                                            <h3 className="text-lg font-semibold text-gray-900">Items Details</h3>
+                                            <h3 className="text-lg font-semibold text-gray-900">Products Details</h3>
                                         </div>
-                                        {analysedData.items && analysedData.items.length > 0 && (
+                                        <div className="flex items-center gap-3">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                                {analysedData.items.length} item{analysedData.items.length > 1 ? 's' : ''}
+                                                {products.length} product{products.length > 1 ? 's' : ''}
                                             </span>
-                                        )}
+                                            <button
+                                                onClick={addProduct}
+                                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                Add Product
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    {/* Enhanced Items Table */}
+                                    {/* Enhanced Products Table - Scrollable */}
                                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                                        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                            <table className="w-full min-w-[1200px]">
+                                                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
-                                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                                                            <div className="flex items-center gap-2">
-                                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                                                </svg>
-                                                                Description
-                                                            </div>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                            Item Details
                                                         </th>
-                                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                                                            <div className="flex items-center gap-2">
-                                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                                                                </svg>
-                                                                Quantity
-                                                            </div>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                            Chart of Accounts
                                                         </th>
-                                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                                                            <div className="flex items-center gap-2">
-                                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                                                </svg>
-                                                                Price
-                                                            </div>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                            Taxes
                                                         </th>
-                                                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                                                            <div className="flex items-center justify-end gap-2">
-                                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                                </svg>
-                                                                Amount
-                                                            </div>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                            Reverse Charge
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[140px]">
+                                                            ITC Eligibility
+                                                        </th>
+                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                                                            Rate
+                                                        </th>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                                                            Quantity
+                                                        </th>
+                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                                                            Amount
+                                                        </th>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                                                            Actions
                                                         </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
-                                                    {analysedData.items && analysedData.items.length > 0 ? (
-                                                        analysedData.items.map((item, index) => (
-                                                            <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <div className="flex items-start">
-                                                                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                                                                            <span className="text-xs font-semibold text-blue-600">{index + 1}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <div className="text-sm font-medium text-gray-900 max-w-xs">
-                                                                                {item.description || 'No description'}
-                                                                            </div>
-                                                                            {item.description && (
-                                                                                <div className="text-xs text-gray-500 mt-1">Item #{index + 1}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <div className="flex items-center gap-2">
-                                                                        {/* Decrease Button */}
-                                                                        <button
-                                                                            onClick={() => updateQuantity(index, (itemQuantities[index] || item.quantity || 0) - 1)}
-                                                                            className="w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                                                                            disabled={(itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0) <= 0}
-                                                                        >
-                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                                    {products.map((product, index) => (
+                                                        <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                                            {/* Item Details */}
+                                                            <td className="px-4 py-3">
+                                                                <textarea
+                                                                    value={product.item_details}
+                                                                    onChange={(e) => handleProductChange(index, 'item_details', e.target.value)}
+                                                                    placeholder="Enter item details..."
+                                                                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none"
+                                                                    rows={2}
+                                                                />
+                                                            </td>
+
+                                                            {/* Chart of Accounts */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={product.chart_of_accounts || ''}
+                                                                        onChange={(e) => handleProductChange(index, 'chart_of_accounts', e.target.value || null)}
+                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                                                        disabled={chartOfAccountsLoading}
+                                                                    >
+                                                                        <option value="" className="text-gray-500">Select Account...</option>
+                                                                        {chartOfAccountsData?.results?.map((account) => (
+                                                                            <option key={account.accountId} value={account.accountId} className="text-gray-900">
+                                                                                {account.accountName}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                                        {chartOfAccountsLoading ? (
+                                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                        ) : (
+                                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                                             </svg>
-                                                                        </button>
-                                                                        
-                                                                        {/* Quantity Display */}
-                                                                        <div className="min-w-[60px] text-center">
-                                                                            <input
-                                                                                type="number"
-                                                                                value={itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0}
-                                                                                readOnly
-                                                                                className="w-16 px-2 py-1 text-center border border-gray-300 rounded bg-gray-50 text-gray-700 cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                                min="0"
-                                                                            />
-                                                                        </div>
-                                                                        
-                                                                        {/* Increase Button */}
-                                                                        <button
-                                                                            onClick={() => updateQuantity(index, (itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0) + 1)}
-                                                                            className="w-8 h-8 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
-                                                                        >
-                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                                            </svg>
-                                                                        </button>
+                                                                        )}
                                                                     </div>
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                                    <div className="text-sm font-semibold text-gray-900">
-                                                                        ₹{item.price?.toLocaleString('en-IN') || '0'}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                                    <div className="text-sm font-bold text-green-600">
-                                                                        ₹{((itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0) * (item.price || 0)).toLocaleString('en-IN')}
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    ) : (
-                                                        <tr>
-                                                            <td colSpan="4" className="px-6 py-12 text-center">
-                                                                <div className="flex flex-col items-center">
-                                                                    <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                                                    </svg>
-                                                                    <h3 className="text-lg font-medium text-gray-900 mb-1">No items found</h3>
-                                                                    <p className="text-sm text-gray-500">Items details not available in the document</p>
                                                                 </div>
                                                             </td>
+
+                                                            {/* Taxes */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={product.taxes || ''}
+                                                                        onChange={(e) => handleProductChange(index, 'taxes', e.target.value || null)}
+                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                                                        disabled={taxesLoading}
+                                                                    >
+                                                                        <option value="" className="text-gray-500">Select Tax...</option>
+                                                                        {taxesData?.results?.map((tax) => (
+                                                                            <option key={tax.taxId} value={tax.taxId} className="text-gray-900">
+                                                                                {tax.taxName}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                                        {taxesLoading ? (
+                                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                        ) : (
+                                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            {/* Reverse Charge Tax */}
+                                                            <td className="px-4 py-3 text-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={product.reverse_charge_tax_id}
+                                                                    onChange={(e) => handleProductChange(index, 'reverse_charge_tax_id', e.target.checked)}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                                />
+                                                            </td>
+
+                                                            {/* ITC Eligibility */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={product.itc_eligibility}
+                                                                        onChange={(e) => handleProductChange(index, 'itc_eligibility', e.target.value)}
+                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400"
+                                                                    >
+                                                                        {itcEligibilityOptions.map((option) => (
+                                                                            <option key={option.value} value={option.value} className="text-gray-900">
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            {/* Rate */}
+                                                            <td className="px-4 py-3">
+                                                                <input
+                                                                    type="number"
+                                                                    value={product.rate}
+                                                                    onChange={(e) => handleProductChange(index, 'rate', e.target.value)}
+                                                                    placeholder="0.00"
+                                                                    className="w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                />
+                                                            </td>
+
+                                                            {/* Quantity */}
+                                                            <td className="px-4 py-3">
+                                                                <input
+                                                                    type="number"
+                                                                    value={product.quantity}
+                                                                    onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                                    placeholder="0"
+                                                                    className="w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                    min="0"
+                                                                    step="1"
+                                                                />
+                                                            </td>
+
+                                                            {/* Amount */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="text-sm font-semibold text-gray-900 text-right">
+                                                                    ₹{parseFloat(product.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                                </div>
+                                                            </td>
+
+                                                            {/* Actions */}
+                                                            <td className="px-4 py-3 text-center">
+                                                                {products.length > 1 && (
+                                                                    <button
+                                                                        onClick={() => removeProduct(index)}
+                                                                        className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                                                                        title="Remove Product"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
+                                                            </td>
                                                         </tr>
-                                                    )}
+                                                    ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        
+                                        {/* Products Summary */}
+                                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-600">
+                                                    Total Products: {products.length}
+                                                </span>
+                                                <span className="font-semibold text-gray-900">
+                                                    Subtotal: ₹{products.reduce((sum, product) => sum + parseFloat(product.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
