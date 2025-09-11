@@ -1,7 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from "@/components/ui/Card";
-import { useGetVendorBillsQuery, useUpdateVendorBillMutation, useDeleteVendorBillMutation, useUploadVendorBillsMutation } from "@/store/api/zoho/vendorBillsApiSlice";
+import { 
+    useGetVendorBillsQuery, 
+    useUpdateVendorBillMutation, 
+    useDeleteVendorBillMutation, 
+    useUploadVendorBillsMutation,
+    useAnalyzeVendorBillMutation
+} from '@/store/api/zoho/vendorBillsApiSlice';
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
@@ -16,14 +22,31 @@ const ZohoVendorBill = () => {
     const [updateVendorBill] = useUpdateVendorBillMutation();
     const [deleteVendorBill] = useDeleteVendorBillMutation();
     const [uploadVendorBills] = useUploadVendorBillsMutation();
+    const [analyzeVendorBill] = useAnalyzeVendorBillMutation();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [analyzingBills, setAnalyzingBills] = useState(new Set());
 
     const handleAction = async (billId, action) => {
         try {
             switch (action) {
                 case 'analyse':
-                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Analysed' }).unwrap();
-                    globalToast.success('Bill analysis completed');
+                    // Set loading state
+                    setAnalyzingBills(prev => new Set([...prev, billId]));
+                    try {
+                        await analyzeVendorBill({ 
+                            organizationId: selectedOrganization?.id, 
+                            billId 
+                        }).unwrap();
+                        globalToast.success('Bill analysis started successfully');
+                        refetch(); // Refresh the list to show updated status
+                    } finally {
+                        // Remove loading state
+                        setAnalyzingBills(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(billId);
+                            return newSet;
+                        });
+                    }
                     break;
                 case 'verify':
                     await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
@@ -98,17 +121,30 @@ const ZohoVendorBill = () => {
         }
 
         if (status === 'Draft') {
+            const isAnalyzing = analyzingBills.has(bill.id);
             return (
                 <div className="flex gap-2 flex-wrap items-center">
                     <button 
                         onClick={() => handleAction(bill.id, 'analyse')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md shadow-sm hover:bg-purple-100 hover:border-purple-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-500 transition-all duration-200 active:scale-95"
-                        title="Analyse document"
+                        disabled={isAnalyzing}
+                        className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 ${
+                            isAnalyzing 
+                                ? 'text-purple-400 bg-purple-25 border-purple-100 cursor-not-allowed opacity-75' 
+                                : 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-300 hover:shadow-md focus:ring-purple-500 active:scale-95'
+                        }`}
+                        title={isAnalyzing ? "Analysis in progress..." : "Analyse document"}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                        </svg>
-                        <span className="font-medium">Analyse</span>
+                        {isAnalyzing ? (
+                            <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                            </svg>
+                        )}
+                        <span className="font-medium">{isAnalyzing ? 'Analyzing...' : 'Analyse'}</span>
                     </button>
                 </div>
             );
