@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBillQuery } from "@/store/api/zoho/vendorBillsApiSlice";
-import { useGetVendorsQuery, useGetChartOfAccountsQuery, useGetTaxesQuery } from "@/store/api/zoho/zohoApiSlice";
+import { useGetVendorsQuery, useGetChartOfAccountsQuery, useGetTaxesQuery, useGetTdsTcsQuery } from "@/store/api/zoho/zohoApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 
@@ -21,7 +21,8 @@ const ZohoVendorBillDetail = () => {
         invoiceNumber: '',
         vendorGST: '',
         dateIssued: '',
-        selectedVendor: null
+        selectedVendor: null,
+        is_tax: 'TDS' // Default to TDS
     });
 
     // State for managing item quantities
@@ -29,6 +30,9 @@ const ZohoVendorBillDetail = () => {
 
     // State for managing products from zoho_bill
     const [products, setProducts] = useState([]);
+
+    // State for TDS/TCS selection
+    const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
 
     // Form state for bill summary
     const [billSummaryForm, setBillSummaryForm] = useState({
@@ -70,6 +74,16 @@ const ZohoVendorBillDetail = () => {
         { skip: !selectedOrganization?.id }
     );
 
+    // Fetch TDS/TCS data based on selected tax type
+    const { data: tdsTcsData, isLoading: tdsTcsLoading } = useGetTdsTcsQuery(
+        { 
+            organizationId: selectedOrganization?.id, 
+            page: 1, 
+            tax_type: vendorForm.is_tax 
+        },
+        { skip: !selectedOrganization?.id || !vendorForm.is_tax }
+    );
+
     // Extract analysed_data from the API response
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
@@ -86,7 +100,8 @@ const ZohoVendorBillDetail = () => {
                 vendorGST: '',
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
                            (zoho?.bill_date ? new Date(zoho.bill_date).toISOString().split('T')[0] : ''),
-                selectedVendor: zoho?.vendor || null
+                selectedVendor: zoho?.vendor || null,
+                is_tax: zoho?.is_tax || 'TDS' // Load from zoho_bill or default to TDS
             });
 
             // Initialize Bill Summary Form
@@ -925,6 +940,149 @@ const ZohoVendorBillDetail = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Tax Deduction/Collection Section */}
+                            <div className="p-8 border-b border-gray-200">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        <h3 className="text-lg font-semibold text-gray-900">Tax Deduction/Collection</h3>
+                                    </div>
+                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                        vendorForm.is_tax === 'TDS' 
+                                            ? 'bg-blue-100 text-blue-800' 
+                                            : 'bg-green-100 text-green-800'
+                                    }`}>
+                                        {vendorForm.is_tax} - {vendorForm.is_tax === 'TDS' ? 'Tax Deducted at Source' : 'Tax Collected at Source'}
+                                    </span>
+                                </div>
+
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Tax Type Selection */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-800 mb-3">
+                                                Tax Type
+                                            </label>
+                                            <div className="flex items-center gap-6">
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="radio"
+                                                        id="tax-tds"
+                                                        name="is_tax"
+                                                        value="TDS"
+                                                        checked={vendorForm.is_tax === 'TDS'}
+                                                        onChange={(e) => handleFormChange('is_tax', e.target.value)}
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
+                                                    />
+                                                    <label htmlFor="tax-tds" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
+                                                        <span className="font-semibold text-blue-600">TDS</span>
+                                                        <span className="text-gray-500 ml-1">(Tax Deducted at Source)</span>
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="radio"
+                                                        id="tax-tcs"
+                                                        name="is_tax"
+                                                        value="TCS"
+                                                        checked={vendorForm.is_tax === 'TCS'}
+                                                        onChange={(e) => handleFormChange('is_tax', e.target.value)}
+                                                        className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
+                                                    />
+                                                    <label htmlFor="tax-tcs" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
+                                                        <span className="font-semibold text-green-600">TCS</span>
+                                                        <span className="text-gray-500 ml-1">(Tax Collected at Source)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* TDS/TCS Selection Dropdown */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                                Select {vendorForm.is_tax} Rate
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedTdsTcs || ''}
+                                                    onChange={(e) => setSelectedTdsTcs(e.target.value || null)}
+                                                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                                    disabled={tdsTcsLoading || !vendorForm.is_tax}
+                                                >
+                                                    <option value="" className="text-gray-500">
+                                                        {tdsTcsLoading ? `Loading ${vendorForm.is_tax} rates...` : `Select ${vendorForm.is_tax} rate...`}
+                                                    </option>
+                                                    {tdsTcsData?.results?.map((item) => (
+                                                        <option key={item.taxId} value={item.taxId} className="text-gray-900">
+                                                            {item.taxName} - {item.taxPercentage}%
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    {tdsTcsLoading ? (
+                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {vendorForm.is_tax && tdsTcsData?.results?.length === 0 && !tdsTcsLoading && (
+                                                <p className="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                                                    No {vendorForm.is_tax} rates found. Please sync {vendorForm.is_tax} data from Zoho first.
+                                                </p>
+                                            )}
+                                            
+                                            {/* Selected TDS/TCS Details */}
+                                            {selectedTdsTcs && tdsTcsData?.results && (
+                                                (() => {
+                                                    const selectedItem = tdsTcsData.results.find(item => item.taxId === selectedTdsTcs);
+                                                    return selectedItem ? (
+                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                <span className="text-sm font-semibold text-green-800">
+                                                                    Selected: {selectedItem.taxName}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-green-700">
+                                                                Rate: {selectedItem.taxPercentage}% | Type: {selectedItem.taxType} | ID: {selectedItem.taxId}
+                                                            </div>
+                                                        </div>
+                                                    ) : null;
+                                                })()
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Information Box */}
+                                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className="flex items-start gap-3">
+                                            <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <div>
+                                                <h4 className="text-sm font-semibold text-blue-800 mb-1">
+                                                    {vendorForm.is_tax === 'TDS' ? 'TDS Information' : 'TCS Information'}
+                                                </h4>
+                                                <p className="text-sm text-blue-700">
+                                                    {vendorForm.is_tax === 'TDS' 
+                                                        ? 'TDS (Tax Deducted at Source) is deducted by the payer when making payment to the vendor. Select the applicable TDS rate based on the nature of payment.'
+                                                        : 'TCS (Tax Collected at Source) is collected by the seller when receiving payment from the buyer. Select the applicable TCS rate based on the nature of goods/services.'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Bill Summary - Invoice Style */}
                             <div className="p-8 border-b border-gray-200">
                                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">

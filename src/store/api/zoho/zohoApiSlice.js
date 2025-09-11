@@ -64,10 +64,16 @@ export const zohoApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Taxes'],
     }),
     getTdsTcs: builder.query({
-      query: ({ organizationId, page = 1 }) => ({
-        url: `zoho/org/${organizationId}/tds-tcs/${page ? `?page=${page}` : ''}`,
-        method: 'GET',
-      }),
+      query: ({ organizationId, page = 1, tax_type }) => {
+        const params = new URLSearchParams();
+        if (page) params.append('page', page);
+        if (tax_type) params.append('tax_type', tax_type);
+        
+        return {
+          url: `zoho/org/${organizationId}/tds-tcs/${params.toString() ? `?${params.toString()}` : ''}`,
+          method: 'GET',
+        };
+      },
       providesTags: ['TdsTcs'],
       transformErrorResponse: (response, meta, arg) => {
         console.error('TDS/TCS API Error:', response);
