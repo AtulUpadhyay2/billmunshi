@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
+import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBillQuery } from "@/store/api/zoho/vendorBillsApiSlice";
@@ -588,37 +589,33 @@ const ZohoVendorBillDetail = () => {
                                         </label>
                                         {zohoData?.vendor === null ? (
                                             <div className="space-y-2">
-                                                <div className="relative">
-                                                    <select
-                                                        value={vendorForm.selectedVendor?.contactId || ''}
-                                                        onChange={(e) => {
-                                                            const selectedVendor = vendorsData?.results?.find(v => v.contactId === e.target.value);
-                                                            if (selectedVendor) {
-                                                                handleVendorSelect(selectedVendor);
-                                                            }
-                                                        }}
-                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                                        disabled={vendorsLoading}
-                                                    >
-                                                        <option value="" className="text-gray-500">
-                                                            {vendorsLoading ? 'Loading vendors...' : 'Select a vendor...'}
-                                                        </option>
-                                                        {vendorsData?.results?.map((vendor) => (
-                                                            <option key={vendor.contactId} value={vendor.contactId} className="text-gray-900">
-                                                                {vendor.companyName}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                        {vendorsLoading ? (
-                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                        ) : (
-                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                <SearchableDropdown
+                                                    options={vendorsData?.results?.map(vendor => ({
+                                                        value: vendor.contactId,
+                                                        label: vendor.companyName,
+                                                        gstNo: vendor.gstNo
+                                                    })) || []}
+                                                    value={vendorForm.selectedVendor?.contactId || ''}
+                                                    onChange={(value) => {
+                                                        const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
+                                                        if (selectedVendor) {
+                                                            handleVendorSelect(selectedVendor);
+                                                        }
+                                                    }}
+                                                    placeholder="Select a vendor..."
+                                                    searchPlaceholder="Search vendors..."
+                                                    loading={vendorsLoading}
+                                                    loadingMessage="Loading vendors..."
+                                                    noOptionsMessage="No vendors found"
+                                                    renderOption={(option) => (
+                                                        <div>
+                                                            <div className="font-medium">{option.label}</div>
+                                                            {option.gstNo && (
+                                                                <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                />
                                                 
                                                 {/* No vendors notification */}
                                                 {vendorsData?.results?.length === 0 && !vendorsLoading && (
@@ -787,58 +784,36 @@ const ZohoVendorBillDetail = () => {
 
                                                             {/* Chart of Accounts */}
                                                             <td className="px-4 py-3">
-                                                                <div className="relative">
-                                                                    <select
-                                                                        value={product.chart_of_accounts || ''}
-                                                                        onChange={(e) => handleProductChange(index, 'chart_of_accounts', e.target.value || null)}
-                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                                                        disabled={chartOfAccountsLoading}
-                                                                    >
-                                                                        <option value="" className="text-gray-500">Select Account...</option>
-                                                                        {chartOfAccountsData?.results?.map((account) => (
-                                                                            <option key={account.accountId} value={account.accountId} className="text-gray-900">
-                                                                                {account.accountName}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                                        {chartOfAccountsLoading ? (
-                                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                                        ) : (
-                                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                                            </svg>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
+                                                                <SearchableDropdown
+                                                                    options={chartOfAccountsData?.results?.map(account => ({
+                                                                        value: account.accountId,
+                                                                        label: account.accountName
+                                                                    })) || []}
+                                                                    value={product.chart_of_accounts || ''}
+                                                                    onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
+                                                                    placeholder="Select Account..."
+                                                                    searchPlaceholder="Search accounts..."
+                                                                    loading={chartOfAccountsLoading}
+                                                                    loadingMessage="Loading accounts..."
+                                                                    noOptionsMessage="No accounts found"
+                                                                />
                                                             </td>
 
                                                             {/* Taxes */}
                                                             <td className="px-4 py-3">
-                                                                <div className="relative">
-                                                                    <select
-                                                                        value={product.taxes || ''}
-                                                                        onChange={(e) => handleProductChange(index, 'taxes', e.target.value || null)}
-                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                                                        disabled={taxesLoading}
-                                                                    >
-                                                                        <option value="" className="text-gray-500">Select Tax...</option>
-                                                                        {taxesData?.results?.map((tax) => (
-                                                                            <option key={tax.taxId} value={tax.taxId} className="text-gray-900">
-                                                                                {tax.taxName}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                                        {taxesLoading ? (
-                                                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                                        ) : (
-                                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                                            </svg>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
+                                                                <SearchableDropdown
+                                                                    options={taxesData?.results?.map(tax => ({
+                                                                        value: tax.taxId,
+                                                                        label: tax.taxName
+                                                                    })) || []}
+                                                                    value={product.taxes || ''}
+                                                                    onChange={(value) => handleProductChange(index, 'taxes', value || null)}
+                                                                    placeholder="Select Tax..."
+                                                                    searchPlaceholder="Search taxes..."
+                                                                    loading={taxesLoading}
+                                                                    loadingMessage="Loading taxes..."
+                                                                    noOptionsMessage="No taxes found"
+                                                                />
                                                             </td>
 
                                                             {/* Reverse Charge Tax */}
@@ -853,24 +828,15 @@ const ZohoVendorBillDetail = () => {
 
                                                             {/* ITC Eligibility */}
                                                             <td className="px-4 py-3">
-                                                                <div className="relative">
-                                                                    <select
-                                                                        value={product.itc_eligibility}
-                                                                        onChange={(e) => handleProductChange(index, 'itc_eligibility', e.target.value)}
-                                                                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400"
-                                                                    >
-                                                                        {itcEligibilityOptions.map((option) => (
-                                                                            <option key={option.value} value={option.value} className="text-gray-900">
-                                                                                {option.label}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                                        </svg>
-                                                                    </div>
-                                                                </div>
+                                                                <SearchableDropdown
+                                                                    options={itcEligibilityOptions}
+                                                                    value={product.itc_eligibility}
+                                                                    onChange={(value) => handleProductChange(index, 'itc_eligibility', value)}
+                                                                    placeholder="Select ITC Eligibility..."
+                                                                    searchPlaceholder="Search eligibility..."
+                                                                    optionLabelKey="label"
+                                                                    optionValueKey="value"
+                                                                />
                                                             </td>
 
                                                             {/* Rate */}
@@ -1005,32 +971,31 @@ const ZohoVendorBillDetail = () => {
                                             <label className="block text-sm font-semibold text-gray-800 mb-2">
                                                 Select {vendorForm.is_tax} Rate
                                             </label>
-                                            <div className="relative">
-                                                <select
-                                                    value={selectedTdsTcs || ''}
-                                                    onChange={(e) => setSelectedTdsTcs(e.target.value || null)}
-                                                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm appearance-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                                    disabled={tdsTcsLoading || !vendorForm.is_tax}
-                                                >
-                                                    <option value="" className="text-gray-500">
-                                                        {tdsTcsLoading ? `Loading ${vendorForm.is_tax} rates...` : `Select ${vendorForm.is_tax} rate...`}
-                                                    </option>
-                                                    {tdsTcsData?.results?.map((item) => (
-                                                        <option key={item.taxId} value={item.taxId} className="text-gray-900">
-                                                            {item.taxName} - {item.taxPercentage}%
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                    {tdsTcsLoading ? (
-                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <SearchableDropdown
+                                                options={tdsTcsData?.results?.map(item => ({
+                                                    value: item.taxId,
+                                                    label: `${item.taxName} - ${item.taxPercentage}%`,
+                                                    taxName: item.taxName,
+                                                    taxPercentage: item.taxPercentage,
+                                                    taxType: item.taxType
+                                                })) || []}
+                                                value={selectedTdsTcs || ''}
+                                                onChange={(value) => setSelectedTdsTcs(value || null)}
+                                                placeholder={`Select ${vendorForm.is_tax} rate...`}
+                                                searchPlaceholder={`Search ${vendorForm.is_tax} rates...`}
+                                                loading={tdsTcsLoading}
+                                                loadingMessage={`Loading ${vendorForm.is_tax} rates...`}
+                                                noOptionsMessage={`No ${vendorForm.is_tax} rates found`}
+                                                disabled={!vendorForm.is_tax}
+                                                renderOption={(option) => (
+                                                    <div>
+                                                        <div className="font-medium">{option.taxName}</div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {option.taxPercentage}% - {option.taxType}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            />
                                             {vendorForm.is_tax && tdsTcsData?.results?.length === 0 && !tdsTcsLoading && (
                                                 <p className="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
                                                     No {vendorForm.is_tax} rates found. Please sync {vendorForm.is_tax} data from Zoho first.
