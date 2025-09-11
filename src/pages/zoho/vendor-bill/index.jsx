@@ -11,6 +11,7 @@ import {
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
+import FileViewerModal from "@/components/modals/FileViewerModal";
 import { useSelector } from "react-redux";
 
 const ZohoVendorBill = () => {
@@ -24,6 +25,8 @@ const ZohoVendorBill = () => {
     const [uploadVendorBills] = useUploadVendorBillsMutation();
     const [analyzeVendorBill] = useAnalyzeVendorBillMutation();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
     const [analyzingBills, setAnalyzingBills] = useState(new Set());
 
     const handleAction = async (billId, action) => {
@@ -73,6 +76,11 @@ const ZohoVendorBill = () => {
             console.error('Action failed:', error);
             globalToast.error(error?.data?.message || `Failed to ${action} bill`);
         }
+    };
+
+    const handleViewFile = (fileUrl, fileName) => {
+        setSelectedFile({ url: fileUrl, name: fileName });
+        setIsFileViewerOpen(true);
     };
 
     const getStatusBadge = (status) => {
@@ -333,14 +341,12 @@ const ZohoVendorBill = () => {
                                                     <div className="flex flex-col">
                                                         <span className="font-medium">{bill.billmunshiName}</span>
                                                         {bill.file && (
-                                                            <a 
-                                                                href={bill.file} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-blue-600 hover:underline"
+                                                            <button 
+                                                                onClick={() => handleViewFile(bill.file, bill.billmunshiName || 'Vendor Bill')}
+                                                                className="text-xs text-blue-600 hover:underline cursor-pointer"
                                                             >
                                                                 View File
-                                                            </a>
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -449,6 +455,14 @@ const ZohoVendorBill = () => {
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
                 onUpload={handleUpload}
+            />
+
+            {/* File Viewer Modal */}
+            <FileViewerModal
+                isOpen={isFileViewerOpen}
+                onClose={() => setIsFileViewerOpen(false)}
+                fileUrl={selectedFile.url}
+                fileName={selectedFile.name}
             />
         </div>
     );
