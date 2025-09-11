@@ -574,13 +574,13 @@ const ZohoVendorBillDetail = () => {
 
                     {/* All Content in One Column */}
                     <div className="lg:w-2/3">
-                        <div className="bg-white border border-gray-200 rounded-lg">
+                        <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
                             {/* Vendor Information Section */}
                             <div className="p-8 border-b border-gray-200">
                                 {/* Simple Form Fields */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     {/* Vendor Selection Field */}
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Vendor
                                             {zohoData?.vendor === null && (
@@ -707,7 +707,7 @@ const ZohoVendorBillDetail = () => {
                             </div>
 
                             {/* Product Information Section */}
-                            <div className="p-8 border-b border-gray-200">
+                            <div className="relative p-8 border-b border-gray-200">
                                 {/* Products Section */}
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
@@ -734,8 +734,8 @@ const ZohoVendorBillDetail = () => {
                                     </div>
 
                                     {/* Enhanced Products Table - Scrollable */}
-                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
+                                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                                             <table className="w-full min-w-[1200px]">
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
@@ -783,7 +783,7 @@ const ZohoVendorBillDetail = () => {
                                                             </td>
 
                                                             {/* Chart of Accounts */}
-                                                            <td className="px-4 py-3">
+                                                            <td className="relative px-4 py-3">
                                                                 <SearchableDropdown
                                                                     options={chartOfAccountsData?.results?.map(account => ({
                                                                         value: account.accountId,
@@ -800,7 +800,7 @@ const ZohoVendorBillDetail = () => {
                                                             </td>
 
                                                             {/* Taxes */}
-                                                            <td className="px-4 py-3">
+                                                            <td className="relative px-4 py-3">
                                                                 <SearchableDropdown
                                                                     options={taxesData?.results?.map(tax => ({
                                                                         value: tax.taxId,
@@ -827,7 +827,7 @@ const ZohoVendorBillDetail = () => {
                                                             </td>
 
                                                             {/* ITC Eligibility */}
-                                                            <td className="px-4 py-3">
+                                                            <td className="relative px-4 py-3">
                                                                 <SearchableDropdown
                                                                     options={itcEligibilityOptions}
                                                                     value={product.itc_eligibility}
@@ -967,7 +967,7 @@ const ZohoVendorBillDetail = () => {
                                         </div>
 
                                         {/* TDS/TCS Selection Dropdown */}
-                                        <div>
+                                        <div className="relative">
                                             <label className="block text-sm font-semibold text-gray-800 mb-2">
                                                 Select {vendorForm.is_tax} Rate
                                             </label>
