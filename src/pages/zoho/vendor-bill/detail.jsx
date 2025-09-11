@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBillQuery } from "@/store/api/zoho/vendorBillsApiSlice";
+import { useGetVendorsQuery } from "@/store/api/zoho/zohoApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 
@@ -19,7 +20,8 @@ const ZohoVendorBillDetail = () => {
         vendorName: '',
         invoiceNumber: '',
         vendorGST: '',
-        dateIssued: ''
+        dateIssued: '',
+        selectedVendor: null
     });
 
     // State for managing item quantities
@@ -40,27 +42,38 @@ const ZohoVendorBillDetail = () => {
         { skip: !selectedOrganization?.id || !billId }
     );
 
+    // Fetch vendors list for dropdown
+    const { data: vendorsData, isLoading: vendorsLoading } = useGetVendorsQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
     // Extract analysed_data from the API response
     const analysedData = vendorBillData?.analysed_data || {};
+    const zohoData = vendorBillData?.zoho_bill || {};
     
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.analysed_data) {
             const data = vendorBillData.analysed_data;
+            const zoho = vendorBillData.zoho_bill;
+            
             setVendorForm({
-                vendorName: data.vendorName || '',
-                invoiceNumber: data.invoiceNumber || '',
-                vendorGST: data.vendorGST || '',
-                dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : ''
+                vendorName: data.from?.name || '',
+                invoiceNumber: data.invoiceNumber || zoho?.bill_no || '',
+                vendorGST: '',
+                dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
+                           (zoho?.bill_date ? new Date(zoho.bill_date).toISOString().split('T')[0] : ''),
+                selectedVendor: zoho?.vendor || null
             });
 
             // Initialize Bill Summary Form
             setBillSummaryForm({
-                subtotal: data.subtotal || '',
-                cgst: data.cgst || '',
-                sgst: data.sgst || '',
-                igst: data.igst || '',
-                total: data.total || ''
+                subtotal: (data.items?.reduce((sum, item) => sum + (item.price || 0), 0) || '').toString(),
+                cgst: data.cgst || zoho?.cgst || '',
+                sgst: data.sgst || zoho?.sgst || '',
+                igst: data.igst || zoho?.igst || '',
+                total: data.total || zoho?.total || ''
             });
 
             // Initialize item quantities
@@ -75,6 +88,26 @@ const ZohoVendorBillDetail = () => {
         setVendorForm(prev => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    // Handle vendor selection
+    const handleVendorSelect = (vendor) => {
+        setVendorForm(prev => ({
+            ...prev,
+            selectedVendor: vendor,
+            vendorName: vendor.companyName || '',
+            vendorGST: vendor.gstNo || ''
+        }));
+    };
+
+    // Handle vendor deselection
+    const handleVendorClear = () => {
+        setVendorForm(prev => ({
+            ...prev,
+            selectedVendor: null,
+            vendorName: analysedData?.from?.name || '',
+            vendorGST: ''
         }));
     };
 
@@ -102,8 +135,13 @@ const ZohoVendorBillDetail = () => {
         if (vendorBillData) {
             console.log('Full API Response:', vendorBillData);
             console.log('Analysed Data:', analysedData);
+            console.log('Zoho Bill Data:', zohoData);
         }
-    }, [vendorBillData, analysedData]);
+        if (vendorsData) {
+            console.log('Vendors Data:', vendorsData);
+            console.log('First Vendor Structure:', vendorsData.results?.[0]);
+        }
+    }, [vendorBillData, analysedData, zohoData, vendorsData]);
 
     // Auto-close sidebar when component mounts
     useEffect(() => {
@@ -184,7 +222,7 @@ const ZohoVendorBillDetail = () => {
     return (
         <div className="space-y-5">
             <Card 
-                title={`Vendor Bill Detail${analysedData.invoiceNumber ? ` - ${analysedData.invoiceNumber}` : ''}`} 
+                title={`Vendor Bill Detail${analysedData.invoiceNumber || zohoData.bill_no ? ` - ${analysedData.invoiceNumber || zohoData.bill_no}` : ''}`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -225,14 +263,36 @@ const ZohoVendorBillDetail = () => {
                     {/* Bill Photo/Image/PDF Section */}
                     <div className="lg:w-1/3">
                         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center min-h-[400px] flex flex-col justify-center items-center">
-                            <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Bill Photo</h3>
-                            <p className="text-sm text-gray-600 mb-4">Image/PDF</p>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                                Upload File
-                            </button>
+                            {vendorBillData?.file ? (
+                                <div className="w-full h-full flex flex-col">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-4">Bill Photo</h3>
+                                    <div className="flex-1 flex items-center justify-center">
+                                        <img 
+                                            src={vendorBillData.file}
+                                            alt="Bill Document"
+                                            className="max-w-full max-h-[350px] object-contain rounded-lg shadow-lg"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.nextSibling.style.display = 'block';
+                                            }}
+                                        />
+                                        <div style={{display: 'none'}} className="flex flex-col items-center">
+                                            <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                            <p className="text-sm text-gray-600">Unable to load document</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Bill Photo</h3>
+                                    <p className="text-sm text-gray-600">No document available</p>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -243,19 +303,75 @@ const ZohoVendorBillDetail = () => {
                             <div className="p-8 border-b border-gray-200">
                                 {/* Simple Form Fields */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {/* Vendor Name Field */}
+                                    {/* Vendor Selection Field */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Vendor Name
+                                            Vendor
+                                            {zohoData?.vendor === null && (
+                                                <span className="ml-1 text-xs text-blue-600">(Select from list)</span>
+                                            )}
                                         </label>
-                                        <input
-                                            type="text"
-                                            name="vendorName"
-                                            value={vendorForm.vendorName}
-                                            onChange={(e) => handleFormChange('vendorName', e.target.value)}
-                                            placeholder="Enter vendor name"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                                        />
+                                        {zohoData?.vendor === null ? (
+                                            <div className="space-y-2">
+                                                <div className="relative">
+                                                    <select
+                                                        value={vendorForm.selectedVendor?.contactId || ''}
+                                                        onChange={(e) => {
+                                                            const selectedVendor = vendorsData?.results?.find(v => v.contactId === e.target.value);
+                                                            if (selectedVendor) {
+                                                                handleVendorSelect(selectedVendor);
+                                                            }
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none appearance-none bg-white"
+                                                        disabled={vendorsLoading}
+                                                    >
+                                                        <option value="">
+                                                            {vendorsLoading ? 'Loading vendors...' : 'Select a vendor...'}
+                                                        </option>
+                                                        {vendorsData?.results?.map((vendor) => (
+                                                            <option key={vendor.contactId} value={vendor.contactId}>
+                                                                {vendor.companyName || 'Unnamed Vendor'}
+                                                                {vendor.gstNo && ` (GST: ${vendor.gstNo})`}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                        {vendorsLoading ? (
+                                                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                                        ) : (
+                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    {vendorsData?.results?.length === 0 && !vendorsLoading && (
+                                                        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
+                                                            No vendors found. Please sync vendors from Zoho first.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Bill To Badge - showing analysed_data.to.name */}
+                                                {analysedData?.to?.name && (
+                                                    <div className="mt-2">
+                                                        <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                            <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                            </svg>
+                                                            Bill To: {analysedData.to.name}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={vendorForm.vendorName}
+                                                onChange={(e) => handleFormChange('vendorName', e.target.value)}
+                                                placeholder="Enter vendor name"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            />
+                                        )}
                                     </div>
 
                                     {/* Invoice Number Field */}
@@ -277,6 +393,9 @@ const ZohoVendorBillDetail = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             GST Number
+                                            {zohoData?.vendor === null && vendorForm.selectedVendor && (
+                                                <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                            )}
                                         </label>
                                         <input
                                             type="text"
@@ -284,8 +403,18 @@ const ZohoVendorBillDetail = () => {
                                             value={vendorForm.vendorGST}
                                             onChange={(e) => handleFormChange('vendorGST', e.target.value)}
                                             placeholder="Enter GST number"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                                                zohoData?.vendor === null && vendorForm.selectedVendor 
+                                                    ? 'bg-green-50 border-green-300' 
+                                                    : ''
+                                            }`}
+                                            readOnly={zohoData?.vendor === null && vendorForm.selectedVendor}
                                         />
+                                        {zohoData?.vendor === null && vendorForm.selectedVendor && (
+                                            <p className="mt-1 text-xs text-green-600">
+                                                GST number automatically filled from selected vendor
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Date Issued Field */}
@@ -349,7 +478,7 @@ const ZohoVendorBillDetail = () => {
                                                                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                                                 </svg>
-                                                                Rate
+                                                                Price
                                                             </div>
                                                         </th>
                                                         <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
@@ -418,12 +547,12 @@ const ZohoVendorBillDetail = () => {
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                                     <div className="text-sm font-semibold text-gray-900">
-                                                                        ₹{item.rate?.toLocaleString('en-IN') || '0'}
+                                                                        ₹{item.price?.toLocaleString('en-IN') || '0'}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                                     <div className="text-sm font-bold text-green-600">
-                                                                        ₹{((itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0) * (item.rate || 0)).toLocaleString('en-IN')}
+                                                                        ₹{((itemQuantities[index] !== undefined ? itemQuantities[index] : item.quantity || 0) * (item.price || 0)).toLocaleString('en-IN')}
                                                                     </div>
                                                                 </td>
                                                             </tr>
