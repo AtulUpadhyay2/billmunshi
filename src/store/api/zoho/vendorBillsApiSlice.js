@@ -58,8 +58,8 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [{ type: 'VendorBill', id }],
     }),
     deleteVendorBill: builder.mutation({
-      query: ({ organizationId, billId }) => ({
-        url: `zoho/org/${organizationId}/vendor-bills/${billId}/`,
+      query: ({ organizationId, id }) => ({
+        url: `zoho/org/${organizationId}/vendor-bills/${id}/delete/`,
         method: "DELETE",
         headers: {
           'Content-Type': 'application/json',
