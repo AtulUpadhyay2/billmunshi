@@ -24,6 +24,15 @@ const ZohoVendorBillDetail = () => {
 
     // State for managing item quantities
     const [itemQuantities, setItemQuantities] = useState([]);
+
+    // Form state for bill summary
+    const [billSummaryForm, setBillSummaryForm] = useState({
+        subtotal: '',
+        cgst: '',
+        sgst: '',
+        igst: '',
+        total: ''
+    });
     
     // Fetch vendor bill data
     const { data: vendorBillData, error, isLoading, refetch } = useGetVendorBillQuery(
@@ -44,7 +53,16 @@ const ZohoVendorBillDetail = () => {
                 vendorGST: data.vendorGST || '',
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : ''
             });
-            
+
+            // Initialize Bill Summary Form
+            setBillSummaryForm({
+                subtotal: data.subtotal || '',
+                cgst: data.cgst || '',
+                sgst: data.sgst || '',
+                igst: data.igst || '',
+                total: data.total || ''
+            });
+
             // Initialize item quantities
             if (data.items && data.items.length > 0) {
                 setItemQuantities(data.items.map(item => item.quantity || 0));
@@ -55,6 +73,14 @@ const ZohoVendorBillDetail = () => {
     // Handle form input changes
     const handleFormChange = (name, value) => {
         setVendorForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Handle Bill Summary form changes
+    const handleBillSummaryChange = (name, value) => {
+        setBillSummaryForm(prev => ({
             ...prev,
             [name]: value
         }));
@@ -215,21 +241,6 @@ const ZohoVendorBillDetail = () => {
                         <div className="bg-white border border-gray-200 rounded-lg">
                             {/* Vendor Information Section */}
                             <div className="p-8 border-b border-gray-200">
-                                {/* Header Section */}
-                                <div className="mb-6">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-gray-900">Vendor Information</h2>
-                                            <p className="text-sm text-gray-500">Edit vendor and bill information details</p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Simple Form Fields */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     {/* Vendor Name Field */}
@@ -295,23 +306,8 @@ const ZohoVendorBillDetail = () => {
 
                             {/* Product Information Section */}
                             <div className="p-8 border-b border-gray-200">
-                                {/* Header Section */}
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-gray-900">Product Information</h2>
-                                            <p className="text-sm text-gray-500">Detailed breakdown of products, quantities, and tax calculations</p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Items Section */}
-                                <div className="mb-8">
+                                <div>
                                     <div className="flex items-center justify-between mb-6">
                                         <div className="flex items-center gap-2">
                                             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,90 +446,88 @@ const ZohoVendorBillDetail = () => {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Enhanced Bill Summary */}
-                                <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-                                    <div className="flex items-center gap-2 mb-6">
-                                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Bill Summary</h3>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {/* Tax Details */}
+                            </div>
+                            {/* Bill Summary - Invoice Style */}
+                            <div className="p-8 border-b border-gray-200">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        {/* Left Column - Tax Details */}
                                         <div className="space-y-4">
-                                            <h4 className="text-sm font-medium text-gray-700 uppercase tracking-wider border-b border-gray-300 pb-2">Tax Breakdown</h4>
-                                            
-                                            <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                                <div className="flex justify-between items-center py-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                        <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-                                                    </div>
-                                                    <span className="text-sm font-semibold text-gray-900">₹{analysedData.subtotal?.toLocaleString('en-IN') || '0'}</span>
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">Subtotal:</span>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="subtotal"
+                                                        value={billSummaryForm.subtotal}
+                                                        onChange={e => handleBillSummaryChange('subtotal', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                 </div>
-                                                
-                                                <div className="flex justify-between items-center py-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                        <span className="text-sm font-medium text-gray-700">CGST:</span>
-                                                    </div>
-                                                    <span className="text-sm font-semibold text-gray-900">₹{analysedData.cgst?.toLocaleString('en-IN') || '0'}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">CGST:</span>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="cgst"
+                                                        value={billSummaryForm.cgst}
+                                                        onChange={e => handleBillSummaryChange('cgst', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                 </div>
-                                                
-                                                <div className="flex justify-between items-center py-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                                        <span className="text-sm font-medium text-gray-700">SGST:</span>
-                                                    </div>
-                                                    <span className="text-sm font-semibold text-gray-900">₹{analysedData.sgst?.toLocaleString('en-IN') || '0'}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">SGST:</span>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="sgst"
+                                                        value={billSummaryForm.sgst}
+                                                        onChange={e => handleBillSummaryChange('sgst', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                 </div>
-                                                
-                                                <div className="flex justify-between items-center py-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                                        <span className="text-sm font-medium text-gray-700">IGST:</span>
-                                                    </div>
-                                                    <span className="text-sm font-semibold text-gray-900">₹{analysedData.igst?.toLocaleString('en-IN') || '0'}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">IGST:</span>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="igst"
+                                                        value={billSummaryForm.igst}
+                                                        onChange={e => handleBillSummaryChange('igst', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Total Section */}
-                                        <div className="space-y-4">
-                                            <h4 className="text-sm font-medium text-gray-700 uppercase tracking-wider border-b border-gray-300 pb-2">Final Amount</h4>
-                                            
-                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border-2 border-green-200">
+                                        
+                                        {/* Right Column - Total */}
+                                        <div className="flex items-center justify-center">
+                                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
                                                 <div className="text-center">
-                                                    <div className="flex items-center justify-center gap-2 mb-2">
-                                                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                                        </svg>
-                                                        <span className="text-sm font-medium text-green-700 uppercase tracking-wider">Total Amount</span>
+                                                    <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">Total Amount</div>
+                                                    <div className="flex items-center justify-center">
+                                                        <span className="text-2xl font-bold text-blue-600 mr-2">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            name="total"
+                                                            value={billSummaryForm.total}
+                                                            onChange={e => handleBillSummaryChange('total', e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        />
                                                     </div>
-                                                    <div className="text-3xl font-bold text-green-600 mb-2">
-                                                        ₹{analysedData.total?.toLocaleString('en-IN') || '0'}
-                                                    </div>
-                                                    <div className="text-xs text-green-600">
-                                                        Including all taxes and charges
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Additional Info */}
-                                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium text-blue-700">Quick Stats</span>
-                                                </div>
-                                                <div className="text-xs text-blue-600 space-y-1">
-                                                    <div>Items: {analysedData.items?.length || 0}</div>
-                                                    <div>Tax Amount: ₹{((analysedData.cgst || 0) + (analysedData.sgst || 0) + (analysedData.igst || 0)).toLocaleString('en-IN')}</div>
+                                                    <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -543,50 +537,15 @@ const ZohoVendorBillDetail = () => {
 
                             {/* Notes Section */}
                             <div className="p-8">
-                                {/* Header Section */}
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-gray-900">Notes & Comments</h2>
-                                            <p className="text-sm text-gray-500">Add additional notes, comments, or observations for this bill</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Notes Input Section */}
-                                <div className="space-y-6">
-                                    {/* Main Notes Area */}
-                                    <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-100">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                            </svg>
-                                            <h3 className="text-lg font-semibold text-gray-900">Bill Notes</h3>
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                                Optional
-                                            </span>
-                                        </div>
-                                        
-                                        <textarea 
-                                            className="w-full h-40 px-4 py-3 border-2 border-amber-200 rounded-lg resize-none bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-200 focus:outline-none transition-all duration-200 placeholder-gray-400 text-gray-700"
-                                            placeholder="Add your notes, observations, or comments about this bill..."
-                                            rows={6}
-                                        ></textarea>
-                                        
-                                        <div className="mt-3 flex items-center justify-between text-xs text-amber-600">
-                                            <div className="flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>These notes will be saved with the bill record</span>
-                                            </div>
-                                         </div>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Notes
+                                    </label>
+                                    <textarea 
+                                        className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
+                                        placeholder="Add notes or comments..."
+                                        rows={4}
+                                    ></textarea>
                                 </div>
                             </div>
                         </div>
