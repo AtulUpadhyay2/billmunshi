@@ -438,13 +438,13 @@ const ZohoVendorBillDetail = () => {
                     </div>
                 }
             >
-                <div className="flex flex-col lg:flex-row gap-6">
-                    {/* Bill Photo/Image/PDF Section */}
-                    <div className="lg:w-1/3">
-                        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[400px] flex flex-col">
+                <div className="flex flex-col lg:flex-row gap-6 relative">
+                    {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
+                    <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+                        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
                             {vendorBillData?.file ? (
                                 <div className="w-full h-full flex flex-col">
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                         <h3 className="text-lg font-medium text-gray-900">Bill Document</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Keyboard Shortcuts Info */}
@@ -522,7 +522,7 @@ const ZohoVendorBillDetail = () => {
                                             // PDF Viewer
                                             <iframe
                                                 src={vendorBillData.file}
-                                                className="w-full h-full min-h-[350px] border-0"
+                                                className="w-full h-full border-0"
                                                 title="Bill PDF Document"
                                                 onError={(e) => {
                                                     console.error('PDF failed to load:', e);
@@ -531,7 +531,7 @@ const ZohoVendorBillDetail = () => {
                                         ) : (
                                             // Image Viewer with Zoom
                                             <div 
-                                                className="overflow-auto max-h-[350px] w-full flex items-center justify-center"
+                                                className="overflow-auto w-full h-full flex items-center justify-center"
                                                 style={{ 
                                                     cursor: zoomLevel > 1 ? 'grab' : 'default'
                                                 }}
@@ -572,7 +572,7 @@ const ZohoVendorBillDetail = () => {
                         </div>
                     </div>
 
-                    {/* All Content in One Column */}
+                    {/* Scrollable Content Column */}
                     <div className="lg:w-2/3">
                         <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
                             {/* Vendor Information Section */}
