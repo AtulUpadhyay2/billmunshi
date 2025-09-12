@@ -35,40 +35,55 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         
         // Try to refresh the token
         const refreshToken = localStorage.getItem("refresh_token");
-        if (refreshToken) {
-          const refreshResult = await baseQuery({
-            url: "auth/token/refresh/",
-            method: "POST",
-            body: { refresh: refreshToken },
-          }, api, extraOptions);
+        if (refreshToken && refreshToken.trim()) {
+          try {
+            const refreshResult = await baseQuery({
+              url: "auth/token/refresh/",
+              method: "POST",
+              body: { refresh: refreshToken },
+            }, api, extraOptions);
 
-          if (refreshResult.data) {
-            // Successfully refreshed the token
-            const { access } = refreshResult.data;
-            
-            // Update tokens in localStorage
-            localStorage.setItem("access_token", access);
-            
-            // Update Redux state
-            const state = api.getState();
-            const currentUser = state.auth.user;
-            const currentRefreshToken = state.auth.refreshToken;
-            
-            if (currentUser) {
-              api.dispatch(setUser({
-                user: currentUser,
-                access: access,
-                refresh: currentRefreshToken
-              }));
+            if (refreshResult.data && refreshResult.data.access) {
+              // Successfully refreshed the token
+              const { access, refresh: newRefreshToken } = refreshResult.data;
+              
+              // Update tokens in localStorage
+              localStorage.setItem("access_token", access);
+              
+              // Update refresh token if a new one is provided
+              if (newRefreshToken) {
+                localStorage.setItem("refresh_token", newRefreshToken);
+              }
+              
+              // Update Redux state
+              const state = api.getState();
+              const currentUser = state.auth.user;
+              
+              if (currentUser) {
+                api.dispatch(setUser({
+                  user: currentUser,
+                  access: access,
+                  refresh: newRefreshToken || refreshToken // Use new refresh token if provided, otherwise keep current
+                }));
+              }
+
+              console.log("Token refreshed successfully");
+
+              // Retry the original request with new token
+              result = await baseQuery(args, api, extraOptions);
+            } else {
+              // Refresh response doesn't contain access token
+              console.log("Token refresh failed - invalid response structure:", refreshResult);
+              api.dispatch(forceLogout());
+              
+              // Show a toast notification
+              if (typeof window !== 'undefined' && window.globalToast) {
+                window.globalToast.error("Session refresh failed. Please login again.");
+              }
             }
-
-            console.log("Token refreshed successfully");
-
-            // Retry the original request with new token
-            result = await baseQuery(args, api, extraOptions);
-          } else {
-            // Refresh failed, logout user
-            console.log("Token refresh failed, logging out user");
+          } catch (refreshError) {
+            // Refresh request failed
+            console.log("Token refresh request failed:", refreshError);
             api.dispatch(forceLogout());
             
             // Show a toast notification

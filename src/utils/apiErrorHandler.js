@@ -24,7 +24,9 @@ export const handleApiError = (error, defaultMessage = "An error occurred") => {
       ));
 
     if (isTokenExpired) {
-      console.log("Token expired detected in error handler");
+      console.log("Token expired detected in error handler - this should be handled by apiSlice automatically");
+      // Note: Token refresh is handled automatically by apiSlice.js baseQueryWithReauth
+      // This error handler should only be called for errors that weren't handled by the automatic refresh
       store.dispatch(forceLogout());
       globalToast.error("Your session has expired. Please login again.");
       return true; // Token expiration handled

@@ -14,6 +14,7 @@ import "./utils/toast"; // Import global toast utility
 // Import testing utilities in development
 if (process.env.NODE_ENV === 'development') {
   import("./utils/tokenExpirationTesting");
+  import("./utils/tokenRefreshTest");
 }
 
 // import "./server"; // Commented out to disable Mirage and use real APIs
