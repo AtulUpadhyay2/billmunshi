@@ -81,18 +81,22 @@ export const menuItems = [
     link: "tally/expense-bill",
   },
 
-  // {
-  //   title: "Config",
-  //   icon: "heroicons-outline:cog",
-  //   link: "#",
-  //   isHide: true,
-  //   child: [
-  //     {
-  //       childtitle: "Credentials",
-  //       childlink: "credentials",
-  //     }
-  //   ],
-  // },
+  {
+    title: "Config",
+    icon: "heroicons-outline:cog",
+    link: "#",
+    isHide: true,
+    child: [
+      {
+        childtitle: "Setup",
+        childlink: "tally/setup",
+      },
+      {
+        childtitle: "Ledgers",
+        childlink: "tally/ledgers",
+      }
+    ],
+  },
 
   {
     isHeadr: true,
