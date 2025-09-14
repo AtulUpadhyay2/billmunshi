@@ -82,18 +82,26 @@ export const menuItems = [
   },
 
   {
-    title: "Config",
+    title: "Settings",
     icon: "heroicons-outline:cog",
     link: "#",
     isHide: true,
     child: [
       {
-        childtitle: "Setup",
+        childtitle: "Api Key",
+        childlink: "api-keys",
+      },
+      {
+        childtitle: "Config",
         childlink: "tally/setup",
       },
       {
         childtitle: "Ledgers",
         childlink: "tally/ledgers",
+      },
+      {
+        childtitle: "Masters",
+        childlink: "tally/masters",
       }
     ],
   },
@@ -102,28 +110,12 @@ export const menuItems = [
     isHeadr: true,
     title: "Settings",
   },
-
-  {
-    title: "Api Keys",
-    isHide: true,
-    icon: "heroicons-outline:lock-closed",
-    link: "api-keys",
-  },
-
   {
     title: "Members",
     isHide: true,
     icon: "heroicons-outline:users",
     link: "members",
   },
-
-  {
-    title: "Profile",
-    isHide: true,
-    icon: "heroicons-outline:user",
-    link: "profile",
-  },
-
   {
     title: "Subscriptions",
     isHide: true,
