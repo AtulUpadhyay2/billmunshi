@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
+import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation, useVerifyTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
 import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery } from "@/store/api/tally/tallyApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -56,6 +56,9 @@ const TallyVendorBillDetail = () => {
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
     
+    // State for verification loading
+    const [isVerifying, setIsVerifying] = useState(false);
+    
     // Fetch vendor bill details
     const { data: vendorBillData, error, isLoading, refetch } = useGetTallyVendorBillDetailsQuery(
         { organizationId: selectedOrganization?.id, billId },
@@ -100,6 +103,9 @@ const TallyVendorBillDetail = () => {
 
     // Update mutation
     const [updateVendorBill] = useUpdateTallyVendorBillMutation();
+    
+    // Verify mutation
+    const [verifyVendorBill] = useVerifyTallyVendorBillMutation();
 
     // Extract data from the API response
     const billInfo = vendorBillData?.bill || {};
@@ -493,57 +499,87 @@ const TallyVendorBillDetail = () => {
         }
     };
 
+    // Transform form data to API format
+    const transformToVerifyFormat = () => {
+        // Get vendor ledger information
+        const selectedVendor = vendorForm.selectedVendor;
+        
+        // Get tax ledger information for summary
+        const cgstLedger = cgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.cgstLedgerId);
+        const sgstLedger = sgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.sgstLedgerId);
+        const igstLedger = igstLedgerOptions.find(ledger => ledger.id === billSummaryForm.igstLedgerId);
+        
+        return {
+            bill_id: billId,
+            analyzed_data: {
+                vendor: {
+                    master_id: selectedVendor?.master_id || "No Ledger",
+                    name: vendorForm.vendorName || "Unknown Vendor",
+                    gst_in: vendorForm.vendorGST || "No Ledger",
+                    company: selectedVendor?.company || "No Ledger"
+                },
+                bill_details: {
+                    bill_number: vendorForm.invoiceNumber || "",
+                    date: vendorForm.dateIssued || "",
+                    total_amount: parseFloat(billSummaryForm.total) || 0,
+                    company_id: selectedVendor?.company || "Unknown"
+                },
+                taxes: {
+                    igst: {
+                        amount: parseFloat(billSummaryForm.igst) || 0.0,
+                        ledger: igstLedger?.name || "No Tax Ledger"
+                    },
+                    cgst: {
+                        amount: parseFloat(billSummaryForm.cgst) || 0.0,
+                        ledger: cgstLedger?.name || "No Tax Ledger"
+                    },
+                    sgst: {
+                        amount: parseFloat(billSummaryForm.sgst) || 0.0,
+                        ledger: sgstLedger?.name || "No Tax Ledger"
+                    }
+                },
+                line_items: products.map(product => {
+                    const taxLedger = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
+                    return {
+                        item_name: null,
+                        item_details: product.item_details || "",
+                        tax_ledger: taxLedger?.name || "No Tax Ledger",
+                        price: parseFloat(product.price) || 0,
+                        quantity: parseFloat(product.quantity) || 0,
+                        amount: parseFloat(product.amount) || 0,
+                        gst: product.gst || "",
+                        igst: parseFloat(product.igst) || 0.0,
+                        cgst: parseFloat(product.cgst) || 0.0,
+                        sgst: parseFloat(product.sgst) || 0.0
+                    };
+                })
+            }
+        };
+    };
+
     // Save function
     const handleSave = async () => {
         try {
-            const updateData = {
-                // Map form data to API format
-                vendor_info: {
-                    name: vendorForm.vendorName,
-                    gst: vendorForm.vendorGST,
-                    selected_vendor: vendorForm.selectedVendor
-                },
-                bill_info: {
-                    invoice_number: vendorForm.invoiceNumber,
-                    date_issued: vendorForm.dateIssued,
-                    due_date: vendorForm.dueDate
-                },
-                line_items: products.map(product => ({
-                    item_details: product.item_details,
-                    tax_ledger: product.tax_ledger,
-                    tax_ledger_id: product.tax_ledger_id,
-                    price: parseFloat(product.price) || 0,
-                    quantity: parseFloat(product.quantity) || 0,
-                    amount: parseFloat(product.amount) || 0,
-                    gst: product.gst,
-                    igst: parseFloat(product.igst) || 0.0,
-                    cgst: parseFloat(product.cgst) || 0.0,
-                    sgst: parseFloat(product.sgst) || 0.0
-                })),
-                tax_summary: {
-                    cgst: parseFloat(billSummaryForm.cgst) || 0,
-                    sgst: parseFloat(billSummaryForm.sgst) || 0,
-                    igst: parseFloat(billSummaryForm.igst) || 0,
-                    total: parseFloat(billSummaryForm.total) || 0
-                },
-                tds_tcs: {
-                    type: vendorForm.is_tax,
-                    selected_rate: selectedTdsTcs
-                },
-                notes: notes
-            };
-
-            await updateVendorBill({
+            setIsVerifying(true);
+            
+            // Transform data to the required API format
+            const verifyData = transformToVerifyFormat();
+            
+            // Call the verify API
+            await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
-                id: billId,
-                ...updateData
+                ...verifyData
             }).unwrap();
 
-            globalToast.success('Vendor bill updated successfully');
-            refetch(); // Refresh the data
+            globalToast.success('Vendor bill verified successfully');
+            
+            // Navigate to vendor bill list after successful verification
+            navigate('/tally/vendor-bill');
         } catch (error) {
-            console.error('Failed to update vendor bill:', error);
-            globalToast.error(error?.data?.message || 'Failed to update vendor bill');
+            console.error('Failed to verify vendor bill:', error);
+            globalToast.error(error?.data?.message || 'Failed to verify vendor bill');
+        } finally {
+            setIsVerifying(false);
         }
     };
     
@@ -719,13 +755,20 @@ const TallyVendorBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleSave}
-                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                            title="Save"
+                            disabled={isVerifying}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={isVerifying ? "Verifying..." : "Verify"}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                            </svg>
-                            Save
+                            {isVerifying ? (
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            )}
+                            {isVerifying ? 'Verifying...' : 'Verify'}
                         </button>
                     </div>
                 }

@@ -108,6 +108,20 @@ export const tallyVendorBillsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, { billId }) => [{ type: 'TallyVendorBill', id: billId }],
     }),
+    verifyTallyVendorBill: builder.mutation({
+      query: ({ organizationId, ...verifyData }) => ({
+        url: `tally/org/${organizationId}/vendor-bills/verify/`,
+        method: "POST",
+        body: verifyData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      invalidatesTags: (result, error, { bill_id }) => [
+        { type: 'TallyVendorBill', id: bill_id },
+        { type: 'TallyVendorBillDetails', id: bill_id }
+      ],
+    }),
   }),
 });
 
@@ -120,4 +134,5 @@ export const {
   useUpdateTallyVendorBillMutation,
   useDeleteTallyVendorBillMutation,
   useAnalyzeTallyVendorBillMutation,
+  useVerifyTallyVendorBillMutation,
 } = tallyVendorBillsApi;
