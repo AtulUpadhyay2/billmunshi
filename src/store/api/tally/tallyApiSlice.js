@@ -76,6 +76,62 @@ export const tallyApi = apiSlice.injectEndpoints({
         return response;
       },
     }),
+    getTallyTaxLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=chart_of_accounts_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyTaxLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally Tax Ledgers API Error:', response);
+        return response;
+      },
+    }),
+    getTallyCgstLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=cgst_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyCgstLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally CGST Ledgers API Error:', response);
+        return response;
+      },
+    }),
+    getTallySgstLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=sgst_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallySgstLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally SGST Ledgers API Error:', response);
+        return response;
+      },
+    }),
+    getTallyIgstLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=igst_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyIgstLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally IGST Ledgers API Error:', response);
+        return response;
+      },
+    }),
   }),
 });
 
@@ -86,4 +142,8 @@ export const {
   useDeleteTallyConfigMutation,
   useGetTallyLedgersQuery,
   useGetTallyVendorLedgersQuery,
+  useGetTallyTaxLedgersQuery,
+  useGetTallyCgstLedgersQuery,
+  useGetTallySgstLedgersQuery,
+  useGetTallyIgstLedgersQuery,
 } = tallyApi;

@@ -5,7 +5,7 @@ import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
-import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery } from "@/store/api/tally/tallyApiSlice";
+import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery } from "@/store/api/tally/tallyApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -43,7 +43,10 @@ const TallyVendorBillDetail = () => {
         cgst: '',
         sgst: '',
         igst: '',
-        total: ''
+        total: '',
+        cgstLedgerId: null,
+        sgstLedgerId: null,
+        igstLedgerId: null
     });
 
     // State for notes
@@ -67,6 +70,30 @@ const TallyVendorBillDetail = () => {
 
     // Fetch vendor ledgers for vendor selection dropdown
     const { data: vendorLedgersData, isLoading: vendorLedgersLoading } = useGetTallyVendorLedgersQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch tax ledgers for product tax selection dropdown
+    const { data: taxLedgersData, isLoading: taxLedgersLoading } = useGetTallyTaxLedgersQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch CGST ledgers for CGST dropdown
+    const { data: cgstLedgersData, isLoading: cgstLedgersLoading } = useGetTallyCgstLedgersQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch SGST ledgers for SGST dropdown
+    const { data: sgstLedgersData, isLoading: sgstLedgersLoading } = useGetTallySgstLedgersQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch IGST ledgers for IGST dropdown
+    const { data: igstLedgersData, isLoading: igstLedgersLoading } = useGetTallyIgstLedgersQuery(
         selectedOrganization?.id,
         { skip: !selectedOrganization?.id }
     );
@@ -105,6 +132,104 @@ const TallyVendorBillDetail = () => {
 
     const vendorOptions = processVendorLedgers();
     
+    // Process tax ledgers data for dropdown
+    const processTaxLedgers = () => {
+        if (!taxLedgersData?.grouped_ledgers) return [];
+        
+        const taxLedgers = [];
+        Object.values(taxLedgersData.grouped_ledgers).forEach(group => {
+            if (group.ledgers && Array.isArray(group.ledgers)) {
+                group.ledgers.forEach(ledger => {
+                    taxLedgers.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        master_id: ledger.master_id,
+                        alter_id: ledger.alter_id,
+                        opening_balance: ledger.opening_balance,
+                        company: ledger.company,
+                        parent_name: group.parent_name
+                    });
+                });
+            }
+        });
+        return taxLedgers;
+    };
+
+    const taxLedgerOptions = processTaxLedgers();
+    
+    // Process CGST ledgers data for dropdown
+    const processCgstLedgers = () => {
+        if (!cgstLedgersData?.grouped_ledgers) return [];
+        
+        const cgstLedgers = [];
+        Object.values(cgstLedgersData.grouped_ledgers).forEach(group => {
+            if (group.ledgers && Array.isArray(group.ledgers)) {
+                group.ledgers.forEach(ledger => {
+                    cgstLedgers.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        master_id: ledger.master_id,
+                        alter_id: ledger.alter_id,
+                        opening_balance: ledger.opening_balance,
+                        company: ledger.company,
+                        parent_name: group.parent_name
+                    });
+                });
+            }
+        });
+        return cgstLedgers;
+    };
+
+    // Process SGST ledgers data for dropdown
+    const processSgstLedgers = () => {
+        if (!sgstLedgersData?.grouped_ledgers) return [];
+        
+        const sgstLedgers = [];
+        Object.values(sgstLedgersData.grouped_ledgers).forEach(group => {
+            if (group.ledgers && Array.isArray(group.ledgers)) {
+                group.ledgers.forEach(ledger => {
+                    sgstLedgers.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        master_id: ledger.master_id,
+                        alter_id: ledger.alter_id,
+                        opening_balance: ledger.opening_balance,
+                        company: ledger.company,
+                        parent_name: group.parent_name
+                    });
+                });
+            }
+        });
+        return sgstLedgers;
+    };
+
+    // Process IGST ledgers data for dropdown
+    const processIgstLedgers = () => {
+        if (!igstLedgersData?.grouped_ledgers) return [];
+        
+        const igstLedgers = [];
+        Object.values(igstLedgersData.grouped_ledgers).forEach(group => {
+            if (group.ledgers && Array.isArray(group.ledgers)) {
+                group.ledgers.forEach(ledger => {
+                    igstLedgers.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        master_id: ledger.master_id,
+                        alter_id: ledger.alter_id,
+                        opening_balance: ledger.opening_balance,
+                        company: ledger.company,
+                        parent_name: group.parent_name
+                    });
+                });
+            }
+        });
+        return igstLedgers;
+    };
+
+    const cgstLedgerOptions = processCgstLedgers();
+    const sgstLedgerOptions = processSgstLedgers();
+    const igstLedgerOptions = processIgstLedgers();
+    
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.bill) {
@@ -140,6 +265,7 @@ const TallyVendorBillDetail = () => {
                     id: index,
                     item_details: item.item_details || item.item_name || '',
                     tax_ledger: item.tax_ledger || 'No Tax Ledger',
+                    tax_ledger_id: item.tax_ledger_id || null,
                     price: item.price || '',
                     quantity: item.quantity || '',
                     amount: item.amount || '',
@@ -153,6 +279,7 @@ const TallyVendorBillDetail = () => {
                     id: index,
                     item_details: item.description || '',
                     tax_ledger: 'No Tax Ledger',
+                    tax_ledger_id: null,
                     price: item.price || '',
                     quantity: item.quantity || '',
                     amount: (item.price * item.quantity) || '',
@@ -167,6 +294,7 @@ const TallyVendorBillDetail = () => {
                     id: Date.now(),
                     item_details: '',
                     tax_ledger: 'No Tax Ledger',
+                    tax_ledger_id: null,
                     price: '',
                     quantity: '',
                     amount: '',
@@ -235,11 +363,83 @@ const TallyVendorBillDetail = () => {
         }));
     };
 
+    // Handle tax ledger selection
+    const handleTaxLedgerSelect = (productIndex, taxLedgerId) => {
+        const taxLedger = taxLedgerOptions.find(tl => tl.id === taxLedgerId);
+        if (taxLedger) {
+            setProducts(prev => {
+                const updated = [...prev];
+                updated[productIndex] = {
+                    ...updated[productIndex],
+                    tax_ledger: taxLedger.name,
+                    tax_ledger_id: taxLedger.id
+                };
+                return updated;
+            });
+        }
+    };
+
+    // Handle tax ledger deselection
+    const handleTaxLedgerClear = (productIndex) => {
+        setProducts(prev => {
+            const updated = [...prev];
+            updated[productIndex] = {
+                ...updated[productIndex],
+                tax_ledger: 'No Tax Ledger',
+                tax_ledger_id: null
+            };
+            return updated;
+        });
+    };
+
     // Handle Bill Summary form changes
     const handleBillSummaryChange = (name, value) => {
         setBillSummaryForm(prev => ({
             ...prev,
             [name]: value
+        }));
+    };
+
+    // Handle tax ledger selections
+    const handleCgstLedgerSelect = (ledgerId) => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            cgstLedgerId: ledgerId
+        }));
+    };
+
+    const handleSgstLedgerSelect = (ledgerId) => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            sgstLedgerId: ledgerId
+        }));
+    };
+
+    const handleIgstLedgerSelect = (ledgerId) => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            igstLedgerId: ledgerId
+        }));
+    };
+
+    const handleCgstLedgerClear = () => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            cgstLedgerId: null
+        }));
+    };
+
+    const handleSgstLedgerClear = () => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            sgstLedgerId: null
+        }));
+    };
+
+    const handleIgstLedgerClear = () => {
+        setBillSummaryForm(prev => ({
+            ...prev,
+            igstLedgerId: null
         }));
     };
 
@@ -276,6 +476,7 @@ const TallyVendorBillDetail = () => {
             id: Date.now(),
             item_details: '',
             tax_ledger: 'No Tax Ledger',
+            tax_ledger_id: null,
             price: '',
             quantity: '',
             amount: '',
@@ -310,6 +511,7 @@ const TallyVendorBillDetail = () => {
                 line_items: products.map(product => ({
                     item_details: product.item_details,
                     tax_ledger: product.tax_ledger,
+                    tax_ledger_id: product.tax_ledger_id,
                     price: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
@@ -829,12 +1031,28 @@ const TallyVendorBillDetail = () => {
 
                                                             {/* Tax Ledger */}
                                                             <td className="px-4 py-3">
-                                                                <input
-                                                                    type="text"
-                                                                    value={product.tax_ledger || 'No Tax Ledger'}
-                                                                    onChange={(e) => handleProductChange(index, 'tax_ledger', e.target.value)}
-                                                                    placeholder="Tax Ledger"
-                                                                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400"
+                                                                <SearchableDropdown
+                                                                    options={taxLedgerOptions}
+                                                                    value={product.tax_ledger_id || null}
+                                                                    onChange={(taxLedgerId) => handleTaxLedgerSelect(index, taxLedgerId)}
+                                                                    onClear={() => handleTaxLedgerClear(index)}
+                                                                    placeholder="Select tax ledger..."
+                                                                    searchPlaceholder="Type to search tax ledgers..."
+                                                                    optionLabelKey="name"
+                                                                    optionValueKey="id"
+                                                                    loading={taxLedgersLoading}
+                                                                    renderOption={(taxLedger) => (
+                                                                        <div className="flex flex-col py-1">
+                                                                            <div className="font-medium text-gray-900">{taxLedger.name}</div>
+                                                                            {taxLedger.parent_name && (
+                                                                                <div className="text-xs text-blue-600">{taxLedger.parent_name}</div>
+                                                                            )}
+                                                                            {taxLedger.opening_balance && parseFloat(taxLedger.opening_balance) !== 0 && (
+                                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(taxLedger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    className="tax-ledger-dropdown"
                                                                 />
                                                             </td>
 
@@ -984,44 +1202,125 @@ const TallyVendorBillDetail = () => {
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-sm font-medium text-gray-700">CGST:</span>
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="cgst"
-                                                        value={billSummaryForm.cgst}
-                                                        onChange={e => handleBillSummaryChange('cgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    />
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            name="cgst"
+                                                            value={billSummaryForm.cgst}
+                                                            onChange={e => handleBillSummaryChange('cgst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <SearchableDropdown
+                                                            options={cgstLedgerOptions}
+                                                            value={billSummaryForm.cgstLedgerId || null}
+                                                            onChange={handleCgstLedgerSelect}
+                                                            onClear={handleCgstLedgerClear}
+                                                            placeholder="Select CGST ledger..."
+                                                            searchPlaceholder="Type to search CGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={cgstLedgersLoading}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                    {ledger.parent_name && (
+                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                                    )}
+                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
+                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            className="text-xs"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-sm font-medium text-gray-700">SGST:</span>
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="sgst"
-                                                        value={billSummaryForm.sgst}
-                                                        onChange={e => handleBillSummaryChange('sgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    />
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            name="sgst"
+                                                            value={billSummaryForm.sgst}
+                                                            onChange={e => handleBillSummaryChange('sgst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <SearchableDropdown
+                                                            options={sgstLedgerOptions}
+                                                            value={billSummaryForm.sgstLedgerId || null}
+                                                            onChange={handleSgstLedgerSelect}
+                                                            onClear={handleSgstLedgerClear}
+                                                            placeholder="Select SGST ledger..."
+                                                            searchPlaceholder="Type to search SGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={sgstLedgersLoading}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                    {ledger.parent_name && (
+                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                                    )}
+                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
+                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            className="text-xs"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-sm font-medium text-gray-700">IGST:</span>
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="igst"
-                                                        value={billSummaryForm.igst}
-                                                        onChange={e => handleBillSummaryChange('igst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    />
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            name="igst"
+                                                            value={billSummaryForm.igst}
+                                                            onChange={e => handleBillSummaryChange('igst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <SearchableDropdown
+                                                            options={igstLedgerOptions}
+                                                            value={billSummaryForm.igstLedgerId || null}
+                                                            onChange={handleIgstLedgerSelect}
+                                                            onClear={handleIgstLedgerClear}
+                                                            placeholder="Select IGST ledger..."
+                                                            searchPlaceholder="Type to search IGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={igstLedgersLoading}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                    {ledger.parent_name && (
+                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                                    )}
+                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
+                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            className="text-xs"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1057,7 +1356,7 @@ const TallyVendorBillDetail = () => {
                                         Notes
                                     </label>
                                     <textarea 
-                                        value={notes}
+                                        value={notes || `Page URL: ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
                                         placeholder="Add notes or comments..."
