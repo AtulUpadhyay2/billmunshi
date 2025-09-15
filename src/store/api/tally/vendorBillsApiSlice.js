@@ -26,6 +26,16 @@ export const tallyVendorBillsApi = apiSlice.injectEndpoints({
       }),
       providesTags: (result, error, { billId }) => [{ type: 'TallyVendorBill', id: billId }],
     }),
+    getTallyVendorBillDetails: builder.query({
+      query: ({ organizationId, billId }) => ({
+        url: `tally/org/${organizationId}/vendor-bills/${billId}/details/`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: (result, error, { billId }) => [{ type: 'TallyVendorBillDetails', id: billId }],
+    }),
     createTallyVendorBill: builder.mutation({
       query: ({ organizationId, ...newBill }) => ({
         url: `tally/org/${organizationId}/vendor-bills/`,
@@ -104,6 +114,7 @@ export const tallyVendorBillsApi = apiSlice.injectEndpoints({
 export const {
   useGetTallyVendorBillsQuery,
   useGetTallyVendorBillQuery,
+  useGetTallyVendorBillDetailsQuery,
   useCreateTallyVendorBillMutation,
   useUploadTallyVendorBillsMutation,
   useUpdateTallyVendorBillMutation,

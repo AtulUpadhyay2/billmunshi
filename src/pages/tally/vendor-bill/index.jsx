@@ -361,8 +361,7 @@ const TallyVendorBill = () => {
                           <div className="flex gap-2 items-center">
                             <button
                               onClick={() => {
-                                // TODO: Implement view functionality
-                                console.log('View bill:', bill.id);
+                                navigate(`/tally/vendor-bill/${bill.id}`);
                               }}
                               className="group relative inline-flex items-center justify-center w-8 h-8 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md shadow-sm hover:bg-indigo-100 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-all duration-200 active:scale-95"
                               title="View vendor bill details"

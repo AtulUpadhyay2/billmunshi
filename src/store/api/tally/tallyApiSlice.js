@@ -62,6 +62,20 @@ export const tallyApi = apiSlice.injectEndpoints({
         return response;
       },
     }),
+    getTallyVendorLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=vendor_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyVendorLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally Vendor Ledgers API Error:', response);
+        return response;
+      },
+    }),
   }),
 });
 
@@ -71,4 +85,5 @@ export const {
   useUpdateTallyConfigMutation,
   useDeleteTallyConfigMutation,
   useGetTallyLedgersQuery,
+  useGetTallyVendorLedgersQuery,
 } = tallyApi;

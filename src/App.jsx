@@ -32,6 +32,8 @@ const ZohoVendorsCredits = lazy(() => import("./pages/zoho/config/vendors-credit
 
 // Tally
 const TallyVendorBill = lazy(() => import("./pages/tally/vendor-bill"));
+const TallyVendorBillDetail = lazy(() => import("./pages/tally/vendor-bill/detail"));
+
 const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
 const TallySetups = lazy(() => import("./pages/tally/config/setup"));
@@ -72,6 +74,7 @@ function App() {
 
           {/** Tally */}
           <Route path="tally/vendor-bill" element={<TallyVendorBill />} />
+          <Route path="tally/vendor-bill/:id" element={<TallyVendorBillDetail />} />
           <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />
