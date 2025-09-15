@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/Icon";
 import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { useGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import Loading from "@/components/Loading";
+import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 
 // import images
 import ProfileImage from "@/assets/images/users/user-1.jpg";
 
 const profile = () => {
   const { data: userProfile, error, isLoading } = useGetProfileQuery();
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   // Show loading state
   if (isLoading) {
@@ -276,6 +279,43 @@ const profile = () => {
                 </div>
               </div>
             </Card>
+
+            {/* Security Settings Card */}
+            <Card title="Security Settings">
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Icon icon="heroicons:shield-check" className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Password Security</h3>
+                        <p className="text-sm text-gray-600">Manage your account password</p>
+                      </div>
+                    </div>
+                    <Button
+                      text="Change Password"
+                      icon="heroicons:key"
+                      btnClass="btn-outline-dark btn-sm"
+                      onClick={() => setIsChangePasswordModalOpen(true)}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Password Protection:</span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Icon icon="heroicons:check-circle" className="w-3 h-3 mr-1" />
+                        Protected
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Keep your account secure by using a strong password and changing it regularly.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </div>
           
           <div className="lg:col-span-6 col-span-12 space-y-6">
@@ -415,6 +455,12 @@ const profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   );
 };
