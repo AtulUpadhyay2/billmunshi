@@ -5,7 +5,7 @@ import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation, useVerifyTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
-import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery } from "@/store/api/tally/tallyApiSlice";
+import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery, useGetTallyMastersQuery } from "@/store/api/tally/tallyApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -97,6 +97,12 @@ const TallyVendorBillDetail = () => {
 
     // Fetch IGST ledgers for IGST dropdown
     const { data: igstLedgersData, isLoading: igstLedgersLoading } = useGetTallyIgstLedgersQuery(
+        selectedOrganization?.id,
+        { skip: !selectedOrganization?.id }
+    );
+
+    // Fetch masters data for item name dropdown
+    const { data: mastersData, isLoading: mastersLoading } = useGetTallyMastersQuery(
         selectedOrganization?.id,
         { skip: !selectedOrganization?.id }
     );
@@ -236,6 +242,23 @@ const TallyVendorBillDetail = () => {
     const sgstLedgerOptions = processSgstLedgers();
     const igstLedgerOptions = processIgstLedgers();
     
+    // Process masters data for item name dropdown
+    const processStockItems = () => {
+        if (!mastersData?.stock_items) return [];
+        
+        return mastersData.stock_items.map(item => ({
+            id: item.id,
+            name: item.name,
+            alias: item.alias,
+            unit: item.unit,
+            category: item.category,
+            parent: item.parent,
+            gst_applicable: item.gst_applicable
+        }));
+    };
+
+    const stockItemOptions = processStockItems();
+    
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.bill) {
@@ -243,11 +266,12 @@ const TallyVendorBillDetail = () => {
             const tally = tallyAnalysedData;
             
             setVendorForm({
-                vendorName: data.from?.name || '',
-                invoiceNumber: data.invoiceNumber || tally?.bill_details?.bill_number || '',
+                vendorName: tallyAnalysedData?.vendor_name || data.from?.name || '',
+                invoiceNumber: data.invoiceNumber || tally?.bill_details?.bill_number || tally?.bill_no || '',
                 vendorGST: tally?.vendor?.gst_in || '',
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
-                           (tally?.bill_details?.date ? new Date(tally.bill_details.date.split('-').reverse().join('-')).toISOString().split('T')[0] : ''),
+                           (tally?.bill_details?.date ? new Date(tally.bill_details.date.split('-').reverse().join('-')).toISOString().split('T')[0] : 
+                           (tally?.bill_date ? new Date(tally.bill_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '')),
                 dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : '',
                 selectedVendor: null, // Will be set in the next useEffect
                 is_tax: 'TDS' // Default to TDS
@@ -259,30 +283,34 @@ const TallyVendorBillDetail = () => {
                 cgst: tally?.taxes?.cgst?.amount || data.cgst || '',
                 sgst: tally?.taxes?.sgst?.amount || data.sgst || '',
                 igst: tally?.taxes?.igst?.amount || data.igst || '',
-                total: tally?.bill_details?.total_amount || data.total || ''
+                total: tally?.total_amount || tally?.bill_details?.total_amount || data.total || ''
             });
 
             // Initialize notes (if any notes field exists in the API)
             setNotes('');
 
-            // Initialize products from tally line_items
-            if (tally?.line_items && tally.line_items.length > 0) {
-                setProducts(tally.line_items.map((item, index) => ({
-                    id: index,
-                    item_details: item.item_details || item.item_name || '',
+            // Initialize products from tally products
+            if (tally?.products && tally.products.length > 0) {
+                setProducts(tally.products.map((item, index) => ({
+                    id: item.item_id || index,
+                    item_id: item.item_id || null,
+                    item_name: item.item_name || null,
+                    item_details: item.item_details || '',
                     tax_ledger: item.tax_ledger || 'No Tax Ledger',
                     tax_ledger_id: item.tax_ledger_id || null,
                     price: item.price || '',
                     quantity: item.quantity || '',
                     amount: item.amount || '',
-                    gst: item.gst || '',
+                    gst: item.product_gst || '',
                     igst: item.igst || 0.0,
                     cgst: item.cgst || 0.0,
                     sgst: item.sgst || 0.0
                 })));
             } else if (data.items && data.items.length > 0) {
                 setProducts(data.items.map((item, index) => ({
-                    id: index,
+                    id: Date.now() + index,
+                    item_id: null,
+                    item_name: null,
                     item_details: item.description || '',
                     tax_ledger: 'No Tax Ledger',
                     tax_ledger_id: null,
@@ -298,6 +326,8 @@ const TallyVendorBillDetail = () => {
                 // Initialize with empty product if no products exist
                 setProducts([{
                     id: Date.now(),
+                    item_id: null,
+                    item_name: null,
                     item_details: '',
                     tax_ledger: 'No Tax Ledger',
                     tax_ledger_id: null,
@@ -320,12 +350,24 @@ const TallyVendorBillDetail = () => {
 
     // Match vendor from API response with vendor options when both are available
     useEffect(() => {
-        if (vendorOptions.length > 0 && tallyAnalysedData?.vendor && !vendorForm.selectedVendor) {
-            const matchedVendor = vendorOptions.find(vendor => 
-                vendor.name === tallyAnalysedData.vendor.name || 
-                vendor.gst_in === tallyAnalysedData.vendor.gst_in ||
-                vendor.id === tallyAnalysedData.vendor.id
-            );
+        if (vendorOptions.length > 0 && tallyAnalysedData && !vendorForm.selectedVendor) {
+            // First try to match by vendor_name from analyzed_data
+            let matchedVendor = null;
+            
+            if (tallyAnalysedData.vendor_name) {
+                matchedVendor = vendorOptions.find(vendor => 
+                    vendor.name === tallyAnalysedData.vendor_name
+                );
+            }
+            
+            // If not found by vendor_name, try other matching methods
+            if (!matchedVendor && tallyAnalysedData.vendor) {
+                matchedVendor = vendorOptions.find(vendor => 
+                    vendor.name === tallyAnalysedData.vendor.name || 
+                    vendor.gst_in === tallyAnalysedData.vendor.gst_in ||
+                    vendor.id === tallyAnalysedData.vendor.id
+                );
+            }
             
             if (matchedVendor) {
                 setVendorForm(prev => ({
@@ -337,6 +379,142 @@ const TallyVendorBillDetail = () => {
             }
         }
     }, [vendorOptions, tallyAnalysedData, vendorForm.selectedVendor]);
+    
+    // Match stock items from API response with stock item options when both are available
+    useEffect(() => {
+        if (stockItemOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
+            const updatedProducts = products.map(product => {
+                // If product already has item_id selected, don't override
+                if (product.item_id && product.item_name) {
+                    return product;
+                }
+                
+                // Find corresponding product in analyzed_data
+                const analyzedProduct = tallyAnalysedData.products.find(p => 
+                    p.item_details === product.item_details || 
+                    p.item_name === product.item_name
+                );
+                
+                if (analyzedProduct && analyzedProduct.item_name) {
+                    // Try to match by item name
+                    const matchedStockItem = stockItemOptions.find(stockItem => 
+                        stockItem.name === analyzedProduct.item_name
+                    );
+                    
+                    if (matchedStockItem) {
+                        return {
+                            ...product,
+                            item_id: matchedStockItem.id,
+                            item_name: matchedStockItem.name
+                        };
+                    }
+                }
+                
+                return product;
+            });
+            
+            // Only update if there are actual changes
+            const hasChanges = updatedProducts.some((product, index) => 
+                product.item_id !== products[index].item_id || 
+                product.item_name !== products[index].item_name
+            );
+            
+            if (hasChanges) {
+                setProducts(updatedProducts);
+            }
+        }
+    }, [stockItemOptions, tallyAnalysedData, products]);
+    
+    // Match tax ledgers from API response when both are available
+    useEffect(() => {
+        if (cgstLedgerOptions.length > 0 && sgstLedgerOptions.length > 0 && igstLedgerOptions.length > 0 && tallyAnalysedData?.taxes) {
+            const taxes = tallyAnalysedData.taxes;
+            
+            // Match CGST ledger
+            if (taxes.cgst?.ledger && !billSummaryForm.cgstLedgerId) {
+                const matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                    ledger.name === taxes.cgst.ledger
+                );
+                if (matchedCgstLedger) {
+                    setBillSummaryForm(prev => ({
+                        ...prev,
+                        cgstLedgerId: matchedCgstLedger.id
+                    }));
+                }
+            }
+            
+            // Match SGST ledger
+            if (taxes.sgst?.ledger && !billSummaryForm.sgstLedgerId) {
+                const matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                    ledger.name === taxes.sgst.ledger
+                );
+                if (matchedSgstLedger) {
+                    setBillSummaryForm(prev => ({
+                        ...prev,
+                        sgstLedgerId: matchedSgstLedger.id
+                    }));
+                }
+            }
+            
+            // Match IGST ledger
+            if (taxes.igst?.ledger && !billSummaryForm.igstLedgerId) {
+                const matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                    ledger.name === taxes.igst.ledger
+                );
+                if (matchedIgstLedger) {
+                    setBillSummaryForm(prev => ({
+                        ...prev,
+                        igstLedgerId: matchedIgstLedger.id
+                    }));
+                }
+            }
+        }
+    }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData, billSummaryForm.cgstLedgerId, billSummaryForm.sgstLedgerId, billSummaryForm.igstLedgerId]);
+    
+    // Match product tax ledgers from API response
+    useEffect(() => {
+        if (taxLedgerOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
+            const updatedProducts = products.map((product, index) => {
+                // If product already has tax_ledger_id selected, don't override
+                if (product.tax_ledger_id) {
+                    return product;
+                }
+                
+                // Find corresponding product in analyzed_data
+                const analyzedProduct = tallyAnalysedData.products[index] || 
+                    tallyAnalysedData.products.find(p => 
+                        p.item_details === product.item_details || 
+                        p.item_name === product.item_name
+                    );
+                
+                if (analyzedProduct && analyzedProduct.tax_ledger && analyzedProduct.tax_ledger !== 'No Tax Ledger') {
+                    // Try to match by tax ledger name
+                    const matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
+                        taxLedger.name === analyzedProduct.tax_ledger
+                    );
+                    
+                    if (matchedTaxLedger) {
+                        return {
+                            ...product,
+                            tax_ledger: matchedTaxLedger.name,
+                            tax_ledger_id: matchedTaxLedger.id
+                        };
+                    }
+                }
+                
+                return product;
+            });
+            
+            // Only update if there are actual changes
+            const hasChanges = updatedProducts.some((product, index) => 
+                product.tax_ledger_id !== products[index].tax_ledger_id
+            );
+            
+            if (hasChanges) {
+                setProducts(updatedProducts);
+            }
+        }
+    }, [taxLedgerOptions, tallyAnalysedData, products]);
     
     // Handle form input changes
     const handleFormChange = (name, value) => {
@@ -393,6 +571,35 @@ const TallyVendorBillDetail = () => {
                 ...updated[productIndex],
                 tax_ledger: 'No Tax Ledger',
                 tax_ledger_id: null
+            };
+            return updated;
+        });
+    };
+
+    // Handle item name selection
+    const handleItemNameSelect = (productIndex, itemId) => {
+        const stockItem = stockItemOptions.find(item => item.id === itemId);
+        if (stockItem) {
+            setProducts(prev => {
+                const updated = [...prev];
+                updated[productIndex] = {
+                    ...updated[productIndex],
+                    item_name: stockItem.name,
+                    item_id: stockItem.id
+                };
+                return updated;
+            });
+        }
+    };
+
+    // Handle item name deselection
+    const handleItemNameClear = (productIndex) => {
+        setProducts(prev => {
+            const updated = [...prev];
+            updated[productIndex] = {
+                ...updated[productIndex],
+                item_name: null,
+                item_id: null
             };
             return updated;
         });
@@ -480,6 +687,8 @@ const TallyVendorBillDetail = () => {
     const addProduct = () => {
         setProducts(prev => [...prev, {
             id: Date.now(),
+            item_id: null,
+            item_name: null,
             item_details: '',
             tax_ledger: 'No Tax Ledger',
             tax_ledger_id: null,
@@ -511,19 +720,14 @@ const TallyVendorBillDetail = () => {
         
         return {
             bill_id: billId,
+            analyzed_bill: vendorBillData?.analyzed_bill || null,
             analyzed_data: {
-                vendor: {
-                    master_id: selectedVendor?.master_id || "No Ledger",
-                    name: vendorForm.vendorName || "Unknown Vendor",
-                    gst_in: vendorForm.vendorGST || "No Ledger",
-                    company: selectedVendor?.company || "No Ledger"
-                },
-                bill_details: {
-                    bill_number: vendorForm.invoiceNumber || "",
-                    date: vendorForm.dateIssued || "",
-                    total_amount: parseFloat(billSummaryForm.total) || 0,
-                    company_id: selectedVendor?.company || "Unknown"
-                },
+                vendor_name: vendorForm.vendorName || "Unknown Vendor",
+                bill_no: vendorForm.invoiceNumber || "",
+                bill_date: vendorForm.dateIssued ? 
+                    new Date(vendorForm.dateIssued).toLocaleDateString('en-GB').split('/').reverse().join('-') : "",
+                total_amount: parseFloat(billSummaryForm.total) || 0,
+                company_id: selectedVendor?.company || "Unknown",
                 taxes: {
                     igst: {
                         amount: parseFloat(billSummaryForm.igst) || 0.0,
@@ -538,16 +742,17 @@ const TallyVendorBillDetail = () => {
                         ledger: sgstLedger?.name || "No Tax Ledger"
                     }
                 },
-                line_items: products.map(product => {
+                products: products.map(product => {
                     const taxLedger = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
                     return {
-                        item_name: null,
+                        item_id: product.item_id || null,
+                        item_name: product.item_name || null,
                         item_details: product.item_details || "",
                         tax_ledger: taxLedger?.name || "No Tax Ledger",
                         price: parseFloat(product.price) || 0,
                         quantity: parseFloat(product.quantity) || 0,
                         amount: parseFloat(product.amount) || 0,
-                        gst: product.gst || "",
+                        product_gst: product.gst || null,
                         igst: parseFloat(product.igst) || 0.0,
                         cgst: parseFloat(product.cgst) || 0.0,
                         sgst: parseFloat(product.sgst) || 0.0
@@ -948,15 +1153,15 @@ const TallyVendorBillDetail = () => {
                                             )}
                                             className="mb-2"
                                         />
-                                        
-                                        {/* Bill To Badge - showing analysed_data.to.name */}
-                                        {analysedData?.to?.name && (
+
+                                        {/* Bill To Badge - showing analysed_data.from.name */}
+                                        {analysedData?.from?.name && (
                                             <div className="mt-3">
                                                 <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                                     <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                     </svg>
-                                                    Bill To: {analysedData.to.name}
+                                                    Bill To: {analysedData.from.name}
                                                 </div>
                                             </div>
                                         )}
@@ -1026,6 +1231,9 @@ const TallyVendorBillDetail = () => {
                                             <table className="w-full min-w-[1000px]">
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                            Item Name
+                                                        </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Item Details
                                                         </th>
@@ -1061,6 +1269,34 @@ const TallyVendorBillDetail = () => {
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {products.map((product, index) => (
                                                         <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                                            {/* Item Name */}
+                                                            <td className="px-4 py-3">
+                                                                <SearchableDropdown
+                                                                    options={stockItemOptions}
+                                                                    value={product.item_id || null}
+                                                                    onChange={(itemId) => handleItemNameSelect(index, itemId)}
+                                                                    onClear={() => handleItemNameClear(index)}
+                                                                    placeholder="Select item name..."
+                                                                    searchPlaceholder="Type to search stock items..."
+                                                                    optionLabelKey="name"
+                                                                    optionValueKey="id"
+                                                                    loading={mastersLoading}
+                                                                    renderOption={(stockItem) => (
+                                                                        <div className="flex flex-col py-1">
+                                                                            <div className="font-medium text-gray-900">{stockItem.name}</div>
+                                                                            {stockItem.alias !== "0" && stockItem.alias && (
+                                                                                <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
+                                                                            )}
+                                                                            <div className="text-xs text-gray-500 flex gap-2">
+                                                                                <span>Unit: {stockItem.unit}</span>
+                                                                                <span>Category: {stockItem.category}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    className="item-name-dropdown"
+                                                                />
+                                                            </td>
+                                                            
                                                             {/* Item Details */}
                                                             <td className="px-4 py-3">
                                                                 <textarea
