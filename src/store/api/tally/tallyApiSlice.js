@@ -132,6 +132,20 @@ export const tallyApi = apiSlice.injectEndpoints({
         return response;
       },
     }),
+    getTallyMasters: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/masters/`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyMasters'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally Masters API Error:', response);
+        return response;
+      },
+    }),
   }),
 });
 
@@ -146,4 +160,5 @@ export const {
   useGetTallyCgstLedgersQuery,
   useGetTallySgstLedgersQuery,
   useGetTallyIgstLedgersQuery,
+  useGetTallyMastersQuery,
 } = tallyApi;

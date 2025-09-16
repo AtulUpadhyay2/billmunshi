@@ -37,6 +37,7 @@ const TallyVendorBillDetail = lazy(() => import("./pages/tally/vendor-bill/detai
 const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
 const TallySetups = lazy(() => import("./pages/tally/config/setup"));
+const TallyMaster = lazy(() => import("./pages/tally/config/master"))
 
 // Settings
 const ApiKeys = lazy(() => import("./pages/settings/api-keys"));
@@ -78,6 +79,7 @@ function App() {
           <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />
+          <Route path="tally/masters" element={<TallyMaster />} />
 
           {/** Settings */}
           <Route path="api-keys" element={<ApiKeys />} />
