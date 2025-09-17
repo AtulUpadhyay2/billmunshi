@@ -73,28 +73,7 @@ const TallyMaster = () => {
 
     return (
         <div className="space-y-6">
-            {/* Organization Info */}
-            {organization && (
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                                {organization.name}
-                            </h2>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                Organization ID: {organization.id}
-                            </p>
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border rounded-full shadow-sm bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700">
-                            <svg className="w-2 h-2 fill-current" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="3" />
-                            </svg>
-                            {`${stock_items_count} Items`}
-                        </span>
-                    </div>
-                </Card>
-            )}
-
+            
             {/* Masters Cards */}
             <Card
                 title="Stock Items"
