@@ -383,25 +383,49 @@ const TallyVendorBillDetail = () => {
     // Match stock items from API response with stock item options when both are available
     useEffect(() => {
         if (stockItemOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
+            let hasChanges = false;
             const updatedProducts = products.map(product => {
-                // If product already has item_id selected, don't override
-                if (product.item_id && product.item_name) {
-                    return product;
+                // If product already has item_id and a matching stock item exists, don't override
+                if (product.item_id) {
+                    const existingStockItem = stockItemOptions.find(item => item.id === product.item_id);
+                    if (existingStockItem) {
+                        return product;
+                    }
                 }
                 
-                // Find corresponding product in analyzed_data
-                const analyzedProduct = tallyAnalysedData.products.find(p => 
-                    p.item_details === product.item_details || 
-                    p.item_name === product.item_name
-                );
+                // Find corresponding product in analyzed_data by item_id first, then by item_name
+                let analyzedProduct = null;
+                if (product.item_id) {
+                    analyzedProduct = tallyAnalysedData.products.find(p => p.item_id === product.item_id);
+                }
                 
-                if (analyzedProduct && analyzedProduct.item_name) {
-                    // Try to match by item name
-                    const matchedStockItem = stockItemOptions.find(stockItem => 
-                        stockItem.name === analyzedProduct.item_name
+                if (!analyzedProduct) {
+                    analyzedProduct = tallyAnalysedData.products.find(p => 
+                        p.item_details === product.item_details || 
+                        p.item_name === product.item_name ||
+                        (p.item_name && product.item_name && p.item_name === product.item_name)
                     );
+                }
+                
+                if (analyzedProduct) {
+                    let matchedStockItem = null;
                     
-                    if (matchedStockItem) {
+                    // First try to match by item_id if available
+                    if (analyzedProduct.item_id) {
+                        matchedStockItem = stockItemOptions.find(stockItem => 
+                            stockItem.id === analyzedProduct.item_id
+                        );
+                    }
+                    
+                    // If not found by ID, try to match by item_name
+                    if (!matchedStockItem && analyzedProduct.item_name) {
+                        matchedStockItem = stockItemOptions.find(stockItem => 
+                            stockItem.name === analyzedProduct.item_name
+                        );
+                    }
+                    
+                    if (matchedStockItem && (product.item_id !== matchedStockItem.id || product.item_name !== matchedStockItem.name)) {
+                        hasChanges = true;
                         return {
                             ...product,
                             item_id: matchedStockItem.id,
@@ -414,16 +438,11 @@ const TallyVendorBillDetail = () => {
             });
             
             // Only update if there are actual changes
-            const hasChanges = updatedProducts.some((product, index) => 
-                product.item_id !== products[index].item_id || 
-                product.item_name !== products[index].item_name
-            );
-            
             if (hasChanges) {
                 setProducts(updatedProducts);
             }
         }
-    }, [stockItemOptions, tallyAnalysedData, products]);
+    }, [stockItemOptions, tallyAnalysedData]);
     
     // Match tax ledgers from API response when both are available
     useEffect(() => {
@@ -515,6 +534,50 @@ const TallyVendorBillDetail = () => {
             }
         }
     }, [taxLedgerOptions, tallyAnalysedData, products]);
+    
+    // Specific effect to handle initial stock item selection after products are loaded
+    useEffect(() => {
+        if (stockItemOptions.length > 0 && products.length > 0) {            
+            let needsUpdate = false;
+            const updatedProducts = products.map(product => {
+                // Check if product has item_id but the dropdown might not be showing it
+                if (product.item_id && product.item_name) {
+                    const stockItemExists = stockItemOptions.find(item => item.id === product.item_id);
+                    if (stockItemExists) {
+                        return product;
+                    } else {
+                        // Try to find by name
+                        const stockItemByName = stockItemOptions.find(item => item.name === product.item_name);
+                        if (stockItemByName) {
+                            needsUpdate = true;
+                            return {
+                                ...product,
+                                item_id: stockItemByName.id,
+                                item_name: stockItemByName.name
+                            };
+                        }
+                    }
+                } else if (product.item_name && !product.item_id) {
+                    // Product has name but no ID, try to find matching stock item
+                    const stockItemByName = stockItemOptions.find(item => item.name === product.item_name);
+                    if (stockItemByName) {
+                        needsUpdate = true;
+                        return {
+                            ...product,
+                            item_id: stockItemByName.id,
+                            item_name: stockItemByName.name
+                        };
+                    }
+                }
+                
+                return product;
+            });
+            
+            if (needsUpdate) {
+                setProducts(updatedProducts);
+            }
+        }
+    }, [stockItemOptions]);
     
     // Handle form input changes
     const handleFormChange = (name, value) => {
@@ -1272,6 +1335,7 @@ const TallyVendorBillDetail = () => {
                                                             {/* Item Name */}
                                                             <td className="px-4 py-3">
                                                                 <SearchableDropdown
+                                                                    key={`item-${product.id}-${product.item_id}`}
                                                                     options={stockItemOptions}
                                                                     value={product.item_id || null}
                                                                     onChange={(itemId) => handleItemNameSelect(index, itemId)}

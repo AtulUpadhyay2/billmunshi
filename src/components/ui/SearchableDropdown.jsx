@@ -4,6 +4,7 @@ const SearchableDropdown = ({
     options = [],
     value,
     onChange,
+    onClear,
     placeholder = "Select an option...",
     searchPlaceholder = "Search...",
     disabled = false,
@@ -90,6 +91,17 @@ const SearchableDropdown = ({
         return typeof option === 'string' ? option : option[optionLabelKey];
     };
 
+    const handleClear = (e) => {
+        e.stopPropagation();
+        if (onClear) {
+            onClear();
+        } else {
+            onChange(null);
+        }
+        setIsOpen(false);
+        setSearchTerm('');
+    };
+
     return (
         <div ref={dropdownRef} className={`relative ${className}`}>
             {/* Trigger Button */}
@@ -101,21 +113,35 @@ const SearchableDropdown = ({
                     selectedOption ? 'text-gray-900' : 'text-gray-500'
                 }`}
             >
-                <span className="block truncate">{getDisplayText()}</span>
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    {loading ? (
-                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                        <svg
-                            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                <span className="block truncate pr-6">{getDisplayText()}</span>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    {selectedOption && !loading && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="mr-1 p-0.5 rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                            title="Clear selection"
                         >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     )}
-                </span>
+                    <div className="pointer-events-none">
+                        {loading ? (
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <svg
+                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        )}
+                    </div>
+                </div>
             </button>
 
             {/* Dropdown Menu */}
