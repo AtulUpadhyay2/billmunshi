@@ -808,7 +808,7 @@ const TallyVendorBillDetail = () => {
                 products: products.map(product => {
                     const taxLedger = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
                     return {
-                        item_id: product.item_id || null,
+                        item_id: product.id || null,
                         item_name: product.item_name || null,
                         item_details: product.item_details || "",
                         tax_ledger: taxLedger?.name || "No Tax Ledger",
