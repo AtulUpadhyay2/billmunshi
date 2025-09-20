@@ -5,7 +5,7 @@ import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetTallyExpenseBillDetailsQuery, useVerifyTallyExpenseBillMutation } from "@/store/api/tally/expenseBillsApiSlice";
-import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyExpenseChartOfAccountsLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery } from "@/store/api/tally/tallyApiSlice";
+import { useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyExpenseChartOfAccountsLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery } from "@/store/api/tally/tallyApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -50,6 +50,9 @@ const TallyExpenseBillDetail = () => {
     
     // State for verification loading
     const [isVerifying, setIsVerifying] = useState(false);
+    
+    // State for error alert
+    const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
     
     // Fetch expense bill details
     const { data: expenseBillData, error, isLoading, refetch } = useGetTallyExpenseBillDetailsQuery(
@@ -103,6 +106,11 @@ const TallyExpenseBillDetail = () => {
     
     // Check if bill is verified (disable inputs if verified)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
+    
+    // Validation helper functions
+    const isVendorRequired = !billForm.selectedVendor;
+    const getItemsWithoutCOA = () => expenseItems.filter(item => !item.chart_of_accounts_id);
+    const hasValidationErrors = () => isVendorRequired || getItemsWithoutCOA().length > 0 || expenseItems.length === 0;
     
     // Process ledgers data for dropdown (Chart of Accounts)
     const processLedgers = () => {
@@ -633,6 +641,25 @@ const TallyExpenseBillDetail = () => {
     // Save function
     const handleSave = async () => {
         try {
+            // Validation before verification
+            if (!billForm.selectedVendor) {
+                globalToast.error('Please select a vendor before verification');
+                return;
+            }
+
+            // Check if all expense items have chart of accounts selected
+            const itemsWithoutCOA = expenseItems.filter(item => !item.chart_of_accounts_id);
+            if (itemsWithoutCOA.length > 0) {
+                globalToast.error('Please select Chart of Accounts for all expense items before verification');
+                return;
+            }
+
+            // Check if there are any expense items
+            if (expenseItems.length === 0) {
+                globalToast.error('Please add at least one expense item before verification');
+                return;
+            }
+
             setIsVerifying(true);
             
             // Transform data to the required API format
@@ -652,7 +679,30 @@ const TallyExpenseBillDetail = () => {
             navigate('/tally/expense-bill');
         } catch (error) {
             console.error('Failed to verify expense bill:', error);
-            globalToast.error(error?.data?.message || 'Failed to verify expense bill');
+            
+            // Handle specific error messages from API response
+            let errorMessage = 'Failed to verify expense bill';
+            
+            if (error?.data) {
+                // Check if error.data has an 'error' property with the specific message
+                if (error.data.error) {
+                    errorMessage = error.data.error;
+                } 
+                // Fallback to message property
+                else if (error.data.message) {
+                    errorMessage = error.data.message;
+                }
+                // If error.data is a string
+                else if (typeof error.data === 'string') {
+                    errorMessage = error.data;
+                }
+            } 
+            // Fallback to error message
+            else if (error?.message) {
+                errorMessage = error.message;
+            }
+            
+            setErrorAlert({ show: true, message: errorMessage });
         } finally {
             setIsVerifying(false);
         }
@@ -830,9 +880,9 @@ const TallyExpenseBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleSave}
-                            disabled={isVerifying || isVerified}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerifying ? "Verifying..." : isVerified ? "Already Verified" : "Verify"}
+                            disabled={isVerifying || isVerified || hasValidationErrors()}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Already Verified" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -852,6 +902,30 @@ const TallyExpenseBillDetail = () => {
                     </div>
                 }
             >
+                {/* Bootstrap-style Error Alert */}
+                {errorAlert.show && (
+                    <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg relative" role="alert">
+                        <div className="flex items-start">
+                            <svg className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div className="flex-1">
+                                <strong className="font-medium">Verification Error:</strong>
+                                <div className="mt-1 text-sm">{errorAlert.message}</div>
+                            </div>
+                            <button
+                                onClick={() => setErrorAlert({ show: false, message: '' })}
+                                className="ml-4 text-red-500 hover:text-red-700 focus:outline-none"
+                                aria-label="Close alert"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
+                
                 <div className="flex flex-col lg:flex-row gap-6 relative">
                     {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
                     <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
@@ -998,37 +1072,63 @@ const TallyExpenseBillDetail = () => {
                                     <h3 className="text-lg font-semibold text-gray-900">Bill Information</h3>
                                 </div>
 
+                                {/* Validation Summary */}
+                                {!isVerified && hasValidationErrors() && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <div className="flex items-start">
+                                            <svg className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                            <div>
+                                                <h4 className="text-sm font-medium text-red-800 mb-2">Required for verification:</h4>
+                                                <ul className="text-sm text-red-700 space-y-1">
+                                                    {isVendorRequired && <li>• Select a vendor</li>}
+                                                    {expenseItems.length === 0 && <li>• Add at least one expense item</li>}
+                                                    {getItemsWithoutCOA().length > 0 && (
+                                                        <li>• Select Chart of Accounts for {getItemsWithoutCOA().length} expense item{getItemsWithoutCOA().length > 1 ? 's' : ''}</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Bill Form Fields */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     {/* Vendor Selection Field */}
                                     <div className="relative">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Vendor
-                                        </label>
-                                        <SearchableDropdown
-                                            options={vendorOptions}
-                                            value={billForm.selectedVendor?.id || null}
-                                            onChange={handleVendorSelect}
-                                            onClear={handleVendorClear}
-                                            placeholder="Search and select vendor..."
-                                            searchPlaceholder="Type to search vendors..."
-                                            optionLabelKey="name"
-                                            optionValueKey="id"
-                                            loading={vendorLedgersLoading}
-                                            disabled={isVerified}
-                                            renderOption={(vendor) => (
-                                                <div className="flex flex-col py-1">
-                                                    <div className="font-medium text-gray-900">{vendor.name}</div>
-                                                    {vendor.gst_in && (
-                                                        <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
-                                                    )}
-                                                    {vendor.parent_name && (
-                                                        <div className="text-xs text-blue-600">{vendor.parent_name}</div>
-                                                    )}
-                                                </div>
+                                            Vendor <span className="text-red-500">*</span>
+                                            {isVendorRequired && !isVerified && (
+                                                <span className="text-red-500 text-xs ml-2">Required for verification</span>
                                             )}
-                                            className="mb-2"
-                                        />
+                                        </label>
+                                        <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                            <SearchableDropdown
+                                                options={vendorOptions}
+                                                value={billForm.selectedVendor?.id || null}
+                                                onChange={handleVendorSelect}
+                                                onClear={handleVendorClear}
+                                                placeholder="Search and select vendor..."
+                                                searchPlaceholder="Type to search vendors..."
+                                                optionLabelKey="name"
+                                                optionValueKey="id"
+                                                loading={vendorLedgersLoading}
+                                                disabled={isVerified}
+                                                renderOption={(vendor) => (
+                                                    <div className="flex flex-col py-1">
+                                                        <div className="font-medium text-gray-900">{vendor.name}</div>
+                                                        {vendor.gst_in && (
+                                                            <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
+                                                        )}
+                                                        {vendor.parent_name && (
+                                                            <div className="text-xs text-blue-600">{vendor.parent_name}</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                className="mb-2"
+                                            />
+                                        </div>
 
                                         {/* Bill From Badge - showing analysed_data.from.name */}
                                         {analysedData?.from?.name && (
@@ -1114,7 +1214,7 @@ const TallyExpenseBillDetail = () => {
                                                             Item Details
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Chart of Accounts
+                                                            Chart of Accounts <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
@@ -1144,15 +1244,16 @@ const TallyExpenseBillDetail = () => {
                                                             
                                                             {/* Chart of Accounts */}
                                                             <td className="px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    options={ledgerOptions}
-                                                                    value={item.chart_of_accounts_id || null}
-                                                                    onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
-                                                                    onClear={() => handleChartOfAccountsClear(index)}
-                                                                    placeholder="Select chart of accounts..."
-                                                                    searchPlaceholder="Type to search ledgers..."
-                                                                    optionLabelKey="name"
-                                                                    optionValueKey="id"
+                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={ledgerOptions}
+                                                                        value={item.chart_of_accounts_id || null}
+                                                                        onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
+                                                                        onClear={() => handleChartOfAccountsClear(index)}
+                                                                        placeholder="Select chart of accounts..."
+                                                                        searchPlaceholder="Type to search ledgers..."
+                                                                        optionLabelKey="name"
+                                                                        optionValueKey="id"
                                                                     loading={ledgersLoading}
                                                                     disabled={isVerified}
                                                                     renderOption={(ledger) => (
@@ -1165,12 +1266,11 @@ const TallyExpenseBillDetail = () => {
                                                                                 <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                                                                             )}
                                                                         </div>
-                                                                    )}
-                                                                    className="coa-dropdown"
-                                                                />
-                                                            </td>
-
-                                                            {/* Amount */}
+                                                                        )}
+                                                                        className="coa-dropdown"
+                                                                    />
+                                                                </div>
+                                                            </td>                                                            {/* Amount */}
                                                             <td className="px-4 py-3">
                                                                 <input
                                                                     type="number"
