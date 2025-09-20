@@ -3,7 +3,7 @@ import Modal from "@/components/ui/Modal";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 
-const UploadBillModal = ({ isOpen, onClose, onUpload }) => {
+const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) => {
     const [files, setFiles] = useState([]);
     const [fileType, setFileType] = useState('Single Invoice/File');
     const [isUploading, setIsUploading] = useState(false);
@@ -112,7 +112,7 @@ const UploadBillModal = ({ isOpen, onClose, onUpload }) => {
 
     return (
         <Modal
-            title="Upload Vendor Bills"
+            title={title}
             labelClass="btn-outline-dark"
             activeModal={isOpen}
             onClose={handleClose}

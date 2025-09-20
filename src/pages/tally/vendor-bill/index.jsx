@@ -460,6 +460,7 @@ const TallyVendorBill = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
+        title="Upload Vendor Bills"
       />
 
       {/* File Viewer Modal */}
