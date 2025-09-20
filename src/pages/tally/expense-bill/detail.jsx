@@ -101,6 +101,9 @@ const TallyExpenseBillDetail = () => {
     const analysedData = billInfo?.analysed_data || {};
     const tallyAnalysedData = expenseBillData?.analyzed_data || {};
     
+    // Check if bill is verified (disable inputs if verified)
+    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
+    
     // Process ledgers data for dropdown (Chart of Accounts)
     const processLedgers = () => {
         if (!ledgersData?.grouped_ledgers) return [];
@@ -827,20 +830,24 @@ const TallyExpenseBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleSave}
-                            disabled={isVerifying}
-                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={isVerifying ? "Verifying..." : "Verify"}
+                            disabled={isVerifying || isVerified}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Already Verified" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            ) : isVerified ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             ) : (
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             )}
-                            {isVerifying ? 'Verifying...' : 'Verify'}
+                            {isVerifying ? 'Verifying...' : isVerified ? 'Verified' : 'Verify'}
                         </button>
                     </div>
                 }
@@ -1008,6 +1015,7 @@ const TallyExpenseBillDetail = () => {
                                             optionLabelKey="name"
                                             optionValueKey="id"
                                             loading={vendorLedgersLoading}
+                                            disabled={isVerified}
                                             renderOption={(vendor) => (
                                                 <div className="flex flex-col py-1">
                                                     <div className="font-medium text-gray-900">{vendor.name}</div>
@@ -1046,7 +1054,8 @@ const TallyExpenseBillDetail = () => {
                                             value={billForm.billNumber}
                                             onChange={(e) => handleFormChange('billNumber', e.target.value)}
                                             placeholder="Enter bill number"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            disabled={isVerified}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         />
                                     </div>
 
@@ -1061,7 +1070,8 @@ const TallyExpenseBillDetail = () => {
                                             value={billForm.billDate}
                                             onChange={(e) => handleFormChange('billDate', e.target.value)}
                                             placeholder="DD-MM-YYYY"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            disabled={isVerified}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         />
                                     </div>
                                 </div>
@@ -1083,7 +1093,8 @@ const TallyExpenseBillDetail = () => {
                                             </span>
                                             <button
                                                 onClick={addExpenseItem}
-                                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
+                                                disabled={isVerified}
+                                                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1125,7 +1136,8 @@ const TallyExpenseBillDetail = () => {
                                                                     value={item.item_details}
                                                                     onChange={(e) => handleExpenseItemChange(index, 'item_details', e.target.value)}
                                                                     placeholder="Enter item details..."
-                                                                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none"
+                                                                    disabled={isVerified}
+                                                                    className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                                     rows={3}
                                                                 />
                                                             </td>
@@ -1142,6 +1154,7 @@ const TallyExpenseBillDetail = () => {
                                                                     optionLabelKey="name"
                                                                     optionValueKey="id"
                                                                     loading={ledgersLoading}
+                                                                    disabled={isVerified}
                                                                     renderOption={(ledger) => (
                                                                         <div className="flex flex-col py-1">
                                                                             <div className="font-medium text-gray-900">{ledger.name}</div>
@@ -1164,7 +1177,8 @@ const TallyExpenseBillDetail = () => {
                                                                     value={item.amount}
                                                                     onChange={(e) => handleExpenseItemChange(index, 'amount', e.target.value)}
                                                                     placeholder="0.00"
-                                                                    className="w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                    disabled={isVerified}
+                                                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                                     min="0"
                                                                     step="0.01"
                                                                 />
@@ -1175,7 +1189,8 @@ const TallyExpenseBillDetail = () => {
                                                                 <select
                                                                     value={item.debit_or_credit}
                                                                     onChange={(e) => handleExpenseItemChange(index, 'debit_or_credit', e.target.value)}
-                                                                    className="w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400"
+                                                                    disabled={isVerified}
+                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                                 >
                                                                     <option value="debit">Debit</option>
                                                                     <option value="credit">Credit</option>
@@ -1187,7 +1202,8 @@ const TallyExpenseBillDetail = () => {
                                                                 {expenseItems.length > 1 && (
                                                                     <button
                                                                         onClick={() => removeExpenseItem(index)}
-                                                                        className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                                                                        disabled={isVerified}
+                                                                        className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100' : ''}`}
                                                                         title="Remove Item"
                                                                     >
                                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1238,7 +1254,8 @@ const TallyExpenseBillDetail = () => {
                                                             value={taxSummaryForm.cgst}
                                                             onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
                                                             placeholder="0.00"
-                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            disabled={isVerified}
+                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="flex-1 min-w-[200px]">
@@ -1252,6 +1269,7 @@ const TallyExpenseBillDetail = () => {
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
                                                             loading={cgstLedgersLoading}
+                                                            disabled={isVerified}
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
@@ -1279,7 +1297,8 @@ const TallyExpenseBillDetail = () => {
                                                             value={taxSummaryForm.sgst}
                                                             onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
                                                             placeholder="0.00"
-                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            disabled={isVerified}
+                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="flex-1 min-w-[200px]">
@@ -1293,6 +1312,7 @@ const TallyExpenseBillDetail = () => {
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
                                                             loading={sgstLedgersLoading}
+                                                            disabled={isVerified}
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
@@ -1320,7 +1340,8 @@ const TallyExpenseBillDetail = () => {
                                                             value={taxSummaryForm.igst}
                                                             onChange={e => handleTaxSummaryChange('igst', e.target.value)}
                                                             placeholder="0.00"
-                                                            className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            disabled={isVerified}
+                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="flex-1 min-w-[200px]">
@@ -1334,6 +1355,7 @@ const TallyExpenseBillDetail = () => {
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
                                                             loading={igstLedgersLoading}
+                                                            disabled={isVerified}
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
@@ -1365,7 +1387,8 @@ const TallyExpenseBillDetail = () => {
                                                             value={billForm.totalAmount}
                                                             onChange={e => handleFormChange('totalAmount', e.target.value)}
                                                             placeholder="0.00"
-                                                            className="w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            disabled={isVerified}
+                                                            className={`w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
@@ -1385,7 +1408,8 @@ const TallyExpenseBillDetail = () => {
                                     <textarea 
                                         value={notes || `Page URL: ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
-                                        className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
+                                        disabled={isVerified}
+                                        className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         placeholder="Add notes or comments..."
                                         rows={4}
                                     />
