@@ -45,7 +45,7 @@ const TallyExpenseBill = () => {
               organizationId: selectedOrganization?.id,
               billId
             }).unwrap();
-            globalToast.success('Bill analysis started successfully');
+            globalToast.success('Expense Bill analyzed successfully');
             refetch(); // Refresh the list to show updated status
           } finally {
             // Remove loading state
@@ -58,7 +58,7 @@ const TallyExpenseBill = () => {
           break;
         case 'verify':
           await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
-          globalToast.success('Bill verification completed');
+          globalToast.success('Expense Bill verification completed');
           break;
         case 'sync':
           // Set loading state
