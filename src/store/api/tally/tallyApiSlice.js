@@ -90,6 +90,20 @@ export const tallyApi = apiSlice.injectEndpoints({
         return response;
       },
     }),
+    getTallyExpenseChartOfAccountsLedgers: builder.query({
+      query: (organizationId) => ({
+        url: `tally/org/${organizationId}/configs/ledgers/?parent_type=chart_of_accounts_expense_parents`,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      providesTags: ['TallyExpenseChartOfAccountsLedgers'],
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Tally Expense Chart of Accounts Ledgers API Error:', response);
+        return response;
+      },
+    }),
     getTallyCgstLedgers: builder.query({
       query: (organizationId) => ({
         url: `tally/org/${organizationId}/configs/ledgers/?parent_type=cgst_parents`,
@@ -157,6 +171,7 @@ export const {
   useGetTallyLedgersQuery,
   useGetTallyVendorLedgersQuery,
   useGetTallyTaxLedgersQuery,
+  useGetTallyExpenseChartOfAccountsLedgersQuery,
   useGetTallyCgstLedgersQuery,
   useGetTallySgstLedgersQuery,
   useGetTallyIgstLedgersQuery,
