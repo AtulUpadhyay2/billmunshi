@@ -18,7 +18,7 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
     }),
     getVendorBill: builder.query({
       query: ({ organizationId, billId }) => ({
-        url: `zoho/org/${organizationId}/vendor-bills/${billId}/`,
+        url: `zoho/org/${organizationId}/vendor-bills/${billId}/details/`,
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

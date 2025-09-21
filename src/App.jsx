@@ -23,6 +23,7 @@ const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
 const ZohoVendorBillDetail = lazy(() => import("./pages/zoho/vendor-bill/detail"));
 
 const ZohoExpenseBill = lazy(() => import("./pages/zoho/expense-bill"));
+const ZohoExpenseBillDetail = lazy(() => import("./pages/zoho/expense-bill/detail"));
 const ZohoCredentials = lazy(() => import("./pages/zoho/config/credentials"));
 const ZohoChartOfAccounts = lazy(() => import("./pages/zoho/config/chart-of-account"));
 const ZohoTaxes = lazy(() => import("./pages/zoho/config/taxes"));
@@ -67,6 +68,7 @@ function App() {
           <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
           <Route path="zoho/vendor-bill/:id" element={<ZohoVendorBillDetail />} />
           <Route path="zoho/expense-bill" element={<ZohoExpenseBill />} />
+          <Route path="zoho/expense-bill/:id" element={<ZohoExpenseBillDetail />} />
           <Route path="zoho/credentials" element={<ZohoCredentials />} />
           <Route path="zoho/chart-of-account" element={<ZohoChartOfAccounts />} />
           <Route path="zoho/taxes" element={<ZohoTaxes />} />
