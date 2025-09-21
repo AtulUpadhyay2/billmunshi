@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetZohoExpenseBillQuery, useVerifyZohoExpenseBillMutation } from "@/store/api/zoho/expenseBillsApiSlice";
+import { useGetZohoExpenseBillDetailsQuery, useVerifyZohoExpenseBillMutation } from "@/store/api/zoho/expenseBillsApiSlice";
 import { useGetVendorsQuery, useGetChartOfAccountsQuery, useGetTaxesQuery, useGetTdsTcsQuery } from "@/store/api/zoho/zohoApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -55,8 +55,8 @@ const ZohoExpenseBillDetail = () => {
     // State for error alert
     const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
     
-    // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/expense-bills/{bill_id}/
-    const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillQuery(
+    // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/expense-bills/{bill_id}/details/
+    const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillDetailsQuery(
         { organizationId: selectedOrganization?.id, billId },
         { skip: !selectedOrganization?.id || !billId }
     );
@@ -93,11 +93,12 @@ const ZohoExpenseBillDetail = () => {
     );
 
     // Extract data from the API response
-    const billInfo = expenseBillData?.bill || {};
+    const billInfo = expenseBillData || {};
     const analysedData = expenseBillData?.analysed_data || {};
+    const zohoBillData = expenseBillData?.zoho_bill || {};
     
     // Check if bill is verified (disable inputs if verified)
-    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
+    const isVerified = billInfo?.status === 'Verified' || zohoBillData?.bill_status === 'Verified';
     
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;
@@ -117,8 +118,8 @@ const ZohoExpenseBillDetail = () => {
         setBillForm(prev => ({ 
             ...prev, 
             selectedVendor: vendor,
-            vendorName: vendor?.contact_name || '',
-            vendorGST: vendor?.gst_in || ''
+            vendorName: vendor?.companyName || '',
+            vendorGST: vendor?.gstNo || ''
         }));
     };
 
@@ -134,7 +135,7 @@ const ZohoExpenseBillDetail = () => {
 
     // Handle back click
     const handleBackClick = () => {
-        navigate('/zoho/expense-bills');
+        navigate('/zoho/expense-bill');
     };
 
     // Handle zoom functions
@@ -199,50 +200,89 @@ const ZohoExpenseBillDetail = () => {
     
     // Update form data when expense bill data is loaded
     useEffect(() => {
-        if (expenseBillData && billInfo) {
-            // Update expense form with bill data
+        if (expenseBillData) {
+            const data = analysedData;
+            const zoho = zohoBillData;
+            
+            // Update bill form with data from API response
             setBillForm(prev => ({
                 ...prev,
-                billNumber: billInfo.bill_no || analysedData.bill_no || '',
-                billDate: billInfo.bill_date || analysedData.bill_date || '',
-                vendorName: billInfo.vendor_name || analysedData.vendor_name || '',
-                totalAmount: billInfo.total || analysedData.total || '',
-                vendorGST: billInfo.vendor_gst || analysedData.vendor_gst || '',
-                selectedVendor: billInfo.vendor_id ? { 
-                    id: billInfo.vendor_id, 
-                    contact_name: billInfo.vendor_name 
-                } : null,
-                is_tax: billInfo.is_tax || 'TDS'
+                billNumber: zoho?.bill_no || data?.invoiceNumber || '',
+                billDate: zoho?.bill_date || data?.dateIssued || '',
+                vendorName: data?.from?.name || '',
+                totalAmount: zoho?.total || data?.total || '',
+                selectedVendor: null, // Will be set when vendors are loaded
+                vendorGST: '',
+                is_tax: 'TDS'
             }));
-
-            // Update expense items if available
-            if (billInfo.expense_items || analysedData.expense_items) {
-                const items = billInfo.expense_items || analysedData.expense_items || [];
-                setExpenseItems(items.map(item => ({
-                    ...item,
-                    chart_of_accounts_id: item.chart_of_accounts_id || item.chart_of_accounts || null,
-                    amount: item.amount || '0'
-                })));
-            }
 
             // Update tax summary
             setTaxSummaryForm(prev => ({
                 ...prev,
-                cgst: billInfo.cgst || analysedData.cgst || '',
-                sgst: billInfo.sgst || analysedData.sgst || '',
-                igst: billInfo.igst || analysedData.igst || '',
-                total: billInfo.total || analysedData.total || ''
+                igst: zoho?.igst || data?.igst || '',
+                cgst: zoho?.cgst || data?.cgst || '',
+                sgst: zoho?.sgst || data?.sgst || '',
+                total: zoho?.total || data?.total || ''
             }));
 
             // Update notes
-            setNotes(billInfo.note || analysedData.note || '');
+            setNotes(zoho?.note || '');
 
-            // Update TDS/TCS selection
-            if (billInfo.tds_tcs_id) {
-                setSelectedTdsTcs(billInfo.tds_tcs_id);
+            // Initialize expense items from zoho_bill.products or analysed_data.items
+            if (zoho?.products && zoho.products.length > 0) {
+                setExpenseItems(zoho.products.map((item, index) => ({
+                    id: item.id || index,
+                    item_id: item.id || null,
+                    item_details: item.item_details || '',
+                    chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
+                    chart_of_accounts_id: item.chart_of_accounts || null,
+                    amount: item.amount || '',
+                    debit_or_credit: item.debit_or_credit || 'debit'
+                })));
+            } else if (data?.items && data.items.length > 0) {
+                // Fallback to analysed_data items if no zoho products
+                setExpenseItems(data.items.map((item, index) => ({
+                    id: Date.now() + index,
+                    item_id: null,
+                    item_details: item.description || '',
+                    chart_of_accounts: 'No COA Selected',
+                    chart_of_accounts_id: null,
+                    amount: item.price || '',
+                    debit_or_credit: 'debit'
+                })));
+            } else {
+                // Initialize with empty expense item if no items exist
+                setExpenseItems([{
+                    id: Date.now(),
+                    item_id: null,
+                    item_details: '',
+                    chart_of_accounts: 'No COA Selected',
+                    chart_of_accounts_id: null,
+                    amount: '',
+                    debit_or_credit: 'debit'
+                }]);
             }
         }
-    }, [expenseBillData, billInfo, analysedData]);
+    }, [expenseBillData, analysedData, zohoBillData]);
+
+    // Match vendor from API response with vendor options when both are available
+    useEffect(() => {
+        if (vendorsData?.results && vendorsData.results.length > 0 && analysedData?.from?.name && !billForm.selectedVendor) {
+            // Try to match by vendor name from analysed_data.from.name
+            const matchedVendor = vendorsData.results.find(vendor => 
+                vendor.companyName === analysedData.from.name
+            );
+            
+            if (matchedVendor) {
+                setBillForm(prev => ({
+                    ...prev,
+                    selectedVendor: matchedVendor,
+                    vendorName: matchedVendor.companyName || prev.vendorName,
+                    vendorGST: matchedVendor.gstNo || ''
+                }));
+            }
+        }
+    }, [vendorsData, analysedData, billForm.selectedVendor]);
 
     // Handle verify expense bill (save function)
     const handleSave = async () => {
@@ -367,7 +407,7 @@ const ZohoExpenseBillDetail = () => {
     return (
         <div className="space-y-5">
             <Card 
-                title={`Zoho Expense Bill Detail${billInfo.bill_munshi_name ? ` - ${billInfo.bill_munshi_name}` : ''}`} 
+                title={`Zoho Expense Bill Detail${billInfo.billmunshiName ? ` - ${billInfo.billmunshiName}` : ''}`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -444,13 +484,13 @@ const ZohoExpenseBillDetail = () => {
                     {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
                     <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
                         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
-                            {billInfo?.bill_image_url ? (
+                            {billInfo?.file ? (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                         <h3 className="text-lg font-medium text-gray-900">Bill Document</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Keyboard Shortcuts Info */}
-                                            {!isPDF(billInfo.bill_image_url) && (
+                                            {!isPDF(billInfo.file) && (
                                                 <div className="relative group">
                                                     <button className="p-1.5 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
                                                         <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -469,7 +509,7 @@ const ZohoExpenseBillDetail = () => {
                                             )}
                                             
                                             {/* Zoom Controls - only for images */}
-                                            {!isPDF(billInfo.bill_image_url) && (
+                                            {!isPDF(billInfo.file) && (
                                                 <>
                                                     <button
                                                         onClick={handleZoomOut}
@@ -520,10 +560,10 @@ const ZohoExpenseBillDetail = () => {
                                     </div>
                                     
                                     <div className="flex-1 flex items-center justify-center overflow-auto bg-white rounded-lg border border-gray-200">
-                                        {isPDF(billInfo.bill_image_url) ? (
+                                        {isPDF(billInfo.file) ? (
                                             // PDF Viewer
                                             <iframe
-                                                src={billInfo.bill_image_url}
+                                                src={billInfo.file}
                                                 className="w-full h-full border-0"
                                                 title="Bill PDF Document"
                                                 onError={(e) => {
@@ -539,7 +579,7 @@ const ZohoExpenseBillDetail = () => {
                                                 }}
                                             >
                                                 <img 
-                                                    src={billInfo.bill_image_url}
+                                                    src={billInfo.file}
                                                     alt="Bill Document"
                                                     className="rounded-lg shadow-lg transition-transform duration-200"
                                                     style={{
@@ -619,21 +659,24 @@ const ZohoExpenseBillDetail = () => {
                                         </label>
                                         <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                             <SearchableDropdown
-                                                options={vendorsData?.contacts || []}
+                                                options={vendorsData?.results || []}
                                                 value={billForm.selectedVendor?.id || null}
                                                 onChange={handleVendorSelect}
                                                 onClear={handleVendorClear}
                                                 placeholder="Search and select vendor..."
                                                 searchPlaceholder="Type to search vendors..."
-                                                optionLabelKey="contact_name"
+                                                optionLabelKey="companyName"
                                                 optionValueKey="id"
                                                 loading={vendorsLoading}
                                                 disabled={isVerified}
                                                 renderOption={(vendor) => (
                                                     <div className="flex flex-col py-1">
-                                                        <div className="font-medium text-gray-900">{vendor.contact_name}</div>
-                                                        {vendor.gst_in && (
-                                                            <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
+                                                        <div className="font-medium text-gray-900">{vendor.companyName}</div>
+                                                        {vendor.gstNo && (
+                                                            <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
+                                                        )}
+                                                        {vendor.contactId && (
+                                                            <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
                                                         )}
                                                     </div>
                                                 )}
@@ -715,125 +758,150 @@ const ZohoExpenseBillDetail = () => {
                                         </div>
                                     </div>
 
-                                    {/* Expense Items List */}
-                                    <div className="space-y-4">
-                                        {expenseItems.length > 0 ? (
-                                            expenseItems.map((item, index) => (
-                                                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <h4 className="text-sm font-medium text-gray-900">Item {index + 1}</h4>
-                                                        {!isVerified && (
-                                                            <button
-                                                                onClick={() => removeExpenseItem(index)}
-                                                                className="text-red-500 hover:text-red-700 focus:outline-none"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-1 gap-3">
-                                                        {/* Item Details */}
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                Item Details
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={item.item_details || ''}
-                                                                onChange={(e) => {
-                                                                    const newItems = [...expenseItems];
-                                                                    newItems[index] = { ...item, item_details: e.target.value };
-                                                                    setExpenseItems(newItems);
-                                                                }}
-                                                                disabled={isVerified}
-                                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                placeholder="Enter item details..."
-                                                            />
-                                                        </div>
-
-                                                        {/* Chart of Accounts and Amount in same row */}
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                    Chart of Accounts <span className="text-red-500">*</span>
-                                                                    {!item.chart_of_accounts_id && !isVerified && (
-                                                                        <span className="text-red-500 text-xs ml-1">Required</span>
-                                                                    )}
-                                                                </label>
-                                                                <SearchableDropdown
-                                                                    options={chartOfAccountsData?.chart_of_accounts || []}
-                                                                    value={chartOfAccountsData?.chart_of_accounts?.find(acc => acc.account_id === item.chart_of_accounts_id) || null}
-                                                                    onChange={(account) => {
+                                    {/* Enhanced Expense Items Table - Scrollable */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
+                                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                            <table className="w-full min-w-[800px]">
+                                                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                                                            Item Details
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                            Chart of Accounts <span className="text-red-500">*</span>
+                                                        </th>
+                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                            Amount
+                                                        </th>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                                                            Type
+                                                        </th>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                                                            Actions
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {expenseItems.map((item, index) => (
+                                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                                            {/* Item Details */}
+                                                            <td className="px-4 py-3">
+                                                                <textarea
+                                                                    value={item.item_details}
+                                                                    onChange={(e) => {
                                                                         const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, chart_of_accounts_id: account?.account_id || null };
+                                                                        newItems[index] = { ...item, item_details: e.target.value };
                                                                         setExpenseItems(newItems);
                                                                     }}
-                                                                    placeholder="Select account..."
-                                                                    searchPlaceholder="Type to search accounts..."
-                                                                    optionLabelKey="account_name"
-                                                                    optionValueKey="account_id"
-                                                                    loading={chartOfAccountsLoading}
+                                                                    placeholder="Enter item details..."
                                                                     disabled={isVerified}
-                                                                    renderOption={(account) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{account.account_name}</div>
-                                                                            {account.account_code && (
-                                                                                <div className="text-xs text-gray-500">Code: {account.account_code}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                    className="text-xs"
+                                                                    className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                    rows={3}
                                                                 />
-                                                            </div>
+                                                            </td>
                                                             
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                    Amount <span className="text-red-500">*</span>
-                                                                </label>
-                                                                <div className="flex items-center">
-                                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        value={item.amount || ''}
-                                                                        onChange={(e) => {
+                                                            {/* Chart of Accounts */}
+                                                            <td className="px-4 py-3">
+                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={chartOfAccountsData?.results || []}
+                                                                        value={item.chart_of_accounts_id || null}
+                                                                        onChange={(accountId) => {
                                                                             const newItems = [...expenseItems];
-                                                                            newItems[index] = { ...item, amount: e.target.value };
+                                                                            newItems[index] = { ...item, chart_of_accounts_id: accountId };
                                                                             setExpenseItems(newItems);
                                                                         }}
+                                                                        onClear={() => {
+                                                                            const newItems = [...expenseItems];
+                                                                            newItems[index] = { ...item, chart_of_accounts_id: null };
+                                                                            setExpenseItems(newItems);
+                                                                        }}
+                                                                        placeholder="Select chart of accounts..."
+                                                                        searchPlaceholder="Type to search accounts..."
+                                                                        optionLabelKey="accountName"
+                                                                        optionValueKey="accountId"
+                                                                        loading={chartOfAccountsLoading}
                                                                         disabled={isVerified}
-                                                                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                        placeholder="0.00"
+                                                                        renderOption={(account) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                                                {account.accountId && (
+                                                                                    <div className="text-xs text-blue-600">ID: {account.accountId}</div>
+                                                                                )}
+                                                                                {account.created_at && (
+                                                                                    <div className="text-xs text-gray-500">Created: {new Date(account.created_at).toLocaleDateString()}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                        className="coa-dropdown"
                                                                     />
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="text-center py-8">
-                                                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                </svg>
-                                                <h3 className="text-lg font-medium text-gray-900 mb-2">No expense items</h3>
-                                                <p className="text-sm text-gray-600 mb-4">Add expense items to continue with verification</p>
-                                                {!isVerified && (
-                                                    <button
-                                                        onClick={addExpenseItem}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                        </svg>
-                                                        Add First Item
-                                                    </button>
-                                                )}
+                                                            </td>
+                                                            
+                                                            {/* Amount */}
+                                                            <td className="px-4 py-3">
+                                                                <input
+                                                                    type="number"
+                                                                    value={item.amount}
+                                                                    onChange={(e) => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, amount: e.target.value };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    placeholder="0.00"
+                                                                    disabled={isVerified}
+                                                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                />
+                                                            </td>
+
+                                                            {/* Debit/Credit Type */}
+                                                            <td className="px-4 py-3">
+                                                                <select
+                                                                    value={item.debit_or_credit}
+                                                                    onChange={(e) => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, debit_or_credit: e.target.value };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    disabled={isVerified}
+                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                >
+                                                                    <option value="debit">Debit</option>
+                                                                    <option value="credit">Credit</option>
+                                                                </select>
+                                                            </td>
+
+                                                            {/* Actions */}
+                                                            <td className="px-4 py-3 text-center">
+                                                                {expenseItems.length > 1 && (
+                                                                    <button
+                                                                        onClick={() => removeExpenseItem(index)}
+                                                                        disabled={isVerified}
+                                                                        className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100' : ''}`}
+                                                                        title="Remove Item"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        {/* Expense Items Summary */}
+                                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-600">
+                                                    Total Items: {expenseItems.length}
+                                                </span>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -950,9 +1018,9 @@ const ZohoExpenseBillDetail = () => {
                         <div className="flex items-center justify-between p-4 bg-black bg-opacity-50">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-white text-lg font-medium">
-                                    Bill Document - {billInfo.bill_munshi_name || analysedData.billNumber || 'Unknown'}
+                                    Bill Document - {billInfo.billmunshiName || analysedData.invoiceNumber || 'Unknown'}
                                 </h3>
-                                {!isPDF(billInfo.bill_image_url) && (
+                                {!isPDF(billInfo.file) && (
                                     <div className="flex items-center gap-2 bg-black bg-opacity-50 rounded-lg px-3 py-1">
                                         <button
                                             onClick={handleZoomOut}
@@ -1002,16 +1070,16 @@ const ZohoExpenseBillDetail = () => {
 
                         {/* Fullscreen Content */}
                         <div className="flex-1 flex items-center justify-center overflow-auto p-4">
-                            {isPDF(billInfo.bill_image_url) ? (
+                            {isPDF(billInfo.file) ? (
                                 <iframe
-                                    src={billInfo.bill_image_url}
+                                    src={billInfo.file}
                                     className="w-full h-full border-0 rounded-lg"
                                     title="Bill PDF Document - Fullscreen"
                                 />
                             ) : (
                                 <div className="overflow-auto w-full h-full flex items-center justify-center">
                                     <img
-                                        src={billInfo.bill_image_url}
+                                        src={billInfo.file}
                                         alt="Bill Document - Fullscreen"
                                         className="rounded-lg shadow-2xl transition-transform duration-200"
                                         style={{
