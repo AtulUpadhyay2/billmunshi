@@ -92,8 +92,8 @@ export const zohoExpenseBillsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { billId }) => [{ type: 'ZohoExpenseBill', id: billId }],
     }),
     verifyZohoExpenseBill: builder.mutation({
-      query: ({ organizationId, ...verifyData }) => ({
-        url: `zoho/org/${organizationId}/expense-bills/verify/`,
+      query: ({ organizationId, bill_id, ...verifyData }) => ({
+        url: `zoho/org/${organizationId}/expense-bills/${bill_id}/verify/`,
         method: "POST",
         body: verifyData,
         headers: {
@@ -107,11 +107,8 @@ export const zohoExpenseBillsApi = apiSlice.injectEndpoints({
     }),
     syncZohoExpenseBill: builder.mutation({
       query: ({ organizationId, billId }) => ({
-        url: `zoho/org/${organizationId}/expense-bills/sync/`,
+        url: `zoho/org/${organizationId}/expense-bills/${billId}/sync/`,
         method: "POST",
-        body: {
-          bill_id: billId
-        },
         headers: {
           'Content-Type': 'application/json',
         },

@@ -182,10 +182,16 @@ const ZohoExpenseBillDetail = () => {
     // Add expense item
     const addExpenseItem = () => {
         setExpenseItems(prev => [...prev, {
+            id: Date.now(), // Add unique ID
+            item_id: null,
+            zohoBill: zohoBillData?.id || null,
             item_name: '',
             item_details: '',
+            vendor_id: null,
             chart_of_accounts_id: null,
-            amount: ''
+            amount: '',
+            debit_or_credit: 'debit',
+            created_at: null
         }]);
     };
 
@@ -234,11 +240,14 @@ const ZohoExpenseBillDetail = () => {
                 setExpenseItems(zoho.products.map((item, index) => ({
                     id: item.id || index,
                     item_id: item.id || null,
+                    zohoBill: item.zohoBill || null,
                     item_details: item.item_details || '',
+                    vendor_id: item.vendor || null,
                     chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
                     chart_of_accounts_id: item.chart_of_accounts || null,
                     amount: item.amount || '',
-                    debit_or_credit: item.debit_or_credit || 'debit'
+                    debit_or_credit: item.debit_or_credit || 'debit',
+                    created_at: item.created_at || null
                 })));
             } else if (data?.items && data.items.length > 0) {
                 // Fallback to analysed_data items if no zoho products
@@ -246,6 +255,7 @@ const ZohoExpenseBillDetail = () => {
                     id: Date.now() + index,
                     item_id: null,
                     item_details: item.description || '',
+                    vendor_id: null,
                     chart_of_accounts: 'No COA Selected',
                     chart_of_accounts_id: null,
                     amount: item.price || '',
@@ -268,11 +278,22 @@ const ZohoExpenseBillDetail = () => {
 
     // Match vendor from API response with vendor options when both are available
     useEffect(() => {
-        if (vendorsData?.results && vendorsData.results.length > 0 && analysedData?.from?.name && !billForm.selectedVendor) {
-            // Try to match by vendor name from analysed_data.from.name
-            const matchedVendor = vendorsData.results.find(vendor => 
-                vendor.companyName === analysedData.from.name
-            );
+        if (vendorsData?.results && vendorsData.results.length > 0 && !billForm.selectedVendor) {
+            let matchedVendor = null;
+
+            // First priority: Match by zoho_bill.vendor ID if it exists
+            if (zohoBillData?.vendor) {
+                matchedVendor = vendorsData.results.find(vendor => 
+                    vendor.id === zohoBillData.vendor
+                );
+            }
+
+            // Fallback: Match by vendor name from analysed_data.from.name
+            if (!matchedVendor && analysedData?.from?.name) {
+                matchedVendor = vendorsData.results.find(vendor => 
+                    vendor.companyName === analysedData.from.name
+                );
+            }
             
             if (matchedVendor) {
                 setBillForm(prev => ({
@@ -283,7 +304,7 @@ const ZohoExpenseBillDetail = () => {
                 }));
             }
         }
-    }, [vendorsData, analysedData, billForm.selectedVendor]);
+    }, [vendorsData, analysedData, zohoBillData, billForm.selectedVendor]);
 
     // Handle verify expense bill (save function)
     const handleSave = async () => {
@@ -315,36 +336,72 @@ const ZohoExpenseBillDetail = () => {
         try {
             const verifyData = {
                 bill_id: billId,
-                vendor: billForm.selectedVendor?.id || null,
-                bill_no: billForm.billNumber,
-                bill_date: billForm.billDate,
-                total: taxSummaryForm.total,
-                igst: taxSummaryForm.igst || "0",
-                cgst: taxSummaryForm.cgst || "0",
-                sgst: taxSummaryForm.sgst || "0",
-                tds_tcs_id: selectedTdsTcs,
-                is_tax: billForm.is_tax,
-                note: notes,
-                expense_items: validItems.map(item => ({
-                    item_name: item.item_name?.substring(0, 100) || '', // Truncate if needed
-                    item_details: item.item_details || '',
-                    chart_of_accounts: item.chart_of_accounts_id,
-                    amount: item.amount
-                }))
+                zoho_bill: {
+                    id: zohoBillData?.id || null,
+                    selectBill: billId,
+                    vendor: billForm.selectedVendor?.id || null,
+                    bill_no: billForm.billNumber,
+                    bill_date: billForm.billDate,
+                    total: billForm.totalAmount || "0",
+                    igst: taxSummaryForm.igst || "0",
+                    cgst: taxSummaryForm.cgst || "0",
+                    sgst: taxSummaryForm.sgst || "0",
+                    note: notes || `Auto-created from analysis for ${billForm.selectedVendor?.companyName || 'vendor'}.`,
+                    created_at: zohoBillData?.created_at || new Date().toISOString(),
+                    products: validItems.map((item, index) => ({
+                        id: item.id || item.item_id || null,
+                        zohoBill: zohoBillData?.id || null,
+                        item_details: item.item_details || '',
+                        chart_of_accounts: item.chart_of_accounts_id || null,
+                        vendor: item.vendor_id || billForm.selectedVendor?.id || null,
+                        amount: item.amount,
+                        debit_or_credit: item.debit_or_credit || "debit",
+                        created_at: item.created_at || new Date().toISOString()
+                    }))
+                }
             };
 
             await verifyExpenseBill({
                 organizationId: selectedOrganization?.id,
+                bill_id: billId,
                 ...verifyData
             }).unwrap();
 
             globalToast.success('Expense bill verified successfully!');
-            refetch(); // Refresh data after verification
+            
+            // Redirect to expense bills list after successful verification
+            setTimeout(() => {
+                navigate('/zoho/expense-bill');
+            }, 1500); // Small delay to show success message
         } catch (error) {
             console.error('Verification failed:', error);
+            
+            // Handle different types of error responses
+            let errorMessage = 'Verification failed';
+            
+            if (error?.data) {
+                // Check if it's a debit/credit balance error
+                if (error.data.detail && error.data.debit_total !== undefined && error.data.credit_total !== undefined) {
+                    errorMessage = error.data.detail;
+                    
+                    // Add additional context for debit/credit errors
+                    if (error.data.difference !== undefined) {
+                        errorMessage += `\n\nBalance Details:\n• Debit Total: ₹${parseFloat(error.data.debit_total).toLocaleString()}\n• Credit Total: ₹${parseFloat(error.data.credit_total).toLocaleString()}\n• Difference: ₹${parseFloat(error.data.difference).toLocaleString()}`;
+                    }
+                } else if (error.data.message) {
+                    errorMessage = error.data.message;
+                } else if (error.data.detail) {
+                    errorMessage = error.data.detail;
+                } else if (typeof error.data === 'string') {
+                    errorMessage = error.data;
+                }
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            
             setErrorAlert({ 
                 show: true, 
-                message: error?.data?.message || 'Verification failed' 
+                message: errorMessage
             });
         } finally {
             setIsVerifying(false);
@@ -762,11 +819,14 @@ const ZohoExpenseBillDetail = () => {
                                     {/* Enhanced Expense Items Table - Scrollable */}
                                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
                                         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                                            <table className="w-full min-w-[800px]">
+                                            <table className="w-full min-w-[1000px]">
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
                                                             Item Details
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                            Vendor
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Chart of Accounts <span className="text-red-500">*</span>
@@ -801,6 +861,42 @@ const ZohoExpenseBillDetail = () => {
                                                                 />
                                                             </td>
                                                             
+                                                            {/* Vendor */}
+                                                            <td className="px-4 py-3">
+                                                                <SearchableDropdown
+                                                                    options={vendorsData?.results || []}
+                                                                    value={item.vendor_id || null}
+                                                                    onChange={(vendorId) => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, vendor_id: vendorId };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    onClear={() => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, vendor_id: null };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    placeholder="Select vendor..."
+                                                                    searchPlaceholder="Type to search vendors..."
+                                                                    optionLabelKey="companyName"
+                                                                    optionValueKey="id"
+                                                                    loading={vendorsLoading}
+                                                                    disabled={isVerified}
+                                                                    renderOption={(vendor) => (
+                                                                        <div className="flex flex-col py-1">
+                                                                            <div className="font-medium text-gray-900">{vendor.companyName}</div>
+                                                                            {vendor.gstNo && (
+                                                                                <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
+                                                                            )}
+                                                                            {vendor.contactId && (
+                                                                                <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    className="vendor-dropdown"
+                                                                />
+                                                            </td>
+                                                            
                                                             {/* Chart of Accounts */}
                                                             <td className="px-4 py-3">
                                                                 <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
@@ -820,14 +916,14 @@ const ZohoExpenseBillDetail = () => {
                                                                         placeholder="Select chart of accounts..."
                                                                         searchPlaceholder="Type to search accounts..."
                                                                         optionLabelKey="accountName"
-                                                                        optionValueKey="accountId"
+                                                                        optionValueKey="id"
                                                                         loading={chartOfAccountsLoading}
                                                                         disabled={isVerified}
                                                                         renderOption={(account) => (
                                                                             <div className="flex flex-col py-1">
                                                                                 <div className="font-medium text-gray-900">{account.accountName}</div>
-                                                                                {account.accountId && (
-                                                                                    <div className="text-xs text-blue-600">ID: {account.accountId}</div>
+                                                                                {account.id && (
+                                                                                    <div className="text-xs text-blue-600">ID: {account.id}</div>
                                                                                 )}
                                                                                 {account.created_at && (
                                                                                     <div className="text-xs text-gray-500">Created: {new Date(account.created_at).toLocaleDateString()}</div>
