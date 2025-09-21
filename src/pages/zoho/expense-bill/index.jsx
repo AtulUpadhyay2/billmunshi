@@ -386,10 +386,10 @@ const ZohoExpenseBill = () => {
                         <td className="table-td">{index + 1}</td>
                         <td className="table-td">
                           <div className="flex flex-col">
-                            <span className="font-medium">{bill.bill_munshi_name}</span>
+                            <span className="font-medium">{bill.billmunshiName}</span>
                             {bill.file && (
                               <button
-                                onClick={() => handleViewFile(bill.file, bill.bill_munshi_name || 'Expense Bill')}
+                                onClick={() => handleViewFile(bill.file, bill.billmunshiName || 'Expense Bill')}
                                 className="text-xs text-blue-600 hover:underline cursor-pointer"
                               >
                                 View File

@@ -82,17 +82,13 @@ export const zohoExpenseBillsApi = apiSlice.injectEndpoints({
       invalidatesTags: ['ZohoExpenseBill'],
     }),
     analyzeZohoExpenseBill: builder.mutation({
-      query: ({ organizationId, billId }) => {
-        const formData = new FormData();
-        formData.append('bill_id', billId);
-        
-        return {
-          url: `zoho/org/${organizationId}/expense-bills/analyze/`,
-          method: "POST",
-          body: formData,
-          // Don't set Content-Type header for FormData uploads
-        };
-      },
+      query: ({ organizationId, billId }) => ({
+        url: `zoho/org/${organizationId}/expense-bills/${billId}/analyze/`,
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
       invalidatesTags: (result, error, { billId }) => [{ type: 'ZohoExpenseBill', id: billId }],
     }),
     verifyZohoExpenseBill: builder.mutation({
