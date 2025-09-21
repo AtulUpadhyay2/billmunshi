@@ -114,7 +114,8 @@ const ZohoExpenseBillDetail = () => {
     };
 
     // Handle vendor selection
-    const handleVendorSelect = (vendor) => {
+    const handleVendorSelect = (vendorId) => {
+        const vendor = vendorsData?.results?.find(v => v.id === vendorId);
         setBillForm(prev => ({ 
             ...prev, 
             selectedVendor: vendor,
