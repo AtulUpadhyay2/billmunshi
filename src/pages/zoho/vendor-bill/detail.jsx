@@ -4,10 +4,11 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetVendorBillQuery } from "@/store/api/zoho/vendorBillsApiSlice";
+import { useGetVendorBillQuery, useVerifyVendorBillMutation } from "@/store/api/zoho/vendorBillsApiSlice";
 import { useGetVendorsQuery, useGetChartOfAccountsQuery, useGetTaxesQuery, useGetTdsTcsQuery } from "@/store/api/zoho/zohoApiSlice";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
+import { globalToast } from "@/utils/toast";
 
 const ZohoVendorBillDetail = () => {
     const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -51,11 +52,22 @@ const ZohoVendorBillDetail = () => {
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
     
+    // State for verification
+    const [verificationStatus, setVerificationStatus] = useState(null); // 'success', 'error', or null
+    const [verificationMessage, setVerificationMessage] = useState('');
+    
     // Fetch vendor bill data
     const { data: vendorBillData, error, isLoading, refetch } = useGetVendorBillQuery(
         { organizationId: selectedOrganization?.id, billId },
         { skip: !selectedOrganization?.id || !billId }
     );
+
+    // Verify vendor bill mutation
+    const [verifyVendorBill, { 
+        isLoading: isVerifying, 
+        error: verifyError, 
+        isSuccess: verifySuccess 
+    }] = useVerifyVendorBillMutation();
 
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendorsQuery(
@@ -334,6 +346,15 @@ const ZohoVendorBillDetail = () => {
         }
     }, []); // Empty dependency array to run only on mount
 
+    // Handle verification success/error
+    useEffect(() => {
+        if (verifySuccess) {
+            setVerificationStatus('success');
+        } else if (verifyError) {
+            setVerificationStatus('error');
+        }
+    }, [verifySuccess, verifyError]);
+
     // Handle back button click
     const handleBackClick = () => {
         // Open sidebar if it's collapsed
@@ -342,6 +363,102 @@ const ZohoVendorBillDetail = () => {
         }
         // Navigate back to vendor bill list
         navigate('/zoho/vendor-bill');
+    };
+
+    // Handle verification
+    const handleVerification = async () => {
+        try {
+            setVerificationStatus(null);
+            setVerificationMessage('');
+            
+            // Basic validation
+            if (!vendorForm.invoiceNumber.trim()) {
+                globalToast.error('Invoice number is required');
+                setVerificationStatus('error');
+                setVerificationMessage('Invoice number is required');
+                return;
+            }
+
+            if (!vendorForm.dateIssued) {
+                globalToast.error('Date issued is required');
+                setVerificationStatus('error');
+                setVerificationMessage('Date issued is required');
+                return;
+            }
+
+            if (!billSummaryForm.total || parseFloat(billSummaryForm.total) <= 0) {
+                globalToast.error('Valid total amount is required');
+                setVerificationStatus('error');
+                setVerificationMessage('Valid total amount is required');
+                return;
+            }
+
+            // Check if at least one product exists with valid data
+            const validProducts = products.filter(p => p.item_details.trim() && p.rate && p.quantity);
+            if (validProducts.length === 0) {
+                globalToast.error('At least one product with valid details, rate, and quantity is required');
+                setVerificationStatus('error');
+                setVerificationMessage('At least one product with valid details, rate, and quantity is required');
+                return;
+            }
+            
+            // Prepare the verification data based on the structure you provided
+            const verificationData = {
+                bill_id: billId,
+                zoho_bill: {
+                    id: zohoData?.id,
+                    selectBill: billId,
+                    vendor: vendorForm.selectedVendor?.id || null,
+                    bill_no: vendorForm.invoiceNumber,
+                    bill_date: vendorForm.dateIssued,
+                    total: billSummaryForm.total,
+                    igst: billSummaryForm.igst || "0",
+                    cgst: billSummaryForm.cgst || "0",
+                    sgst: billSummaryForm.sgst || "0",
+                    tds_tcs_id: selectedTdsTcs,
+                    is_tax: vendorForm.is_tax,
+                    note: notes,
+                    products: validProducts.map(product => ({
+                        item_name: product.item_details.substring(0, 100), // Truncate if needed
+                        item_details: product.item_details,
+                        chart_of_accounts: product.chart_of_accounts,
+                        taxes: product.taxes,
+                        reverse_charge_tax_id: product.reverse_charge_tax_id,
+                        itc_eligibility: product.itc_eligibility,
+                        rate: product.rate,
+                        quantity: product.quantity,
+                        amount: product.amount
+                    }))
+                }
+            };
+
+            const result = await verifyVendorBill({
+                organizationId: selectedOrganization?.id,
+                billId,
+                billData: verificationData
+            }).unwrap();
+
+            // Show success toast
+            globalToast.success('Vendor bill verified successfully!');
+            
+            setVerificationStatus('success');
+            setVerificationMessage('Vendor bill verified successfully');
+            
+            // Redirect to vendor bill list after a short delay
+            setTimeout(() => {
+                navigate('/zoho/vendor-bill');
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Verification failed:', error);
+            const errorMessage = error?.data?.message || error?.message || 'Verification failed. Please try again.';
+            
+            // Show error toast
+            globalToast.error(errorMessage);
+            
+            setVerificationStatus('error');
+            setVerificationMessage(errorMessage);
+        }
     };
 
     // Show loading state
@@ -400,6 +517,55 @@ const ZohoVendorBillDetail = () => {
 
     return (
         <div className="space-y-5">
+            {/* Verification Status Messages */}
+            {verificationStatus === 'success' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <h3 className="text-sm font-medium text-green-800">Verification Successful</h3>
+                            <p className="text-sm text-green-700 mt-1">
+                                {verificationMessage || 'The vendor bill has been successfully verified and submitted to Zoho.'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setVerificationStatus(null)}
+                            className="ml-auto text-green-600 hover:text-green-800"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {verificationStatus === 'error' && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                        <svg className="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <h3 className="text-sm font-medium text-red-800">Verification Failed</h3>
+                            <p className="text-sm text-red-700 mt-1">
+                                {verificationMessage || 'There was an error verifying the vendor bill. Please check the form data and try again.'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setVerificationStatus(null)}
+                            className="ml-auto text-red-600 hover:text-red-800"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <Card 
                 title={`Vendor Bill Detail${analysedData.invoiceNumber || zohoData.bill_no ? ` - ${analysedData.invoiceNumber || zohoData.bill_no}` : ''}`} 
                 noBorder
@@ -427,13 +593,27 @@ const ZohoVendorBillDetail = () => {
                             Back
                         </button>
                         <button 
-                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                            title="Save"
+                            onClick={handleVerification}
+                            disabled={isVerifying || !selectedOrganization?.id}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Verify Bill"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                            </svg>
-                            Save
+                            {isVerifying ? (
+                                <>
+                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Verifying...
+                                </>
+                            ) : (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Verify
+                                </>
+                            )}
                         </button>
                     </div>
                 }
@@ -786,7 +966,7 @@ const ZohoVendorBillDetail = () => {
                                                             <td className="relative px-4 py-3">
                                                                 <SearchableDropdown
                                                                     options={chartOfAccountsData?.results?.map(account => ({
-                                                                        value: account.accountId,
+                                                                        value: account.id,
                                                                         label: account.accountName
                                                                     })) || []}
                                                                     value={product.chart_of_accounts || ''}
@@ -803,7 +983,7 @@ const ZohoVendorBillDetail = () => {
                                                             <td className="relative px-4 py-3">
                                                                 <SearchableDropdown
                                                                     options={taxesData?.results?.map(tax => ({
-                                                                        value: tax.taxId,
+                                                                        value: tax.id,
                                                                         label: tax.taxName
                                                                     })) || []}
                                                                     value={product.taxes || ''}
@@ -973,7 +1153,7 @@ const ZohoVendorBillDetail = () => {
                                             </label>
                                             <SearchableDropdown
                                                 options={tdsTcsData?.results?.map(item => ({
-                                                    value: item.taxId,
+                                                    value: item.id,
                                                     label: `${item.taxName} - ${item.taxPercentage}%`,
                                                     taxName: item.taxName,
                                                     taxPercentage: item.taxPercentage,
@@ -1005,7 +1185,7 @@ const ZohoVendorBillDetail = () => {
                                             {/* Selected TDS/TCS Details */}
                                             {selectedTdsTcs && tdsTcsData?.results && (
                                                 (() => {
-                                                    const selectedItem = tdsTcsData.results.find(item => item.taxId === selectedTdsTcs);
+                                                    const selectedItem = tdsTcsData.results.find(item => item.id === selectedTdsTcs);
                                                     return selectedItem ? (
                                                         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                                                             <div className="flex items-center gap-2">
