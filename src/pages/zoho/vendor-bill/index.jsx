@@ -6,7 +6,8 @@ import {
     useUpdateVendorBillMutation, 
     useDeleteVendorBillMutation, 
     useUploadVendorBillsMutation,
-    useAnalyzeVendorBillMutation
+    useAnalyzeVendorBillMutation,
+    useSyncVendorBillMutation
 } from '@/store/api/zoho/vendorBillsApiSlice';
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -24,10 +25,12 @@ const ZohoVendorBill = () => {
     const [deleteVendorBill] = useDeleteVendorBillMutation();
     const [uploadVendorBills] = useUploadVendorBillsMutation();
     const [analyzeVendorBill] = useAnalyzeVendorBillMutation();
+    const [syncVendorBill] = useSyncVendorBillMutation();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
     const [analyzingBills, setAnalyzingBills] = useState(new Set());
+    const [syncingBills, setSyncingBills] = useState(new Set());
 
     const handleAction = async (billId, action) => {
         try {
@@ -56,8 +59,23 @@ const ZohoVendorBill = () => {
                     globalToast.success('Bill verification completed');
                     break;
                 case 'sync':
-                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Synced' }).unwrap();
-                    globalToast.success('Bill synced to Zoho');
+                    // Set loading state
+                    setSyncingBills(prev => new Set([...prev, billId]));
+                    try {
+                        await syncVendorBill({ 
+                            organizationId: selectedOrganization?.id, 
+                            billId 
+                        }).unwrap();
+                        globalToast.success('Bill synced to Zoho successfully');
+                        refetch(); // Refresh the list to show updated status
+                    } finally {
+                        // Remove loading state
+                        setSyncingBills(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(billId);
+                            return newSet;
+                        });
+                    }
                     break;
                 case 'edit':
                     // TODO: Implement edit functionality
@@ -159,54 +177,60 @@ const ZohoVendorBill = () => {
         }
 
         if (status === 'Analysed') {
+            const isSyncing = syncingBills.has(bill.id);
             return (
                 <div className="flex gap-2 flex-wrap items-center">
                     <button 
-                        onClick={() => handleAction(bill.id, 'verification')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md shadow-sm hover:bg-blue-100 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                        title="Start verification process"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                        </svg>
-                        <span className="font-medium">Verification</span>
-                    </button>
-                    <button 
                         onClick={() => handleAction(bill.id, 'sync')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
-                        title="Sync with system"
+                        disabled={isSyncing}
+                        className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 ${
+                            isSyncing 
+                                ? 'text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75' 
+                                : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500 active:scale-95'
+                        }`}
+                        title={isSyncing ? "Syncing in progress..." : "Sync with system"}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        <span className="font-medium">Sync</span>
+                        {isSyncing ? (
+                            <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                        )}
+                        <span className="font-medium">{isSyncing ? 'Syncing...' : 'Sync'}</span>
                     </button>
                 </div>
             );
         }
 
         if (status === 'Verified') {
+            const isSyncing = syncingBills.has(bill.id);
             return (
                 <div className="flex gap-2 flex-wrap items-center">
                     <button 
-                        onClick={() => handleAction(bill.id, 'verification')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md shadow-sm hover:bg-blue-100 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                        title="Re-verify document"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                        </svg>
-                        <span className="font-medium">Verification</span>
-                    </button>
-                    <button 
                         onClick={() => handleAction(bill.id, 'sync')}
-                        className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
-                        title="Sync with system"
+                        disabled={isSyncing}
+                        className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 ${
+                            isSyncing 
+                                ? 'text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75' 
+                                : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500 active:scale-95'
+                        }`}
+                        title={isSyncing ? "Syncing in progress..." : "Sync with system"}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        <span className="font-medium">Sync</span>
+                        {isSyncing ? (
+                            <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                        )}
+                        <span className="font-medium">{isSyncing ? 'Syncing...' : 'Sync'}</span>
                     </button>
                 </div>
             );
@@ -375,18 +399,6 @@ const ZohoVendorBill = () => {
                                                                 </svg>
                                                             </button>
                                                         )}
-                                                        <button 
-                                                            onClick={() => {
-                                                                // TODO: Implement edit functionality
-                                                                console.log('Edit bill:', bill.id);
-                                                            }}
-                                                            className="group relative inline-flex items-center justify-center w-8 h-8 text-blue-700 bg-blue-50 border border-blue-200 rounded-md shadow-sm hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-                                                            title="Edit vendor bill"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform duration-200">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                                            </svg>
-                                                        </button>
                                                         <button 
                                                             onClick={() => handleAction(bill.id, 'delete')}
                                                             className="group relative inline-flex items-center justify-center w-8 h-8 text-red-700 bg-red-50 border border-red-200 rounded-md shadow-sm hover:bg-red-100 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-500 transition-all duration-200 active:scale-95"

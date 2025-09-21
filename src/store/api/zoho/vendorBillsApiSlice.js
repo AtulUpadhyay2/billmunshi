@@ -88,6 +88,16 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { billId }) => [{ type: 'VendorBill', id: billId }],
     }),
+    syncVendorBill: builder.mutation({
+      query: ({ organizationId, billId }) => ({
+        url: `zoho/org/${organizationId}/vendor-bills/${billId}/sync/`,
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      invalidatesTags: (result, error, { billId }) => [{ type: 'VendorBill', id: billId }],
+    }),
   }),
 });
 
@@ -100,4 +110,5 @@ export const {
   useDeleteVendorBillMutation,
   useAnalyzeVendorBillMutation,
   useVerifyVendorBillMutation,
+  useSyncVendorBillMutation,
 } = vendorBillsApi;
