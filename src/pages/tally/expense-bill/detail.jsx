@@ -16,7 +16,7 @@ const TallyExpenseBillDetail = () => {
     const navigate = useNavigate();
     const { id: billId } = useParams();
     const { selectedOrganization } = useSelector((state) => state.auth);
-    
+
     // Form state for bill information
     const [billForm, setBillForm] = useState({
         billNumber: '',
@@ -38,22 +38,26 @@ const TallyExpenseBillDetail = () => {
         sgst: '',
         igstLedgerId: null,
         cgstLedgerId: null,
-        sgstLedgerId: null
+        sgstLedgerId: null,
+        igstDebitCredit: 'debit',
+        cgstDebitCredit: 'debit',
+        sgstDebitCredit: 'debit',
+        vendorDebitCredit: 'credit'
     });
 
     // State for notes
     const [notes, setNotes] = useState('');
-    
+
     // State for image zoom and viewing
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    
+
     // State for verification loading
     const [isVerifying, setIsVerifying] = useState(false);
-    
+
     // State for error alert
     const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
-    
+
     // Fetch expense bill details
     const { data: expenseBillData, error, isLoading, refetch } = useGetTallyExpenseBillDetailsQuery(
         { organizationId: selectedOrganization?.id, billId },
@@ -103,19 +107,19 @@ const TallyExpenseBillDetail = () => {
     const billInfo = expenseBillData?.bill || {};
     const analysedData = billInfo?.analysed_data || {};
     const tallyAnalysedData = expenseBillData?.analyzed_data || {};
-    
+
     // Check if bill is verified (disable inputs if verified)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
-    
+
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;
     const getItemsWithoutCOA = () => expenseItems.filter(item => !item.chart_of_accounts_id);
     const hasValidationErrors = () => isVendorRequired || getItemsWithoutCOA().length > 0 || expenseItems.length === 0;
-    
+
     // Process ledgers data for dropdown (Chart of Accounts)
     const processLedgers = () => {
         if (!ledgersData?.grouped_ledgers) return [];
-        
+
         const ledgers = [];
         Object.values(ledgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -136,11 +140,11 @@ const TallyExpenseBillDetail = () => {
     };
 
     const ledgerOptions = processLedgers();
-    
+
     // Process vendor ledgers data for dropdown
     const processVendorLedgers = () => {
         if (!vendorLedgersData?.grouped_ledgers) return [];
-        
+
         const vendors = [];
         Object.values(vendorLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -162,11 +166,11 @@ const TallyExpenseBillDetail = () => {
     };
 
     const vendorOptions = processVendorLedgers();
-    
+
     // Process tax ledgers data for dropdown
     const processTaxLedgers = () => {
         if (!taxLedgersData?.grouped_ledgers) return [];
-        
+
         const taxLedgers = [];
         Object.values(taxLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -187,11 +191,11 @@ const TallyExpenseBillDetail = () => {
     };
 
     const taxLedgerOptions = processTaxLedgers();
-    
+
     // Process CGST ledgers data for dropdown
     const processCgstLedgers = () => {
         if (!cgstLedgersData?.grouped_ledgers) return [];
-        
+
         const cgstLedgers = [];
         Object.values(cgstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -214,7 +218,7 @@ const TallyExpenseBillDetail = () => {
     // Process SGST ledgers data for dropdown
     const processSgstLedgers = () => {
         if (!sgstLedgersData?.grouped_ledgers) return [];
-        
+
         const sgstLedgers = [];
         Object.values(sgstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -237,7 +241,7 @@ const TallyExpenseBillDetail = () => {
     // Process IGST ledgers data for dropdown
     const processIgstLedgers = () => {
         if (!igstLedgersData?.grouped_ledgers) return [];
-        
+
         const igstLedgers = [];
         Object.values(igstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -260,13 +264,13 @@ const TallyExpenseBillDetail = () => {
     const cgstLedgerOptions = processCgstLedgers();
     const sgstLedgerOptions = processSgstLedgers();
     const igstLedgerOptions = processIgstLedgers();
-    
+
     // Update form when data is loaded
     useEffect(() => {
         if (expenseBillData?.bill) {
             const data = analysedData;
             const tally = tallyAnalysedData;
-            
+
             setBillForm({
                 billNumber: tally?.bill_no || data.billNumber || '',
                 billDate: tally?.bill_date || data.dateIssued || '',
@@ -332,20 +336,20 @@ const TallyExpenseBillDetail = () => {
         if (vendorOptions.length > 0 && tallyAnalysedData && !billForm.selectedVendor) {
             // First try to match by vendor name from analyzed_data
             let matchedVendor = null;
-            
+
             if (tallyAnalysedData.name) {
-                matchedVendor = vendorOptions.find(vendor => 
+                matchedVendor = vendorOptions.find(vendor =>
                     vendor.name === tallyAnalysedData.name
                 );
             }
-            
+
             // If not found by name, try matching from analysed_data.from
             if (!matchedVendor && analysedData?.from?.name) {
-                matchedVendor = vendorOptions.find(vendor => 
+                matchedVendor = vendorOptions.find(vendor =>
                     vendor.name === analysedData.from.name
                 );
             }
-            
+
             if (matchedVendor) {
                 setBillForm(prev => ({
                     ...prev,
@@ -361,10 +365,10 @@ const TallyExpenseBillDetail = () => {
     useEffect(() => {
         if (cgstLedgerOptions.length > 0 && sgstLedgerOptions.length > 0 && igstLedgerOptions.length > 0 && tallyAnalysedData?.taxes) {
             const taxes = tallyAnalysedData.taxes;
-            
+
             // Match CGST ledger
             if (taxes.cgst?.ledger && !taxSummaryForm.cgstLedgerId) {
-                const matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                const matchedCgstLedger = cgstLedgerOptions.find(ledger =>
                     ledger.name === taxes.cgst.ledger
                 );
                 if (matchedCgstLedger) {
@@ -374,10 +378,10 @@ const TallyExpenseBillDetail = () => {
                     }));
                 }
             }
-            
+
             // Match SGST ledger
             if (taxes.sgst?.ledger && !taxSummaryForm.sgstLedgerId) {
-                const matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                const matchedSgstLedger = sgstLedgerOptions.find(ledger =>
                     ledger.name === taxes.sgst.ledger
                 );
                 if (matchedSgstLedger) {
@@ -387,10 +391,10 @@ const TallyExpenseBillDetail = () => {
                     }));
                 }
             }
-            
+
             // Match IGST ledger
             if (taxes.igst?.ledger && !taxSummaryForm.igstLedgerId) {
-                const matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                const matchedIgstLedger = igstLedgerOptions.find(ledger =>
                     ledger.name === taxes.igst.ledger
                 );
                 if (matchedIgstLedger) {
@@ -402,7 +406,7 @@ const TallyExpenseBillDetail = () => {
             }
         }
     }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData, taxSummaryForm.cgstLedgerId, taxSummaryForm.sgstLedgerId, taxSummaryForm.igstLedgerId]);
-    
+
     // Match chart of accounts ledgers from API response
     useEffect(() => {
         if (ledgerOptions.length > 0 && tallyAnalysedData?.expense_items && expenseItems.length > 0) {
@@ -411,19 +415,19 @@ const TallyExpenseBillDetail = () => {
                 if (item.chart_of_accounts_id) {
                     return item;
                 }
-                
+
                 // Find corresponding item in analyzed_data
-                const analyzedItem = tallyAnalysedData.expense_items[index] || 
-                    tallyAnalysedData.expense_items.find(p => 
+                const analyzedItem = tallyAnalysedData.expense_items[index] ||
+                    tallyAnalysedData.expense_items.find(p =>
                         p.item_details === item.item_details
                     );
-                
+
                 if (analyzedItem && analyzedItem.chart_of_accounts && analyzedItem.chart_of_accounts !== 'No COA Ledger') {
                     // Try to match by chart of accounts name
-                    const matchedLedger = ledgerOptions.find(ledger => 
+                    const matchedLedger = ledgerOptions.find(ledger =>
                         ledger.name === analyzedItem.chart_of_accounts
                     );
-                    
+
                     if (matchedLedger) {
                         return {
                             ...item,
@@ -432,21 +436,21 @@ const TallyExpenseBillDetail = () => {
                         };
                     }
                 }
-                
+
                 return item;
             });
-            
+
             // Only update if there are actual changes
-            const hasChanges = updatedItems.some((item, index) => 
+            const hasChanges = updatedItems.some((item, index) =>
                 item.chart_of_accounts_id !== expenseItems[index].chart_of_accounts_id
             );
-            
+
             if (hasChanges) {
                 setExpenseItems(updatedItems);
             }
         }
     }, [ledgerOptions, tallyAnalysedData, expenseItems]);
-    
+
     // Handle form input changes
     const handleFormChange = (name, value) => {
         setBillForm(prev => ({
@@ -589,12 +593,12 @@ const TallyExpenseBillDetail = () => {
     const transformToVerifyFormat = () => {
         // Get vendor ledger information
         const selectedVendor = billForm.selectedVendor;
-        
+
         // Get tax ledger information for summary
         const cgstLedger = cgstLedgerOptions.find(ledger => ledger.id === taxSummaryForm.cgstLedgerId);
         const sgstLedger = sgstLedgerOptions.find(ledger => ledger.id === taxSummaryForm.sgstLedgerId);
         const igstLedger = igstLedgerOptions.find(ledger => ledger.id === taxSummaryForm.igstLedgerId);
-        
+
         return {
             bill_id: billId,
             analyzed_bill: expenseBillData?.analyzed_bill || null,
@@ -605,23 +609,23 @@ const TallyExpenseBillDetail = () => {
                 bill_date: billForm.billDate || "",
                 total: parseFloat(billForm.totalAmount) || 0,
                 company_id: selectedVendor?.company || billForm.companyId || "Unknown",
-                vendor: selectedVendor ? {
-                    id: selectedVendor.id,
-                    name: selectedVendor.name,
-                    gst_in: selectedVendor.gst_in
-                } : null,
+                vendor_debit_or_credit: taxSummaryForm.vendorDebitCredit || "credit",
+                vendor_amount: parseFloat(billForm.totalAmount) || 0,
                 taxes: {
                     igst: {
                         amount: parseFloat(taxSummaryForm.igst) || 0.0,
-                        ledger: igstLedger?.name || "No Tax Ledger"
+                        ledger: igstLedger?.name || "No Tax Ledger",
+                        debit_or_credit: taxSummaryForm.igstDebitCredit || "debit"
                     },
                     cgst: {
                         amount: parseFloat(taxSummaryForm.cgst) || 0.0,
-                        ledger: cgstLedger?.name || "No Tax Ledger"
+                        ledger: cgstLedger?.name || "No Tax Ledger",
+                        debit_or_credit: taxSummaryForm.cgstDebitCredit || "debit"
                     },
                     sgst: {
                         amount: parseFloat(taxSummaryForm.sgst) || 0.0,
-                        ledger: sgstLedger?.name || "No Tax Ledger"
+                        ledger: sgstLedger?.name || "No Tax Ledger",
+                        debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit"
                     }
                 },
                 expense_items: expenseItems.map(item => {
@@ -661,12 +665,12 @@ const TallyExpenseBillDetail = () => {
             }
 
             setIsVerifying(true);
-            
+
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
 
             console.log('Transformed verify data:', verifyData);
-            
+
             // Call the verify API
             await verifyExpenseBill({
                 organizationId: selectedOrganization?.id,
@@ -679,15 +683,15 @@ const TallyExpenseBillDetail = () => {
             navigate('/tally/expense-bill');
         } catch (error) {
             console.error('Failed to verify expense bill:', error);
-            
+
             // Handle specific error messages from API response
             let errorMessage = 'Failed to verify expense bill';
-            
+
             if (error?.data) {
                 // Check if error.data has an 'error' property with the specific message
                 if (error.data.error) {
                     errorMessage = error.data.error;
-                } 
+                }
                 // Fallback to message property
                 else if (error.data.message) {
                     errorMessage = error.data.message;
@@ -696,18 +700,18 @@ const TallyExpenseBillDetail = () => {
                 else if (typeof error.data === 'string') {
                     errorMessage = error.data;
                 }
-            } 
+            }
             // Fallback to error message
             else if (error?.message) {
                 errorMessage = error.message;
             }
-            
+
             setErrorAlert({ show: true, message: errorMessage });
         } finally {
             setIsVerifying(false);
         }
     };
-    
+
     // Zoom and viewing functions
     const handleZoomIn = () => {
         setZoomLevel(prev => Math.min(prev + 0.25, 3));
@@ -734,8 +738,8 @@ const TallyExpenseBillDetail = () => {
     useEffect(() => {
         const handleKeyPress = (e) => {
             if (!billInfo?.file || isPDF(billInfo.file)) return;
-            
-            switch(e.key) {
+
+            switch (e.key) {
                 case 'f':
                 case 'F':
                     if (e.ctrlKey || e.metaKey) {
@@ -852,12 +856,12 @@ const TallyExpenseBillDetail = () => {
 
     return (
         <div className="space-y-5">
-            <Card 
-                title={`Tally Expense Bill Detail${billInfo.bill_munshi_name ? ` - ${billInfo.bill_munshi_name}` : ''}`} 
+            <Card
+                title={`Tally Expense Bill Detail${billInfo.bill_munshi_name ? ` - ${billInfo.bill_munshi_name}` : ''}`}
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={() => refetch()}
                             disabled={isLoading}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -868,7 +872,7 @@ const TallyExpenseBillDetail = () => {
                             </svg>
                             {isLoading ? 'Refreshing...' : 'Refresh'}
                         </button>
-                        <button 
+                        <button
                             onClick={handleBackClick}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-500 border border-transparent rounded-lg shadow-sm hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
                             title="Back"
@@ -878,7 +882,7 @@ const TallyExpenseBillDetail = () => {
                             </svg>
                             Back
                         </button>
-                        <button 
+                        <button
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
@@ -925,7 +929,7 @@ const TallyExpenseBillDetail = () => {
                         </div>
                     </div>
                 )}
-                
+
                 <div className="flex flex-col lg:flex-row gap-6 relative">
                     {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
                     <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
@@ -953,7 +957,7 @@ const TallyExpenseBillDetail = () => {
                                                     </div>
                                                 </div>
                                             )}
-                                            
+
                                             {/* Zoom Controls - only for images */}
                                             {!isPDF(billInfo.file) && (
                                                 <>
@@ -991,7 +995,7 @@ const TallyExpenseBillDetail = () => {
                                                     </button>
                                                 </>
                                             )}
-                                            
+
                                             {/* Fullscreen Toggle */}
                                             <button
                                                 onClick={toggleFullscreen}
@@ -1004,7 +1008,7 @@ const TallyExpenseBillDetail = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex-1 flex items-center justify-center overflow-auto bg-white rounded-lg border border-gray-200">
                                         {isPDF(billInfo.file) ? (
                                             // PDF Viewer
@@ -1018,13 +1022,13 @@ const TallyExpenseBillDetail = () => {
                                             />
                                         ) : (
                                             // Image Viewer with Zoom
-                                            <div 
+                                            <div
                                                 className="overflow-auto w-full h-full flex items-center justify-center"
-                                                style={{ 
+                                                style={{
                                                     cursor: zoomLevel > 1 ? 'grab' : 'default'
                                                 }}
                                             >
-                                                <img 
+                                                <img
                                                     src={billInfo.file}
                                                     alt="Bill Document"
                                                     className="rounded-lg shadow-lg transition-transform duration-200"
@@ -1038,7 +1042,7 @@ const TallyExpenseBillDetail = () => {
                                                         e.target.nextSibling.style.display = 'block';
                                                     }}
                                                 />
-                                                <div style={{display: 'none'}} className="flex flex-col items-center">
+                                                <div style={{ display: 'none' }} className="flex flex-col items-center">
                                                     <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                     </svg>
@@ -1174,6 +1178,22 @@ const TallyExpenseBillDetail = () => {
                                             className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         />
                                     </div>
+
+                                    {/* Total Amount Field */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Total Amount
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="totalAmount"
+                                            value={billForm.totalAmount}
+                                            onChange={e => handleFormChange('totalAmount', e.target.value)}
+                                            placeholder="0.00"
+                                            disabled={isVerified}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -1241,7 +1261,7 @@ const TallyExpenseBillDetail = () => {
                                                                     rows={3}
                                                                 />
                                                             </td>
-                                                            
+
                                                             {/* Chart of Accounts */}
                                                             <td className="px-4 py-3">
                                                                 <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
@@ -1254,23 +1274,23 @@ const TallyExpenseBillDetail = () => {
                                                                         searchPlaceholder="Type to search ledgers..."
                                                                         optionLabelKey="name"
                                                                         optionValueKey="id"
-                                                                    loading={ledgersLoading}
-                                                                    disabled={isVerified}
-                                                                    renderOption={(ledger) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                            {ledger.parent_name && (
-                                                                                <div className="text-xs text-blue-600">{ledger.parent_name}</div>
-                                                                            )}
-                                                                            {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                            )}
-                                                                        </div>
+                                                                        loading={ledgersLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(ledger) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                                {ledger.parent_name && (
+                                                                                    <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                                                )}
+                                                                                {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
+                                                                                    <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                                                )}
+                                                                            </div>
                                                                         )}
                                                                         className="coa-dropdown"
                                                                     />
                                                                 </div>
-                                                            </td>                                                            {/* Amount */}
+                                                            </td>
                                                             <td className="px-4 py-3">
                                                                 <input
                                                                     type="number"
@@ -1317,7 +1337,7 @@ const TallyExpenseBillDetail = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        
+
                                         {/* Expense Items Summary */}
                                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                                             <div className="flex justify-between items-center text-sm">
@@ -1326,39 +1346,15 @@ const TallyExpenseBillDetail = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* Tax Summary - Invoice Style */}
-                            <div className="p-8 border-b border-gray-200">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                    <h3 className="text-lg font-semibold text-gray-900">Tax Summary</h3>
-                                </div>
-                                
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {/* Left Column - Tax Details */}
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">CGST:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex items-center">
-                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            name="cgst"
-                                                            value={taxSummaryForm.cgst}
-                                                            onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
-                                                            placeholder="0.00"
-                                                            disabled={isVerified}
-                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                        />
+                                        <div className="bg-gray-50 border-t border-gray-200 px-6 py-2">
+                                            <div className="space-y-4">
+                                                {/* CGST Row */}
+                                                <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                                    <div className="col-span-2">
+                                                        <span className="text-sm font-medium text-gray-700">CGST:</span>
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className="col-span-5">
                                                         <SearchableDropdown
                                                             options={cgstLedgerOptions}
                                                             value={taxSummaryForm.cgstLedgerId || null}
@@ -1384,24 +1380,39 @@ const TallyExpenseBillDetail = () => {
                                                             className="text-xs"
                                                         />
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">SGST:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex items-center">
-                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            name="sgst"
-                                                            value={taxSummaryForm.sgst}
-                                                            onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
-                                                            placeholder="0.00"
+                                                    <div className="col-span-2">
+                                                        <select
+                                                            value={taxSummaryForm.cgstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('cgstDebitCredit', e.target.value)}
                                                             disabled={isVerified}
-                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                        />
+                                                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className="col-span-3">
+                                                        <div className="flex items-center">
+                                                            <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                name="cgst"
+                                                                value={taxSummaryForm.cgst}
+                                                                onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
+                                                                placeholder="0.00"
+                                                                disabled={isVerified}
+                                                                className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* SGST Row */}
+                                                <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                                    <div className="col-span-2">
+                                                        <span className="text-sm font-medium text-gray-700">SGST:</span>
+                                                    </div>
+                                                    <div className="col-span-5">
                                                         <SearchableDropdown
                                                             options={sgstLedgerOptions}
                                                             value={taxSummaryForm.sgstLedgerId || null}
@@ -1427,24 +1438,39 @@ const TallyExpenseBillDetail = () => {
                                                             className="text-xs"
                                                         />
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">IGST:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex items-center">
-                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            name="igst"
-                                                            value={taxSummaryForm.igst}
-                                                            onChange={e => handleTaxSummaryChange('igst', e.target.value)}
-                                                            placeholder="0.00"
+                                                    <div className="col-span-2">
+                                                        <select
+                                                            value={taxSummaryForm.sgstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('sgstDebitCredit', e.target.value)}
                                                             disabled={isVerified}
-                                                            className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                        />
+                                                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className="col-span-3">
+                                                        <div className="flex items-center">
+                                                            <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                name="sgst"
+                                                                value={taxSummaryForm.sgst}
+                                                                onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
+                                                                placeholder="0.00"
+                                                                disabled={isVerified}
+                                                                className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* IGST Row */}
+                                                <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                                    <div className="col-span-2">
+                                                        <span className="text-sm font-medium text-gray-700">IGST:</span>
+                                                    </div>
+                                                    <div className="col-span-5">
                                                         <SearchableDropdown
                                                             options={igstLedgerOptions}
                                                             value={taxSummaryForm.igstLedgerId || null}
@@ -1470,31 +1496,74 @@ const TallyExpenseBillDetail = () => {
                                                             className="text-xs"
                                                         />
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Right Column - Total */}
-                                        <div className="flex items-center justify-center">
-                                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
-                                                <div className="text-center">
-                                                    <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">Total Amount</div>
-                                                    <div className="flex items-center justify-center">
-                                                        <span className="text-2xl font-bold text-blue-600 mr-2">₹</span>
-                                                        <input
-                                                            type="number"
-                                                            name="totalAmount"
-                                                            value={billForm.totalAmount}
-                                                            onChange={e => handleFormChange('totalAmount', e.target.value)}
-                                                            placeholder="0.00"
+                                                    <div className="col-span-2">
+                                                        <select
+                                                            value={taxSummaryForm.igstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('igstDebitCredit', e.target.value)}
                                                             disabled={isVerified}
-                                                            className={`w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                        />
+                                                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
                                                     </div>
-                                                    <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
+                                                    <div className="col-span-3">
+                                                        <div className="flex items-center">
+                                                            <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                name="igst"
+                                                                value={taxSummaryForm.igst}
+                                                                onChange={e => handleTaxSummaryChange('igst', e.target.value)}
+                                                                placeholder="0.00"
+                                                                disabled={isVerified}
+                                                                className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Vendor Summary Section */}
+                                                <div className="col-span-12 pt-2">
+                                                    <div className="grid grid-cols-12 gap-3 items-center py-2">
+                                                        <div className="col-span-2">
+                                                            <span className="text-sm font-medium text-gray-700">Vendor:</span>
+                                                        </div>
+                                                        <div className="col-span-5">
+                                                            <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                                                                {billForm.selectedVendor ? (
+                                                                    <div className="flex flex-col">
+                                                                        <div className="font-medium text-gray-900">{billForm.selectedVendor.name}</div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-500 italic">No vendor selected</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <select
+                                                                value={taxSummaryForm.vendorDebitCredit || 'credit'}
+                                                                onChange={(e) => handleTaxSummaryChange('vendorDebitCredit', e.target.value)}
+                                                                disabled={isVerified}
+                                                                className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            >
+                                                                <option value="debit">Debit</option>
+                                                                <option value="credit">Credit</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-span-3">
+                                                            <div className="flex items-center">
+                                                                <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                                <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
+                                                                    {billForm.totalAmount ? parseFloat(billForm.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -1505,7 +1574,7 @@ const TallyExpenseBillDetail = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Notes
                                     </label>
-                                    <textarea 
+                                    <textarea
                                         value={notes || `Page URL: ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isVerified}
