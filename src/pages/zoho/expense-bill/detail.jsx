@@ -733,9 +733,6 @@ const ZohoExpenseBillDetail = () => {
                                                         {vendor.gstNo && (
                                                             <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
                                                         )}
-                                                        {vendor.contactId && (
-                                                            <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
-                                                        )}
                                                     </div>
                                                 )}
                                                 className="mb-2"
@@ -786,6 +783,34 @@ const ZohoExpenseBillDetail = () => {
                                             className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         />
                                     </div>
+
+                                    {/* GST Number Field */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            GST Number
+                                            {billForm.selectedVendor && (
+                                                <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                            )}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="vendorGST"
+                                            value={billForm.vendorGST}
+                                            onChange={(e) => handleFormChange('vendorGST', e.target.value)}
+                                            placeholder="Enter GST number"
+                                            disabled={isVerified}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                                                isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : 
+                                                billForm.selectedVendor ? 'bg-green-50 border-green-300' : ''
+                                            }`}
+                                            readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
+                                        />
+                                        {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
+                                            <p className="mt-1 text-xs text-green-600">
+                                                GST number automatically filled from selected vendor
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -803,12 +828,12 @@ const ZohoExpenseBillDetail = () => {
                                             <button
                                                 onClick={addExpenseItem}
                                                 disabled={isVerified}
-                                                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                title="Add"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                 </svg>
-                                                Add Item
                                             </button>
                                         </div>
                                     </div>
