@@ -3930,8 +3930,8 @@ button {
   .single-sidebar-menu & {
     @apply text-slate-800 dark:text-slate-300 text-xs font-semibold uppercase mb-4 mt-4;
   }
-  .close_sidebar & {
-    @apply hidden;
+  .close_sidebar:not(.sidebar-hovered) & {
+    @apply text-center px-1 text-xs truncate;
   }
 }
 .menu-link {
@@ -4009,7 +4009,10 @@ button {
 }
 .close_sidebar {
   & .menulabel {
-    @apply hidden;
+    @apply text-center px-1 text-xs truncate;
+  }
+  &.sidebar-hovered .menulabel {
+    @apply text-left px-0 text-xs font-semibold uppercase mb-4 mt-4;
   }
   &:not(.sidebar-hovered) .menu-arrow {
     @apply hidden;
