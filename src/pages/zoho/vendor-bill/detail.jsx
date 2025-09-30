@@ -900,12 +900,12 @@ const ZohoVendorBillDetail = () => {
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={addProduct}
-                                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
+                                                className="inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
+                                                title="Add"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                 </svg>
-                                                Add Product
                                             </button>
                                         </div>
                                     </div>
@@ -1073,7 +1073,7 @@ const ZohoVendorBillDetail = () => {
                                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-600">
-                                                    Total Products: {products.length}
+                                                    Total Items: {products.length}
                                                 </span>
                                                 <span className="font-semibold text-gray-900">
                                                     Subtotal: ₹{products.reduce((sum, product) => sum + parseFloat(product.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1093,13 +1093,6 @@ const ZohoVendorBillDetail = () => {
                                         </svg>
                                         <h3 className="text-lg font-semibold text-gray-900">Tax Deduction/Collection</h3>
                                     </div>
-                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                        vendorForm.is_tax === 'TDS' 
-                                            ? 'bg-blue-100 text-blue-800' 
-                                            : 'bg-green-100 text-green-800'
-                                    }`}>
-                                        {vendorForm.is_tax} - {vendorForm.is_tax === 'TDS' ? 'Tax Deducted at Source' : 'Tax Collected at Source'}
-                                    </span>
                                 </div>
 
                                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
@@ -1109,7 +1102,22 @@ const ZohoVendorBillDetail = () => {
                                             <label className="block text-sm font-semibold text-gray-800 mb-3">
                                                 Tax Type
                                             </label>
-                                            <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-6 flex-wrap">
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="radio"
+                                                        id="tax-not-applicable"
+                                                        name="is_tax"
+                                                        value="NOT_APPLICABLE"
+                                                        checked={vendorForm.is_tax === 'NOT_APPLICABLE' || !vendorForm.is_tax}
+                                                        onChange={(e) => handleFormChange('is_tax', e.target.value)}
+                                                        className="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 focus:ring-gray-500 focus:ring-2 transition-colors"
+                                                    />
+                                                    <label htmlFor="tax-not-applicable" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
+                                                        <span className="font-semibold text-gray-600">Not Applicable</span>
+                                                        <span className="text-gray-500 ml-1">(No tax deduction/collection)</span>
+                                                    </label>
+                                                </div>
                                                 <div className="flex items-center">
                                                     <input
                                                         type="radio"
@@ -1143,84 +1151,65 @@ const ZohoVendorBillDetail = () => {
                                             </div>
                                         </div>
 
-                                        {/* TDS/TCS Selection Dropdown */}
-                                        <div className="relative">
-                                            <label className="block text-sm font-semibold text-gray-800 mb-2">
-                                                Select {vendorForm.is_tax} Rate
-                                            </label>
-                                            <SearchableDropdown
-                                                options={tdsTcsData?.results?.map(item => ({
-                                                    value: item.id,
-                                                    label: `${item.taxName} - ${item.taxPercentage}%`,
-                                                    taxName: item.taxName,
-                                                    taxPercentage: item.taxPercentage,
-                                                    taxType: item.taxType
-                                                })) || []}
-                                                value={selectedTdsTcs || ''}
-                                                onChange={(value) => setSelectedTdsTcs(value || null)}
-                                                placeholder={`Select ${vendorForm.is_tax} rate...`}
-                                                searchPlaceholder={`Search ${vendorForm.is_tax} rates...`}
-                                                loading={tdsTcsLoading}
-                                                loadingMessage={`Loading ${vendorForm.is_tax} rates...`}
-                                                noOptionsMessage={`No ${vendorForm.is_tax} rates found`}
-                                                disabled={!vendorForm.is_tax}
-                                                renderOption={(option) => (
-                                                    <div>
-                                                        <div className="font-medium">{option.taxName}</div>
-                                                        <div className="text-xs text-gray-500">
-                                                            {option.taxPercentage}% - {option.taxType}
+                                        {/* TDS/TCS Selection Dropdown - Only show when TDS or TCS is selected */}
+                                        {vendorForm.is_tax && vendorForm.is_tax !== 'NOT_APPLICABLE' && (
+                                            <div className="relative">
+                                                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                                    Select {vendorForm.is_tax} Rate
+                                                </label>
+                                                <SearchableDropdown
+                                                    options={tdsTcsData?.results?.map(item => ({
+                                                        value: item.id,
+                                                        label: `${item.taxName} - ${item.taxPercentage}%`,
+                                                        taxName: item.taxName,
+                                                        taxPercentage: item.taxPercentage,
+                                                        taxType: item.taxType
+                                                    })) || []}
+                                                    value={selectedTdsTcs || ''}
+                                                    onChange={(value) => setSelectedTdsTcs(value || null)}
+                                                    placeholder={`Select ${vendorForm.is_tax} rate...`}
+                                                    searchPlaceholder={`Search ${vendorForm.is_tax} rates...`}
+                                                    loading={tdsTcsLoading}
+                                                    loadingMessage={`Loading ${vendorForm.is_tax} rates...`}
+                                                    noOptionsMessage={`No ${vendorForm.is_tax} rates found`}
+                                                    renderOption={(option) => (
+                                                        <div>
+                                                            <div className="font-medium">{option.taxName}</div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {option.taxPercentage}% - {option.taxType}
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )}
+                                                />
+                                                {vendorForm.is_tax && tdsTcsData?.results?.length === 0 && !tdsTcsLoading && (
+                                                    <p className="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                                                        No {vendorForm.is_tax} rates found. Please sync {vendorForm.is_tax} data from Zoho first.
+                                                    </p>
                                                 )}
-                                            />
-                                            {vendorForm.is_tax && tdsTcsData?.results?.length === 0 && !tdsTcsLoading && (
-                                                <p className="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                                                    No {vendorForm.is_tax} rates found. Please sync {vendorForm.is_tax} data from Zoho first.
-                                                </p>
-                                            )}
-                                            
-                                            {/* Selected TDS/TCS Details */}
-                                            {selectedTdsTcs && tdsTcsData?.results && (
-                                                (() => {
-                                                    const selectedItem = tdsTcsData.results.find(item => item.id === selectedTdsTcs);
-                                                    return selectedItem ? (
-                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                            <div className="flex items-center gap-2">
-                                                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                                <span className="text-sm font-semibold text-green-800">
-                                                                    Selected: {selectedItem.taxName}
-                                                                </span>
+                                                
+                                                {/* Selected TDS/TCS Details */}
+                                                {selectedTdsTcs && tdsTcsData?.results && (
+                                                    (() => {
+                                                        const selectedItem = tdsTcsData.results.find(item => item.id === selectedTdsTcs);
+                                                        return selectedItem ? (
+                                                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                                <div className="flex items-center gap-2">
+                                                                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                    <span className="text-sm font-semibold text-green-800">
+                                                                        Selected: {selectedItem.taxName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-1 text-xs text-green-700">
+                                                                    Rate: {selectedItem.taxPercentage}% | Type: {selectedItem.taxType} | ID: {selectedItem.taxId}
+                                                                </div>
                                                             </div>
-                                                            <div className="mt-1 text-xs text-green-700">
-                                                                Rate: {selectedItem.taxPercentage}% | Type: {selectedItem.taxType} | ID: {selectedItem.taxId}
-                                                            </div>
-                                                        </div>
-                                                    ) : null;
-                                                })()
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Information Box */}
-                                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                        <div className="flex items-start gap-3">
-                                            <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-blue-800 mb-1">
-                                                    {vendorForm.is_tax === 'TDS' ? 'TDS Information' : 'TCS Information'}
-                                                </h4>
-                                                <p className="text-sm text-blue-700">
-                                                    {vendorForm.is_tax === 'TDS' 
-                                                        ? 'TDS (Tax Deducted at Source) is deducted by the payer when making payment to the vendor. Select the applicable TDS rate based on the nature of payment.'
-                                                        : 'TCS (Tax Collected at Source) is collected by the seller when receiving payment from the buyer. Select the applicable TCS rate based on the nature of goods/services.'
-                                                    }
-                                                </p>
+                                                        ) : null;
+                                                    })()
+                                                )}
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
