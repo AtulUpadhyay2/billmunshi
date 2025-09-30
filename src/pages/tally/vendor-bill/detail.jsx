@@ -1232,7 +1232,7 @@ const TallyVendorBillDetail = () => {
                                                     <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                     </svg>
-                                                    Bill To: {analysedData.from.name}
+                                                    Vendor Name: {analysedData.from.name}
                                                 </div>
                                             </div>
                                         )}
@@ -1252,6 +1252,36 @@ const TallyVendorBillDetail = () => {
                                             disabled={isVerified}
                                             className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                         />
+                                    </div>
+
+                                    {/* GST Number Field */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            GST Number
+                                            {vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && (
+                                                <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                            )}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="vendorGST"
+                                            value={vendorForm.vendorGST}
+                                            onChange={(e) => handleFormChange('vendorGST', e.target.value)}
+                                            placeholder="Enter GST number"
+                                            disabled={isVerified}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                                                isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : 
+                                                vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in 
+                                                    ? 'bg-green-50 border-green-300' 
+                                                    : ''
+                                            }`}
+                                            readOnly={vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && !isVerified}
+                                        />
+                                        {vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && !isVerified && (
+                                            <p className="mt-1 text-xs text-green-600">
+                                                GST number automatically filled from selected vendor
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Date Issued Field */}
@@ -1286,12 +1316,12 @@ const TallyVendorBillDetail = () => {
                                             <button
                                                 onClick={addProduct}
                                                 disabled={isVerified}
-                                                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                title='Add'
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                 </svg>
-                                                Add Product
                                             </button>
                                         </div>
                                     </div>
@@ -1531,7 +1561,7 @@ const TallyVendorBillDetail = () => {
                                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-600">
-                                                    Total Products: {products.length}
+                                                    Total Items: {products.length}
                                                 </span>
                                                 <span className="font-semibold text-gray-900">
                                                     Subtotal: ₹{products.reduce((sum, product) => sum + parseFloat(product.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
