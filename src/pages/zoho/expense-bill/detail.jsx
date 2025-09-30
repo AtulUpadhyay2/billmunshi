@@ -800,9 +800,6 @@ const ZohoExpenseBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Expense Items</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                                {expenseItems.length} item{expenseItems.length > 1 ? 's' : ''}
-                                            </span>
                                             <button
                                                 onClick={addExpenseItem}
                                                 disabled={isVerified}

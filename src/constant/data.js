@@ -23,19 +23,15 @@ export const menuItems = [
   },
   {
     title: "Expense Bill",
-    icon: "heroicons-outline:clipboard",
-    link: "#",
     isHide: true,
-    child: [
-      {
-        childtitle: "Journal Entry",
-        childlink: "zoho/expense-bill",
-      },
-      {
-        childtitle: "Expense",
-        childlink: "zoho/expense-bill/expense",
-      }
-    ],
+    icon: "heroicons-outline:clipboard",
+    link: "zoho/expense-bill",
+  },
+  {
+    title: "Journal Entry",
+    isHide: true,
+    icon: "heroicons-outline:document",
+    link: "zoho/expense-bill",
   },
 
   {

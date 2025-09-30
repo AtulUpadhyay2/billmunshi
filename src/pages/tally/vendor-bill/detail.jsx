@@ -1283,9 +1283,6 @@ const TallyVendorBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Products Details</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                                {products.length} product{products.length > 1 ? 's' : ''}
-                                            </span>
                                             <button
                                                 onClick={addProduct}
                                                 disabled={isVerified}

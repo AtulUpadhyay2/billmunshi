@@ -898,9 +898,6 @@ const ZohoVendorBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Products Details</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                                {products.length} product{products.length > 1 ? 's' : ''}
-                                            </span>
                                             <button
                                                 onClick={addProduct}
                                                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
@@ -1321,12 +1318,6 @@ const ZohoVendorBillDetail = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Notes
-                                        {zohoData?.note && (
-                                            <span className="ml-1 text-xs text-blue-600">(Auto-loaded from bill)</span>
-                                        )}
-                                        {zohoData?.note && notes !== zohoData.note && notes.trim() !== '' && (
-                                            <span className="ml-1 text-xs text-orange-600">(Modified)</span>
-                                        )}
                                     </label>
                                     <textarea 
                                         value={notes}
@@ -1335,16 +1326,6 @@ const ZohoVendorBillDetail = () => {
                                         placeholder="Add notes or comments..."
                                         rows={4}
                                     />
-                                    {zohoData?.note && notes === zohoData.note && (
-                                        <p className="mt-1 text-xs text-blue-600">
-                                            Original note from Zoho Bill
-                                        </p>
-                                    )}
-                                    {zohoData?.note && notes !== zohoData.note && notes.trim() !== '' && (
-                                        <p className="mt-1 text-xs text-orange-600">
-                                            Note has been modified from original
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                         </div>
