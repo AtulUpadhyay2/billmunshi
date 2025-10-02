@@ -428,7 +428,7 @@ const ZohoDashboard = () => {
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               Zoho Dashboard
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-sm">
