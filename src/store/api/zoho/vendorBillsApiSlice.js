@@ -3,13 +3,19 @@ import { apiSlice } from "@/store/api/apiSlice";
 export const vendorBillsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getVendorBills: builder.query({
-      query: (organizationId) => ({
-        url: `zoho/org/${organizationId}/vendor-bills/`,
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }),
+      query: ({ organizationId, status }) => {
+        let url = `zoho/org/${organizationId}/vendor-bills/`;
+        if (status) {
+          url += `?status=${status}`;
+        }
+        return {
+          url,
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+      },
       providesTags: ['VendorBill'],
       transformErrorResponse: (response, meta, arg) => {
         console.error('Vendor Bills API Error:', response);

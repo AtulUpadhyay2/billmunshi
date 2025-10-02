@@ -19,7 +19,18 @@ import Swal from 'sweetalert2';
 const TallyVendorBill = () => {
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
-  const { data: vendorBillsData, error, isLoading, refetch } = useGetTallyVendorBillsQuery(selectedOrganization?.id, {
+  const [activeTab, setActiveTab] = useState('all');
+  
+  // Build query parameters based on active tab
+  const getQueryParams = () => {
+    const params = { organizationId: selectedOrganization?.id };
+    if (activeTab !== 'all') {
+      params.status = activeTab;
+    }
+    return params;
+  };
+
+  const { data: vendorBillsData, error, isLoading, refetch } = useGetTallyVendorBillsQuery(getQueryParams(), {
     skip: !selectedOrganization?.id,
   });
   const [updateVendorBill] = useUpdateTallyVendorBillMutation();
@@ -33,6 +44,17 @@ const TallyVendorBill = () => {
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
+
+  const tabs = [
+    { key: 'all', label: 'All' },
+    { key: 'draft', label: 'Draft' },
+    { key: 'analysed', label: 'Analysed' },
+    { key: 'synced', label: 'Synced' }
+  ];
+
+  const handleTabChange = (tabKey) => {
+    setActiveTab(tabKey);
+  };
 
   const handleAction = async (billId, action) => {
     try {
@@ -322,6 +344,30 @@ const TallyVendorBill = () => {
           </div>
         }
       >
+        {/* Tab Navigation */}
+        <div className="border-b border-slate-200 dark:border-slate-700 mb-6">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`group inline-flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
+                  activeTab === tab.key
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300'
+                }`}
+              >
+                <span className="font-medium">{tab.label}</span>
+                {activeTab === tab.key && vendorBillsData?.count > 0 && (
+                  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-300">
+                    {vendorBillsData.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
         <div className="overflow-x-auto -mx-6">
           <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden ">

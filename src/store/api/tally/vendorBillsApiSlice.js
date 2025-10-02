@@ -3,13 +3,19 @@ import { apiSlice } from "@/store/api/apiSlice";
 export const tallyVendorBillsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTallyVendorBills: builder.query({
-      query: (organizationId) => ({
-        url: `tally/org/${organizationId}/vendor-bills/`,
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }),
+      query: ({ organizationId, status }) => {
+        let url = `tally/org/${organizationId}/vendor-bills/`;
+        if (status) {
+          url += `?status=${status}`;
+        }
+        return {
+          url,
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+      },
       providesTags: ['TallyVendorBill'],
       transformErrorResponse: (response, meta, arg) => {
         console.error('Tally Vendor Bills API Error:', response);
