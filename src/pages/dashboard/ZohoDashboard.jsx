@@ -424,26 +424,6 @@ const ZohoDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Compact Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Zoho Dashboard
-            </h1>
-            <p className="text-slate-600 dark:text-slate-300 text-sm">
-              Bill processing and financial analytics overview
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-slate-500 dark:text-slate-400">Last Updated</div>
-            <div className="text-xs font-medium text-slate-900 dark:text-white">
-              {new Date().toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Overview Cards */}
       {overviewData && <OverviewCards overviewData={overviewData} />}
 
