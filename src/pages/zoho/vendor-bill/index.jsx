@@ -352,6 +352,7 @@ const ZohoVendorBill = () => {
                                         <th scope='col' className='table-th'>Sr. No</th>
                                         <th scope='col' className='table-th'>Document ID</th>
                                         <th scope='col' className='table-th'>Status</th>
+                                        <th scope='col' className='table-th'>Created By</th>
                                         <th scope='col' className='table-th'>Created Date</th>
                                         <th scope='col' className='table-th'>Actions</th>
                                         <th scope='col' className='table-th'>Control</th>
@@ -422,6 +423,9 @@ const ZohoVendorBill = () => {
                                                 </td>
                                                 <td className="table-td">
                                                     {getStatusBadge(bill.status)}
+                                                </td>
+                                                <td className="table-td">
+                                                    {bill.uploaded_by_name || 'N/A'}
                                                 </td>
                                                 <td className="table-td">
                                                     <div className="text-sm">
