@@ -3,6 +3,23 @@ import { useSelector } from 'react-redux';
 import { useGetZohoFunnelQuery, useGetZohoOverviewQuery, useGetZohoUsageQuery } from '@/store/api/zoho/zohoDashboardApiSlice';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend
+} from 'recharts';
 
 const OverviewCards = ({ overviewData }) => {
   const { vendor_bills, expense_bills, financial_summary, vendor_count, recent_activity } = overviewData;
@@ -17,123 +34,127 @@ const OverviewCards = ({ overviewData }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {/* Financial Summary */}
-      <Card>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+      <Card className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full transform translate-x-6 -translate-y-6"></div>
+        <div className="p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
               Total Amount
             </h3>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
               </svg>
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {formatCurrency(financial_summary.combined_amount)}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Vendor: {formatCurrency(financial_summary.total_vendor_amount)}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Expense: {formatCurrency(financial_summary.total_expense_amount)}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-300">Vendor:</span>
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                  {formatCurrency(financial_summary.total_vendor_amount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-300">Expense:</span>
+                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+                  {formatCurrency(financial_summary.total_expense_amount)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Vendor Bills Summary */}
-      <Card>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+      <Card className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full transform translate-x-6 -translate-y-6"></div>
+        <div className="p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
               Vendor Bills
             </h3>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">
               {vendor_bills.total_count}
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Analysed:</span>
-              <span className="text-slate-900 dark:text-white">{vendor_bills.analysed_count}</span>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-600 dark:text-slate-300">Analysed: <span className="font-bold text-blue-600">{vendor_bills.analysed_count}</span></span>
+              <span className="text-slate-600 dark:text-slate-300">Synced: <span className="font-bold text-green-600">{vendor_bills.synced_count}</span></span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Synced:</span>
-              <span className="text-slate-900 dark:text-white">{vendor_bills.synced_count}</span>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-1 rounded-full transition-all duration-300" style={{width: `${vendor_bills.total_count > 0 ? (vendor_bills.synced_count / vendor_bills.total_count) * 100 : 0}%`}}></div>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Expense Bills Summary */}
-      <Card>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+      <Card className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full transform translate-x-6 -translate-y-6"></div>
+        <div className="p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
               Expense Bills
             </h3>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
               {expense_bills.total_count}
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Draft:</span>
-              <span className="text-slate-900 dark:text-white">{expense_bills.draft_count}</span>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-600 dark:text-slate-300">Draft: <span className="font-bold text-yellow-600">{expense_bills.draft_count}</span></span>
+              <span className="text-slate-600 dark:text-slate-300">Synced: <span className="font-bold text-green-600">{expense_bills.synced_count}</span></span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-300">Synced:</span>
-              <span className="text-slate-900 dark:text-white">{expense_bills.synced_count}</span>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-1 rounded-full transition-all duration-300" style={{width: `${expense_bills.total_count > 0 ? (expense_bills.synced_count / expense_bills.total_count) * 100 : 0}%`}}></div>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Vendors & Recent Activity */}
-      <Card>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+      <Card className="relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full transform translate-x-6 -translate-y-6"></div>
+        <div className="p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
               Activity
             </h3>
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
               {vendor_count}
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
               Total Vendors
             </div>
-            <div className="text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-300">Last 7 days:</span>
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-slate-600 dark:text-slate-300">Vendor Bills:</span>
-                <span className="text-slate-900 dark:text-white">{recent_activity.vendor_bills_last_7_days}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600 dark:text-slate-300">Expense Bills:</span>
-                <span className="text-slate-900 dark:text-white">{recent_activity.expense_bills_last_7_days}</span>
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Last 7 days</div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-600 dark:text-slate-300">Vendor: <span className="font-bold text-green-600">{recent_activity.vendor_bills_last_7_days}</span></span>
+                <span className="text-slate-600 dark:text-slate-300">Expense: <span className="font-bold text-purple-600">{recent_activity.expense_bills_last_7_days}</span></span>
               </div>
             </div>
           </div>
@@ -146,123 +167,101 @@ const OverviewCards = ({ overviewData }) => {
 const UsageAnalytics = ({ usageData }) => {
   const { usage_by_period, file_statistics } = usageData;
 
-  const periods = [
-    { key: 'today', label: 'Today', color: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' },
-    { key: 'week', label: 'This Week', color: 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400' },
-    { key: 'month', label: 'This Month', color: 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' },
-    { key: 'quarter', label: 'This Quarter', color: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400' }
+  // Prepare data for charts
+  const trendData = [
+    { name: 'Today', vendor: usage_by_period.today.vendor_bills_uploaded, expense: usage_by_period.today.expense_bills_uploaded, analysed: usage_by_period.today.bills_analysed, synced: usage_by_period.today.bills_synced },
+    { name: 'Week', vendor: usage_by_period.week.vendor_bills_uploaded, expense: usage_by_period.week.expense_bills_uploaded, analysed: usage_by_period.week.bills_analysed, synced: usage_by_period.week.bills_synced },
+    { name: 'Month', vendor: usage_by_period.month.vendor_bills_uploaded, expense: usage_by_period.month.expense_bills_uploaded, analysed: usage_by_period.month.bills_analysed, synced: usage_by_period.month.bills_synced },
+    { name: 'Quarter', vendor: usage_by_period.quarter.vendor_bills_uploaded, expense: usage_by_period.quarter.expense_bills_uploaded, analysed: usage_by_period.quarter.bills_analysed, synced: usage_by_period.quarter.bills_synced }
   ];
+
+  const pieData = [
+    { name: 'Vendor Files', value: file_statistics.total_vendor_files, color: '#3B82F6' },
+    { name: 'Expense Files', value: file_statistics.total_expense_files, color: '#8B5CF6' }
+  ];
+
+  const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B'];
 
   return (
     <div className="space-y-6">
-      {/* Usage by Period */}
-      <div>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
-          Usage Analytics
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {periods.map(({ key, label, color }) => {
-            const periodData = usage_by_period[key];
-            return (
-              <Card key={key}>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-medium text-slate-900 dark:text-white">
-                      {label}
-                    </h4>
-                    <div className={`w-3 h-3 rounded-full ${color.split(' ')[0]} ${color.split(' ')[1]}`}></div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Vendor Bills</span>
-                      <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                        {periodData.vendor_bills_uploaded}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Expense Bills</span>
-                      <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                        {periodData.expense_bills_uploaded}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Analysed</span>
-                      <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {periodData.bills_analysed}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Synced</span>
-                      <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                        {periodData.bills_synced}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+      {/* Compact Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Usage Trends */}
+        <Card className="lg:col-span-2">
+          <div className="p-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              Usage Trends & Performance
+            </h3>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                  <YAxis stroke="#64748b" fontSize={11} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                  <Bar dataKey="vendor" name="Vendor Bills" fill="#10B981" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="expense" name="Expense Bills" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="analysed" name="Analysed" fill="#3B82F6" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="synced" name="Synced" fill="#F59E0B" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </Card>
 
-      {/* File Statistics */}
-      <div>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
-          File Statistics
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        {/* File Distribution */}
+        <Card>
+          <div className="p-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              File Distribution
+            </h3>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={50}
+                    dataKey="value"
+                    label={false}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Compact Stats */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-600">{file_statistics.total_vendor_files}</div>
+                <div className="text-xs text-slate-600 dark:text-slate-300">Vendor</div>
               </div>
-              <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                {file_statistics.total_vendor_files}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">
-                Vendor Files
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">{file_statistics.total_expense_files}</div>
+                <div className="text-xs text-slate-600 dark:text-slate-300">Expense</div>
               </div>
             </div>
-          </Card>
-
-          <Card>
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                {file_statistics.total_expense_files}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">
-                Expense Files
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                {file_statistics.total_files}
-              </div>
-              <div className="text-sm text-slate-600 dark:text-slate-300">
-                Total Files
-              </div>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
@@ -271,108 +270,81 @@ const UsageAnalytics = ({ usageData }) => {
 const FunnelCard = ({ title, data, type }) => {
   const { total_uploaded, draft, analysed, verified, synced, conversion_rates } = data;
 
+  const getGradientColor = (type) => {
+    return type === 'vendor' 
+      ? 'from-green-500 to-emerald-600' 
+      : 'from-purple-500 to-pink-600';
+  };
+
   return (
     <Card>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-          {title}
-        </h3>
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {total_uploaded}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Total Uploaded
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {draft}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Draft
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {analysed}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Analysed
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {verified}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Verified
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {synced}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              Synced
-            </div>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {title}
+          </h3>
+          <div className={`px-2 py-1 bg-gradient-to-r ${getGradientColor(type)} rounded-full text-white text-xs font-medium`}>
+            {((synced / total_uploaded) * 100 || 0).toFixed(1)}% Complete
           </div>
         </div>
 
-        {/* Conversion Rates */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Conversion Rates
-          </h4>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                Analysis Rate
-              </span>
-              <span className="text-sm font-medium text-slate-900 dark:text-white">
-                {conversion_rates.analysis_rate}%
-              </span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Stats */}
+          <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center">
+              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{total_uploaded}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">Uploaded</div>
             </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                Verification Rate
-              </span>
-              <span className="text-sm font-medium text-slate-900 dark:text-white">
-                {conversion_rates.verification_rate}%
-              </span>
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg text-center">
+              <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{analysed}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">Analysed</div>
             </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                Sync Rate
-              </span>
-              <span className="text-sm font-medium text-slate-900 dark:text-white">
-                {conversion_rates.sync_rate}%
-              </span>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
+              <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{verified}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">Verified</div>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">{synced}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">Synced</div>
             </div>
           </div>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-400 mb-2">
-            <span>Progress:</span>
-            <span>{synced}/{total_uploaded} completed</span>
-          </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-            <div 
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${total_uploaded > 0 ? (synced / total_uploaded) * 100 : 0}%` }}
-            ></div>
+          {/* Conversion Rates */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
+              Conversion Rates
+            </h4>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-400">Analysis</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{conversion_rates.analysis_rate}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+                  <div className="bg-purple-500 h-1 rounded-full" style={{width: `${conversion_rates.analysis_rate}%`}}></div>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-400">Verification</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{conversion_rates.verification_rate}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+                  <div className="bg-orange-500 h-1 rounded-full" style={{width: `${conversion_rates.verification_rate}%`}}></div>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-400">Sync</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{conversion_rates.sync_rate}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1">
+                  <div className="bg-green-500 h-1 rounded-full" style={{width: `${conversion_rates.sync_rate}%`}}></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -452,13 +424,24 @@ const ZohoDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          Zoho Dashboard
-        </h2>
-        <p className="text-slate-600 dark:text-slate-300">
-          Overview of your bill processing and financial data
-        </p>
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Zoho Dashboard
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300 text-sm">
+              Bill processing and financial analytics overview
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-slate-500 dark:text-slate-400">Last Updated</div>
+            <div className="text-xs font-medium text-slate-900 dark:text-white">
+              {new Date().toLocaleTimeString()}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -469,17 +452,8 @@ const ZohoDashboard = () => {
 
       {/* Funnel Analysis */}
       {funnelData && (
-        <div className="space-y-6">
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              Processing Funnel
-            </h3>
-            <p className="text-slate-600 dark:text-slate-300">
-              Track your bill processing workflow from upload to sync
-            </p>
-          </div>
-          
-          <div className="grid gap-6">
+        <div className="space-y-4"> 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Vendor Bills Funnel */}
             <FunnelCard
               title="Vendor Bills Funnel"
