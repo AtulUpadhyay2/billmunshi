@@ -1,13 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useSelector } from "react-redux";
 import ZohoDashboard from "./ZohoDashboard";
 import TallyDashboard from "./TallyDashboard";
+import { useGetOrganizationModulesQuery } from "@/store/api/modules/modulesSlice";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("zoho");
+  const [activeTab, setActiveTab] = useState(null);
+  const { selectedOrganization } = useSelector((state) => state.auth);
+  
+  // Fetch organization modules
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
+    error: modulesError,
+  } = useGetOrganizationModulesQuery(selectedOrganization?.id, {
+    skip: !selectedOrganization?.id,
+  });
 
-  const tabs = [
+  // Define all available tabs
+  const allTabs = [
     {
       id: "zoho",
+      module: "zoho",
       label: "Zoho Dashboard",
       icon: (
         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,6 +32,7 @@ const Dashboard = () => {
     },
     {
       id: "tally",
+      module: "tally",
       label: "Tally Dashboard",
       icon: (
         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,6 +42,28 @@ const Dashboard = () => {
       color: "green"
     }
   ];
+
+  // Filter tabs based on enabled modules
+  const enabledTabs = useMemo(() => {
+    if (!modulesData || !Array.isArray(modulesData)) {
+      return [];
+    }
+    
+    const enabledModules = modulesData
+      .filter(moduleItem => moduleItem.is_enabled)
+      .map(moduleItem => moduleItem.module);
+    
+    return allTabs.filter(tab => enabledModules.includes(tab.module));
+  }, [modulesData]);
+
+  // Set active tab when enabled tabs change
+  useEffect(() => {
+    if (enabledTabs.length > 0 && !activeTab) {
+      setActiveTab(enabledTabs[0].id);
+    } else if (enabledTabs.length > 0 && activeTab && !enabledTabs.find(tab => tab.id === activeTab)) {
+      setActiveTab(enabledTabs[0].id);
+    }
+  }, [enabledTabs, activeTab]);
 
   const getTabClasses = (tabId, color) => {
     const isActive = activeTab === tabId;
@@ -42,6 +79,67 @@ const Dashboard = () => {
     }
   };
 
+  // Loading state
+  if (modulesLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+          <div className="animate-pulse">
+            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-4"></div>
+            <div className="flex gap-2">
+              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-40"></div>
+              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-40"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (modulesError) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+            Dashboard
+          </h1>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-600 dark:text-red-400">
+              Error loading modules. Please try refreshing the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No enabled modules
+  if (enabledTabs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+            Dashboard
+          </h1>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+              No Modules Enabled
+            </h3>
+            <p className="text-yellow-700 dark:text-yellow-300 mb-4">
+              No dashboard modules are currently enabled for your organization. Please contact your administrator to enable modules.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -55,7 +153,7 @@ const Dashboard = () => {
           
           {/* Tab Buttons */}
           <div className="flex flex-wrap gap-2">
-            {tabs.map((tab) => (
+            {enabledTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -74,13 +172,13 @@ const Dashboard = () => {
 
       {/* Dashboard Content */}
       <div className="transition-opacity duration-300 ease-in-out">
-        {activeTab === "zoho" && (
+        {activeTab === "zoho" && enabledTabs.find(tab => tab.id === "zoho") && (
           <div className="opacity-100 transition-opacity duration-300">
             <ZohoDashboard />
           </div>
         )}
         
-        {activeTab === "tally" && (
+        {activeTab === "tally" && enabledTabs.find(tab => tab.id === "tally") && (
           <div className="opacity-100 transition-opacity duration-300">
             <TallyDashboard />
           </div>
