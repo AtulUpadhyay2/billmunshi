@@ -21,12 +21,12 @@ export const menuItems = [
     icon: "heroicons-outline:document-text",
     link: "zoho/vendor-bill",
   },
-  {
-    title: "Expense Bill",
-    isHide: true,
-    icon: "heroicons-outline:clipboard",
-    link: "zoho/expense-bill",
-  },
+  // {
+  //   title: "Expense Bill",
+  //   isHide: true,
+  //   icon: "heroicons-outline:clipboard",
+  //   link: "zoho/expense-bill",
+  // },
   {
     title: "Journal Entry",
     isHide: true,
@@ -121,12 +121,12 @@ export const menuItems = [
     icon: "heroicons-outline:users",
     link: "members",
   },
-  {
-    title: "Subscriptions",
-    isHide: true,
-    icon: "heroicons-outline:credit-card",
-    link: "pricing",
-  },
+  // {
+  //   title: "Subscriptions",
+  //   isHide: true,
+  //   icon: "heroicons-outline:credit-card",
+  //   link: "pricing",
+  // },
 
 
 ];
