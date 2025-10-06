@@ -1,9 +1,20 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import Icon from "@/components/ui/Icon";
-
-import FooterAvatar from "@/assets/images/users/user-1.jpg";
+import { useSelector } from "react-redux";
 const MobileFooter = () => {
+  const { user } = useSelector((state) => state.auth);
+
+  // Function to get user initials
+  const getUserInitials = () => {
+    if (!user || !user.first_name || !user.last_name) {
+      return "U";
+    }
+    const firstInitial = user.first_name.charAt(0).toUpperCase();
+    const lastInitial = user.last_name.charAt(0).toUpperCase();
+    return `${firstInitial}${lastInitial}`;
+  };
+
   return (
     <div className="bg-white bg-no-repeat custom-dropshadow footer-bg dark:bg-slate-700 flex justify-around items-center backdrop-filter backdrop-blur-[40px] fixed left-0 w-full z-9999 bottom-0 py-[12px] px-4">
       <NavLink to="/dashboard">
@@ -34,17 +45,13 @@ const MobileFooter = () => {
         className="relative bg-white bg-no-repeat backdrop-filter backdrop-blur-[40px] rounded-full footer-bg dark:bg-slate-700 h-[65px] w-[65px] z-[-1] -mt-[40px] flex justify-center items-center"
       >
         {({ isActive }) => (
-          <div className="h-[50px] w-[50px] rounded-full relative left-[0px] top-[0px] custom-dropshadow">
-            <img
-              src={FooterAvatar}
-              alt=""
-              className={` w-full h-full rounded-full
+          <div className={`h-[50px] w-[50px] rounded-full relative left-[0px] top-[0px] custom-dropshadow bg-slate-500 dark:bg-slate-600 flex items-center justify-center text-white font-semibold text-lg
           ${isActive
                   ? "border-2 border-primary-500"
                   : "border-2 border-slate-100"
                 }
-              `}
-            />
+              `}>
+            {getUserInitials()}
           </div>
         )}
       </NavLink>

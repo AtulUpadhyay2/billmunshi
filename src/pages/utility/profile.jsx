@@ -7,9 +7,6 @@ import { useGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import Loading from "@/components/Loading";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 
-// import images
-import ProfileImage from "@/assets/images/users/user-1.jpg";
-
 const profile = () => {
   const { data: userProfile, error, isLoading } = useGetProfileQuery();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
@@ -80,9 +77,9 @@ const profile = () => {
                       className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                    <div className="w-full h-full bg-slate-500 dark:bg-slate-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-4xl md:text-6xl font-bold">
-                        {userProfile?.first_name?.charAt(0)?.toUpperCase() || 'U'}
+                        {((userProfile?.first_name?.charAt(0)?.toUpperCase() || '') + (userProfile?.last_name?.charAt(0)?.toUpperCase() || '')) || 'U'}
                       </span>
                     </div>
                   )}
