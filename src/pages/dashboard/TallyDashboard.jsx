@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { useGetTallyFunnelQuery, useGetTallyOverviewQuery, useGetTallyUsageQuery } from '@/store/api/tally/tallyDashboardApiSlice';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
@@ -18,6 +19,7 @@ import {
 
 const OverviewCards = ({ overviewData }) => {
   const { vendor_bills, expense_bills, financial_summary, vendor_count, recent_activity } = overviewData;
+  const navigate = useNavigate();
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -91,6 +93,17 @@ const OverviewCards = ({ overviewData }) => {
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
               <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-1 rounded-full transition-all duration-300" style={{width: `${vendor_bills.total_count > 0 ? (vendor_bills.synced_count / vendor_bills.total_count) * 100 : 0}%`}}></div>
             </div>
+            <div className="mt-3">
+              <button 
+                onClick={() => navigate('/tally/vendor-bill')}
+                className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
+              >
+                View Bills
+                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </Card>
@@ -119,6 +132,17 @@ const OverviewCards = ({ overviewData }) => {
             </div>
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
               <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-1 rounded-full transition-all duration-300" style={{width: `${expense_bills.total_count > 0 ? (expense_bills.synced_count / expense_bills.total_count) * 100 : 0}%`}}></div>
+            </div>
+            <div className="mt-3">
+              <button 
+                onClick={() => navigate('/tally/expense-bill')}
+                className="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
+              >
+                View Bills
+                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
