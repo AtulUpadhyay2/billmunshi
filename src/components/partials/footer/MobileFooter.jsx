@@ -6,7 +6,7 @@ import FooterAvatar from "@/assets/images/users/user-1.jpg";
 const MobileFooter = () => {
   return (
     <div className="bg-white bg-no-repeat custom-dropshadow footer-bg dark:bg-slate-700 flex justify-around items-center backdrop-filter backdrop-blur-[40px] fixed left-0 w-full z-9999 bottom-0 py-[12px] px-4">
-      <NavLink to="chat">
+      <NavLink to="/dashboard">
         {({ isActive }) => (
           <div>
             <span
@@ -14,19 +14,17 @@ const MobileFooter = () => {
          ${isActive ? "text-primary-500" : "dark:text-white text-slate-900"}
           `}
             >
-              <Icon icon="heroicons-outline:mail" />
-              <span className="absolute right-[5px] lg:top-0 -top-2 h-4 w-4 bg-red-500 text-[8px] font-semibold flex flex-col items-center justify-center rounded-full text-white z-99">
-                10
-              </span>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </span>
             <span
               className={` block text-[11px]
-          ${
-            isActive ? "text-primary-500" : "text-slate-600 dark:text-slate-300"
-          }
+          ${isActive ? "text-primary-500" : "text-slate-600 dark:text-slate-300"
+                }
           `}
             >
-              Messages
+              Zoho
             </span>
           </div>
         )}
@@ -41,17 +39,16 @@ const MobileFooter = () => {
               src={FooterAvatar}
               alt=""
               className={` w-full h-full rounded-full
-          ${
-            isActive
-              ? "border-2 border-primary-500"
-              : "border-2 border-slate-100"
-          }
+          ${isActive
+                  ? "border-2 border-primary-500"
+                  : "border-2 border-slate-100"
+                }
               `}
             />
           </div>
         )}
       </NavLink>
-      <NavLink to="notifications">
+      <NavLink to="/dashboard">
         {({ isActive }) => (
           <div>
             <span
@@ -59,17 +56,16 @@ const MobileFooter = () => {
       ${isActive ? "text-primary-500" : "dark:text-white text-slate-900"}
           `}
             >
-              <Icon icon="heroicons-outline:bell" />
-              <span className="absolute right-[17px] lg:top-0 -top-2 h-4 w-4 bg-red-500 text-[8px] font-semibold flex flex-col items-center justify-center rounded-full text-white z-99">
-                2
-              </span>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
             </span>
             <span
               className={` block text-[11px]
          ${isActive ? "text-primary-500" : "text-slate-600 dark:text-slate-300"}
         `}
             >
-              Notifications
+              Tally
             </span>
           </div>
         )}
