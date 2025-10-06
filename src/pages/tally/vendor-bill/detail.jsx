@@ -59,6 +59,9 @@ const TallyVendorBillDetail = () => {
     // State for verification loading
     const [isVerifying, setIsVerifying] = useState(false);
     
+    // State to track if user manually cleared vendor selection
+    const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
+    
     // Fetch vendor bill details
     const { data: vendorBillData, error, isLoading, refetch } = useGetTallyVendorBillDetailsQuery(
         { organizationId: selectedOrganization?.id, billId },
@@ -352,8 +355,9 @@ const TallyVendorBillDetail = () => {
     }, [vendorBillData, analysedData, tallyAnalysedData]);
 
     // Match vendor from API response with vendor options when both are available
+    // Only auto-match if user hasn't manually cleared the vendor
     useEffect(() => {
-        if (vendorOptions.length > 0 && tallyAnalysedData && !vendorForm.selectedVendor) {
+        if (vendorOptions.length > 0 && tallyAnalysedData && !vendorForm.selectedVendor && !vendorManuallyCleared) {
             // First try to match by vendor_name from analyzed_data
             let matchedVendor = null;
             
@@ -381,7 +385,7 @@ const TallyVendorBillDetail = () => {
                 }));
             }
         }
-    }, [vendorOptions, tallyAnalysedData, vendorForm.selectedVendor]);
+    }, [vendorOptions, tallyAnalysedData, vendorForm.selectedVendor, vendorManuallyCleared]);
     
     // Match stock items from API response with stock item options when both are available
     useEffect(() => {
@@ -592,6 +596,12 @@ const TallyVendorBillDetail = () => {
 
     // Handle vendor selection
     const handleVendorSelect = (vendorId) => {
+        if (vendorId === null || vendorId === '') {
+            // If null/empty value is passed via onChange, treat as clear
+            handleVendorClear();
+            return;
+        }
+        
         const vendor = vendorOptions.find(v => v.id === vendorId);
         if (vendor) {
             setVendorForm(prev => ({
@@ -600,6 +610,7 @@ const TallyVendorBillDetail = () => {
                 vendorName: vendor.name || '',
                 vendorGST: vendor.gst_in || ''
             }));
+            setVendorManuallyCleared(false); // Reset flag when vendor is manually selected
         }
     };
 
@@ -611,6 +622,7 @@ const TallyVendorBillDetail = () => {
             vendorName: analysedData?.from?.name || '',
             vendorGST: ''
         }));
+        setVendorManuallyCleared(true); // Flag that user manually cleared vendor
     };
 
     // Handle tax ledger selection
@@ -1205,6 +1217,7 @@ const TallyVendorBillDetail = () => {
                                             options={vendorOptions}
                                             value={vendorForm.selectedVendor?.id || null}
                                             onChange={handleVendorSelect}
+                                            onClear={handleVendorClear}
                                             placeholder="Search and select vendor..."
                                             searchPlaceholder="Type to search vendors..."
                                             optionLabelKey="name"

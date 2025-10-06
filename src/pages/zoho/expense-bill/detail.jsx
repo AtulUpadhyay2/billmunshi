@@ -55,6 +55,9 @@ const ZohoExpenseBillDetail = () => {
     // State for error alert
     const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
     
+    // State to track if user manually cleared vendor selection
+    const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
+    
     // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/expense-bills/{bill_id}/details/
     const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillDetailsQuery(
         { organizationId: selectedOrganization?.id, billId },
@@ -115,6 +118,12 @@ const ZohoExpenseBillDetail = () => {
 
     // Handle vendor selection
     const handleVendorSelect = (vendorId) => {
+        if (vendorId === null || vendorId === '') {
+            // If null/empty value is passed via onChange, treat as clear
+            handleVendorClear();
+            return;
+        }
+        
         const vendor = vendorsData?.results?.find(v => v.id === vendorId);
         setBillForm(prev => ({ 
             ...prev, 
@@ -122,6 +131,7 @@ const ZohoExpenseBillDetail = () => {
             vendorName: vendor?.companyName || '',
             vendorGST: vendor?.gstNo || ''
         }));
+        setVendorManuallyCleared(false); // Reset flag when vendor is manually selected
     };
 
     // Handle vendor clear
@@ -132,6 +142,7 @@ const ZohoExpenseBillDetail = () => {
             vendorName: '',
             vendorGST: ''
         }));
+        setVendorManuallyCleared(true); // Flag that user manually cleared vendor
     };
 
     // Handle back click
@@ -277,8 +288,9 @@ const ZohoExpenseBillDetail = () => {
     }, [expenseBillData, analysedData, zohoBillData]);
 
     // Match vendor from API response with vendor options when both are available
+    // Only auto-match if user hasn't manually cleared the vendor
     useEffect(() => {
-        if (vendorsData?.results && vendorsData.results.length > 0 && !billForm.selectedVendor) {
+        if (vendorsData?.results && vendorsData.results.length > 0 && !billForm.selectedVendor && !vendorManuallyCleared) {
             let matchedVendor = null;
 
             // First priority: Match by zoho_bill.vendor ID if it exists
@@ -304,7 +316,7 @@ const ZohoExpenseBillDetail = () => {
                 }));
             }
         }
-    }, [vendorsData, analysedData, zohoBillData, billForm.selectedVendor]);
+    }, [vendorsData, analysedData, zohoBillData, billForm.selectedVendor, vendorManuallyCleared]);
 
     // Handle verify expense bill (save function)
     const handleSave = async () => {

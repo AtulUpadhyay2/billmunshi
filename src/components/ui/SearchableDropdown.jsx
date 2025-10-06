@@ -30,7 +30,8 @@ const SearchableDropdown = ({
     // Find selected option
     const selectedOption = options.find(option => {
         const optionValue = typeof option === 'string' ? option : option[optionValueKey];
-        return optionValue === value;
+        // Handle both string and number comparisons, and ensure we don't match empty/null values
+        return value && optionValue && (optionValue === value || String(optionValue) === String(value));
     });
 
     // Close dropdown when clicking outside
@@ -81,6 +82,10 @@ const SearchableDropdown = ({
         if (selectedOption) {
             return typeof selectedOption === 'string' ? selectedOption : selectedOption[optionLabelKey];
         }
+        // If we have a value but no selectedOption found, show the value itself
+        if (value && value !== '') {
+            return `Selected: ${value}`;
+        }
         return placeholder;
     };
 
@@ -115,7 +120,7 @@ const SearchableDropdown = ({
             >
                 <span className="block truncate pr-6">{getDisplayText()}</span>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    {selectedOption && !loading && (
+                    {(selectedOption || (value && value !== '')) && !loading && (
                         <div
                             onClick={handleClear}
                             className="mr-1 p-0.5 rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"

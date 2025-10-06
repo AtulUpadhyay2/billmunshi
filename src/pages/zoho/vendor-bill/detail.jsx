@@ -174,12 +174,23 @@ const ZohoVendorBillDetail = () => {
 
     // Handle vendor selection
     const handleVendorSelect = (vendor) => {
-        setVendorForm(prev => ({
-            ...prev,
-            selectedVendor: vendor,
-            vendorName: vendor.companyName || '',
-            vendorGST: vendor.gstNo || ''
-        }));
+        if (vendor === null) {
+            // Clear vendor selection
+            setVendorForm(prev => ({
+                ...prev,
+                selectedVendor: null,
+                vendorName: analysedData?.to?.name || '',
+                vendorGST: ''
+            }));
+        } else {
+            // Set selected vendor
+            setVendorForm(prev => ({
+                ...prev,
+                selectedVendor: vendor,
+                vendorName: vendor.companyName || '',
+                vendorGST: vendor.gstNo || ''
+            }));
+        }
     };
 
     // Handle vendor deselection
@@ -777,10 +788,19 @@ const ZohoVendorBillDetail = () => {
                                                     })) || []}
                                                     value={vendorForm.selectedVendor?.contactId || ''}
                                                     onChange={(value) => {
-                                                        const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
-                                                        if (selectedVendor) {
-                                                            handleVendorSelect(selectedVendor);
+                                                        if (value === null || value === '') {
+                                                            // Clear vendor selection
+                                                            handleVendorSelect(null);
+                                                        } else {
+                                                            const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
+                                                            if (selectedVendor) {
+                                                                handleVendorSelect(selectedVendor);
+                                                            }
                                                         }
+                                                    }}
+                                                    onClear={() => {
+                                                        // Explicitly clear vendor selection
+                                                        handleVendorSelect(null);
                                                     }}
                                                     placeholder="Select a vendor..."
                                                     searchPlaceholder="Search vendors..."
@@ -968,6 +988,7 @@ const ZohoVendorBillDetail = () => {
                                                                     })) || []}
                                                                     value={product.chart_of_accounts || ''}
                                                                     onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
+                                                                    onClear={() => handleProductChange(index, 'chart_of_accounts', null)}
                                                                     placeholder="Select Account..."
                                                                     searchPlaceholder="Search accounts..."
                                                                     loading={chartOfAccountsLoading}
@@ -985,6 +1006,7 @@ const ZohoVendorBillDetail = () => {
                                                                     })) || []}
                                                                     value={product.taxes || ''}
                                                                     onChange={(value) => handleProductChange(index, 'taxes', value || null)}
+                                                                    onClear={() => handleProductChange(index, 'taxes', null)}
                                                                     placeholder="Select Tax..."
                                                                     searchPlaceholder="Search taxes..."
                                                                     loading={taxesLoading}
@@ -1009,6 +1031,7 @@ const ZohoVendorBillDetail = () => {
                                                                     options={itcEligibilityOptions}
                                                                     value={product.itc_eligibility}
                                                                     onChange={(value) => handleProductChange(index, 'itc_eligibility', value)}
+                                                                    onClear={() => handleProductChange(index, 'itc_eligibility', null)}
                                                                     placeholder="Select ITC Eligibility..."
                                                                     searchPlaceholder="Search eligibility..."
                                                                     optionLabelKey="label"
@@ -1167,6 +1190,7 @@ const ZohoVendorBillDetail = () => {
                                                     })) || []}
                                                     value={selectedTdsTcs || ''}
                                                     onChange={(value) => setSelectedTdsTcs(value || null)}
+                                                    onClear={() => setSelectedTdsTcs(null)}
                                                     placeholder={`Select ${vendorForm.is_tax} rate...`}
                                                     searchPlaceholder={`Search ${vendorForm.is_tax} rates...`}
                                                     loading={tdsTcsLoading}
