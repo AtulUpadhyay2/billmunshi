@@ -578,7 +578,7 @@ const ZohoVendorBillDetail = () => {
             )}
 
             <Card 
-                title={`Vendor Bill Detail${analysedData.invoiceNumber || zohoData.bill_no ? ` - ${analysedData.invoiceNumber || zohoData.bill_no}` : ''}`} 
+                title={`Vendor Bill Detail`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -636,7 +636,7 @@ const ZohoVendorBillDetail = () => {
                             {vendorBillData?.file ? (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                        <h3 className="text-lg font-medium text-gray-900">Bill Document</h3>
+                                        <h3 className="text-lg font-medium text-gray-900">{analysedData.invoiceNumber || zohoData.bill_no ? `${analysedData.invoiceNumber || zohoData.bill_no}` : 'Document'}</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Keyboard Shortcuts Info */}
                                             {!isPDF(vendorBillData.file) && (

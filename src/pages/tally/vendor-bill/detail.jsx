@@ -1011,7 +1011,7 @@ const TallyVendorBillDetail = () => {
     return (
         <div className="space-y-5">
             <Card 
-                title={`Tally Vendor Bill Detail${billInfo.bill_munshi_name ? ` - ${billInfo.bill_munshi_name}` : ''}`} 
+                title={`Tally Vendor Bill Detail`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -1067,7 +1067,7 @@ const TallyVendorBillDetail = () => {
                             {billInfo?.file ? (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                        <h3 className="text-lg font-medium text-gray-900">Bill Document</h3>
+                                        <h3 className="text-lg font-medium text-gray-900">{billInfo.bill_munshi_name ? `${billInfo.bill_munshi_name}` : 'Document'}</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Keyboard Shortcuts Info */}
                                             {!isPDF(billInfo.file) && (

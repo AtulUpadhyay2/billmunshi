@@ -477,7 +477,7 @@ const ZohoExpenseBillDetail = () => {
     return (
         <div className="space-y-5">
             <Card 
-                title={`Zoho Expense Bill Detail${billInfo.billmunshiName ? ` - ${billInfo.billmunshiName}` : ''}`} 
+                title={`Zoho Expense Bill Detail`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -557,7 +557,7 @@ const ZohoExpenseBillDetail = () => {
                             {billInfo?.file ? (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                        <h3 className="text-lg font-medium text-gray-900">Bill Document</h3>
+                                        <h3 className="text-lg font-medium text-gray-900">{billInfo.billmunshiName ? `${billInfo.billmunshiName}` : 'Document'}</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Keyboard Shortcuts Info */}
                                             {!isPDF(billInfo.file) && (
