@@ -231,12 +231,7 @@ const Members = () => {
                       {getRoleBadge(member.role)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col space-y-1">
-                        {getStatusBadge(member.is_active)}
-                        <div className="text-xs text-slate-500">
-                          User: {member.user.is_active ? 'Active' : 'Inactive'}
-                        </div>
-                      </div>
+                      {getStatusBadge(member.is_active)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                       {formatDate(member.created_at)}
