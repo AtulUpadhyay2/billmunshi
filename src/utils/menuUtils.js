@@ -57,8 +57,8 @@ export const getFilteredMenuItems = (enabledModules = []) => {
       return enabledModuleNames.includes("zoho");
     }
     
-    // Handle Zoho Vendor Bill
-    if (item.title === "Vendor Bill" && item.link === "zoho/vendor-bill") {
+    // Handle any item with direct Zoho link - only show if Zoho is enabled
+    if (item.link && item.link.startsWith("zoho/")) {
       return enabledModuleNames.includes("zoho");
     }
 
