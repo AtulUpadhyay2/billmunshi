@@ -87,7 +87,7 @@ export const menuItems = [
   },
 
   {
-    title: "Settings",
+    title: "Config",
     icon: "heroicons-outline:cog",
     link: "#",
     isHide: true,
@@ -107,9 +107,20 @@ export const menuItems = [
       {
         childtitle: "Masters",
         childlink: "tally/masters",
+      },
+      {
+        childtitle: "Help",
+        childlink: "tally/help",
       }
     ],
   },
+
+  // {
+  //   title: "Help",
+  //   isHide: true,
+  //   icon: "heroicons-outline:question-mark-circle",
+  //   link: "tally/help",
+  // },
 
   {
     isHeadr: true,
