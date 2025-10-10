@@ -9,6 +9,7 @@ import useContentWidth from "@/hooks/useContentWidth";
 import useMenulayout from "@/hooks/useMenulayout";
 import useMenuHidden from "@/hooks/useMenuHidden";
 import useProfileRefresh from "@/hooks/useProfileRefresh";
+import usePageTitle from "@/hooks/usePageTitle";
 import Footer from "@/components/partials/footer";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
@@ -26,6 +27,9 @@ const Layout = () => {
 
   // Auto-refresh user profile data every 5 minutes
   useProfileRefresh(5);
+
+  // Update page title based on current route
+  usePageTitle();
 
   useEffect(() => {
     if (!isAuth || !user) {

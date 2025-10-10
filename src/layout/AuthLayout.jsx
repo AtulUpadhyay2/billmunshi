@@ -3,11 +3,15 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
+import usePageTitle from "@/hooks/usePageTitle";
 
 const AuthLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuth, user } = useSelector((state) => state.auth);
+
+  // Update page title based on current route
+  usePageTitle();
 
   useEffect(() => {
     // If user is authenticated and has organizations, redirect to dashboard
