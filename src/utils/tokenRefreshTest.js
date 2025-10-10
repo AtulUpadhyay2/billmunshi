@@ -96,7 +96,7 @@ export const manualTokenRefresh = async () => {
   try {
     console.log('Manually testing refresh token endpoint...');
     
-    const response = await fetch("https://billmunshi.com/api/v1/auth/token/refresh/", {
+    const response = await fetch("https://billmunshi.com/api/v1/auth/refresh/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -38,14 +38,14 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         if (refreshToken && refreshToken.trim()) {
           try {
             const refreshResult = await baseQuery({
-              url: "auth/token/refresh/",
+              url: "auth/refresh/",
               method: "POST",
               body: { refresh: refreshToken },
             }, api, extraOptions);
 
             if (refreshResult.data && refreshResult.data.access) {
               // Successfully refreshed the token
-              const { access, refresh: newRefreshToken } = refreshResult.data;
+              const { access, refresh: newRefreshToken, user: updatedUser } = refreshResult.data;
               
               // Update tokens in localStorage
               localStorage.setItem("access_token", access);
@@ -55,13 +55,13 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
                 localStorage.setItem("refresh_token", newRefreshToken);
               }
               
-              // Update Redux state
+              // Update Redux state with fresh user data from refresh response
               const state = api.getState();
-              const currentUser = state.auth.user;
+              const userToUpdate = updatedUser || state.auth.user; // Use updated user if provided, fallback to current user
               
-              if (currentUser) {
+              if (userToUpdate) {
                 api.dispatch(setUser({
-                  user: currentUser,
+                  user: userToUpdate,
                   access: access,
                   refresh: newRefreshToken || refreshToken // Use new refresh token if provided, otherwise keep current
                 }));
