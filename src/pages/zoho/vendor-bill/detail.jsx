@@ -23,6 +23,7 @@ const ZohoVendorBillDetail = () => {
         invoiceNumber: '',
         vendorGST: '',
         dateIssued: '',
+        dueDate: '',
         selectedVendor: null,
         is_tax: 'TDS' // Default to TDS
     });
@@ -113,6 +114,8 @@ const ZohoVendorBillDetail = () => {
                 vendorGST: '',
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
                            (zoho?.bill_date ? new Date(zoho.bill_date).toISOString().split('T')[0] : ''),
+                dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : 
+                        (zoho?.due_date ? new Date(zoho.due_date).toISOString().split('T')[0] : ''),
                 selectedVendor: zoho?.vendor || null,
                 is_tax: zoho?.is_tax || 'TDS' // Load from zoho_bill or default to TDS
             });
@@ -422,6 +425,7 @@ const ZohoVendorBillDetail = () => {
                     vendor: vendorForm.selectedVendor?.id || null,
                     bill_no: vendorForm.invoiceNumber,
                     bill_date: vendorForm.dateIssued,
+                    due_date: vendorForm.dueDate,
                     total: billSummaryForm.total,
                     igst: billSummaryForm.igst || "0",
                     cgst: billSummaryForm.cgst || "0",
@@ -769,139 +773,159 @@ const ZohoVendorBillDetail = () => {
                             {/* Vendor Information Section */}
                             <div className="p-8 border-b border-gray-200">
                                 {/* Simple Form Fields */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {/* Vendor Selection Field */}
-                                    <div className="relative">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Vendor
-                                            {zohoData?.vendor === null && (
-                                                <span className="ml-1 text-xs text-blue-600">(Select from list)</span>
-                                            )}
-                                        </label>
-                                        {zohoData?.vendor === null ? (
-                                            <div className="space-y-2">
-                                                <SearchableDropdown
-                                                    options={vendorsData?.results?.map(vendor => ({
-                                                        value: vendor.contactId,
-                                                        label: vendor.companyName,
-                                                        gstNo: vendor.gstNo
-                                                    })) || []}
-                                                    value={vendorForm.selectedVendor?.contactId || ''}
-                                                    onChange={(value) => {
-                                                        if (value === null || value === '') {
-                                                            // Clear vendor selection
-                                                            handleVendorSelect(null);
-                                                        } else {
-                                                            const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
-                                                            if (selectedVendor) {
-                                                                handleVendorSelect(selectedVendor);
+                                <div className="space-y-4">
+                                    {/* First Row: Vendor and Invoice Number */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {/* Vendor Selection Field */}
+                                        <div className="relative">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Vendor
+                                                {zohoData?.vendor === null && (
+                                                    <span className="ml-1 text-xs text-blue-600">(Select from list)</span>
+                                                )}
+                                            </label>
+                                            {zohoData?.vendor === null ? (
+                                                <div className="space-y-2">
+                                                    <SearchableDropdown
+                                                        options={vendorsData?.results?.map(vendor => ({
+                                                            value: vendor.contactId,
+                                                            label: vendor.companyName,
+                                                            gstNo: vendor.gstNo
+                                                        })) || []}
+                                                        value={vendorForm.selectedVendor?.contactId || ''}
+                                                        onChange={(value) => {
+                                                            if (value === null || value === '') {
+                                                                // Clear vendor selection
+                                                                handleVendorSelect(null);
+                                                            } else {
+                                                                const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
+                                                                if (selectedVendor) {
+                                                                    handleVendorSelect(selectedVendor);
+                                                                }
                                                             }
-                                                        }
-                                                    }}
-                                                    onClear={() => {
-                                                        // Explicitly clear vendor selection
-                                                        handleVendorSelect(null);
-                                                    }}
-                                                    placeholder="Select a vendor..."
-                                                    searchPlaceholder="Search vendors..."
-                                                    loading={vendorsLoading}
-                                                    loadingMessage="Loading vendors..."
-                                                    noOptionsMessage="No vendors found"
-                                                    renderOption={(option) => (
-                                                        <div>
-                                                            <div className="font-medium">{option.label}</div>
-                                                            {option.gstNo && (
-                                                                <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
-                                                            )}
+                                                        }}
+                                                        onClear={() => {
+                                                            // Explicitly clear vendor selection
+                                                            handleVendorSelect(null);
+                                                        }}
+                                                        placeholder="Select a vendor..."
+                                                        searchPlaceholder="Search vendors..."
+                                                        loading={vendorsLoading}
+                                                        loadingMessage="Loading vendors..."
+                                                        noOptionsMessage="No vendors found"
+                                                        renderOption={(option) => (
+                                                            <div>
+                                                                <div className="font-medium">{option.label}</div>
+                                                                {option.gstNo && (
+                                                                    <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    />
+                                                    
+                                                    {/* No vendors notification */}
+                                                    {vendorsData?.results?.length === 0 && !vendorsLoading && (
+                                                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
+                                                            No vendors found. Please sync vendors from Zoho first.
                                                         </div>
                                                     )}
-                                                />
-                                                
-                                                {/* No vendors notification */}
-                                                {vendorsData?.results?.length === 0 && !vendorsLoading && (
-                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                                                        No vendors found. Please sync vendors from Zoho first.
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Bill To Badge - showing analysed_data.to.name */}
-                                                {analysedData?.to?.name && (
-                                                    <div className="mt-2">
-                                                        <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                                            <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                            </svg>
-                                                            Vendor Name: {analysedData.to.name}
+                                                    
+                                                    {/* Bill To Badge - showing analysed_data.to.name */}
+                                                    {analysedData?.to?.name && (
+                                                        <div className="mt-2">
+                                                            <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                                </svg>
+                                                                Vendor Name: {analysedData.to.name}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    value={vendorForm.vendorName}
+                                                    onChange={(e) => handleFormChange('vendorName', e.target.value)}
+                                                    placeholder="Enter vendor name"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Invoice Number Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Invoice Number
+                                            </label>
                                             <input
                                                 type="text"
-                                                value={vendorForm.vendorName}
-                                                onChange={(e) => handleFormChange('vendorName', e.target.value)}
-                                                placeholder="Enter vendor name"
+                                                name="invoiceNumber"
+                                                value={vendorForm.invoiceNumber}
+                                                onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
+                                                placeholder="Enter invoice number"
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                             />
-                                        )}
+                                        </div>
                                     </div>
 
-                                    {/* Invoice Number Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Invoice Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="invoiceNumber"
-                                            value={vendorForm.invoiceNumber}
-                                            onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
-                                            placeholder="Enter invoice number"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                                        />
-                                    </div>
-
-                                    {/* GST Number Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            GST Number
+                                    {/* Second Row: GST, Date Issued, Due Date in 4 columns */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {/* GST Number Field */}
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                GST Number
+                                                {zohoData?.vendor === null && vendorForm.selectedVendor && (
+                                                    <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="vendorGST"
+                                                value={vendorForm.vendorGST}
+                                                onChange={(e) => handleFormChange('vendorGST', e.target.value)}
+                                                placeholder="Enter GST number"
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                                                    zohoData?.vendor === null && vendorForm.selectedVendor 
+                                                        ? 'bg-green-50 border-green-300' 
+                                                        : ''
+                                                }`}
+                                                readOnly={zohoData?.vendor === null && vendorForm.selectedVendor}
+                                            />
                                             {zohoData?.vendor === null && vendorForm.selectedVendor && (
-                                                <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                                <p className="mt-1 text-xs text-green-600">
+                                                    GST number automatically filled from selected vendor
+                                                </p>
                                             )}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="vendorGST"
-                                            value={vendorForm.vendorGST}
-                                            onChange={(e) => handleFormChange('vendorGST', e.target.value)}
-                                            placeholder="Enter GST number"
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
-                                                zohoData?.vendor === null && vendorForm.selectedVendor 
-                                                    ? 'bg-green-50 border-green-300' 
-                                                    : ''
-                                            }`}
-                                            readOnly={zohoData?.vendor === null && vendorForm.selectedVendor}
-                                        />
-                                        {zohoData?.vendor === null && vendorForm.selectedVendor && (
-                                            <p className="mt-1 text-xs text-green-600">
-                                                GST number automatically filled from selected vendor
-                                            </p>
-                                        )}
-                                    </div>
+                                        </div>
 
-                                    {/* Date Issued Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Date Issued
-                                        </label>
-                                        <input
-                                            type="date"
-                                            name="dateIssued"
-                                            value={vendorForm.dateIssued}
-                                            onChange={(e) => handleFormChange('dateIssued', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                                        />
+                                        {/* Date Issued Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Date Issued
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="dateIssued"
+                                                value={vendorForm.dateIssued}
+                                                onChange={(e) => handleFormChange('dateIssued', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Due Date Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Due Date
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="dueDate"
+                                                value={vendorForm.dueDate}
+                                                onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

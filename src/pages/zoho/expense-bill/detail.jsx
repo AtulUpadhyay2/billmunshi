@@ -21,6 +21,7 @@ const ZohoExpenseBillDetail = () => {
     const [billForm, setBillForm] = useState({
         billNumber: '',
         billDate: '',
+        dueDate: '',
         vendorName: '',
         totalAmount: '',
         selectedVendor: null,
@@ -227,6 +228,7 @@ const ZohoExpenseBillDetail = () => {
                 ...prev,
                 billNumber: zoho?.bill_no || data?.invoiceNumber || '',
                 billDate: zoho?.bill_date || data?.dateIssued || '',
+                dueDate: zoho?.due_date || data?.dueDate || '',
                 vendorName: data?.from?.name || '',
                 totalAmount: zoho?.total || data?.total || '',
                 selectedVendor: null, // Will be set when vendors are loaded
@@ -354,6 +356,7 @@ const ZohoExpenseBillDetail = () => {
                     vendor: billForm.selectedVendor?.id || null,
                     bill_no: billForm.billNumber,
                     bill_date: billForm.billDate,
+                    due_date: billForm.dueDate,
                     total: billForm.totalAmount || "0",
                     igst: taxSummaryForm.igst || "0",
                     cgst: taxSummaryForm.cgst || "0",
@@ -718,110 +721,132 @@ const ZohoExpenseBillDetail = () => {
                                 )}
 
                                 {/* Bill Form Fields */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {/* Vendor Selection Field */}
-                                    <div className="relative">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Vendor <span className="text-red-500">*</span>
-                                            {isVendorRequired && !isVerified && (
-                                                <span className="text-red-500 text-xs ml-2">Required for verification</span>
-                                            )}
-                                        </label>
-                                        <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                            <SearchableDropdown
-                                                options={vendorsData?.results || []}
-                                                value={billForm.selectedVendor?.id || null}
-                                                onChange={handleVendorSelect}
-                                                onClear={handleVendorClear}
-                                                placeholder="Search and select vendor..."
-                                                searchPlaceholder="Type to search vendors..."
-                                                optionLabelKey="companyName"
-                                                optionValueKey="id"
-                                                loading={vendorsLoading}
-                                                disabled={isVerified}
-                                                renderOption={(vendor) => (
-                                                    <div className="flex flex-col py-1">
-                                                        <div className="font-medium text-gray-900">{vendor.companyName}</div>
-                                                        {vendor.gstNo && (
-                                                            <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
-                                                        )}
-                                                    </div>
+                                <div className="space-y-4">
+                                    {/* First Row: Vendor and Bill Number */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {/* Vendor Selection Field */}
+                                        <div className="relative">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Vendor <span className="text-red-500">*</span>
+                                                {isVendorRequired && !isVerified && (
+                                                    <span className="text-red-500 text-xs ml-2">Required for verification</span>
                                                 )}
-                                                className="mb-2"
+                                            </label>
+                                            <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                <SearchableDropdown
+                                                    options={vendorsData?.results || []}
+                                                    value={billForm.selectedVendor?.id || null}
+                                                    onChange={handleVendorSelect}
+                                                    onClear={handleVendorClear}
+                                                    placeholder="Search and select vendor..."
+                                                    searchPlaceholder="Type to search vendors..."
+                                                    optionLabelKey="companyName"
+                                                    optionValueKey="id"
+                                                    loading={vendorsLoading}
+                                                    disabled={isVerified}
+                                                    renderOption={(vendor) => (
+                                                        <div className="flex flex-col py-1">
+                                                            <div className="font-medium text-gray-900">{vendor.companyName}</div>
+                                                            {vendor.gstNo && (
+                                                                <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    className="mb-2"
+                                                />
+                                            </div>
+
+                                            {/* Bill From Badge - showing analysed_data.from.name */}
+                                            {analysedData?.from?.name && (
+                                                <div className="mt-3">
+                                                    <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                        <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                        </svg>
+                                                        Bill From: {analysedData.from.name}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Bill Number Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Bill Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="billNumber"
+                                                value={billForm.billNumber}
+                                                onChange={(e) => handleFormChange('billNumber', e.target.value)}
+                                                placeholder="Enter bill number"
+                                                disabled={isVerified}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Second Row: GST, Bill Date, Due Date in 4 columns */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {/* GST Number Field */}
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                GST Number
+                                                {billForm.selectedVendor && (
+                                                    <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="vendorGST"
+                                                value={billForm.vendorGST}
+                                                onChange={(e) => handleFormChange('vendorGST', e.target.value)}
+                                                placeholder="Enter GST number"
+                                                disabled={isVerified}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                                                    isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : 
+                                                    billForm.selectedVendor ? 'bg-green-50 border-green-300' : ''
+                                                }`}
+                                                readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
+                                            />
+                                            {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
+                                                <p className="mt-1 text-xs text-green-600">
+                                                    GST number automatically filled from selected vendor
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Bill Date Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Bill Date
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="billDate"
+                                                value={billForm.billDate}
+                                                onChange={(e) => handleFormChange('billDate', e.target.value)}
+                                                placeholder="DD-MM-YYYY"
+                                                disabled={isVerified}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                             />
                                         </div>
 
-                                        {/* Bill From Badge - showing analysed_data.from.name */}
-                                        {analysedData?.from?.name && (
-                                            <div className="mt-3">
-                                                <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                                    <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                    </svg>
-                                                    Bill From: {analysedData.from.name}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Bill Number Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Bill Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="billNumber"
-                                            value={billForm.billNumber}
-                                            onChange={(e) => handleFormChange('billNumber', e.target.value)}
-                                            placeholder="Enter bill number"
-                                            disabled={isVerified}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                        />
-                                    </div>
-
-                                    {/* Bill Date Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Bill Date
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="billDate"
-                                            value={billForm.billDate}
-                                            onChange={(e) => handleFormChange('billDate', e.target.value)}
-                                            placeholder="DD-MM-YYYY"
-                                            disabled={isVerified}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                        />
-                                    </div>
-
-                                    {/* GST Number Field */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            GST Number
-                                            {billForm.selectedVendor && (
-                                                <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
-                                            )}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="vendorGST"
-                                            value={billForm.vendorGST}
-                                            onChange={(e) => handleFormChange('vendorGST', e.target.value)}
-                                            placeholder="Enter GST number"
-                                            disabled={isVerified}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
-                                                isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : 
-                                                billForm.selectedVendor ? 'bg-green-50 border-green-300' : ''
-                                            }`}
-                                            readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
-                                        />
-                                        {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
-                                            <p className="mt-1 text-xs text-green-600">
-                                                GST number automatically filled from selected vendor
-                                            </p>
-                                        )}
+                                        {/* Due Date Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Due Date
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="dueDate"
+                                                value={billForm.dueDate}
+                                                onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                                                placeholder="DD-MM-YYYY"
+                                                disabled={isVerified}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
