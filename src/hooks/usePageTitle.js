@@ -9,6 +9,25 @@ const usePageTitle = () => {
       const path = location.pathname;
       let pageTitle = 'Bill Munshi';
 
+      // Handle dynamic routes with parameters first (checking for detail pages)
+      if (path.includes('/zoho/vendor-bill/') && path.split('/').length === 4) {
+        pageTitle = `Bill Munshi | Zoho Vendor Bill`;
+        document.title = pageTitle;
+        return;
+      } else if (path.includes('/zoho/expense-bill/') && path.split('/').length === 4) {
+        pageTitle = `Bill Munshi | Zoho Expense Bill`;
+        document.title = pageTitle;
+        return;
+      } else if (path.includes('/tally/vendor-bill/') && path.split('/').length === 4) {
+        pageTitle = `Bill Munshi | Tally Vendor Bill`;
+        document.title = pageTitle;
+        return;
+      } else if (path.includes('/tally/expense-bill/') && path.split('/').length === 4) {
+        pageTitle = `Bill Munshi | Tally Expense Bill`;
+        document.title = pageTitle;
+        return;
+      }
+
       // Route-based title mapping
       const routeTitles = {
         '/dashboard': 'Dashboard',
@@ -49,30 +68,15 @@ const usePageTitle = () => {
       if (routeTitles[path]) {
         pageTitle = `Bill Munshi | ${routeTitles[path]}`;
       } else {
-        // Handle dynamic routes with parameters
-        if (path.match(/^\/zoho\/vendor-bill\/[\w-]+$/)) {
-          const billId = path.split('/').pop();
-          pageTitle = `Bill Munshi | Zoho Vendor Bill ${billId}`;
-        } else if (path.match(/^\/zoho\/expense-bill\/[\w-]+$/)) {
-          const billId = path.split('/').pop();
-          pageTitle = `Bill Munshi | Zoho Expense Bill ${billId}`;
-        } else if (path.match(/^\/tally\/vendor-bill\/[\w-]+$/)) {
-          const billId = path.split('/').pop();
-          pageTitle = `Bill Munshi | Tally Vendor Bill ${billId}`;
-        } else if (path.match(/^\/tally\/expense-bill\/[\w-]+$/)) {
-          const billId = path.split('/').pop();
-          pageTitle = `Bill Munshi | Tally Expense Bill ${billId}`;
-        } else {
-          // Default fallback for unknown routes
-          const segments = path.split('/').filter(Boolean);
-          if (segments.length > 0) {
-            const lastSegment = segments[segments.length - 1];
-            const formattedSegment = lastSegment
-              .split('-')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            pageTitle = `Bill Munshi | ${formattedSegment}`;
-          }
+        // Default fallback for unknown routes
+        const segments = path.split('/').filter(Boolean);
+        if (segments.length > 0) {
+          const lastSegment = segments[segments.length - 1];
+          const formattedSegment = lastSegment
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          pageTitle = `Bill Munshi | ${formattedSegment}`;
         }
       }
 

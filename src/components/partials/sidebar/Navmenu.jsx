@@ -62,7 +62,7 @@ const Navmenu = ({ menus }) => {
         });
       }
     });
-    document.title = `Bill Munshi | ${locationName}`;
+    // document.title = `Bill Munshi | ${locationName}`;
 
     setActiveSubmenu(submenuIndex);
     setMultiMenu(multiMenuIndex);
