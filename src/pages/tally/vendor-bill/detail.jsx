@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -16,6 +16,13 @@ const TallyVendorBillDetail = () => {
     const navigate = useNavigate();
     const { id: billId } = useParams();
     const { selectedOrganization } = useSelector((state) => state.auth);
+    
+    // Refs to track if initial matching has been done
+    const vendorMatchedRef = useRef(false);
+    const stockItemsMatchedRef = useRef(false);
+    const taxLedgersMatchedRef = useRef(false);
+    const productTaxMatchedRef = useRef(false);
+    const stockItemsInitialMatchedRef = useRef(false);
     
     // Form state for vendor information
     const [vendorForm, setVendorForm] = useState({
@@ -116,16 +123,16 @@ const TallyVendorBillDetail = () => {
     // Verify mutation
     const [verifyVendorBill] = useVerifyTallyVendorBillMutation();
 
-    // Extract data from the API response
-    const billInfo = vendorBillData?.bill || {};
-    const analysedData = billInfo?.analysed_data || {};
-    const tallyAnalysedData = vendorBillData?.analyzed_data || {};
+    // Extract data from the API response - Memoized to prevent recreating objects on every render
+    const billInfo = useMemo(() => vendorBillData?.bill || {}, [vendorBillData]);
+    const analysedData = useMemo(() => billInfo?.analysed_data || {}, [billInfo]);
+    const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_data || {}, [vendorBillData]);
     
     // Check if bill is verified (disable inputs if verified)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
     
-    // Process vendor ledgers data for dropdown
-    const processVendorLedgers = () => {
+    // Process vendor ledgers data for dropdown - Memoized
+    const vendorOptions = useMemo(() => {
         if (!vendorLedgersData?.grouped_ledgers) return [];
         
         const vendors = [];
@@ -146,12 +153,10 @@ const TallyVendorBillDetail = () => {
             }
         });
         return vendors;
-    };
-
-    const vendorOptions = processVendorLedgers();
+    }, [vendorLedgersData]);
     
-    // Process tax ledgers data for dropdown
-    const processTaxLedgers = () => {
+    // Process tax ledgers data for dropdown - Memoized
+    const taxLedgerOptions = useMemo(() => {
         if (!taxLedgersData?.grouped_ledgers) return [];
         
         const taxLedgers = [];
@@ -171,12 +176,10 @@ const TallyVendorBillDetail = () => {
             }
         });
         return taxLedgers;
-    };
-
-    const taxLedgerOptions = processTaxLedgers();
+    }, [taxLedgersData]);
     
-    // Process CGST ledgers data for dropdown
-    const processCgstLedgers = () => {
+    // Process CGST ledgers data for dropdown - Memoized
+    const cgstLedgerOptions = useMemo(() => {
         if (!cgstLedgersData?.grouped_ledgers) return [];
         
         const cgstLedgers = [];
@@ -196,10 +199,10 @@ const TallyVendorBillDetail = () => {
             }
         });
         return cgstLedgers;
-    };
+    }, [cgstLedgersData]);
 
-    // Process SGST ledgers data for dropdown
-    const processSgstLedgers = () => {
+    // Process SGST ledgers data for dropdown - Memoized
+    const sgstLedgerOptions = useMemo(() => {
         if (!sgstLedgersData?.grouped_ledgers) return [];
         
         const sgstLedgers = [];
@@ -219,10 +222,10 @@ const TallyVendorBillDetail = () => {
             }
         });
         return sgstLedgers;
-    };
+    }, [sgstLedgersData]);
 
-    // Process IGST ledgers data for dropdown
-    const processIgstLedgers = () => {
+    // Process IGST ledgers data for dropdown - Memoized
+    const igstLedgerOptions = useMemo(() => {
         if (!igstLedgersData?.grouped_ledgers) return [];
         
         const igstLedgers = [];
@@ -242,14 +245,10 @@ const TallyVendorBillDetail = () => {
             }
         });
         return igstLedgers;
-    };
-
-    const cgstLedgerOptions = processCgstLedgers();
-    const sgstLedgerOptions = processSgstLedgers();
-    const igstLedgerOptions = processIgstLedgers();
+    }, [igstLedgersData]);
     
-    // Process masters data for item name dropdown
-    const processStockItems = () => {
+    // Process masters data for item name dropdown - Memoized
+    const stockItemOptions = useMemo(() => {
         if (!mastersData?.stock_items) return [];
         
         return mastersData.stock_items.map(item => ({
@@ -261,13 +260,18 @@ const TallyVendorBillDetail = () => {
             parent: item.parent,
             gst_applicable: item.gst_applicable
         }));
-    };
-
-    const stockItemOptions = processStockItems();
+    }, [mastersData]);
     
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.bill) {
+            // Reset all matching refs when new data is loaded
+            vendorMatchedRef.current = false;
+            stockItemsMatchedRef.current = false;
+            taxLedgersMatchedRef.current = false;
+            productTaxMatchedRef.current = false;
+            stockItemsInitialMatchedRef.current = false;
+            
             const data = analysedData;
             const tally = tallyAnalysedData;
             
@@ -289,7 +293,10 @@ const TallyVendorBillDetail = () => {
                 cgst: tally?.taxes?.cgst?.amount || data.cgst || '',
                 sgst: tally?.taxes?.sgst?.amount || data.sgst || '',
                 igst: tally?.taxes?.igst?.amount || data.igst || '',
-                total: tally?.total_amount || tally?.bill_details?.total_amount || data.total || ''
+                total: tally?.total_amount || tally?.bill_details?.total_amount || data.total || '',
+                cgstLedgerId: null,
+                sgstLedgerId: null,
+                igstLedgerId: null
             });
 
             // Initialize notes (if any notes field exists in the API)
@@ -357,6 +364,8 @@ const TallyVendorBillDetail = () => {
     // Match vendor from API response with vendor options when both are available
     // Only auto-match if user hasn't manually cleared the vendor
     useEffect(() => {
+        if (vendorMatchedRef.current) return; // Skip if already matched
+        
         if (vendorOptions.length > 0 && tallyAnalysedData && !vendorForm.selectedVendor && !vendorManuallyCleared) {
             // First try to match by vendor_name from analyzed_data
             let matchedVendor = null;
@@ -383,12 +392,15 @@ const TallyVendorBillDetail = () => {
                     vendorName: matchedVendor.name || prev.vendorName,
                     vendorGST: matchedVendor.gst_in || prev.vendorGST
                 }));
+                vendorMatchedRef.current = true; // Mark as matched
             }
         }
     }, [vendorOptions, tallyAnalysedData, vendorForm.selectedVendor, vendorManuallyCleared]);
     
     // Match stock items from API response with stock item options when both are available
     useEffect(() => {
+        if (stockItemsMatchedRef.current) return; // Skip if already matched
+        
         if (stockItemOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
             let hasChanges = false;
             const updatedProducts = products.map(product => {
@@ -448,13 +460,18 @@ const TallyVendorBillDetail = () => {
             if (hasChanges) {
                 setProducts(updatedProducts);
             }
+            stockItemsMatchedRef.current = true; // Mark as matched
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stockItemOptions, tallyAnalysedData]);
     
     // Match tax ledgers from API response when both are available
     useEffect(() => {
+        if (taxLedgersMatchedRef.current) return; // Skip if already matched
+        
         if (cgstLedgerOptions.length > 0 && sgstLedgerOptions.length > 0 && igstLedgerOptions.length > 0 && tallyAnalysedData?.taxes) {
             const taxes = tallyAnalysedData.taxes;
+            const updates = {};
             
             // Match CGST ledger
             if (taxes.cgst?.ledger && !billSummaryForm.cgstLedgerId) {
@@ -462,10 +479,7 @@ const TallyVendorBillDetail = () => {
                     ledger.name === taxes.cgst.ledger
                 );
                 if (matchedCgstLedger) {
-                    setBillSummaryForm(prev => ({
-                        ...prev,
-                        cgstLedgerId: matchedCgstLedger.id
-                    }));
+                    updates.cgstLedgerId = matchedCgstLedger.id;
                 }
             }
             
@@ -475,10 +489,7 @@ const TallyVendorBillDetail = () => {
                     ledger.name === taxes.sgst.ledger
                 );
                 if (matchedSgstLedger) {
-                    setBillSummaryForm(prev => ({
-                        ...prev,
-                        sgstLedgerId: matchedSgstLedger.id
-                    }));
+                    updates.sgstLedgerId = matchedSgstLedger.id;
                 }
             }
             
@@ -488,18 +499,34 @@ const TallyVendorBillDetail = () => {
                     ledger.name === taxes.igst.ledger
                 );
                 if (matchedIgstLedger) {
-                    setBillSummaryForm(prev => ({
-                        ...prev,
-                        igstLedgerId: matchedIgstLedger.id
-                    }));
+                    updates.igstLedgerId = matchedIgstLedger.id;
                 }
             }
+            
+            // Apply all updates in a single setState call
+            if (Object.keys(updates).length > 0) {
+                setBillSummaryForm(prev => ({
+                    ...prev,
+                    ...updates
+                }));
+                taxLedgersMatchedRef.current = true; // Mark as matched
+            }
         }
-    }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData, billSummaryForm.cgstLedgerId, billSummaryForm.sgstLedgerId, billSummaryForm.igstLedgerId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData]);
     
     // Match product tax ledgers from API response
     useEffect(() => {
+        if (productTaxMatchedRef.current) return; // Skip if already matched
+        
         if (taxLedgerOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
+            // Check if any products need tax ledger matching (don't have tax_ledger_id yet)
+            const needsMatching = products.some(product => !product.tax_ledger_id);
+            if (!needsMatching) {
+                productTaxMatchedRef.current = true;
+                return;
+            }
+            
             const updatedProducts = products.map((product, index) => {
                 // If product already has tax_ledger_id selected, don't override
                 if (product.tax_ledger_id) {
@@ -539,12 +566,27 @@ const TallyVendorBillDetail = () => {
             if (hasChanges) {
                 setProducts(updatedProducts);
             }
+            productTaxMatchedRef.current = true; // Mark as matched
         }
-    }, [taxLedgerOptions, tallyAnalysedData, products]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [taxLedgerOptions, tallyAnalysedData]);
     
     // Specific effect to handle initial stock item selection after products are loaded
     useEffect(() => {
-        if (stockItemOptions.length > 0 && products.length > 0) {            
+        if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
+        
+        if (stockItemOptions.length > 0 && products.length > 0) {
+            // Check if any products need stock item matching
+            const needsMatching = products.some(product => 
+                (product.item_id && !stockItemOptions.find(item => item.id === product.item_id)) ||
+                (!product.item_id && product.item_name)
+            );
+            
+            if (!needsMatching) {
+                stockItemsInitialMatchedRef.current = true;
+                return;
+            }
+            
             let needsUpdate = false;
             const updatedProducts = products.map(product => {
                 // Check if product has item_id but the dropdown might not be showing it
@@ -583,7 +625,9 @@ const TallyVendorBillDetail = () => {
             if (needsUpdate) {
                 setProducts(updatedProducts);
             }
+            stockItemsInitialMatchedRef.current = true; // Mark as matched
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stockItemOptions]);
     
     // Handle form input changes
