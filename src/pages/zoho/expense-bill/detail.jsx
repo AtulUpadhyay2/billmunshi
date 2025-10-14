@@ -792,9 +792,9 @@ const ZohoExpenseBillDetail = () => {
                                         <div className="lg:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 GST Number
-                                                {billForm.selectedVendor && (
+                                                {/* {billForm.selectedVendor && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
-                                                )}
+                                                )} */}
                                             </label>
                                             <input
                                                 type="text"
@@ -803,14 +803,11 @@ const ZohoExpenseBillDetail = () => {
                                                 onChange={(e) => handleFormChange('vendorGST', e.target.value)}
                                                 placeholder="Enter GST number"
                                                 disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
-                                                    isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : 
-                                                    billForm.selectedVendor ? 'bg-green-50 border-green-300' : ''
-                                                }`}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
                                                 readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
                                             />
                                             {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
-                                                <p className="mt-1 text-xs text-green-600">
+                                                <p className="mt-1 text-xs">
                                                     GST number automatically filled from selected vendor
                                                 </p>
                                             )}

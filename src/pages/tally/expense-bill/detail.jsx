@@ -1403,12 +1403,12 @@ const TallyExpenseBillDetail = () => {
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                    {ledger.parent_name && (
+                                                                    {/* {ledger.parent_name && (
                                                                         <div className="text-xs text-blue-600">{ledger.parent_name}</div>
                                                                     )}
                                                                     {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
                                                                         <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
                                                             )}
                                                             className="text-xs"
@@ -1461,12 +1461,12 @@ const TallyExpenseBillDetail = () => {
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                    {ledger.parent_name && (
+                                                                    {/* {ledger.parent_name && (
                                                                         <div className="text-xs text-blue-600">{ledger.parent_name}</div>
                                                                     )}
                                                                     {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
                                                                         <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
                                                             )}
                                                             className="text-xs"
@@ -1519,12 +1519,12 @@ const TallyExpenseBillDetail = () => {
                                                             renderOption={(ledger) => (
                                                                 <div className="flex flex-col py-1">
                                                                     <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                    {ledger.parent_name && (
+                                                                    {/* {ledger.parent_name && (
                                                                         <div className="text-xs text-blue-600">{ledger.parent_name}</div>
                                                                     )}
                                                                     {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
                                                                         <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
                                                             )}
                                                             className="text-xs"
