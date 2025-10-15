@@ -44,12 +44,29 @@ export const vendorBillsApi = apiSlice.injectEndpoints({
       invalidatesTags: ['VendorBill'],
     }),
     uploadVendorBills: builder.mutation({
-      query: ({ organizationId, formData }) => ({
-        url: `zoho/org/${organizationId}/vendor-bills/upload/`,
-        method: "POST",
-        body: formData,
-        // Don't set any Content-Type header for FormData uploads
-      }),
+      query: ({ organizationId, formData }) => {
+        // Create a new FormData to ensure proper field naming for Zoho API
+        const zohoFormData = new FormData();
+        
+        // The Zoho API expects 'files' field, but the modal sends 'file'
+        // So we need to transform the FormData
+        for (let [key, value] of formData.entries()) {
+          if (key === 'file') {
+            // Rename 'file' to 'files' for Zoho API
+            zohoFormData.append('files', value);
+          } else {
+            // Keep other fields as is
+            zohoFormData.append(key, value);
+          }
+        }
+        
+        return {
+          url: `zoho/org/${organizationId}/vendor-bills/upload/`,
+          method: "POST",
+          body: zohoFormData,
+          // Don't set any Content-Type header for FormData uploads
+        };
+      },
       invalidatesTags: ['VendorBill'],
     }),
     updateVendorBill: builder.mutation({

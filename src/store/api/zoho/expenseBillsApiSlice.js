@@ -55,12 +55,25 @@ export const zohoExpenseBillsApi = apiSlice.injectEndpoints({
     }),
     uploadZohoExpenseBills: builder.mutation({
       query: ({ organizationId, formData }) => {
-        // The Zoho API expects 'file' field (same as what the modal sends)
-        // Unlike Tally, we don't need to transform the field names for Zoho
+        // Create a new FormData to ensure proper field naming for Zoho API
+        const zohoFormData = new FormData();
+        
+        // The Zoho API expects 'files' field, but the modal sends 'file'
+        // So we need to transform the FormData
+        for (let [key, value] of formData.entries()) {
+          if (key === 'file') {
+            // Rename 'file' to 'files' for Zoho API
+            zohoFormData.append('files', value);
+          } else {
+            // Keep other fields as is
+            zohoFormData.append(key, value);
+          }
+        }
+        
         return {
           url: `zoho/org/${organizationId}/expense-bills/upload/`,
           method: "POST",
-          body: formData, // Use the original formData without transformation
+          body: zohoFormData,
           // Don't set any Content-Type header for FormData uploads
         };
       },
