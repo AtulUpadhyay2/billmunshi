@@ -1149,7 +1149,7 @@ const ZohoExpenseBillDetail = () => {
                                         Notes
                                     </label>
                                     <textarea 
-                                        value={notes || `Page URL: ${window.location.href}\n\n`}
+                                        value={notes || `Bill from ${billForm.selectedVendor?.companyName || 'Vendor'} entered via BillMunshi ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isVerified}
                                         className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}

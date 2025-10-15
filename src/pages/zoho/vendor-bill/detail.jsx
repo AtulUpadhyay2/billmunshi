@@ -1353,7 +1353,7 @@ const ZohoVendorBillDetail = () => {
                                         Notes
                                     </label>
                                     <textarea 
-                                        value={notes}
+                                        value={notes || `Bill from ${vendorForm.selectedVendor?.companyName || 'Vendor'} entered via BillMunshi ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
                                         placeholder="Add notes or comments..."
