@@ -80,7 +80,7 @@ export const menuItems = [
   },
 
   {
-    title: "Expense Bill",
+    title: "Journal Entry",
     isHide: true,
     icon: "heroicons-outline:clipboard",
     link: "tally/expense-bill",

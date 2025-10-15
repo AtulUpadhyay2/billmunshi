@@ -67,7 +67,7 @@ const TallyExpenseBill = () => {
               organizationId: selectedOrganization?.id,
               billId
             }).unwrap();
-            globalToast.success('Expense Bill analyzed successfully');
+            globalToast.success('Journal entry analyzed successfully');
             refetch(); // Refresh the list to show updated status
           } finally {
             // Remove loading state
@@ -80,7 +80,7 @@ const TallyExpenseBill = () => {
           break;
         case 'verify':
           await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
-          globalToast.success('Expense Bill verification completed');
+          globalToast.success('Journal entry verification completed');
           break;
         case 'sync':
           // Set loading state
@@ -313,7 +313,7 @@ const TallyExpenseBill = () => {
   return (
     <div className="space-y-5">
       <Card
-        title="Expense Bill"
+        title="Journal Entry"
         noBorder
         headerSlot={
           <div className="flex items-center gap-2">
@@ -321,7 +321,7 @@ const TallyExpenseBill = () => {
               onClick={() => refetch()}
               disabled={isLoading}
               className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh expense bills"
+              title="Refresh journal entries"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -330,7 +330,7 @@ const TallyExpenseBill = () => {
             </button>
             <button
               className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-              title="Upload expense bills"
+              title="Upload journal entries"
               onClick={() => setIsUploadModalOpen(true)}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -389,7 +389,7 @@ const TallyExpenseBill = () => {
                       <td colSpan="6" className="table-td text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          <span className="text-slate-600">Loading expense bills...</span>
+                          <span className="text-slate-600">Loading journal entries...</span>
                         </div>
                       </td>
                     </tr>
@@ -401,9 +401,9 @@ const TallyExpenseBill = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="text-red-600">
-                            <p className="text-lg font-medium">Failed to load expense bills</p>
+                            <p className="text-lg font-medium">Failed to load journal entries</p>
                             <p className="text-sm text-slate-500 mt-2">
-                              {error?.data?.message || error?.message || 'An error occurred while fetching expense bills'}
+                              {error?.data?.message || error?.message || 'An error occurred while fetching journal entries'}
                             </p>
                           </div>
                           <button
@@ -422,8 +422,8 @@ const TallyExpenseBill = () => {
                           <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <div className="text-slate-500">No expense bills found</div>
-                          <div className="text-xs text-slate-400">Upload your first expense bill to get started</div>
+                          <div className="text-slate-500">No journal entries found</div>
+                          <div className="text-xs text-slate-400">Upload your first journal entry to get started</div>
                         </div>
                       </td>
                     </tr>
@@ -436,7 +436,7 @@ const TallyExpenseBill = () => {
                             <span className="font-medium">{bill.bill_munshi_name}</span>
                             {bill.file && (
                               <button
-                                onClick={() => handleViewFile(bill.file, bill.bill_munshi_name || 'Expense Bill')}
+                                onClick={() => handleViewFile(bill.file, bill.bill_munshi_name || 'Journal Entry')}
                                 className="text-xs text-blue-600 hover:underline cursor-pointer"
                               >
                                 View File
@@ -466,7 +466,7 @@ const TallyExpenseBill = () => {
                                   navigate(`/tally/expense-bill/${bill.id}`);
                                 }}
                                 className="group relative inline-flex items-center justify-center w-8 h-8 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md shadow-sm hover:bg-indigo-100 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-all duration-200 active:scale-95"
-                                title="View expense bill details"
+                                title="View journal entry details"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform duration-200">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
@@ -482,7 +482,7 @@ const TallyExpenseBill = () => {
                                   ? 'text-red-400 bg-red-25 border-red-100 cursor-not-allowed opacity-75'
                                   : 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300 focus:ring-red-500'
                               }`}
-                              title={deletingBills.has(bill.id) ? "Deleting..." : "Delete expense bill"}
+                              title={deletingBills.has(bill.id) ? "Deleting..." : "Delete journal entry"}
                             >
                               {deletingBills.has(bill.id) ? (
                                 <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -512,7 +512,7 @@ const TallyExpenseBill = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
-        title="Upload Expense Bills"
+        title="Upload Journal Entries"
       />
 
       {/* File Viewer Modal */}
