@@ -47,12 +47,19 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
               // Successfully refreshed the token
               const { access, refresh: newRefreshToken, user: updatedUser } = refreshResult.data;
               
+              console.log("Token refresh successful:", {
+                hasAccess: !!access,
+                hasRefresh: !!newRefreshToken,
+                hasUser: !!updatedUser
+              });
+              
               // Update tokens in localStorage
               localStorage.setItem("access_token", access);
               
-              // Update refresh token if a new one is provided
+              // Update refresh token if a new one is provided (your API returns both)
               if (newRefreshToken) {
                 localStorage.setItem("refresh_token", newRefreshToken);
+                console.log("Updated refresh token in localStorage");
               }
               
               // Update Redux state with fresh user data from refresh response
@@ -65,9 +72,10 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
                   access: access,
                   refresh: newRefreshToken || refreshToken // Use new refresh token if provided, otherwise keep current
                 }));
+                console.log("Updated user state with new tokens");
               }
 
-              console.log("Token refreshed successfully");
+              console.log("Token refreshed successfully - retrying original request");
 
               // Retry the original request with new token
               result = await baseQuery(args, api, extraOptions);
