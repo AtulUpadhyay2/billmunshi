@@ -948,21 +948,22 @@ const TallyExpenseBillDetail = () => {
                 <div className="flex flex-col lg:flex-row gap-6 relative">
                     {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
                     <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-                        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+                        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
                             {billInfo?.file ? (
                                 <div className="w-full h-full flex flex-col">
-                                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                        <h3 className="text-lg font-medium text-gray-900">{billInfo.bill_munshi_name ? `${billInfo.bill_munshi_name}` : 'Document'}</h3>
-                                        <div className="flex items-center gap-2">
+                                    {/* Fixed Header - Always Visible */}
+                                    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
+                                        <h3 className="text-base font-medium text-gray-900 truncate mr-2">{billInfo.bill_munshi_name ? `${billInfo.bill_munshi_name}` : 'Document'}</h3>
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
                                             {/* Keyboard Shortcuts Info */}
                                             {!isPDF(billInfo.file) && (
                                                 <div className="relative group">
-                                                    <button className="p-1.5 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
-                                                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                                                        <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
                                                     </button>
-                                                    <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                    <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
                                                         <div className="font-medium mb-1">Keyboard Shortcuts:</div>
                                                         <div>Ctrl/Cmd + F: Fullscreen</div>
                                                         <div>Ctrl/Cmd + +: Zoom In</div>
@@ -978,33 +979,33 @@ const TallyExpenseBillDetail = () => {
                                                 <>
                                                     <button
                                                         onClick={handleZoomOut}
-                                                        className="p-1.5 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                                                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Zoom Out (Ctrl + -)"
                                                         disabled={zoomLevel <= 0.25}
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
                                                         </svg>
                                                     </button>
-                                                    <span className="text-xs text-gray-600 min-w-[40px] text-center">
+                                                    <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
                                                         {Math.round(zoomLevel * 100)}%
                                                     </span>
                                                     <button
                                                         onClick={handleZoomIn}
-                                                        className="p-1.5 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                                                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Zoom In (Ctrl + +)"
                                                         disabled={zoomLevel >= 3}
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                                                         </svg>
                                                     </button>
                                                     <button
                                                         onClick={handleResetZoom}
-                                                        className="p-1.5 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                                                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
                                                         title="Reset Zoom (Ctrl + 0)"
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                         </svg>
                                                     </button>
@@ -1014,47 +1015,44 @@ const TallyExpenseBillDetail = () => {
                                             {/* Fullscreen Toggle */}
                                             <button
                                                 onClick={toggleFullscreen}
-                                                className="p-1.5 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                                                className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
                                                 title="Toggle Fullscreen (Ctrl + F)"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                                 </svg>
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="flex-1 flex items-center justify-center overflow-auto bg-white rounded-lg border border-gray-200">
+                                    {/* Scrollable Content Area */}
+                                    <div className="flex-1 overflow-auto bg-white">
                                         {isPDF(billInfo.file) ? (
                                             // PDF Viewer
-                                            <iframe
-                                                src={billInfo.file}
-                                                className="w-full h-full border-0"
-                                                title="Bill PDF Document"
-                                                onError={(e) => {
-                                                    console.error('PDF failed to load:', e);
-                                                }}
-                                            />
+                                            <div className="w-full h-full">
+                                                <iframe
+                                                    src={billInfo.file}
+                                                    className="w-full h-full border-0"
+                                                    title="Bill PDF Document"
+                                                    onError={(e) => {
+                                                        console.error('PDF failed to load:', e);
+                                                    }}
+                                                />
+                                            </div>
                                         ) : (
                                             // Image Viewer with Zoom
-                                            <div
-                                                className="overflow-auto w-full h-full flex items-center justify-center"
-                                                style={{
-                                                    cursor: zoomLevel > 1 ? 'grab' : 'default'
-                                                }}
+                                            <div 
+                                                className={`w-full min-h-full flex ${zoomLevel === 1 ? 'items-center justify-center' : 'items-start justify-start'} p-4`}
+                                                style={{ cursor: zoomLevel > 1 ? 'move' : 'default' }}
                                             >
                                                 <img
                                                     src={billInfo.file}
                                                     alt="Bill Document"
-                                                    className="rounded-lg shadow-lg transition-transform duration-200"
-                                                    style={{
-                                                        transform: `scale(${zoomLevel})`,
-                                                        maxWidth: zoomLevel <= 1 ? '100%' : 'none',
-                                                        height: 'auto'
-                                                    }}
+                                                    className="h-auto"
+                                                    style={{ width: `${zoomLevel * 100}%` }}
                                                     onError={(e) => {
                                                         e.target.style.display = 'none';
-                                                        e.target.nextSibling.style.display = 'block';
+                                                        e.target.nextSibling.style.display = 'flex';
                                                     }}
                                                 />
                                                 <div style={{ display: 'none' }} className="flex flex-col items-center">
@@ -1625,33 +1623,33 @@ const TallyExpenseBillDetail = () => {
 
             {/* Fullscreen Modal */}
             {isFullscreen && billInfo?.file && (
-                <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center">
                     <div className="relative w-full h-full flex flex-col">
                         {/* Fullscreen Header */}
-                        <div className="flex items-center justify-between p-4 bg-black bg-opacity-50">
+                        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-md border-b border-white/10 flex-shrink-0">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-white text-lg font-medium">
+                                <h3 className="text-white text-lg font-semibold drop-shadow-lg">
                                     Bill Document - {billInfo.bill_munshi_name || analysedData.billNumber || 'Unknown'}
                                 </h3>
                                 {!isPDF(billInfo.file) && (
-                                    <div className="flex items-center gap-2 bg-black bg-opacity-50 rounded-lg px-3 py-1">
+                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/20">
                                         <button
                                             onClick={handleZoomOut}
-                                            className="p-1 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                                            title="Zoom Out"
+                                            className="p-1 rounded text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            title="Zoom Out (Ctrl + -)"
                                             disabled={zoomLevel <= 0.25}
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
                                             </svg>
                                         </button>
-                                        <span className="text-white text-sm min-w-[40px] text-center">
+                                        <span className="text-white text-sm font-medium min-w-[45px] text-center">
                                             {Math.round(zoomLevel * 100)}%
                                         </span>
                                         <button
                                             onClick={handleZoomIn}
-                                            className="p-1 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                                            title="Zoom In"
+                                            className="p-1 rounded text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            title="Zoom In (Ctrl + +)"
                                             disabled={zoomLevel >= 3}
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1660,8 +1658,8 @@ const TallyExpenseBillDetail = () => {
                                         </button>
                                         <button
                                             onClick={handleResetZoom}
-                                            className="p-1 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                                            title="Reset Zoom"
+                                            className="p-1 rounded text-white hover:bg-white/20 transition-all"
+                                            title="Reset Zoom (Ctrl + 0)"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1672,8 +1670,8 @@ const TallyExpenseBillDetail = () => {
                             </div>
                             <button
                                 onClick={toggleFullscreen}
-                                className="p-2 rounded-lg text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                                title="Exit Fullscreen"
+                                className="p-2 rounded-lg text-white hover:bg-white/20 transition-all backdrop-blur-sm"
+                                title="Exit Fullscreen (Esc)"
                             >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1682,24 +1680,25 @@ const TallyExpenseBillDetail = () => {
                         </div>
 
                         {/* Fullscreen Content */}
-                        <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+                        <div className="flex-1 overflow-auto">
                             {isPDF(billInfo.file) ? (
-                                <iframe
-                                    src={billInfo.file}
-                                    className="w-full h-full border-0 rounded-lg"
-                                    title="Bill PDF Document - Fullscreen"
-                                />
+                                <div className="w-full h-full p-4">
+                                    <iframe
+                                        src={billInfo.file}
+                                        className="w-full h-full border-0 rounded-lg shadow-2xl"
+                                        title="Bill PDF Document - Fullscreen"
+                                    />
+                                </div>
                             ) : (
-                                <div className="overflow-auto w-full h-full flex items-center justify-center">
+                                <div 
+                                    className={`w-full min-h-full flex ${zoomLevel === 1 ? 'items-center justify-center' : 'items-start justify-start'} p-6`}
+                                    style={{ cursor: zoomLevel > 1 ? 'move' : 'default' }}
+                                >
                                     <img
                                         src={billInfo.file}
                                         alt="Bill Document - Fullscreen"
-                                        className="rounded-lg shadow-2xl transition-transform duration-200"
-                                        style={{
-                                            transform: `scale(${zoomLevel})`,
-                                            maxWidth: zoomLevel <= 1 ? '100%' : 'none',
-                                            maxHeight: zoomLevel <= 1 ? '100%' : 'none'
-                                        }}
+                                        className="h-auto rounded-lg shadow-2xl"
+                                        style={{ width: `${zoomLevel * 100}%` }}
                                     />
                                 </div>
                             )}
