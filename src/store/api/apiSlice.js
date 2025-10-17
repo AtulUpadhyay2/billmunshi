@@ -1,8 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { logOut, setUser, forceLogout } from "./auth/authSlice";
+import { API_CONFIG } from "../../config/api";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "https://billmunshi.com/api/v1/",
+  baseUrl: API_CONFIG.BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const token = localStorage.getItem("access_token");
     if (token) {
