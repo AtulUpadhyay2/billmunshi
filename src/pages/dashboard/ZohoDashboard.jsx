@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetZohoFunnelQuery, useGetZohoOverviewQuery, useGetZohoUsageQuery } from '@/store/api/zoho/zohoDashboardApiSlice';
+import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/hooks/api/zoho/zohoDashboard';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import {
@@ -384,9 +384,8 @@ const ZohoDashboard = () => {
     isLoading: isFunnelLoading,
     isError: isFunnelError,
     error: funnelError
-  } = useGetZohoFunnelQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetZohoFunnel(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   const {
@@ -394,9 +393,8 @@ const ZohoDashboard = () => {
     isLoading: isOverviewLoading,
     isError: isOverviewError,
     error: overviewError
-  } = useGetZohoOverviewQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetZohoOverview(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   const {
@@ -404,9 +402,8 @@ const ZohoDashboard = () => {
     isLoading: isUsageLoading,
     isError: isUsageError,
     error: usageError
-  } = useGetZohoUsageQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetZohoUsage(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   if (!selectedOrganization) {
@@ -439,7 +436,7 @@ const ZohoDashboard = () => {
             Error loading dashboard data
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            {error?.data?.message || error?.message || 'Failed to fetch data'}
+            {error?.message || 'Failed to fetch data'}
           </p>
         </div>
       </Card>

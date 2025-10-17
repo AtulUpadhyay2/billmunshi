@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetTallyFunnelQuery, useGetTallyOverviewQuery, useGetTallyUsageQuery } from '@/store/api/tally/tallyDashboardApiSlice';
+import { useGetTallyFunnel, useGetTallyOverview, useGetTallyUsage } from '@/hooks/api/tally/tallyDashboard';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import {
@@ -377,9 +377,8 @@ const TallyDashboard = () => {
     isLoading: isFunnelLoading,
     isError: isFunnelError,
     error: funnelError
-  } = useGetTallyFunnelQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetTallyFunnel(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   const {
@@ -387,9 +386,8 @@ const TallyDashboard = () => {
     isLoading: isOverviewLoading,
     isError: isOverviewError,
     error: overviewError
-  } = useGetTallyOverviewQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetTallyOverview(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   const {
@@ -397,9 +395,8 @@ const TallyDashboard = () => {
     isLoading: isUsageLoading,
     isError: isUsageError,
     error: usageError
-  } = useGetTallyUsageQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-    refetchOnMountOrArgChange: true,
+  } = useGetTallyUsage(selectedOrganization?.id, {
+    refetchOnMount: true,
   });
 
   if (!selectedOrganization) {
@@ -432,7 +429,7 @@ const TallyDashboard = () => {
             Error loading dashboard data
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            {error?.data?.message || error?.message || 'Failed to fetch data'}
+            {error?.message || 'Failed to fetch data'}
           </p>
         </div>
       </Card>
