@@ -456,8 +456,8 @@ const ZohoVendorBillDetail = () => {
             // Show success toast
             globalToast.success('Vendor bill verified successfully!');
             
-            setVerificationStatus('success');
-            setVerificationMessage('Vendor bill verified successfully');
+            // setVerificationStatus('success');
+            // setVerificationMessage('Vendor bill verified successfully');
             
             // Redirect to vendor bill list after a short delay
             setTimeout(() => {
