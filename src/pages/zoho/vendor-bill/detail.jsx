@@ -102,6 +102,9 @@ const ZohoVendorBillDetail = () => {
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
     
+    // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
+    const isVerified = vendorBillData?.status === 'Verified' || vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
+    
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.analysed_data) {
@@ -609,9 +612,9 @@ const ZohoVendorBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleVerification}
-                            disabled={isVerifying || !selectedOrganization?.id}
-                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Verify Bill"
+                            disabled={isVerifying || isVerified || !selectedOrganization?.id}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            title={isVerified ? "Bill already verified/synced/posted" : "Verify Bill"}
                         >
                             {isVerifying ? (
                                 <>
@@ -820,6 +823,7 @@ const ZohoVendorBillDetail = () => {
                                                         searchPlaceholder="Search vendors..."
                                                         loading={vendorsLoading}
                                                         loadingMessage="Loading vendors..."
+                                                        disabled={isVerified}
                                                         noOptionsMessage="No vendors found"
                                                         renderOption={(option) => (
                                                             <div>
@@ -857,6 +861,7 @@ const ZohoVendorBillDetail = () => {
                                                     onChange={(e) => handleFormChange('vendorName', e.target.value)}
                                                     placeholder="Enter vendor name"
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                    disabled={isVerified}
                                                 />
                                             )}
                                         </div>
@@ -873,6 +878,7 @@ const ZohoVendorBillDetail = () => {
                                                 onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
                                                 placeholder="Enter invoice number"
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                disabled={isVerified}
                                             />
                                         </div>
                                     </div>
@@ -895,6 +901,7 @@ const ZohoVendorBillDetail = () => {
                                                 placeholder="Enter GST number"
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
                                                 readOnly={zohoData?.vendor === null && vendorForm.selectedVendor}
+                                                disabled={isVerified}
                                             />
                                             {zohoData?.vendor === null && vendorForm.selectedVendor && (
                                                 <p className="mt-1 text-xs">
@@ -914,6 +921,7 @@ const ZohoVendorBillDetail = () => {
                                                 value={vendorForm.dateIssued}
                                                 onChange={(e) => handleFormChange('dateIssued', e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                disabled={isVerified}
                                             />
                                         </div>
 
@@ -928,6 +936,7 @@ const ZohoVendorBillDetail = () => {
                                                 value={vendorForm.dueDate}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                disabled={isVerified}
                                             />
                                         </div>
                                     </div>
@@ -1004,6 +1013,7 @@ const ZohoVendorBillDetail = () => {
                                                                     placeholder="Enter item details..."
                                                                     className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none"
                                                                     rows={2}
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1022,6 +1032,7 @@ const ZohoVendorBillDetail = () => {
                                                                     loading={chartOfAccountsLoading}
                                                                     loadingMessage="Loading accounts..."
                                                                     noOptionsMessage="No accounts found"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1040,6 +1051,7 @@ const ZohoVendorBillDetail = () => {
                                                                     loading={taxesLoading}
                                                                     loadingMessage="Loading taxes..."
                                                                     noOptionsMessage="No taxes found"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1050,6 +1062,7 @@ const ZohoVendorBillDetail = () => {
                                                                     checked={product.reverse_charge_tax_id}
                                                                     onChange={(e) => handleProductChange(index, 'reverse_charge_tax_id', e.target.checked)}
                                                                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1064,6 +1077,7 @@ const ZohoVendorBillDetail = () => {
                                                                     searchPlaceholder="Search eligibility..."
                                                                     optionLabelKey="label"
                                                                     optionValueKey="value"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1077,6 +1091,7 @@ const ZohoVendorBillDetail = () => {
                                                                     className="w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                     min="0"
                                                                     step="0.01"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1090,6 +1105,7 @@ const ZohoVendorBillDetail = () => {
                                                                     className="w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                     min="0"
                                                                     step="1"
+                                                                    disabled={isVerified}
                                                                 />
                                                             </td>
 
@@ -1102,11 +1118,12 @@ const ZohoVendorBillDetail = () => {
 
                                                             {/* Actions */}
                                                             <td className="px-4 py-3 text-center">
-                                                                {products.length > 1 && (
+                                                                {products.length > 1 && !isVerified && (
                                                                     <button
                                                                         onClick={() => removeProduct(index)}
                                                                         className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
                                                                         title="Remove Product"
+                                                                        disabled={isVerified}
                                                                     >
                                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1163,6 +1180,7 @@ const ZohoVendorBillDetail = () => {
                                                         checked={vendorForm.is_tax === 'NOT_APPLICABLE' || !vendorForm.is_tax}
                                                         onChange={(e) => handleFormChange('is_tax', e.target.value)}
                                                         className="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 focus:ring-gray-500 focus:ring-2 transition-colors"
+                                                        disabled={isVerified}
                                                     />
                                                     <label htmlFor="tax-not-applicable" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
                                                         <span className="font-semibold text-gray-600">Not Applicable</span>
@@ -1178,6 +1196,7 @@ const ZohoVendorBillDetail = () => {
                                                         checked={vendorForm.is_tax === 'TDS'}
                                                         onChange={(e) => handleFormChange('is_tax', e.target.value)}
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
+                                                        disabled={isVerified}
                                                     />
                                                     <label htmlFor="tax-tds" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
                                                         <span className="font-semibold text-blue-600">TDS</span>
@@ -1193,6 +1212,7 @@ const ZohoVendorBillDetail = () => {
                                                         checked={vendorForm.is_tax === 'TCS'}
                                                         onChange={(e) => handleFormChange('is_tax', e.target.value)}
                                                         className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
+                                                        disabled={isVerified}
                                                     />
                                                     <label htmlFor="tax-tcs" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
                                                         <span className="font-semibold text-green-600">TCS</span>
@@ -1224,6 +1244,7 @@ const ZohoVendorBillDetail = () => {
                                                     loading={tdsTcsLoading}
                                                     loadingMessage={`Loading ${vendorForm.is_tax} rates...`}
                                                     noOptionsMessage={`No ${vendorForm.is_tax} rates found`}
+                                                    disabled={isVerified}
                                                     renderOption={(option) => (
                                                         <div>
                                                             <div className="font-medium">{option.taxName}</div>
@@ -1283,6 +1304,7 @@ const ZohoVendorBillDetail = () => {
                                                         onChange={e => handleBillSummaryChange('subtotal', e.target.value)}
                                                         placeholder="0.00"
                                                         className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        disabled={isVerified}
                                                     />
                                                 </div>
                                             </div>
@@ -1297,6 +1319,7 @@ const ZohoVendorBillDetail = () => {
                                                         onChange={e => handleBillSummaryChange('cgst', e.target.value)}
                                                         placeholder="0.00"
                                                         className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        disabled={isVerified}
                                                     />
                                                 </div>
                                             </div>
@@ -1311,6 +1334,7 @@ const ZohoVendorBillDetail = () => {
                                                         onChange={e => handleBillSummaryChange('sgst', e.target.value)}
                                                         placeholder="0.00"
                                                         className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        disabled={isVerified}
                                                     />
                                                 </div>
                                             </div>
@@ -1325,6 +1349,7 @@ const ZohoVendorBillDetail = () => {
                                                         onChange={e => handleBillSummaryChange('igst', e.target.value)}
                                                         placeholder="0.00"
                                                         className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        disabled={isVerified}
                                                     />
                                                 </div>
                                             </div>
@@ -1344,6 +1369,7 @@ const ZohoVendorBillDetail = () => {
                                                             onChange={e => handleBillSummaryChange('total', e.target.value)}
                                                             placeholder="0.00"
                                                             className="w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            disabled={isVerified}
                                                         />
                                                     </div>
                                                     <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
@@ -1366,6 +1392,7 @@ const ZohoVendorBillDetail = () => {
                                         className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
                                         placeholder="Add notes or comments..."
                                         rows={4}
+                                        disabled={isVerified}
                                     />
                                 </div>
                             </div>

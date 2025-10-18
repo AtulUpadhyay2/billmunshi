@@ -101,8 +101,9 @@ const ZohoExpenseBillDetail = () => {
     const analysedData = expenseBillData?.analysed_data || {};
     const zohoBillData = expenseBillData?.zoho_bill || {};
     
-    // Check if bill is verified (disable inputs if verified)
-    const isVerified = billInfo?.status === 'Verified' || zohoBillData?.bill_status === 'Verified';
+    // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
+    const isVerified = billInfo?.status === 'Verified' || billInfo?.status === 'Synced' || billInfo?.status === 'Posted' ||
+                       zohoBillData?.bill_status === 'Verified' || zohoBillData?.bill_status === 'Synced' || zohoBillData?.bill_status === 'Posted';
     
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;
@@ -509,7 +510,7 @@ const ZohoExpenseBillDetail = () => {
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerifying ? "Verifying..." : isVerified ? "Already Verified" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already verified/synced/posted" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">

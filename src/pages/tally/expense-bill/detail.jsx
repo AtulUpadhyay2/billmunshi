@@ -112,8 +112,10 @@ const TallyExpenseBillDetail = () => {
     const analysedData = billInfo?.analysed_data || {};
     const tallyAnalysedData = expenseBillData?.analyzed_data || {};
 
-    // Check if bill is verified (disable inputs if verified)
-    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
+    // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
+    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified' ||
+                       billInfo?.status === 'Synced' || billInfo?.bill_status === 'Synced' ||
+                       billInfo?.status === 'Posted' || billInfo?.bill_status === 'Posted';
 
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;

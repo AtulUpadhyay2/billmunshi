@@ -128,8 +128,10 @@ const TallyVendorBillDetail = () => {
     const analysedData = useMemo(() => billInfo?.analysed_data || {}, [billInfo]);
     const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_data || {}, [vendorBillData]);
     
-    // Check if bill is verified (disable inputs if verified)
-    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified';
+    // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
+    const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified' ||
+                       billInfo?.status === 'Synced' || billInfo?.bill_status === 'Synced' ||
+                       billInfo?.status === 'Posted' || billInfo?.bill_status === 'Posted';
     
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
