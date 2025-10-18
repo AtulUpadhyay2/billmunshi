@@ -1286,9 +1286,9 @@ const TallyVendorBillDetail = () => {
                                                         {vendor.gst_in && (
                                                             <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
                                                         )}
-                                                        {vendor.parent_name && (
+                                                        {/* {vendor.parent_name && (
                                                             <div className="text-xs text-blue-600">{vendor.parent_name}</div>
-                                                        )}
+                                                        )} */}
                                                     </div>
                                                 )}
                                                 className="mb-2"
@@ -1436,15 +1436,6 @@ const TallyVendorBillDetail = () => {
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
                                                             GST %
                                                         </th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[90px]">
-                                                            IGST
-                                                        </th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[90px]">
-                                                            CGST
-                                                        </th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[90px]">
-                                                            SGST
-                                                        </th>
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
                                                             Actions
                                                         </th>
@@ -1473,10 +1464,6 @@ const TallyVendorBillDetail = () => {
                                                                             {stockItem.alias !== "0" && stockItem.alias && (
                                                                                 <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
                                                                             )}
-                                                                            <div className="text-xs text-gray-500 flex gap-2">
-                                                                                <span>Unit: {stockItem.unit}</span>
-                                                                                <span>Category: {stockItem.category}</span>
-                                                                            </div>
                                                                         </div>
                                                                     )}
                                                                     className="item-name-dropdown"
@@ -1511,12 +1498,6 @@ const TallyVendorBillDetail = () => {
                                                                     renderOption={(taxLedger) => (
                                                                         <div className="flex flex-col py-1">
                                                                             <div className="font-medium text-gray-900">{taxLedger.name}</div>
-                                                                            {taxLedger.parent_name && (
-                                                                                <div className="text-xs text-blue-600">{taxLedger.parent_name}</div>
-                                                                            )}
-                                                                            {taxLedger.opening_balance && parseFloat(taxLedger.opening_balance) !== 0 && (
-                                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(taxLedger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                            )}
                                                                         </div>
                                                                     )}
                                                                     className="tax-ledger-dropdown"
@@ -1567,56 +1548,21 @@ const TallyVendorBillDetail = () => {
 
                                                             {/* GST % */}
                                                             <td className="px-4 py-3">
-                                                                <input
-                                                                    type="text"
+                                                                <select
                                                                     value={product.gst || ''}
                                                                     onChange={(e) => handleProductChange(index, 'gst', e.target.value)}
-                                                                    placeholder="0.00%"
                                                                     disabled={isVerified}
                                                                     className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                />
-                                                            </td>
-
-                                                            {/* IGST */}
-                                                            <td className="px-4 py-3">
-                                                                <input
-                                                                    type="number"
-                                                                    value={product.igst || 0.0}
-                                                                    onChange={(e) => handleProductChange(index, 'igst', parseFloat(e.target.value) || 0.0)}
-                                                                    placeholder="0.00"
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                />
-                                                            </td>
-
-                                                            {/* CGST */}
-                                                            <td className="px-4 py-3">
-                                                                <input
-                                                                    type="number"
-                                                                    value={product.cgst || 0.0}
-                                                                    onChange={(e) => handleProductChange(index, 'cgst', parseFloat(e.target.value) || 0.0)}
-                                                                    placeholder="0.00"
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                />
-                                                            </td>
-
-                                                            {/* SGST */}
-                                                            <td className="px-4 py-3">
-                                                                <input
-                                                                    type="number"
-                                                                    value={product.sgst || 0.0}
-                                                                    onChange={(e) => handleProductChange(index, 'sgst', parseFloat(e.target.value) || 0.0)}
-                                                                    placeholder="0.00"
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                />
+                                                                >
+                                                                    <option value="">Select GST</option>
+                                                                    <option value="0%">0%</option>
+                                                                    <option value="5%">5%</option>
+                                                                    <option value="12%">12%</option>
+                                                                    <option value="18%">18%</option>
+                                                                    <option value="28%">28%</option>
+                                                                    <option value="Exempted">Exempted</option>
+                                                                    <option value="N/A">N/A</option>
+                                                                </select>
                                                             </td>
 
                                                             {/* Actions */}
