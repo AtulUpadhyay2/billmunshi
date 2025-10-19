@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import {
-  useGetTallyVendorBillsQuery,
-  useUpdateTallyVendorBillMutation,
-  useDeleteTallyVendorBillMutation,
-  useUploadTallyVendorBillsMutation,
-  useAnalyzeTallyVendorBillMutation,
-  useSyncTallyVendorBillMutation
-} from '@/store/api/tally/vendorBillsApiSlice';
+  useGetTallyVendorBills,
+  useUpdateTallyVendorBill,
+  useDeleteTallyVendorBill,
+  useUploadTallyVendorBills,
+  useAnalyzeTallyVendorBill,
+  useSyncTallyVendorBill
+} from '@/hooks/api/tally/tallyVendorBillService';
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
@@ -31,14 +31,14 @@ const TallyVendorBill = () => {
     return params;
   };
 
-  const { data: vendorBillsData, error, isLoading, refetch, isFetching } = useGetTallyVendorBillsQuery(getQueryParams(), {
-    skip: !selectedOrganization?.id,
+  const { data: vendorBillsData, error, isLoading, refetch, isFetching } = useGetTallyVendorBills(getQueryParams(), {
+    enabled: !!selectedOrganization?.id,
   });
-  const [updateVendorBill] = useUpdateTallyVendorBillMutation();
-  const [deleteVendorBill] = useDeleteTallyVendorBillMutation();
-  const [uploadVendorBills] = useUploadTallyVendorBillsMutation();
-  const [analyzeVendorBill] = useAnalyzeTallyVendorBillMutation();
-  const [syncVendorBill] = useSyncTallyVendorBillMutation();
+  const { mutateAsync: updateVendorBill } = useUpdateTallyVendorBill();
+  const { mutateAsync: deleteVendorBill } = useDeleteTallyVendorBill();
+  const { mutateAsync: uploadVendorBills } = useUploadTallyVendorBills();
+  const { mutateAsync: analyzeVendorBill } = useAnalyzeTallyVendorBill();
+  const { mutateAsync: syncVendorBill } = useSyncTallyVendorBill();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
@@ -70,7 +70,7 @@ const TallyVendorBill = () => {
             await analyzeVendorBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Bill analysis started successfully');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -83,7 +83,7 @@ const TallyVendorBill = () => {
           }
           break;
         case 'verify':
-          await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
+          await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' });
           globalToast.success('Bill verification completed');
           break;
         case 'sync':
@@ -93,7 +93,7 @@ const TallyVendorBill = () => {
             await syncVendorBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Bill synced to Tally');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -125,7 +125,7 @@ const TallyVendorBill = () => {
             // Set loading state
             setDeletingBills(prev => new Set([...prev, billId]));
             try {
-              await deleteVendorBill({ organizationId: selectedOrganization?.id, id: billId }).unwrap();
+              await deleteVendorBill({ organizationId: selectedOrganization?.id, id: billId });
               globalToast.success('Bill deleted successfully');
               Swal.fire(
                 'Deleted!',
@@ -147,7 +147,7 @@ const TallyVendorBill = () => {
       }
     } catch (error) {
       console.error('Action failed:', error);
-      globalToast.error(error?.data?.message || `Failed to ${action} bill`);
+      globalToast.error(error?.response?.data?.message || error?.message || `Failed to ${action} bill`);
     }
   };
 
@@ -176,12 +176,12 @@ const TallyVendorBill = () => {
 
   const handleUpload = async (formData) => {
     try {
-      await uploadVendorBills({ organizationId: selectedOrganization?.id, formData }).unwrap();
+      await uploadVendorBills({ organizationId: selectedOrganization?.id, formData });
       globalToast.success('Bills uploaded successfully');
       refetch(); // Refresh the list
     } catch (error) {
       console.error('Upload failed:', error);
-      globalToast.error(error?.data?.message || 'Failed to upload bills');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
     }
   };
 

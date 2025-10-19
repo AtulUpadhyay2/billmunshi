@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation, useVerifyTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
+import { useGetTallyVendorBillDetails, useUpdateTallyVendorBill, useVerifyTallyVendorBill } from "@/hooks/api/tally/tallyVendorBillService";
 import { useGetTallyLedgers, useGetTallyVendorLedgers, useGetTallyTaxLedgers, useGetTallyCgstLedgers, useGetTallySgstLedgers, useGetTallyIgstLedgers, useGetTallyMasters } from "@/hooks/api/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -70,9 +70,9 @@ const TallyVendorBillDetail = () => {
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
     
     // Fetch vendor bill details
-    const { data: vendorBillData, error, isLoading, refetch } = useGetTallyVendorBillDetailsQuery(
+    const { data: vendorBillData, error, isLoading, refetch } = useGetTallyVendorBillDetails(
         { organizationId: selectedOrganization?.id, billId },
-        { skip: !selectedOrganization?.id || !billId }
+        { enabled: !!selectedOrganization?.id && !!billId }
     );
 
     // Fetch ledgers for dropdown (available for Tally)
@@ -118,10 +118,10 @@ const TallyVendorBillDetail = () => {
     );
 
     // Update mutation
-    const [updateVendorBill] = useUpdateTallyVendorBillMutation();
+    const { mutateAsync: updateVendorBill } = useUpdateTallyVendorBill();
     
     // Verify mutation
-    const [verifyVendorBill] = useVerifyTallyVendorBillMutation();
+    const { mutateAsync: verifyVendorBill } = useVerifyTallyVendorBill();
 
     // Extract data from the API response - Memoized to prevent recreating objects on every render
     const billInfo = useMemo(() => vendorBillData?.bill || {}, [vendorBillData]);
@@ -900,7 +900,7 @@ const TallyVendorBillDetail = () => {
             await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
                 ...verifyData
-            }).unwrap();
+            });
 
             globalToast.success('Vendor bill verified successfully');
             
@@ -908,7 +908,7 @@ const TallyVendorBillDetail = () => {
             navigate('/tally/vendor-bill');
         } catch (error) {
             console.error('Failed to verify vendor bill:', error);
-            globalToast.error(error?.data?.message || 'Failed to verify vendor bill');
+            globalToast.error(error?.response?.data?.message || error?.message || 'Failed to verify vendor bill');
         } finally {
             setIsVerifying(false);
         }
