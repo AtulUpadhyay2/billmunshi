@@ -1,7 +1,7 @@
 import React from 'react'
 import Card from "@/components/ui/Card";
 import { useSelector } from "react-redux";
-import { useGetTallyConfigsQuery } from "@/store/api/tally/tallyApiSlice";
+import { useGetTallyConfigs } from "@/hooks/api/tally/tallyApiService";
 import { toast } from "react-toastify";
 
 const TallySetup = () => {
@@ -12,8 +12,8 @@ const TallySetup = () => {
         isLoading,
         error,
         refetch
-    } = useGetTallyConfigsQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id,
+    } = useGetTallyConfigs(selectedOrganization?.id, {
+        enabled: !!selectedOrganization?.id,
     });
 
     // Extract the first config from results array

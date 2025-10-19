@@ -1,7 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import Card from '@/components/ui/Card'
-import { useGetTallyMastersQuery } from '@/store/api/tally/tallyApiSlice'
+import { useGetTallyMasters } from '@/hooks/api/tally/tallyApiService'
 
 const TallyMaster = () => {
     const { selectedOrganization } = useSelector((state) => state.auth)
@@ -12,8 +12,8 @@ const TallyMaster = () => {
         isError,
         error,
         refetch
-    } = useGetTallyMastersQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id
+    } = useGetTallyMasters(selectedOrganization?.id, {
+        enabled: !!selectedOrganization?.id
     })
 
     if (isLoading) {
@@ -44,7 +44,7 @@ const TallyMaster = () => {
                             <div className="text-red-600">
                                 <p className="text-xl font-semibold">Failed to load masters data</p>
                                 <p className="text-sm text-slate-500 mt-2">
-                                    {error?.data?.message || error?.message || 'An error occurred while fetching masters data'}
+                                    {error?.response?.data?.message || error?.message || 'An error occurred while fetching masters data'}
                                 </p>
                             </div>
                             <button

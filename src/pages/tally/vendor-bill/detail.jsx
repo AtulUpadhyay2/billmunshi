@@ -5,7 +5,7 @@ import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetTallyVendorBillDetailsQuery, useUpdateTallyVendorBillMutation, useVerifyTallyVendorBillMutation } from "@/store/api/tally/vendorBillsApiSlice";
-import { useGetTallyLedgersQuery, useGetTallyVendorLedgersQuery, useGetTallyTaxLedgersQuery, useGetTallyCgstLedgersQuery, useGetTallySgstLedgersQuery, useGetTallyIgstLedgersQuery, useGetTallyMastersQuery } from "@/store/api/tally/tallyApiSlice";
+import { useGetTallyLedgers, useGetTallyVendorLedgers, useGetTallyTaxLedgers, useGetTallyCgstLedgers, useGetTallySgstLedgers, useGetTallyIgstLedgers, useGetTallyMasters } from "@/hooks/api/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -76,45 +76,45 @@ const TallyVendorBillDetail = () => {
     );
 
     // Fetch ledgers for dropdown (available for Tally)
-    const { data: ledgersData, isLoading: ledgersLoading } = useGetTallyLedgersQuery(
+    const { data: ledgersData, isLoading: ledgersLoading } = useGetTallyLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch vendor ledgers for vendor selection dropdown
-    const { data: vendorLedgersData, isLoading: vendorLedgersLoading } = useGetTallyVendorLedgersQuery(
+    const { data: vendorLedgersData, isLoading: vendorLedgersLoading } = useGetTallyVendorLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch tax ledgers for product tax selection dropdown
-    const { data: taxLedgersData, isLoading: taxLedgersLoading } = useGetTallyTaxLedgersQuery(
+    const { data: taxLedgersData, isLoading: taxLedgersLoading } = useGetTallyTaxLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch CGST ledgers for CGST dropdown
-    const { data: cgstLedgersData, isLoading: cgstLedgersLoading } = useGetTallyCgstLedgersQuery(
+    const { data: cgstLedgersData, isLoading: cgstLedgersLoading } = useGetTallyCgstLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch SGST ledgers for SGST dropdown
-    const { data: sgstLedgersData, isLoading: sgstLedgersLoading } = useGetTallySgstLedgersQuery(
+    const { data: sgstLedgersData, isLoading: sgstLedgersLoading } = useGetTallySgstLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch IGST ledgers for IGST dropdown
-    const { data: igstLedgersData, isLoading: igstLedgersLoading } = useGetTallyIgstLedgersQuery(
+    const { data: igstLedgersData, isLoading: igstLedgersLoading } = useGetTallyIgstLedgers(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Fetch masters data for item name dropdown
-    const { data: mastersData, isLoading: mastersLoading } = useGetTallyMastersQuery(
+    const { data: mastersData, isLoading: mastersLoading } = useGetTallyMasters(
         selectedOrganization?.id,
-        { skip: !selectedOrganization?.id }
+        { enabled: !!selectedOrganization?.id }
     );
 
     // Update mutation

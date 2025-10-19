@@ -1,19 +1,19 @@
 import React from "react";
 import Card from "@/components/ui/Card";
 import { useSelector } from "react-redux";
-import { useGetHelpDataQuery } from "@/store/api/tally/helpSlice";
+import { useGetHelpData } from "@/hooks/api/tally/tallyApiService";
 
 const Help = () => {
     const { selectedOrganization } = useSelector((state) => state.auth);
 
-    // RTK Query hooks
+    // TanStack Query hooks
     const {
         data: helpData,
         isLoading,
         error,
         refetch
-    } = useGetHelpDataQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id,
+    } = useGetHelpData(selectedOrganization?.id, {
+        enabled: !!selectedOrganization?.id,
     });
 
     if (!selectedOrganization) {

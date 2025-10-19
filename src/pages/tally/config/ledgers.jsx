@@ -5,13 +5,13 @@ import Badge from "@/components/ui/Badge";
 import Loading from "@/components/Loading";
 import Textinput from "@/components/ui/Textinput";
 import Icon from "@/components/ui/Icon";
-import { useGetTallyLedgersQuery } from '@/store/api/tally/tallyApiSlice';
+import { useGetTallyLedgers } from '@/hooks/api/tally/tallyApiService';
 import { globalToast } from "@/utils/toast";
 
 const Ledgers = () => {
   const { selectedOrganization } = useSelector((state) => state.auth);
-  const { data: ledgersData, error, isLoading, refetch } = useGetTallyLedgersQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
+  const { data: ledgersData, error, isLoading, refetch } = useGetTallyLedgers(selectedOrganization?.id, {
+    enabled: !!selectedOrganization?.id,
   });
 
   const [expandedParents, setExpandedParents] = useState(new Set());
