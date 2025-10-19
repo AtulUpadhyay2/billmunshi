@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetZohoExpenseBillDetailsQuery, useVerifyZohoExpenseBillMutation } from "@/store/api/zoho/expenseBillsApiSlice";
+import { useGetZohoExpenseBillDetails, useVerifyZohoExpenseBill } from "@/hooks/api/zoho/zohoExpenseBillService";
 import { useGetVendors, useGetChartOfAccounts, useGetTaxes, useGetTdsTcs } from "@/hooks/api/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -60,13 +60,13 @@ const ZohoExpenseBillDetail = () => {
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
     
     // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/expense-bills/{bill_id}/details/
-    const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillDetailsQuery(
+    const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillDetails(
         { organizationId: selectedOrganization?.id, billId },
-        { skip: !selectedOrganization?.id || !billId }
+        { enabled: !!selectedOrganization?.id && !!billId }
     );
 
     // Verify expense bill mutation
-    const [verifyExpenseBill] = useVerifyZohoExpenseBillMutation();
+    const { mutateAsync: verifyExpenseBill } = useVerifyZohoExpenseBill();
 
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
@@ -380,7 +380,7 @@ const ZohoExpenseBillDetail = () => {
                 organizationId: selectedOrganization?.id,
                 bill_id: billId,
                 ...verifyData
-            }).unwrap();
+            });
 
             globalToast.success('Expense bill verified successfully!');
             
@@ -394,21 +394,21 @@ const ZohoExpenseBillDetail = () => {
             // Handle different types of error responses
             let errorMessage = 'Verification failed';
             
-            if (error?.data) {
+            if (error?.response?.data) {
                 // Check if it's a debit/credit balance error
-                if (error.data.detail && error.data.debit_total !== undefined && error.data.credit_total !== undefined) {
-                    errorMessage = error.data.detail;
+                if (error.response.data.detail && error.response.data.debit_total !== undefined && error.response.data.credit_total !== undefined) {
+                    errorMessage = error.response.data.detail;
                     
                     // Add additional context for debit/credit errors
-                    if (error.data.difference !== undefined) {
-                        errorMessage += `\n\nBalance Details:\n• Debit Total: ₹${parseFloat(error.data.debit_total).toLocaleString()}\n• Credit Total: ₹${parseFloat(error.data.credit_total).toLocaleString()}\n• Difference: ₹${parseFloat(error.data.difference).toLocaleString()}`;
+                    if (error.response.data.difference !== undefined) {
+                        errorMessage += `\n\nBalance Details:\n• Debit Total: ₹${parseFloat(error.response.data.debit_total).toLocaleString()}\n• Credit Total: ₹${parseFloat(error.response.data.credit_total).toLocaleString()}\n• Difference: ₹${parseFloat(error.response.data.difference).toLocaleString()}`;
                     }
-                } else if (error.data.message) {
-                    errorMessage = error.data.message;
-                } else if (error.data.detail) {
-                    errorMessage = error.data.detail;
-                } else if (typeof error.data === 'string') {
-                    errorMessage = error.data;
+                } else if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.response.data.detail) {
+                    errorMessage = error.response.data.detail;
+                } else if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
                 }
             } else if (error?.message) {
                 errorMessage = error.message;

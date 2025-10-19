@@ -6,13 +6,13 @@ import FileViewerModal from "@/components/modals/FileViewerModal";
 import { globalToast } from "@/utils/toast";
 import { useSelector } from "react-redux";
 import {
-  useGetZohoExpenseBillsQuery,
-  useUpdateZohoExpenseBillMutation,
-  useDeleteZohoExpenseBillMutation,
-  useUploadZohoExpenseBillsMutation,
-  useAnalyzeZohoExpenseBillMutation,
-  useSyncZohoExpenseBillMutation
-} from '@/store/api/zoho/expenseBillsApiSlice';
+  useGetZohoExpenseBills,
+  useUpdateZohoExpenseBill,
+  useDeleteZohoExpenseBill,
+  useUploadZohoExpenseBills,
+  useAnalyzeZohoExpenseBill,
+  useSyncZohoExpenseBill
+} from '@/hooks/api/zoho/zohoExpenseBillService';
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
 
@@ -31,14 +31,12 @@ const ZohoExpenseBill = () => {
     return params;
   };
 
-  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetZohoExpenseBillsQuery(getQueryParams(), {
-    skip: !selectedOrganization?.id,
-  });
-  const [updateExpenseBill] = useUpdateZohoExpenseBillMutation();
-  const [deleteExpenseBill] = useDeleteZohoExpenseBillMutation();
-  const [uploadExpenseBills] = useUploadZohoExpenseBillsMutation();
-  const [analyzeExpenseBill] = useAnalyzeZohoExpenseBillMutation();
-  const [syncExpenseBill] = useSyncZohoExpenseBillMutation();
+  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetZohoExpenseBills(getQueryParams());
+  const { mutateAsync: updateExpenseBill } = useUpdateZohoExpenseBill();
+  const { mutateAsync: deleteExpenseBill } = useDeleteZohoExpenseBill();
+  const { mutateAsync: uploadExpenseBills } = useUploadZohoExpenseBills();
+  const { mutateAsync: analyzeExpenseBill } = useAnalyzeZohoExpenseBill();
+  const { mutateAsync: syncExpenseBill } = useSyncZohoExpenseBill();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
@@ -70,7 +68,7 @@ const ZohoExpenseBill = () => {
             await analyzeExpenseBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Expense Bill analyzed successfully');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -83,7 +81,7 @@ const ZohoExpenseBill = () => {
           }
           break;
         case 'verify':
-          await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
+          await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' });
           globalToast.success('Expense Bill verification completed');
           break;
         case 'sync':
@@ -93,7 +91,7 @@ const ZohoExpenseBill = () => {
             await syncExpenseBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Bill synced to Zoho');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -125,7 +123,7 @@ const ZohoExpenseBill = () => {
             // Set loading state
             setDeletingBills(prev => new Set([...prev, billId]));
             try {
-              await deleteExpenseBill({ organizationId: selectedOrganization?.id, id: billId }).unwrap();
+              await deleteExpenseBill({ organizationId: selectedOrganization?.id, id: billId });
               globalToast.success('Bill deleted successfully');
               Swal.fire(
                 'Deleted!',
@@ -147,7 +145,7 @@ const ZohoExpenseBill = () => {
       }
     } catch (error) {
       console.error('Action failed:', error);
-      globalToast.error(error?.data?.message || `Failed to ${action} bill`);
+      globalToast.error(error?.response?.data?.message || error?.message || `Failed to ${action} bill`);
     }
   };
 
@@ -176,12 +174,12 @@ const ZohoExpenseBill = () => {
 
   const handleUpload = async (formData) => {
     try {
-      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData }).unwrap();
+      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData });
       globalToast.success('Bills uploaded successfully');
       refetch(); // Refresh the list
     } catch (error) {
       console.error('Upload failed:', error);
-      globalToast.error(error?.data?.message || 'Failed to upload bills');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
     }
   };
 
