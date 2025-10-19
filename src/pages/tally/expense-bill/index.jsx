@@ -6,13 +6,13 @@ import FileViewerModal from "@/components/modals/FileViewerModal";
 import { globalToast } from "@/utils/toast";
 import { useSelector } from "react-redux";
 import {
-  useGetTallyExpenseBillsQuery,
-  useUpdateTallyExpenseBillMutation,
-  useDeleteTallyExpenseBillMutation,
-  useUploadTallyExpenseBillsMutation,
-  useAnalyzeTallyExpenseBillMutation,
-  useSyncTallyExpenseBillMutation
-} from '@/store/api/tally/expenseBillsApiSlice';
+  useGetTallyExpenseBills,
+  useUpdateTallyExpenseBill,
+  useDeleteTallyExpenseBill,
+  useUploadTallyExpenseBills,
+  useAnalyzeTallyExpenseBill,
+  useSyncTallyExpenseBill
+} from '@/hooks/api/tally/tallyExpenseBillService';
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
 
@@ -31,14 +31,14 @@ const TallyExpenseBill = () => {
     return params;
   };
 
-  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetTallyExpenseBillsQuery(getQueryParams(), {
-    skip: !selectedOrganization?.id,
+  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetTallyExpenseBills(getQueryParams(), {
+    enabled: !!selectedOrganization?.id,
   });
-  const [updateExpenseBill] = useUpdateTallyExpenseBillMutation();
-  const [deleteExpenseBill] = useDeleteTallyExpenseBillMutation();
-  const [uploadExpenseBills] = useUploadTallyExpenseBillsMutation();
-  const [analyzeExpenseBill] = useAnalyzeTallyExpenseBillMutation();
-  const [syncExpenseBill] = useSyncTallyExpenseBillMutation();
+  const { mutateAsync: updateExpenseBill } = useUpdateTallyExpenseBill();
+  const { mutateAsync: deleteExpenseBill } = useDeleteTallyExpenseBill();
+  const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
+  const { mutateAsync: analyzeExpenseBill } = useAnalyzeTallyExpenseBill();
+  const { mutateAsync: syncExpenseBill } = useSyncTallyExpenseBill();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
@@ -70,7 +70,7 @@ const TallyExpenseBill = () => {
             await analyzeExpenseBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Journal entry analyzed successfully');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -83,7 +83,7 @@ const TallyExpenseBill = () => {
           }
           break;
         case 'verify':
-          await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
+          await updateExpenseBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' });
           globalToast.success('Journal entry verification completed');
           break;
         case 'sync':
@@ -93,7 +93,7 @@ const TallyExpenseBill = () => {
             await syncExpenseBill({
               organizationId: selectedOrganization?.id,
               billId
-            }).unwrap();
+            });
             globalToast.success('Bill synced to Tally');
             refetch(); // Refresh the list to show updated status
           } finally {
@@ -125,7 +125,7 @@ const TallyExpenseBill = () => {
             // Set loading state
             setDeletingBills(prev => new Set([...prev, billId]));
             try {
-              await deleteExpenseBill({ organizationId: selectedOrganization?.id, id: billId }).unwrap();
+              await deleteExpenseBill({ organizationId: selectedOrganization?.id, id: billId });
               globalToast.success('Bill deleted successfully');
               Swal.fire(
                 'Deleted!',
@@ -147,7 +147,7 @@ const TallyExpenseBill = () => {
       }
     } catch (error) {
       console.error('Action failed:', error);
-      globalToast.error(error?.data?.message || `Failed to ${action} bill`);
+      globalToast.error(error?.response?.data?.message || error?.message || `Failed to ${action} bill`);
     }
   };
 
@@ -176,12 +176,12 @@ const TallyExpenseBill = () => {
 
   const handleUpload = async (formData) => {
     try {
-      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData }).unwrap();
+      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData });
       globalToast.success('Bills uploaded successfully');
       refetch(); // Refresh the list
     } catch (error) {
       console.error('Upload failed:', error);
-      globalToast.error(error?.data?.message || 'Failed to upload bills');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
     }
   };
 

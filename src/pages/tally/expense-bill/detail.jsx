@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetTallyExpenseBillDetailsQuery, useVerifyTallyExpenseBillMutation } from "@/store/api/tally/expenseBillsApiSlice";
+import { useGetTallyExpenseBillDetails, useVerifyTallyExpenseBill } from "@/hooks/api/tally/tallyExpenseBillService";
 import { useGetTallyVendorLedgers, useGetTallyTaxLedgers, useGetTallyExpenseChartOfAccountsLedgers, useGetTallyCgstLedgers, useGetTallySgstLedgers, useGetTallyIgstLedgers } from "@/hooks/api/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -63,9 +63,9 @@ const TallyExpenseBillDetail = () => {
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
 
     // Fetch expense bill details
-    const { data: expenseBillData, error, isLoading, refetch } = useGetTallyExpenseBillDetailsQuery(
+    const { data: expenseBillData, error, isLoading, refetch } = useGetTallyExpenseBillDetails(
         { organizationId: selectedOrganization?.id, billId },
-        { skip: !selectedOrganization?.id || !billId }
+        { enabled: !!selectedOrganization?.id && !!billId }
     );
 
     // Fetch expense chart of accounts ledgers for Chart of Accounts dropdown
@@ -105,7 +105,7 @@ const TallyExpenseBillDetail = () => {
     );
 
     // Verify mutation
-    const [verifyExpenseBill] = useVerifyTallyExpenseBillMutation();
+    const { mutateAsync: verifyExpenseBill } = useVerifyTallyExpenseBill();
 
     // Extract data from the API response
     const billInfo = expenseBillData?.bill || {};
@@ -692,7 +692,7 @@ const TallyExpenseBillDetail = () => {
             await verifyExpenseBill({
                 organizationId: selectedOrganization?.id,
                 ...verifyData
-            }).unwrap();
+            });
 
             globalToast.success('Expense bill verified successfully');
 
@@ -704,18 +704,18 @@ const TallyExpenseBillDetail = () => {
             // Handle specific error messages from API response
             let errorMessage = 'Failed to verify expense bill';
 
-            if (error?.data) {
-                // Check if error.data has an 'error' property with the specific message
-                if (error.data.error) {
-                    errorMessage = error.data.error;
+            if (error?.response?.data) {
+                // Check if error.response.data has an 'error' property with the specific message
+                if (error.response.data.error) {
+                    errorMessage = error.response.data.error;
                 }
                 // Fallback to message property
-                else if (error.data.message) {
-                    errorMessage = error.data.message;
+                else if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
                 }
-                // If error.data is a string
-                else if (typeof error.data === 'string') {
-                    errorMessage = error.data;
+                // If error.response.data is a string
+                else if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
                 }
             }
             // Fallback to error message
