@@ -1,7 +1,7 @@
 import React from 'react'
 import Card from "@/components/ui/Card";
 import { useSelector } from "react-redux";
-import { useGetZohoCredentialsQuery, useSyncZohoCredentialsMutation, useGenerateZohoTokenMutation } from "@/store/api/zoho/zohoApiSlice";
+import { useGetZohoCredentials, useSyncZohoCredentials, useGenerateZohoToken } from "@/hooks/api/zoho/zohoApiService";
 import { toast } from "react-toastify";
 
 const ZohoCredentials = () => {
@@ -12,12 +12,10 @@ const ZohoCredentials = () => {
         isLoading,
         error,
         refetch
-    } = useGetZohoCredentialsQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id,
-    });
+    } = useGetZohoCredentials(selectedOrganization?.id);
 
-    const [syncCredentials, { isLoading: isSyncing }] = useSyncZohoCredentialsMutation();
-    const [generateToken, { isLoading: isGenerating }] = useGenerateZohoTokenMutation();
+    const { mutateAsync: syncCredentials, isPending: isSyncing } = useSyncZohoCredentials();
+    const { mutateAsync: generateToken, isPending: isGenerating } = useGenerateZohoToken();
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -26,7 +24,7 @@ const ZohoCredentials = () => {
         }
 
         try {
-            const response = await generateToken(selectedOrganization.id).unwrap();
+            const response = await generateToken(selectedOrganization.id);
             
             if (response.success && response.accessToken && response.refreshToken) {
                 toast.success("Token generated successfully");
@@ -36,7 +34,8 @@ const ZohoCredentials = () => {
             }
         } catch (error) {
             console.error("Generate token error:", error);
-            toast.error(error?.data?.message || "Failed to generate token");
+            const errorMessage = error.response?.data?.message || error.message || "Failed to generate token";
+            toast.error(errorMessage);
         }
     };
 
@@ -89,7 +88,7 @@ const ZohoCredentials = () => {
                                         </svg>
                                         <p className="text-lg font-medium">Failed to load credentials</p>
                                         <p className="text-sm text-slate-500 mt-2">
-                                            {error?.data?.message || error?.message || 'An error occurred while fetching credentials'}
+                                            {error?.response?.data?.message || error?.message || 'An error occurred while fetching credentials'}
                                         </p>
                                     </div>
                                     <button

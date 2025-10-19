@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import Card from "@/components/ui/Card";
-import { useGetTdsTcsQuery, useSyncTdsTcsMutation } from '@/store/api/zoho/zohoApiSlice';
+import { useGetTdsTcs, useSyncTdsTcs } from '@/hooks/api/zoho/zohoApiService';
 import { toast } from "react-toastify";
 
 const TdsTcs = () => {
@@ -15,14 +15,12 @@ const TdsTcs = () => {
         isError,
         error,
         refetch
-    } = useGetTdsTcsQuery({ 
+    } = useGetTdsTcs({ 
         organizationId: selectedOrganization?.id, 
         page: currentPage 
-    }, {
-        skip: !selectedOrganization?.id,
     });
 
-    const [syncTdsTcs] = useSyncTdsTcsMutation();
+    const { mutateAsync: syncTdsTcs } = useSyncTdsTcs();
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -32,13 +30,13 @@ const TdsTcs = () => {
 
         try {
             setIsSyncing(true);
-            await syncTdsTcs(selectedOrganization.id).unwrap();
+            await syncTdsTcs(selectedOrganization.id);
             toast.success("TDS/TCS synced successfully");
             setCurrentPage(1); // Reset to first page after sync
             refetch(); // Refresh the data after sync
         } catch (error) {
             console.error('Sync failed:', error);
-            toast.error(error?.data?.message || "Failed to sync TDS/TCS");
+            toast.error(error?.response?.data?.message || error?.message || "Failed to sync TDS/TCS");
         } finally {
             setIsSyncing(false);
         }

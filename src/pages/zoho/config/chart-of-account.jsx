@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import Card from "@/components/ui/Card";
-import { useGetChartOfAccountsQuery, useSyncChartOfAccountsMutation } from '@/store/api/zoho/zohoApiSlice';
+import { useGetChartOfAccounts, useSyncChartOfAccounts } from '@/hooks/api/zoho/zohoApiService';
 import { toast } from "react-toastify";
 
 const chartOfAccounts = () => {
@@ -15,14 +15,12 @@ const chartOfAccounts = () => {
         isError,
         error,
         refetch
-    } = useGetChartOfAccountsQuery({ 
+    } = useGetChartOfAccounts({ 
         organizationId: selectedOrganization?.id, 
         page: currentPage 
-    }, {
-        skip: !selectedOrganization?.id,
     });
 
-    const [syncChartOfAccounts] = useSyncChartOfAccountsMutation();
+    const { mutateAsync: syncChartOfAccounts } = useSyncChartOfAccounts();
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -32,13 +30,13 @@ const chartOfAccounts = () => {
 
         try {
             setIsSyncing(true);
-            await syncChartOfAccounts(selectedOrganization.id).unwrap();
+            await syncChartOfAccounts(selectedOrganization.id);
             toast.success("Chart of accounts synced successfully");
             setCurrentPage(1); // Reset to first page after sync
             refetch(); // Refresh the data after sync
         } catch (error) {
             console.error('Sync failed:', error);
-            toast.error(error?.data?.message || "Failed to sync chart of accounts");
+            toast.error(error?.response?.data?.message || error?.message || "Failed to sync chart of accounts");
         } finally {
             setIsSyncing(false);
         }

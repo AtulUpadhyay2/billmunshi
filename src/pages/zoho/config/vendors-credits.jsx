@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import Card from "@/components/ui/Card";
-import { useGetVendorCreditsQuery, useSyncVendorCreditsMutation } from '@/store/api/zoho/zohoApiSlice'
+import { useGetVendorCredits, useSyncVendorCredits } from '@/hooks/api/zoho/zohoApiService'
 
 const VendorsCredits = () => {
     const { selectedOrganization } = useSelector(state => state.auth)
@@ -13,11 +13,9 @@ const VendorsCredits = () => {
         isError, 
         error, 
         refetch 
-    } = useGetVendorCreditsQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id
-    })
+    } = useGetVendorCredits(selectedOrganization?.id)
     
-    const [syncVendorCredits, { isLoading: isSyncing }] = useSyncVendorCreditsMutation()
+    const { mutateAsync: syncVendorCredits, isPending: isSyncing } = useSyncVendorCredits()
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -26,11 +24,11 @@ const VendorsCredits = () => {
         }
 
         try {
-            await syncVendorCredits(selectedOrganization.id).unwrap()
+            await syncVendorCredits(selectedOrganization.id)
             toast.success('Vendor credits synced successfully!')
         } catch (error) {
             console.error('Sync failed:', error)
-            toast.error(error?.data?.message || 'Failed to sync vendor credits')
+            toast.error(error?.response?.data?.message || error?.message || 'Failed to sync vendor credits')
         }
     }
 

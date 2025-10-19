@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import Card from "@/components/ui/Card";
-import { useGetTaxesQuery, useSyncTaxesMutation } from '@/store/api/zoho/zohoApiSlice';
+import { useGetTaxes, useSyncTaxes } from '@/hooks/api/zoho/zohoApiService';
 import { toast } from "react-toastify";
 
 const Taxes = () => {
@@ -15,14 +15,12 @@ const Taxes = () => {
         isError,
         error,
         refetch
-    } = useGetTaxesQuery({ 
+    } = useGetTaxes({ 
         organizationId: selectedOrganization?.id, 
         page: currentPage 
-    }, {
-        skip: !selectedOrganization?.id,
     });
 
-    const [syncTaxes] = useSyncTaxesMutation();
+    const { mutateAsync: syncTaxes } = useSyncTaxes();
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -32,13 +30,13 @@ const Taxes = () => {
 
         try {
             setIsSyncing(true);
-            await syncTaxes(selectedOrganization.id).unwrap();
+            await syncTaxes(selectedOrganization.id);
             toast.success("Gst Ledgers synced successfully");
             setCurrentPage(1); // Reset to first page after sync
             refetch(); // Refresh the data after sync
         } catch (error) {
             console.error('Sync failed:', error);
-            toast.error(error?.data?.message || "Failed to sync Gst Ledgers");
+            toast.error(error?.response?.data?.message || error?.message || "Failed to sync Gst Ledgers");
         } finally {
             setIsSyncing(false);
         }

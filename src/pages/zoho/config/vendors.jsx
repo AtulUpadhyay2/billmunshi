@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import Card from "@/components/ui/Card";
-import { useGetVendorsQuery, useSyncVendorsMutation } from '@/store/api/zoho/zohoApiSlice'
+import { useGetVendors, useSyncVendors } from '@/hooks/api/zoho/zohoApiService'
 
 const Vendors = () => {
     const { selectedOrganization } = useSelector(state => state.auth)
@@ -13,11 +13,9 @@ const Vendors = () => {
         isError, 
         error, 
         refetch 
-    } = useGetVendorsQuery(selectedOrganization?.id, {
-        skip: !selectedOrganization?.id
-    })
+    } = useGetVendors(selectedOrganization?.id)
     
-    const [syncVendors, { isLoading: isSyncing }] = useSyncVendorsMutation()
+    const { mutateAsync: syncVendors, isPending: isSyncing } = useSyncVendors()
 
     const handleSync = async () => {
         if (!selectedOrganization?.id) {
@@ -26,11 +24,11 @@ const Vendors = () => {
         }
 
         try {
-            await syncVendors(selectedOrganization.id).unwrap()
+            await syncVendors(selectedOrganization.id)
             toast.success('Vendors synced successfully!')
         } catch (error) {
             console.error('Sync failed:', error)
-            toast.error(error?.data?.message || 'Failed to sync vendors')
+            toast.error(error?.response?.data?.message || error?.message || 'Failed to sync vendors')
         }
     }
 
