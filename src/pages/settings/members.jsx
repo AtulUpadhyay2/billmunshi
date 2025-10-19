@@ -5,7 +5,7 @@ import Badge from "@/components/ui/Badge";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/Loading";
-import { useGetMembersQuery } from "@/store/api/app/membersSlice";
+import { useGetMembers } from "@/hooks/api/memberService";
 import { globalToast } from "@/utils/toast";
 import InviteMemberModal from "@/components/modals/InviteMemberModal";
 
@@ -19,9 +19,7 @@ const Members = () => {
     isError,
     error,
     refetch
-  } = useGetMembersQuery(selectedOrganization?.id, {
-    skip: !selectedOrganization?.id,
-  });
+  } = useGetMembers(selectedOrganization?.id);
 
   // Show error toast if API fails
   React.useEffect(() => {

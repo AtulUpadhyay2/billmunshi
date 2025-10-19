@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetTallyFunnel, useGetTallyOverview, useGetTallyUsage } from '@/hooks/api/tally/tallyDashboard';
+import { useGetTallyFunnel, useGetTallyOverview, useGetTallyUsage } from '@/hooks/api/tally/tallyDashboardService';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import {

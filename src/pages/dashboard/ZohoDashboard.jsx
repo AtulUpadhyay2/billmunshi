@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/hooks/api/zoho/zohoDashboard';
+import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/hooks/api/zoho/zohoDashboardService';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import {

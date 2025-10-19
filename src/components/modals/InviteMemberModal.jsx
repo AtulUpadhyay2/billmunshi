@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import Textinput from "@/components/ui/Textinput";
 import Select from "@/components/ui/Select";
 import Icon from "@/components/ui/Icon";
-import { useInviteMemberMutation } from "@/store/api/app/membersSlice";
+import { useInviteMember } from "@/hooks/api/memberService";
 import { toast } from "react-toastify";
 
 const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
@@ -14,7 +14,7 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
   });
   
   const [errors, setErrors] = useState({});
-  const [inviteMember, { isLoading }] = useInviteMemberMutation();
+  const { mutateAsync: inviteMember, isPending: isLoading } = useInviteMember();
 
   const roleOptions = [
     { value: "MEMBER", label: "Member" },
@@ -70,24 +70,27 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
         role: formData.role
       };
 
-      const response = await inviteMember(payload).unwrap();
+      await inviteMember(payload);
       
       toast.success("Member invitation sent successfully!");
       handleClose();
     } catch (error) {
       console.error("Invite member error:", error);
       
+      // Parse error message (axios error structure)
+      const errorData = error.response?.data;
+      
       // Handle specific error messages from API
-      if (error.data?.user_email) {
-        setErrors({ user_email: error.data.user_email[0] || error.data.user_email });
-      } else if (error.data?.role) {
-        setErrors({ role: error.data.role[0] || error.data.role });
-      } else if (error.data?.non_field_errors) {
-        toast.error(error.data.non_field_errors[0]);
-      } else if (error.data?.detail) {
-        toast.error(error.data.detail);
+      if (errorData?.user_email) {
+        setErrors({ user_email: errorData.user_email[0] || errorData.user_email });
+      } else if (errorData?.role) {
+        setErrors({ role: errorData.role[0] || errorData.role });
+      } else if (errorData?.non_field_errors) {
+        toast.error(errorData.non_field_errors[0]);
+      } else if (errorData?.detail) {
+        toast.error(errorData.detail);
       } else {
-        toast.error("Failed to send invitation. Please try again.");
+        toast.error(error.message || "Failed to send invitation. Please try again.");
       }
     }
   };
