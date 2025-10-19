@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import { 
-    useGetVendorBillsQuery, 
-    useUpdateVendorBillMutation, 
-    useDeleteVendorBillMutation, 
-    useUploadVendorBillsMutation,
-    useAnalyzeVendorBillMutation,
-    useSyncVendorBillMutation
-} from '@/store/api/zoho/vendorBillsApiSlice';
+    useGetVendorBills, 
+    useUpdateVendorBill, 
+    useDeleteVendorBill, 
+    useUploadVendorBills,
+    useAnalyzeVendorBill,
+    useSyncVendorBill
+} from '@/hooks/api/zoho/zohoVendorBillService';
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
 import FileViewerModal from "@/components/modals/FileViewerModal";
@@ -30,14 +30,12 @@ const ZohoVendorBill = () => {
         return params;
     };
 
-    const { data: vendorBillsData, error, isLoading, refetch, isFetching } = useGetVendorBillsQuery(getQueryParams(), {
-        skip: !selectedOrganization?.id,
-    });
-    const [updateVendorBill] = useUpdateVendorBillMutation();
-    const [deleteVendorBill] = useDeleteVendorBillMutation();
-    const [uploadVendorBills] = useUploadVendorBillsMutation();
-    const [analyzeVendorBill] = useAnalyzeVendorBillMutation();
-    const [syncVendorBill] = useSyncVendorBillMutation();
+    const { data: vendorBillsData, error, isLoading, refetch, isFetching } = useGetVendorBills(getQueryParams());
+    const { mutateAsync: updateVendorBill } = useUpdateVendorBill();
+    const { mutateAsync: deleteVendorBill } = useDeleteVendorBill();
+    const { mutateAsync: uploadVendorBills } = useUploadVendorBills();
+    const { mutateAsync: analyzeVendorBill } = useAnalyzeVendorBill();
+    const { mutateAsync: syncVendorBill } = useSyncVendorBill();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
@@ -69,7 +67,7 @@ const ZohoVendorBill = () => {
                         await analyzeVendorBill({ 
                             organizationId: selectedOrganization?.id, 
                             billId 
-                        }).unwrap();
+                        });
                         globalToast.success('Bill analysis started successfully');
                         refetch(); // Refresh the list to show updated status
                     } finally {
@@ -82,7 +80,7 @@ const ZohoVendorBill = () => {
                     }
                     break;
                 case 'verify':
-                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' }).unwrap();
+                    await updateVendorBill({ organizationId: selectedOrganization?.id, id: billId, status: 'Verified' });
                     globalToast.success('Bill verification completed');
                     break;
                 case 'sync':
@@ -92,7 +90,7 @@ const ZohoVendorBill = () => {
                         await syncVendorBill({ 
                             organizationId: selectedOrganization?.id, 
                             billId 
-                        }).unwrap();
+                        });
                         globalToast.success('Bill synced to Zoho successfully');
                         refetch(); // Refresh the list to show updated status
                     } finally {
@@ -124,7 +122,7 @@ const ZohoVendorBill = () => {
                         // Set loading state
                         setDeletingBills(prev => new Set([...prev, billId]));
                         try {
-                            await deleteVendorBill({ organizationId: selectedOrganization?.id, id: billId }).unwrap();
+                            await deleteVendorBill({ organizationId: selectedOrganization?.id, id: billId });
                             globalToast.success('Bill deleted successfully');
                             Swal.fire(
                                 'Deleted!',
@@ -146,7 +144,7 @@ const ZohoVendorBill = () => {
             }
         } catch (error) {
             console.error('Action failed:', error);
-            globalToast.error(error?.data?.message || `Failed to ${action} bill`);
+            globalToast.error(error?.response?.data?.message || error?.message || `Failed to ${action} bill`);
         }
     };
 
@@ -175,12 +173,12 @@ const ZohoVendorBill = () => {
 
     const handleUpload = async (formData) => {
         try {
-            await uploadVendorBills({ organizationId: selectedOrganization?.id, formData }).unwrap();
+            await uploadVendorBills({ organizationId: selectedOrganization?.id, formData });
             globalToast.success('Bills uploaded successfully');
             refetch(); // Refresh the list
         } catch (error) {
             console.error('Upload failed:', error);
-            globalToast.error(error?.data?.message || 'Failed to upload bills');
+            globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
         }
     };
 

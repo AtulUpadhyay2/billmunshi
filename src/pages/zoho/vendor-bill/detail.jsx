@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetVendorBillQuery, useVerifyVendorBillMutation } from "@/store/api/zoho/vendorBillsApiSlice";
+import { useGetVendorBill, useVerifyVendorBill } from "@/hooks/api/zoho/zohoVendorBillService";
 import { useGetVendors, useGetChartOfAccounts, useGetTaxes, useGetTdsTcs } from "@/hooks/api/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -58,17 +58,17 @@ const ZohoVendorBillDetail = () => {
     const [verificationMessage, setVerificationMessage] = useState('');
     
     // Fetch vendor bill data
-    const { data: vendorBillData, error, isLoading, refetch } = useGetVendorBillQuery(
-        { organizationId: selectedOrganization?.id, billId },
-        { skip: !selectedOrganization?.id || !billId }
+    const { data: vendorBillData, error, isLoading, refetch } = useGetVendorBill(
+        { organizationId: selectedOrganization?.id, billId }
     );
 
     // Verify vendor bill mutation
-    const [verifyVendorBill, { 
-        isLoading: isVerifying, 
+    const { 
+        mutateAsync: verifyVendorBill,
+        isPending: isVerifying, 
         error: verifyError, 
         isSuccess: verifySuccess 
-    }] = useVerifyVendorBillMutation();
+    } = useVerifyVendorBill();
 
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
@@ -453,7 +453,7 @@ const ZohoVendorBillDetail = () => {
                 organizationId: selectedOrganization?.id,
                 billId,
                 billData: verificationData
-            }).unwrap();
+            });
 
             // Show success toast
             globalToast.success('Vendor bill verified successfully!');
@@ -468,7 +468,7 @@ const ZohoVendorBillDetail = () => {
             
         } catch (error) {
             console.error('Verification failed:', error);
-            const errorMessage = error?.data?.message || error?.message || 'Verification failed. Please try again.';
+            const errorMessage = error?.response?.data?.message || error?.message || 'Verification failed. Please try again.';
             
             // Show error toast
             globalToast.error(errorMessage);
