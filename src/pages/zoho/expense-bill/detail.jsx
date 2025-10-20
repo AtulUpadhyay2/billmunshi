@@ -99,6 +99,7 @@ const ZohoExpenseBillDetail = () => {
     const billInfo = expenseBillData || {};
     const analysedData = expenseBillData?.analysed_data || {};
     const zohoBillData = expenseBillData?.zoho_bill || {};
+    const productSync = expenseBillData?.product_sync || false;
     
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.status === 'Synced' || billInfo?.status === 'Posted' ||
@@ -505,6 +506,17 @@ const ZohoExpenseBillDetail = () => {
                             </svg>
                             Back
                         </button>
+                        <button
+                            onClick={() => navigate(`/zoho/expense-bill/${expenseBillData?.next_bill}`)}
+                            disabled={!expenseBillData?.next_bill}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill available"}
+                        >
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                         <button 
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
@@ -892,9 +904,11 @@ const ZohoExpenseBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Vendor
                                                         </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Chart of Accounts <span className="text-red-500">*</span>
-                                                        </th>
+                                                        {productSync && (
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                                Chart of Accounts <span className="text-red-500">*</span>
+                                                            </th>
+                                                        )}
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
@@ -961,43 +975,45 @@ const ZohoExpenseBillDetail = () => {
                                                                 />
                                                             </td>
                                                             
-                                                            {/* Chart of Accounts */}
-                                                            <td className="px-4 py-3">
-                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                    <SearchableDropdown
-                                                                        options={chartOfAccountsData?.results || []}
-                                                                        value={item.chart_of_accounts_id || null}
-                                                                        onChange={(accountId) => {
-                                                                            const newItems = [...expenseItems];
-                                                                            newItems[index] = { ...item, chart_of_accounts_id: accountId };
-                                                                            setExpenseItems(newItems);
-                                                                        }}
-                                                                        onClear={() => {
-                                                                            const newItems = [...expenseItems];
-                                                                            newItems[index] = { ...item, chart_of_accounts_id: null };
-                                                                            setExpenseItems(newItems);
-                                                                        }}
-                                                                        placeholder="Select chart of accounts..."
-                                                                        searchPlaceholder="Type to search accounts..."
-                                                                        optionLabelKey="accountName"
-                                                                        optionValueKey="id"
-                                                                        loading={chartOfAccountsLoading}
-                                                                        disabled={isVerified}
-                                                                        renderOption={(account) => (
-                                                                            <div className="flex flex-col py-1">
-                                                                                <div className="font-medium text-gray-900">{account.accountName}</div>
-                                                                                {account.id && (
-                                                                                    <div className="text-xs text-blue-600">ID: {account.id}</div>
-                                                                                )}
-                                                                                {account.created_at && (
-                                                                                    <div className="text-xs text-gray-500">Created: {new Date(account.created_at).toLocaleDateString()}</div>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                        className="coa-dropdown"
-                                                                    />
-                                                                </div>
-                                                            </td>
+                                                            {/* Chart of Accounts - Only show if productSync is true */}
+                                                            {productSync && (
+                                                                <td className="px-4 py-3">
+                                                                    <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                        <SearchableDropdown
+                                                                            options={chartOfAccountsData?.results || []}
+                                                                            value={item.chart_of_accounts_id || null}
+                                                                            onChange={(accountId) => {
+                                                                                const newItems = [...expenseItems];
+                                                                                newItems[index] = { ...item, chart_of_accounts_id: accountId };
+                                                                                setExpenseItems(newItems);
+                                                                            }}
+                                                                            onClear={() => {
+                                                                                const newItems = [...expenseItems];
+                                                                                newItems[index] = { ...item, chart_of_accounts_id: null };
+                                                                                setExpenseItems(newItems);
+                                                                            }}
+                                                                            placeholder="Select chart of accounts..."
+                                                                            searchPlaceholder="Type to search accounts..."
+                                                                            optionLabelKey="accountName"
+                                                                            optionValueKey="id"
+                                                                            loading={chartOfAccountsLoading}
+                                                                            disabled={isVerified}
+                                                                            renderOption={(account) => (
+                                                                                <div className="flex flex-col py-1">
+                                                                                    <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                                                    {account.id && (
+                                                                                        <div className="text-xs text-blue-600">ID: {account.id}</div>
+                                                                                    )}
+                                                                                    {account.created_at && (
+                                                                                        <div className="text-xs text-gray-500">Created: {new Date(account.created_at).toLocaleDateString()}</div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                            className="coa-dropdown"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                            )}
                                                             
                                                             {/* Amount */}
                                                             <td className="px-4 py-3">

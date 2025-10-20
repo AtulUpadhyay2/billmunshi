@@ -111,6 +111,7 @@ const TallyExpenseBillDetail = () => {
     const billInfo = expenseBillData?.bill || {};
     const analysedData = billInfo?.analysed_data || {};
     const tallyAnalysedData = expenseBillData?.analyzed_data || {};
+    const productSync = expenseBillData?.product_sync || false;
 
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified' ||
@@ -900,6 +901,17 @@ const TallyExpenseBillDetail = () => {
                             Back
                         </button>
                         <button
+                            onClick={() => navigate(`/tally/expense-bill/${expenseBillData?.next_bill}`)}
+                            disabled={!expenseBillData?.next_bill}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill available"}
+                        >
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <button
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
@@ -1267,9 +1279,11 @@ const TallyExpenseBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
                                                             Item Details
                                                         </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Chart of Accounts <span className="text-red-500">*</span>
-                                                        </th>
+                                                        {productSync && (
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                                Chart of Accounts <span className="text-red-500">*</span>
+                                                            </th>
+                                                        )}
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
@@ -1296,29 +1310,31 @@ const TallyExpenseBillDetail = () => {
                                                                 />
                                                             </td>
 
-                                                            {/* Chart of Accounts */}
-                                                            <td className="px-4 py-3">
-                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                    <SearchableDropdown
-                                                                        options={ledgerOptions}
-                                                                        value={item.chart_of_accounts_id || null}
-                                                                        onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
-                                                                        onClear={() => handleChartOfAccountsClear(index)}
-                                                                        placeholder="Select chart of accounts..."
-                                                                        searchPlaceholder="Type to search ledgers..."
-                                                                        optionLabelKey="name"
-                                                                        optionValueKey="id"
-                                                                        loading={ledgersLoading}
-                                                                        disabled={isVerified}
-                                                                        renderOption={(ledger) => (
-                                                                            <div className="flex flex-col py-1">
-                                                                                <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                            </div>
-                                                                        )}
-                                                                        className="coa-dropdown"
-                                                                    />
-                                                                </div>
-                                                            </td>
+                                                            {/* Chart of Accounts - Only show if productSync is true */}
+                                                            {productSync && (
+                                                                <td className="px-4 py-3">
+                                                                    <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                        <SearchableDropdown
+                                                                            options={ledgerOptions}
+                                                                            value={item.chart_of_accounts_id || null}
+                                                                            onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
+                                                                            onClear={() => handleChartOfAccountsClear(index)}
+                                                                            placeholder="Select chart of accounts..."
+                                                                            searchPlaceholder="Type to search ledgers..."
+                                                                            optionLabelKey="name"
+                                                                            optionValueKey="id"
+                                                                            loading={ledgersLoading}
+                                                                            disabled={isVerified}
+                                                                            renderOption={(ledger) => (
+                                                                                <div className="flex flex-col py-1">
+                                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                                </div>
+                                                                            )}
+                                                                            className="coa-dropdown"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                            )}
                                                             <td className="px-4 py-3">
                                                                 <input
                                                                     type="number"

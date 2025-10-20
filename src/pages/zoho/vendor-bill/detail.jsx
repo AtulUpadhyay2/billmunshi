@@ -100,6 +100,7 @@ const ZohoVendorBillDetail = () => {
     // Extract analysed_data from the API response
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
+    const productSync = vendorBillData?.product_sync || false;
     
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = vendorBillData?.status === 'Verified' || vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
@@ -609,10 +610,21 @@ const ZohoVendorBillDetail = () => {
                             </svg>
                             Back
                         </button>
+                        <button
+                            onClick={() => navigate(`/zoho/vendor-bill/${vendorBillData?.next_bill}`)}
+                            disabled={!vendorBillData?.next_bill}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={vendorBillData?.next_bill ? "Go to next bill" : "No next bill available"}
+                        >
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                         <button 
                             onClick={handleVerification}
                             disabled={isVerifying || isVerified || !selectedOrganization?.id}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
                             title={isVerified ? "Bill already verified/synced/posted" : "Verify Bill"}
                         >
                             {isVerifying ? (
@@ -975,9 +987,11 @@ const ZohoVendorBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Item Details
                                                         </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                            Chart of Accounts
-                                                        </th>
+                                                        {productSync && (
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                                Chart of Accounts
+                                                            </th>
+                                                        )}
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Taxes
                                                         </th>
@@ -1016,24 +1030,26 @@ const ZohoVendorBillDetail = () => {
                                                                 />
                                                             </td>
 
-                                                            {/* Chart of Accounts */}
-                                                            <td className="relative px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    options={chartOfAccountsData?.results?.map(account => ({
-                                                                        value: account.id,
-                                                                        label: account.accountName
-                                                                    })) || []}
-                                                                    value={product.chart_of_accounts || ''}
-                                                                    onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
-                                                                    onClear={() => handleProductChange(index, 'chart_of_accounts', null)}
-                                                                    placeholder="Select Account..."
-                                                                    searchPlaceholder="Search accounts..."
-                                                                    loading={chartOfAccountsLoading}
-                                                                    loadingMessage="Loading accounts..."
-                                                                    noOptionsMessage="No accounts found"
-                                                                    disabled={isVerified}
-                                                                />
-                                                            </td>
+                                                            {/* Chart of Accounts - Only show if productSync is true */}
+                                                            {productSync && (
+                                                                <td className="relative px-4 py-3">
+                                                                    <SearchableDropdown
+                                                                        options={chartOfAccountsData?.results?.map(account => ({
+                                                                            value: account.id,
+                                                                            label: account.accountName
+                                                                        })) || []}
+                                                                        value={product.chart_of_accounts || ''}
+                                                                        onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
+                                                                        onClear={() => handleProductChange(index, 'chart_of_accounts', null)}
+                                                                        placeholder="Select Account..."
+                                                                        searchPlaceholder="Search accounts..."
+                                                                        loading={chartOfAccountsLoading}
+                                                                        loadingMessage="Loading accounts..."
+                                                                        noOptionsMessage="No accounts found"
+                                                                        disabled={isVerified}
+                                                                    />
+                                                                </td>
+                                                            )}
 
                                                             {/* Taxes */}
                                                             <td className="relative px-4 py-3">

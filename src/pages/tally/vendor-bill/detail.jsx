@@ -127,6 +127,7 @@ const TallyVendorBillDetail = () => {
     const billInfo = useMemo(() => vendorBillData?.bill || {}, [vendorBillData]);
     const analysedData = useMemo(() => billInfo?.analysed_data || {}, [billInfo]);
     const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_data || {}, [vendorBillData]);
+    const productSync = useMemo(() => vendorBillData?.product_sync || false, [vendorBillData]);
     
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified' ||
@@ -1085,6 +1086,17 @@ const TallyVendorBillDetail = () => {
                             Back
                         </button>
                         <button 
+                            onClick={() => navigate(`/tally/vendor-bill/${vendorBillData?.next_bill}`)}
+                            disabled={!vendorBillData?.next_bill}
+                            className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={vendorBillData?.next_bill ? "Go to next bill" : "No next bill available"}
+                        >
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <button 
                             onClick={handleSave}
                             disabled={isVerifying || isVerified}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
@@ -1417,9 +1429,11 @@ const TallyVendorBillDetail = () => {
                                             <table className="w-full min-w-[1000px]">
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                            Item Name
-                                                        </th>
+                                                        {productSync && (
+                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                                Item Name
+                                                            </th>
+                                                        )}
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Item Details
                                                         </th>
@@ -1446,31 +1460,33 @@ const TallyVendorBillDetail = () => {
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {products.map((product, index) => (
                                                         <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                                            {/* Item Name */}
-                                                            <td className="px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    key={`item-${product.id}-${product.item_id}`}
-                                                                    options={stockItemOptions}
-                                                                    value={product.item_id || null}
-                                                                    onChange={(itemId) => handleItemNameSelect(index, itemId)}
-                                                                    onClear={() => handleItemNameClear(index)}
-                                                                    placeholder="Select item name..."
-                                                                    searchPlaceholder="Type to search stock items..."
-                                                                    optionLabelKey="name"
-                                                                    optionValueKey="id"
-                                                                    loading={mastersLoading}
-                                                                    disabled={isVerified}
-                                                                    renderOption={(stockItem) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{stockItem.name}</div>
-                                                                            {stockItem.alias !== "0" && stockItem.alias && (
-                                                                                <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                    className="item-name-dropdown"
-                                                                />
-                                                            </td>
+                                                            {/* Item Name - Only show if productSync is true */}
+                                                            {productSync && (
+                                                                <td className="px-4 py-3">
+                                                                    <SearchableDropdown
+                                                                        key={`item-${product.id}-${product.item_id}`}
+                                                                        options={stockItemOptions}
+                                                                        value={product.item_id || null}
+                                                                        onChange={(itemId) => handleItemNameSelect(index, itemId)}
+                                                                        onClear={() => handleItemNameClear(index)}
+                                                                        placeholder="Select item name..."
+                                                                        searchPlaceholder="Type to search stock items..."
+                                                                        optionLabelKey="name"
+                                                                        optionValueKey="id"
+                                                                        loading={mastersLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(stockItem) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{stockItem.name}</div>
+                                                                                {stockItem.alias !== "0" && stockItem.alias && (
+                                                                                    <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                        className="item-name-dropdown"
+                                                                    />
+                                                                </td>
+                                                            )}
                                                             
                                                             {/* Item Details */}
                                                             <td className="px-4 py-3">
