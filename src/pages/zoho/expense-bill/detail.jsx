@@ -99,7 +99,6 @@ const ZohoExpenseBillDetail = () => {
     const billInfo = expenseBillData || {};
     const analysedData = expenseBillData?.analysed_data || {};
     const zohoBillData = expenseBillData?.zoho_bill || {};
-    const productSync = expenseBillData?.product_sync || false;
     
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.status === 'Synced' || billInfo?.status === 'Posted' ||
@@ -904,11 +903,9 @@ const ZohoExpenseBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Vendor
                                                         </th>
-                                                        {productSync && (
-                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                                Chart of Accounts <span className="text-red-500">*</span>
-                                                            </th>
-                                                        )}
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                            Chart of Accounts <span className="text-red-500">*</span>
+                                                        </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
@@ -975,45 +972,36 @@ const ZohoExpenseBillDetail = () => {
                                                                 />
                                                             </td>
                                                             
-                                                            {/* Chart of Accounts - Only show if productSync is true */}
-                                                            {productSync && (
-                                                                <td className="px-4 py-3">
-                                                                    <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                        <SearchableDropdown
-                                                                            options={chartOfAccountsData?.results || []}
-                                                                            value={item.chart_of_accounts_id || null}
-                                                                            onChange={(accountId) => {
-                                                                                const newItems = [...expenseItems];
-                                                                                newItems[index] = { ...item, chart_of_accounts_id: accountId };
-                                                                                setExpenseItems(newItems);
-                                                                            }}
-                                                                            onClear={() => {
-                                                                                const newItems = [...expenseItems];
-                                                                                newItems[index] = { ...item, chart_of_accounts_id: null };
-                                                                                setExpenseItems(newItems);
-                                                                            }}
-                                                                            placeholder="Select chart of accounts..."
-                                                                            searchPlaceholder="Type to search accounts..."
-                                                                            optionLabelKey="accountName"
-                                                                            optionValueKey="id"
-                                                                            loading={chartOfAccountsLoading}
-                                                                            disabled={isVerified}
-                                                                            renderOption={(account) => (
-                                                                                <div className="flex flex-col py-1">
-                                                                                    <div className="font-medium text-gray-900">{account.accountName}</div>
-                                                                                    {account.id && (
-                                                                                        <div className="text-xs text-blue-600">ID: {account.id}</div>
-                                                                                    )}
-                                                                                    {account.created_at && (
-                                                                                        <div className="text-xs text-gray-500">Created: {new Date(account.created_at).toLocaleDateString()}</div>
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-                                                                            className="coa-dropdown"
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                            )}
+                                                            <td className="px-4 py-3">
+                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={chartOfAccountsData?.results || []}
+                                                                        value={item.chart_of_accounts_id || null}
+                                                                        onChange={(accountId) => {
+                                                                            const newItems = [...expenseItems];
+                                                                            newItems[index] = { ...item, chart_of_accounts_id: accountId };
+                                                                            setExpenseItems(newItems);
+                                                                        }}
+                                                                        onClear={() => {
+                                                                            const newItems = [...expenseItems];
+                                                                            newItems[index] = { ...item, chart_of_accounts_id: null };
+                                                                            setExpenseItems(newItems);
+                                                                        }}
+                                                                        placeholder="Select chart of accounts..."
+                                                                        searchPlaceholder="Type to search accounts..."
+                                                                        optionLabelKey="accountName"
+                                                                        optionValueKey="id"
+                                                                        loading={chartOfAccountsLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(account) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                                            </div>
+                                                                        )}
+                                                                        className="coa-dropdown"
+                                                                    />
+                                                                </div>
+                                                            </td>
                                                             
                                                             {/* Amount */}
                                                             <td className="px-4 py-3">

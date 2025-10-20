@@ -100,7 +100,6 @@ const ZohoVendorBillDetail = () => {
     // Extract analysed_data from the API response
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
-    const productSync = vendorBillData?.product_sync || false;
     
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = vendorBillData?.status === 'Verified' || vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
@@ -987,11 +986,9 @@ const ZohoVendorBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Item Details
                                                         </th>
-                                                        {productSync && (
-                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                                Chart of Accounts
-                                                            </th>
-                                                        )}
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                            Chart of Accounts
+                                                        </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Taxes
                                                         </th>
@@ -1031,25 +1028,23 @@ const ZohoVendorBillDetail = () => {
                                                             </td>
 
                                                             {/* Chart of Accounts - Only show if productSync is true */}
-                                                            {productSync && (
-                                                                <td className="relative px-4 py-3">
-                                                                    <SearchableDropdown
-                                                                        options={chartOfAccountsData?.results?.map(account => ({
-                                                                            value: account.id,
-                                                                            label: account.accountName
-                                                                        })) || []}
-                                                                        value={product.chart_of_accounts || ''}
-                                                                        onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
-                                                                        onClear={() => handleProductChange(index, 'chart_of_accounts', null)}
-                                                                        placeholder="Select Account..."
-                                                                        searchPlaceholder="Search accounts..."
-                                                                        loading={chartOfAccountsLoading}
-                                                                        loadingMessage="Loading accounts..."
-                                                                        noOptionsMessage="No accounts found"
-                                                                        disabled={isVerified}
-                                                                    />
-                                                                </td>
-                                                            )}
+                                                            <td className="relative px-4 py-3">
+                                                                <SearchableDropdown
+                                                                    options={chartOfAccountsData?.results?.map(account => ({
+                                                                        value: account.id,
+                                                                        label: account.accountName
+                                                                    })) || []}
+                                                                    value={product.chart_of_accounts || ''}
+                                                                    onChange={(value) => handleProductChange(index, 'chart_of_accounts', value || null)}
+                                                                    onClear={() => handleProductChange(index, 'chart_of_accounts', null)}
+                                                                    placeholder="Select Account..."
+                                                                    searchPlaceholder="Search accounts..."
+                                                                    loading={chartOfAccountsLoading}
+                                                                    loadingMessage="Loading accounts..."
+                                                                    noOptionsMessage="No accounts found"
+                                                                    disabled={isVerified}
+                                                                />
+                                                            </td>
 
                                                             {/* Taxes */}
                                                             <td className="relative px-4 py-3">

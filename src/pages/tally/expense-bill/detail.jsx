@@ -111,7 +111,6 @@ const TallyExpenseBillDetail = () => {
     const billInfo = expenseBillData?.bill || {};
     const analysedData = billInfo?.analysed_data || {};
     const tallyAnalysedData = expenseBillData?.analyzed_data || {};
-    const productSync = expenseBillData?.product_sync || false;
 
     // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Verified' || billInfo?.bill_status === 'Verified' ||
@@ -1279,11 +1278,9 @@ const TallyExpenseBillDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
                                                             Item Details
                                                         </th>
-                                                        {productSync && (
-                                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                                Chart of Accounts <span className="text-red-500">*</span>
-                                                            </th>
-                                                        )}
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                                            Chart of Accounts <span className="text-red-500">*</span>
+                                                        </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
@@ -1310,31 +1307,29 @@ const TallyExpenseBillDetail = () => {
                                                                 />
                                                             </td>
 
-                                                            {/* Chart of Accounts - Only show if productSync is true */}
-                                                            {productSync && (
-                                                                <td className="px-4 py-3">
-                                                                    <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                        <SearchableDropdown
-                                                                            options={ledgerOptions}
-                                                                            value={item.chart_of_accounts_id || null}
-                                                                            onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
-                                                                            onClear={() => handleChartOfAccountsClear(index)}
-                                                                            placeholder="Select chart of accounts..."
-                                                                            searchPlaceholder="Type to search ledgers..."
-                                                                            optionLabelKey="name"
-                                                                            optionValueKey="id"
-                                                                            loading={ledgersLoading}
-                                                                            disabled={isVerified}
-                                                                            renderOption={(ledger) => (
-                                                                                <div className="flex flex-col py-1">
-                                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                                                </div>
-                                                                            )}
-                                                                            className="coa-dropdown"
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                            )}
+                                                            <td className="px-4 py-3">
+                                                                <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={ledgerOptions}
+                                                                        value={item.chart_of_accounts_id || null}
+                                                                        onChange={(ledgerId) => handleChartOfAccountsSelect(index, ledgerId)}
+                                                                        onClear={() => handleChartOfAccountsClear(index)}
+                                                                        placeholder="Select chart of accounts..."
+                                                                        searchPlaceholder="Type to search ledgers..."
+                                                                        optionLabelKey="name"
+                                                                        optionValueKey="id"
+                                                                        loading={ledgersLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(ledger) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                            </div>
+                                                                        )}
+                                                                        className="coa-dropdown"
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            
                                                             <td className="px-4 py-3">
                                                                 <input
                                                                     type="number"
