@@ -69,10 +69,16 @@ export const useUploadVendorBills = () => {
         }
       }
       
-      // Use axios directly for FormData uploads (apiClient already configured)
+      // Use axios directly for FormData uploads
+      // IMPORTANT: Delete Content-Type header to let browser set multipart/form-data with boundary
       const response = await apiClient.post(
         `zoho/org/${organizationId}/vendor-bills/upload/`,
-        zohoFormData
+        zohoFormData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
       return response.data;
     },

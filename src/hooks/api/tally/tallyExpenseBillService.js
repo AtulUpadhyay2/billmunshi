@@ -123,9 +123,16 @@ export const useUploadTallyExpenseBills = () => {
         }
       }
       
+      // Use axios directly for FormData uploads
+      // IMPORTANT: Set Content-Type to multipart/form-data for file uploads
       const response = await apiClient.post(
         `tally/org/${organizationId}/expense-bills/upload/`,
-        tallyFormData
+        tallyFormData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
       return response.data;
     },

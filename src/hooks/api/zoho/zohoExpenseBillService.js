@@ -79,10 +79,16 @@ export const useUploadZohoExpenseBills = () => {
         }
       }
       
-      // Use axios directly for FormData uploads (apiClient already configured)
+      // Use axios directly for FormData uploads
+      // IMPORTANT: Set Content-Type to multipart/form-data for file uploads
       const response = await apiClient.post(
         `zoho/org/${organizationId}/expense-bills/upload/`,
-        zohoFormData
+        zohoFormData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
       return response.data;
     },
