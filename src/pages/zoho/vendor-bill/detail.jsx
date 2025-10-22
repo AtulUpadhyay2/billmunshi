@@ -110,15 +110,21 @@ const ZohoVendorBillDetail = () => {
             const data = vendorBillData.analysed_data;
             const zoho = vendorBillData.zoho_bill;
             
+            // Find the full vendor object if vendor ID exists in zoho data
+            let selectedVendorObj = null;
+            if (zoho?.vendor && vendorsData?.results) {
+                selectedVendorObj = vendorsData.results.find(v => v.id === zoho.vendor);
+            }
+            
             setVendorForm({
-                vendorName: data.from?.name || '',
+                vendorName: selectedVendorObj?.companyName || data.from?.name || '',
                 invoiceNumber: data.invoiceNumber || zoho?.bill_no || '',
-                vendorGST: '',
+                vendorGST: selectedVendorObj?.gstNo || '',
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
                            (zoho?.bill_date ? new Date(zoho.bill_date).toISOString().split('T')[0] : ''),
                 dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : 
                         (zoho?.due_date ? new Date(zoho.due_date).toISOString().split('T')[0] : ''),
-                selectedVendor: zoho?.vendor || null,
+                selectedVendor: selectedVendorObj || zoho?.vendor || null,
                 is_tax: zoho?.is_tax || 'TDS' // Load from zoho_bill or default to TDS
             });
 
@@ -167,7 +173,7 @@ const ZohoVendorBillDetail = () => {
                 setItemQuantities(data.items.map(item => item.quantity || 0));
             }
         }
-    }, [vendorBillData]);
+    }, [vendorBillData, vendorsData]);
     
     // Handle form input changes
     const handleFormChange = (name, value) => {
@@ -654,7 +660,7 @@ const ZohoVendorBillDetail = () => {
                                 <div className="w-full h-full flex flex-col">
                                     {/* Fixed Header - Always Visible */}
                                     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                                        <h3 className="text-base font-medium text-gray-900 truncate mr-2">{analysedData.invoiceNumber || zohoData.bill_no ? `${analysedData.invoiceNumber || zohoData.bill_no}` : 'Document'}</h3>
+                                        <h3 className="text-base font-medium text-gray-900 truncate mr-2">{vendorBillData.billmunshiName ? `${vendorBillData.billmunshiName}` : 'Document'}</h3>
                                         <div className="flex items-center gap-1.5 flex-shrink-0">
                                             {/* Keyboard Shortcuts Info */}
                                             {!isPDF(vendorBillData.file) && (
@@ -802,75 +808,70 @@ const ZohoVendorBillDetail = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Vendor
                                             </label>
-                                            {zohoData?.vendor === null ? (
-                                                <div className="space-y-2">
-                                                    <SearchableDropdown
-                                                        options={vendorsData?.results?.map(vendor => ({
-                                                            value: vendor.contactId,
-                                                            label: vendor.companyName,
-                                                            gstNo: vendor.gstNo
-                                                        })) || []}
-                                                        value={vendorForm.selectedVendor?.contactId || ''}
-                                                        onChange={(value) => {
-                                                            if (value === null || value === '') {
-                                                                // Clear vendor selection
-                                                                handleVendorSelect(null);
-                                                            } else {
-                                                                const selectedVendor = vendorsData?.results?.find(v => v.contactId === value);
-                                                                if (selectedVendor) {
-                                                                    handleVendorSelect(selectedVendor);
-                                                                }
-                                                            }
-                                                        }}
-                                                        onClear={() => {
-                                                            // Explicitly clear vendor selection
+                                            <div className="space-y-2">
+                                                <SearchableDropdown
+                                                    options={vendorsData?.results?.map(vendor => ({
+                                                        value: vendor.id,
+                                                        label: vendor.companyName,
+                                                        gstNo: vendor.gstNo
+                                                    })) || []}
+                                                    value={
+                                                        // If selectedVendor is an object, use its id
+                                                        // If selectedVendor is a string (from zohoData), use it directly
+                                                        typeof vendorForm.selectedVendor === 'object' && vendorForm.selectedVendor !== null
+                                                            ? vendorForm.selectedVendor.id 
+                                                            : vendorForm.selectedVendor || ''
+                                                    }
+                                                    onChange={(value) => {
+                                                        if (value === null || value === '') {
+                                                            // Clear vendor selection
                                                             handleVendorSelect(null);
-                                                        }}
-                                                        placeholder="Select a vendor..."
-                                                        searchPlaceholder="Search vendors..."
-                                                        loading={vendorsLoading}
-                                                        loadingMessage="Loading vendors..."
-                                                        disabled={isVerified}
-                                                        noOptionsMessage="No vendors found"
-                                                        renderOption={(option) => (
-                                                            <div>
-                                                                <div className="font-medium">{option.label}</div>
-                                                                {option.gstNo && (
-                                                                    <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    />
-                                                    
-                                                    {/* No vendors notification */}
-                                                    {vendorsData?.results?.length === 0 && !vendorsLoading && (
-                                                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                                                            No vendors found. Please sync vendors from Zoho first.
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Bill To Badge - showing analysed_data.to.name */}
-                                                    {analysedData?.to?.name && (
-                                                        <div className="mt-2">
-                                                            <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                                                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                                </svg>
-                                                                Vendor Name: {analysedData.to.name}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <input
-                                                    type="text"
-                                                    value={vendorForm.vendorName}
-                                                    onChange={(e) => handleFormChange('vendorName', e.target.value)}
-                                                    placeholder="Enter vendor name"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                        } else {
+                                                            const selectedVendor = vendorsData?.results?.find(v => v.id === value);
+                                                            if (selectedVendor) {
+                                                                handleVendorSelect(selectedVendor);
+                                                            }
+                                                        }
+                                                    }}
+                                                    onClear={() => {
+                                                        // Explicitly clear vendor selection
+                                                        handleVendorSelect(null);
+                                                    }}
+                                                    placeholder="Select a vendor..."
+                                                    searchPlaceholder="Search vendors..."
+                                                    loading={vendorsLoading}
+                                                    loadingMessage="Loading vendors..."
                                                     disabled={isVerified}
+                                                    noOptionsMessage="No vendors found"
+                                                    renderOption={(option) => (
+                                                        <div>
+                                                            <div className="font-medium">{option.label}</div>
+                                                            {option.gstNo && (
+                                                                <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 />
-                                            )}
+                                                
+                                                {/* No vendors notification */}
+                                                {vendorsData?.results?.length === 0 && !vendorsLoading && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
+                                                        No vendors found. Please sync vendors from Zoho first.
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Bill To Badge - showing analysed_data.to.name */}
+                                                {analysedData?.to?.name && (
+                                                    <div className="mt-2">
+                                                        <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                            <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                            </svg>
+                                                            Vendor Name: {analysedData.to.name}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Invoice Number Field */}
