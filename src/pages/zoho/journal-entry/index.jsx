@@ -6,13 +6,13 @@ import FileViewerModal from "@/components/modals/FileViewerModal";
 import { globalToast } from "@/utils/toast";
 import { useSelector } from "react-redux";
 import {
-  useGetZohoExpenseBills,
-  useUpdateZohoExpenseBill,
-  useDeleteZohoExpenseBill,
-  useUploadZohoExpenseBills,
-  useAnalyzeZohoExpenseBill,
-  useSyncZohoExpenseBill
-} from '@/hooks/api/zoho/zohoExpenseBillService';
+  useGetZohoJournalBills,
+  useUpdateZohoJournalBill,
+  useDeleteZohoJournalBill,
+  useUploadZohoJournalBills,
+  useAnalyzeZohoJournalBill,
+  useSyncZohoJournalBill
+} from '@/hooks/api/zoho/zohoJournalEntryService';
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
 
@@ -31,12 +31,12 @@ const ZohoExpenseBill = () => {
     return params;
   };
 
-  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetZohoExpenseBills(getQueryParams());
-  const { mutateAsync: updateExpenseBill } = useUpdateZohoExpenseBill();
-  const { mutateAsync: deleteExpenseBill } = useDeleteZohoExpenseBill();
-  const { mutateAsync: uploadExpenseBills } = useUploadZohoExpenseBills();
-  const { mutateAsync: analyzeExpenseBill } = useAnalyzeZohoExpenseBill();
-  const { mutateAsync: syncExpenseBill } = useSyncZohoExpenseBill();
+  const { data: expenseBillsData, error, isLoading, refetch, isFetching } = useGetZohoJournalBills(getQueryParams());
+  const { mutateAsync: updateExpenseBill } = useUpdateZohoJournalBill();
+  const { mutateAsync: deleteExpenseBill } = useDeleteZohoJournalBill();
+  const { mutateAsync: uploadExpenseBills } = useUploadZohoJournalBills();
+  const { mutateAsync: analyzeExpenseBill } = useAnalyzeZohoJournalBill();
+  const { mutateAsync: syncExpenseBill } = useSyncZohoJournalBill();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
@@ -303,7 +303,7 @@ const ZohoExpenseBill = () => {
   return (
     <div className="space-y-5">
       <Card
-        title="Expense Bills"
+        title="Journal Entry"
         noBorder
         headerSlot={
           <div className="flex items-center gap-2">
@@ -311,7 +311,7 @@ const ZohoExpenseBill = () => {
               onClick={() => refetch()}
               disabled={isLoading}
               className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh expense bills"
+              title="Refresh journal entries"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -320,7 +320,7 @@ const ZohoExpenseBill = () => {
             </button>
             <button
               className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
-              title="Upload new expense bills"
+              title="Upload new journal entry"
               onClick={() => setIsUploadModalOpen(true)}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -386,7 +386,7 @@ const ZohoExpenseBill = () => {
                       <td colSpan="7" className="table-td text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          <span className="text-slate-600">Loading expense bills...</span>
+                          <span className="text-slate-600">Loading journal bills...</span>
                         </div>
                       </td>
                     </tr>
@@ -398,7 +398,7 @@ const ZohoExpenseBill = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="text-red-600">
-                            <p className="text-lg font-medium">Failed to load expense bills</p>
+                            <p className="text-lg font-medium">Failed to load journal bills</p>
                             <p className="text-sm text-slate-500 mt-2">
                               {error?.data?.message || error?.message || 'An error occurred while fetching expense bills'}
                             </p>
