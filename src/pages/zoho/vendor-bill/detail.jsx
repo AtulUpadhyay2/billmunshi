@@ -422,7 +422,7 @@ const ZohoVendorBillDetail = () => {
             const verificationData = {
                 bill_id: billId,
                 zoho_bill: {
-                    id: zohoData?.id,
+                    id: zohoData?.id || undefined,
                     selectBill: billId,
                     vendor: vendorForm.selectedVendor?.id || null,
                     bill_no: vendorForm.invoiceNumber,
@@ -801,9 +801,6 @@ const ZohoVendorBillDetail = () => {
                                         <div className="relative">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Vendor
-                                                {zohoData?.vendor === null && (
-                                                    <span className="ml-1 text-xs text-blue-600">(Select from list)</span>
-                                                )}
                                             </label>
                                             {zohoData?.vendor === null ? (
                                                 <div className="space-y-2">
@@ -913,11 +910,6 @@ const ZohoVendorBillDetail = () => {
                                                 readOnly={zohoData?.vendor === null && vendorForm.selectedVendor}
                                                 disabled={isVerified}
                                             />
-                                            {zohoData?.vendor === null && vendorForm.selectedVendor && (
-                                                <p className="mt-1 text-xs">
-                                                    GST number automatically filled from selected vendor
-                                                </p>
-                                            )}
                                         </div>
 
                                         {/* Date Issued Field */}

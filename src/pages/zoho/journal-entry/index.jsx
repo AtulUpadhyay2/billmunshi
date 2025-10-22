@@ -16,7 +16,7 @@ import {
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
 
-const ZohoExpenseBill = () => {
+const ZohoJournalEntry = () => {
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('all');
@@ -419,8 +419,8 @@ const ZohoExpenseBill = () => {
                           <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <div className="text-slate-500">No expense bills found</div>
-                          <div className="text-xs text-slate-400">Upload your first expense bill to get started</div>
+                          <div className="text-slate-500">No journal entries found</div>
+                          <div className="text-xs text-slate-400">Upload your first journal entry to get started</div>
                         </div>
                       </td>
                     </tr>
@@ -433,7 +433,7 @@ const ZohoExpenseBill = () => {
                             <span className="font-medium">{bill.billmunshiName}</span>
                             {bill.file && (
                               <button
-                                onClick={() => handleViewFile(bill.file, bill.billmunshiName || 'Expense Bill')}
+                                onClick={() => handleViewFile(bill.file, bill.billmunshiName || 'Journal Entry')}
                                 className="text-xs text-blue-600 hover:underline cursor-pointer"
                               >
                                 View File
@@ -460,10 +460,10 @@ const ZohoExpenseBill = () => {
                             {['Analysed', 'Verified', 'Posted', 'Synced'].includes(bill.status) && (
                               <button
                                 onClick={() => {
-                                  navigate(`/zoho/expense-bill/${bill.id}`);
+                                  navigate(`/zoho/journal-entry/${bill.id}`);
                                 }}
                                 className="group relative inline-flex items-center justify-center w-8 h-8 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md shadow-sm hover:bg-indigo-100 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-all duration-200 active:scale-95"
-                                title="View expense bill details"
+                                title="View journal entry details"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform duration-200">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
@@ -479,7 +479,7 @@ const ZohoExpenseBill = () => {
                                   ? 'text-red-400 bg-red-25 border-red-100 cursor-not-allowed opacity-75'
                                   : 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300 focus:ring-red-500'
                               }`}
-                              title={deletingBills.has(bill.id) ? "Deleting..." : "Delete expense bill"}
+                              title={deletingBills.has(bill.id) ? "Deleting..." : "Delete journal entry"}
                             >
                               {deletingBills.has(bill.id) ? (
                                 <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -509,7 +509,7 @@ const ZohoExpenseBill = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
-        title="Upload Expense Bills"
+        title="Upload Journal Entries"
       />
 
       {/* File Viewer Modal */}
@@ -523,4 +523,4 @@ const ZohoExpenseBill = () => {
   );
 };
 
-export default ZohoExpenseBill;
+export default ZohoJournalEntry;

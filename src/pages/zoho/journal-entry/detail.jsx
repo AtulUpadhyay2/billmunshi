@@ -10,33 +10,33 @@ import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 
-const ZohoExpenseBillDetail = () => {
+const ZohoJournalEntryDetail = () => {
     const [mobileMenu, setMobileMenu] = useMobileMenu();
     const [collapsed, setMenuCollapsed] = useSidebar();
     const navigate = useNavigate();
-    const { id: billId } = useParams();
+    const { id: journalEntryId } = useParams();
     const { selectedOrganization } = useSelector((state) => state.auth);
     
-    // Form state for expense bill information
-    const [billForm, setBillForm] = useState({
-        billNumber: '',
-        billDate: '',
+    // Form state for journal entry information
+    const [journalEntryForm, setJournalEntryForm] = useState({
+        referenceNumber: '',
+        entryDate: '',
         dueDate: '',
         vendorName: '',
         totalAmount: '',
         selectedVendor: null,
         vendorGST: '',
-        is_tax: 'TDS' // Default to TDS
+        taxType: 'TDS' // Default to TDS
     });
 
-    // State for managing expense items
-    const [expenseItems, setExpenseItems] = useState([]);
+    // State for managing journal entry line items
+    const [journalLineItems, setJournalLineItems] = useState([]);
 
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
 
     // Form state for tax summary
-    const [taxSummaryForm, setTaxSummaryForm] = useState({
+    const [taxSummary, setTaxSummary] = useState({
         igst: '',
         cgst: '',
         sgst: '',
@@ -57,16 +57,16 @@ const ZohoExpenseBillDetail = () => {
     const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
     
     // State to track if user manually cleared vendor selection
-    const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
+    const [isVendorManuallyCleared, setIsVendorManuallyCleared] = useState(false);
     
-    // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/journal-bills/{bill_id}/details/
-    const { data: expenseBillData, error, isLoading, refetch } = useGetZohoJournalBillDetails(
-        { organizationId: selectedOrganization?.id, billId },
-        { enabled: !!selectedOrganization?.id && !!billId }
+    // Fetch journal entry data using the exact endpoint: zoho/org/{org_id}/journal-bills/{bill_id}/details/
+    const { data: journalEntryData, error, isLoading, refetch } = useGetZohoJournalBillDetails(
+        { organizationId: selectedOrganization?.id, billId: journalEntryId },
+        { enabled: !!selectedOrganization?.id && !!journalEntryId }
     );
 
-    // Verify expense bill mutation
-    const { mutateAsync: verifyExpenseBill } = useVerifyZohoJournalBill();
+    // Verify journal entry mutation
+    const { mutateAsync: verifyJournalEntry } = useVerifyZohoJournalBill();
 
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
@@ -88,33 +88,33 @@ const ZohoExpenseBillDetail = () => {
         { 
             organizationId: selectedOrganization?.id, 
             page: 1, 
-            tax_type: billForm.is_tax 
+            tax_type: journalEntryForm.taxType 
         },
         { 
-            enabled: !!selectedOrganization?.id && !!billForm.is_tax 
+            enabled: !!selectedOrganization?.id && !!journalEntryForm.taxType 
         }
     );
 
     // Extract data from the API response
-    const billInfo = expenseBillData || {};
-    const analysedData = expenseBillData?.analysed_data || {};
-    const zohoBillData = expenseBillData?.zoho_bill || {};
+    const journalInfo = journalEntryData || {};
+    const analysedData = journalEntryData?.analysed_data || {};
+    const zohoJournalData = journalEntryData?.zoho_bill || {};
     
-    // Check if bill is synced or posted (disable inputs if any of these statuses)
-    const isVerified = billInfo?.status === 'Synced' || billInfo?.status === 'Posted' ||
-                       zohoBillData?.bill_status === 'Synced' || zohoBillData?.bill_status === 'Posted';
+    // Check if journal entry is synced or posted (disable inputs if any of these statuses)
+    const isVerified = journalInfo?.status === 'Synced' || journalInfo?.status === 'Posted' ||
+                       zohoJournalData?.bill_status === 'Synced' || zohoJournalData?.bill_status === 'Posted';
     
     // Validation helper functions
-    const isVendorRequired = !billForm.selectedVendor;
-    const getItemsWithoutCOA = () => expenseItems.filter(item => !item.chart_of_accounts_id);
-    const hasValidationErrors = () => isVendorRequired || getItemsWithoutCOA().length > 0 || expenseItems.length === 0;
+    const isVendorRequired = !journalEntryForm.selectedVendor;
+    const getLineItemsWithoutCOA = () => journalLineItems.filter(item => !item.chart_of_accounts_id);
+    const hasValidationErrors = () => isVendorRequired || getLineItemsWithoutCOA().length > 0 || journalLineItems.length === 0;
 
     // Utility function to check if file is PDF
     const isPDF = (url) => url && url.toLowerCase().includes('.pdf');
 
     // Handle form changes
     const handleFormChange = (field, value) => {
-        setBillForm(prev => ({ ...prev, [field]: value }));
+        setJournalEntryForm(prev => ({ ...prev, [field]: value }));
     };
 
     // Handle vendor selection
@@ -126,29 +126,29 @@ const ZohoExpenseBillDetail = () => {
         }
         
         const vendor = vendorsData?.results?.find(v => v.id === vendorId);
-        setBillForm(prev => ({ 
+        setJournalEntryForm(prev => ({ 
             ...prev, 
             selectedVendor: vendor,
             vendorName: vendor?.companyName || '',
             vendorGST: vendor?.gstNo || ''
         }));
-        setVendorManuallyCleared(false); // Reset flag when vendor is manually selected
+        setIsVendorManuallyCleared(false); // Reset flag when vendor is manually selected
     };
 
     // Handle vendor clear
     const handleVendorClear = () => {
-        setBillForm(prev => ({ 
+        setJournalEntryForm(prev => ({ 
             ...prev, 
             selectedVendor: null,
             vendorName: '',
             vendorGST: ''
         }));
-        setVendorManuallyCleared(true); // Flag that user manually cleared vendor
+        setIsVendorManuallyCleared(true); // Flag that user manually cleared vendor
     };
 
     // Handle back click
     const handleBackClick = () => {
-        navigate('/zoho/expense-bill');
+        navigate('/zoho/journal-entry');
     };
 
     // Handle zoom functions
@@ -191,12 +191,12 @@ const ZohoExpenseBillDetail = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullscreen]);
 
-    // Add expense item
-    const addExpenseItem = () => {
-        setExpenseItems(prev => [...prev, {
+    // Add journal entry line item
+    const addJournalLineItem = () => {
+        setJournalLineItems(prev => [...prev, {
             id: Date.now(), // Add unique ID
             item_id: null,
-            zohoBill: zohoBillData?.id || null,
+            zohoBill: zohoJournalData?.id || null,
             item_name: '',
             item_details: '',
             vendor_id: null,
@@ -207,37 +207,37 @@ const ZohoExpenseBillDetail = () => {
         }]);
     };
 
-    // Remove expense item
-    const removeExpenseItem = (index) => {
-        setExpenseItems(prev => prev.filter((_, i) => i !== index));
+    // Remove journal entry line item
+    const removeJournalLineItem = (index) => {
+        setJournalLineItems(prev => prev.filter((_, i) => i !== index));
     };
 
     // Handle tax summary changes
     const handleTaxSummaryChange = (field, value) => {
-        setTaxSummaryForm(prev => ({ ...prev, [field]: value }));
+        setTaxSummary(prev => ({ ...prev, [field]: value }));
     };
     
-    // Update form data when expense bill data is loaded
+    // Update form data when journal entry data is loaded
     useEffect(() => {
-        if (expenseBillData) {
+        if (journalEntryData) {
             const data = analysedData;
-            const zoho = zohoBillData;
+            const zoho = zohoJournalData;
             
-            // Update bill form with data from API response
-            setBillForm(prev => ({
+            // Update journal entry form with data from API response
+            setJournalEntryForm(prev => ({
                 ...prev,
-                billNumber: zoho?.bill_no || data?.invoiceNumber || '',
-                billDate: zoho?.bill_date || data?.dateIssued || '',
+                referenceNumber: zoho?.bill_no || data?.invoiceNumber || '',
+                entryDate: zoho?.bill_date || data?.dateIssued || '',
                 dueDate: zoho?.due_date || data?.dueDate || '',
                 vendorName: data?.from?.name || '',
                 totalAmount: zoho?.total || data?.total || '',
                 selectedVendor: null, // Will be set when vendors are loaded
                 vendorGST: '',
-                is_tax: 'TDS'
+                taxType: 'TDS'
             }));
 
             // Update tax summary
-            setTaxSummaryForm(prev => ({
+            setTaxSummary(prev => ({
                 ...prev,
                 igst: zoho?.igst || data?.igst || '',
                 cgst: zoho?.cgst || data?.cgst || '',
@@ -248,9 +248,9 @@ const ZohoExpenseBillDetail = () => {
             // Update notes
             setNotes(zoho?.note || '');
 
-            // Initialize expense items from zoho_bill.products or analysed_data.items
+            // Initialize journal entry line items from zoho_bill.products or analysed_data.items
             if (zoho?.products && zoho.products.length > 0) {
-                setExpenseItems(zoho.products.map((item, index) => ({
+                setJournalLineItems(zoho.products.map((item, index) => ({
                     id: item.id || index,
                     item_id: item.id || null,
                     zohoBill: item.zohoBill || null,
@@ -264,7 +264,7 @@ const ZohoExpenseBillDetail = () => {
                 })));
             } else if (data?.items && data.items.length > 0) {
                 // Fallback to analysed_data items if no zoho products
-                setExpenseItems(data.items.map((item, index) => ({
+                setJournalLineItems(data.items.map((item, index) => ({
                     id: Date.now() + index,
                     item_id: null,
                     item_details: item.description || '',
@@ -275,8 +275,8 @@ const ZohoExpenseBillDetail = () => {
                     debit_or_credit: 'debit'
                 })));
             } else {
-                // Initialize with empty expense item if no items exist
-                setExpenseItems([{
+                // Initialize with empty journal entry line item if no items exist
+                setJournalLineItems([{
                     id: Date.now(),
                     item_id: null,
                     item_details: '',
@@ -287,18 +287,18 @@ const ZohoExpenseBillDetail = () => {
                 }]);
             }
         }
-    }, [expenseBillData, analysedData, zohoBillData]);
+    }, [journalEntryData, analysedData, zohoJournalData]);
 
     // Match vendor from API response with vendor options when both are available
     // Only auto-match if user hasn't manually cleared the vendor
     useEffect(() => {
-        if (vendorsData?.results && vendorsData.results.length > 0 && !billForm.selectedVendor && !vendorManuallyCleared) {
+        if (vendorsData?.results && vendorsData.results.length > 0 && !journalEntryForm.selectedVendor && !isVendorManuallyCleared) {
             let matchedVendor = null;
 
             // First priority: Match by zoho_bill.vendor ID if it exists
-            if (zohoBillData?.vendor) {
+            if (zohoJournalData?.vendor) {
                 matchedVendor = vendorsData.results.find(vendor => 
-                    vendor.id === zohoBillData.vendor
+                    vendor.id === zohoJournalData.vendor
                 );
             }
 
@@ -310,7 +310,7 @@ const ZohoExpenseBillDetail = () => {
             }
             
             if (matchedVendor) {
-                setBillForm(prev => ({
+                setJournalEntryForm(prev => ({
                     ...prev,
                     selectedVendor: matchedVendor,
                     vendorName: matchedVendor.companyName || prev.vendorName,
@@ -318,28 +318,28 @@ const ZohoExpenseBillDetail = () => {
                 }));
             }
         }
-    }, [vendorsData, analysedData, zohoBillData, billForm.selectedVendor, vendorManuallyCleared]);
+    }, [vendorsData, analysedData, zohoJournalData, journalEntryForm.selectedVendor, isVendorManuallyCleared]);
 
-    // Handle verify expense bill (save function)
+    // Handle verify journal entry (save function)
     const handleSave = async () => {
-        if (!selectedOrganization?.id || !billId) {
-            setErrorAlert({ show: true, message: 'Missing organization or bill information' });
+        if (!selectedOrganization?.id || !journalEntryId) {
+            setErrorAlert({ show: true, message: 'Missing organization or journal entry information' });
             return;
         }
 
         // Prepare items for verification
-        const validItems = expenseItems.filter(item => 
+        const validLineItems = journalLineItems.filter(item => 
             item.chart_of_accounts_id && 
             item.amount && 
             parseFloat(item.amount) > 0
         );
 
-        if (validItems.length === 0) {
-            setErrorAlert({ show: true, message: 'Please ensure all expense items have chart of accounts and amounts' });
+        if (validLineItems.length === 0) {
+            setErrorAlert({ show: true, message: 'Please ensure all journal entry items have chart of accounts and amounts' });
             return;
         }
 
-        if (!billForm.selectedVendor) {
+        if (!journalEntryForm.selectedVendor) {
             setErrorAlert({ show: true, message: 'Please select a vendor' });
             return;
         }
@@ -348,27 +348,27 @@ const ZohoExpenseBillDetail = () => {
         setErrorAlert({ show: false, message: '' });
 
         try {
-            const verifyData = {
-                bill_id: billId,
+            const verificationPayload = {
+                bill_id: journalEntryId,
                 zoho_bill: {
-                    id: zohoBillData?.id || null,
-                    selectBill: billId,
-                    vendor: billForm.selectedVendor?.id || null,
-                    bill_no: billForm.billNumber,
-                    bill_date: billForm.billDate,
-                    due_date: billForm.dueDate,
-                    total: billForm.totalAmount || "0",
-                    igst: taxSummaryForm.igst || "0",
-                    cgst: taxSummaryForm.cgst || "0",
-                    sgst: taxSummaryForm.sgst || "0",
-                    note: notes || `Auto-created from analysis for ${billForm.selectedVendor?.companyName || 'vendor'}.`,
-                    created_at: zohoBillData?.created_at || new Date().toISOString(),
-                    products: validItems.map((item, index) => ({
+                    id: zohoJournalData?.id || null,
+                    selectBill: journalEntryId,
+                    vendor: journalEntryForm.selectedVendor?.id || null,
+                    bill_no: journalEntryForm.referenceNumber,
+                    bill_date: journalEntryForm.entryDate,
+                    due_date: journalEntryForm.dueDate,
+                    total: journalEntryForm.totalAmount || "0",
+                    igst: taxSummary.igst || "0",
+                    cgst: taxSummary.cgst || "0",
+                    sgst: taxSummary.sgst || "0",
+                    note: notes || `Auto-created from analysis for ${journalEntryForm.selectedVendor?.companyName || 'vendor'}.`,
+                    created_at: zohoJournalData?.created_at || new Date().toISOString(),
+                    products: validLineItems.map((item, index) => ({
                         id: item.id || item.item_id || null,
-                        zohoBill: zohoBillData?.id || null,
+                        zohoBill: zohoJournalData?.id || null,
                         item_details: item.item_details || '',
                         chart_of_accounts: item.chart_of_accounts_id || null,
-                        vendor: item.vendor_id || billForm.selectedVendor?.id || null,
+                        vendor: item.vendor_id || journalEntryForm.selectedVendor?.id || null,
                         amount: item.amount,
                         debit_or_credit: item.debit_or_credit || "debit",
                         created_at: item.created_at || new Date().toISOString()
@@ -376,17 +376,17 @@ const ZohoExpenseBillDetail = () => {
                 }
             };
 
-            await verifyExpenseBill({
+            await verifyJournalEntry({
                 organizationId: selectedOrganization?.id,
-                bill_id: billId,
-                ...verifyData
+                bill_id: journalEntryId,
+                ...verificationPayload
             });
 
-            globalToast.success('Expense bill verified successfully!');
+            globalToast.success('Journal entry verified successfully!');
             
-            // Redirect to expense bills list after successful verification
+            // Redirect to journal entries list after successful verification
             setTimeout(() => {
-                navigate('/zoho/expense-bill');
+                navigate('/zoho/journal-entry');
             }, 1500); // Small delay to show success message
         } catch (error) {
             console.error('Verification failed:', error);
@@ -442,9 +442,9 @@ const ZohoExpenseBillDetail = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-red-600 text-center">
-                            <p className="text-lg font-medium">Failed to load expense bill</p>
+                            <p className="text-lg font-medium">Failed to load journal entry</p>
                             <p className="text-sm text-gray-500 mt-2">
-                                {error?.data?.message || error?.message || 'An error occurred while fetching expense bill details'}
+                                {error?.data?.message || error?.message || 'An error occurred while fetching journal entry details'}
                             </p>
                         </div>
                         <div className="flex gap-3 mt-4">
@@ -472,7 +472,7 @@ const ZohoExpenseBillDetail = () => {
         return (
             <div className="text-center py-8">
                 <div className="text-slate-500">No organization selected</div>
-                <div className="text-xs text-slate-400 mt-2">Please select an organization to view expense bill details</div>
+                <div className="text-xs text-slate-400 mt-2">Please select an organization to view journal entry details</div>
             </div>
         );
     }
@@ -480,7 +480,7 @@ const ZohoExpenseBillDetail = () => {
     return (
         <div className="space-y-5">
             <Card 
-                title={`Zoho Expense Bill Detail`} 
+                title={`Zoho Journal Entry Detail`} 
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
@@ -488,7 +488,7 @@ const ZohoExpenseBillDetail = () => {
                             onClick={() => refetch()}
                             disabled={isLoading}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Refresh expense bill"
+                            title="Refresh journal entry"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -506,10 +506,10 @@ const ZohoExpenseBillDetail = () => {
                             Back
                         </button>
                         <button
-                            onClick={() => navigate(`/zoho/expense-bill/${expenseBillData?.next_bill}`)}
-                            disabled={!expenseBillData?.next_bill}
+                            onClick={() => navigate(`/zoho/journal-entry/${journalEntryData?.next_bill}`)}
+                            disabled={!journalEntryData?.next_bill}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill available"}
+                            title={journalEntryData?.next_bill ? "Go to next entry" : "No next entry available"}
                         >
                             Next
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
@@ -520,7 +520,7 @@ const ZohoExpenseBillDetail = () => {
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already synced/posted" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Entry already synced/posted" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -568,14 +568,14 @@ const ZohoExpenseBillDetail = () => {
                     {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
                     <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
                         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
-                            {billInfo?.file ? (
+                            {journalInfo?.file ? (
                                 <div className="w-full h-full flex flex-col">
                                     {/* Fixed Header - Always Visible */}
                                     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                                        <h3 className="text-base font-medium text-gray-900 truncate mr-2">{billInfo.billmunshiName ? `${billInfo.billmunshiName}` : 'Document'}</h3>
+                                        <h3 className="text-base font-medium text-gray-900 truncate mr-2">{journalInfo.billmunshiName ? `${journalInfo.billmunshiName}` : 'Document'}</h3>
                                         <div className="flex items-center gap-1.5 flex-shrink-0">
                                             {/* Keyboard Shortcuts Info */}
-                                            {!isPDF(billInfo.file) && (
+                                            {!isPDF(journalInfo.file) && (
                                                 <div className="relative group">
                                                     <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
                                                         <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -594,7 +594,7 @@ const ZohoExpenseBillDetail = () => {
                                             )}
                                             
                                             {/* Zoom Controls - only for images */}
-                                            {!isPDF(billInfo.file) && (
+                                            {!isPDF(journalInfo.file) && (
                                                 <>
                                                     <button
                                                         onClick={handleZoomOut}
@@ -646,10 +646,10 @@ const ZohoExpenseBillDetail = () => {
                                     
                                     {/* Scrollable Content Area */}
                                     <div className="flex-1 overflow-auto bg-white">
-                                        {isPDF(billInfo.file) ? (
+                                        {isPDF(journalInfo.file) ? (
                                             // PDF Viewer
                                             <iframe
-                                                src={billInfo.file}
+                                                src={journalInfo.file}
                                                 className="w-full h-full border-0"
                                                 title="Bill PDF Document"
                                                 onError={(e) => {
@@ -669,7 +669,7 @@ const ZohoExpenseBillDetail = () => {
                                                 }}
                                             >
                                                 <img 
-                                                    src={billInfo.file}
+                                                    src={journalInfo.file}
                                                     alt="Bill Document"
                                                     className="rounded-lg shadow-lg transition-transform duration-200 select-none"
                                                     style={{
@@ -729,9 +729,9 @@ const ZohoExpenseBillDetail = () => {
                                                 <h4 className="text-sm font-medium text-red-800 mb-2">Required for verification:</h4>
                                                 <ul className="text-sm text-red-700 space-y-1">
                                                     {isVendorRequired && <li>• Select a vendor</li>}
-                                                    {expenseItems.length === 0 && <li>• Add at least one expense item</li>}
-                                                    {getItemsWithoutCOA().length > 0 && (
-                                                        <li>• Select Chart of Accounts for {getItemsWithoutCOA().length} expense item{getItemsWithoutCOA().length > 1 ? 's' : ''}</li>
+                                                    {journalLineItems.length === 0 && <li>• Add at least one journal line item</li>}
+                                                    {getLineItemsWithoutCOA().length > 0 && (
+                                                        <li>• Select Chart of Accounts for {getLineItemsWithoutCOA().length} line item{getLineItemsWithoutCOA().length > 1 ? 's' : ''}</li>
                                                     )}
                                                 </ul>
                                             </div>
@@ -754,7 +754,7 @@ const ZohoExpenseBillDetail = () => {
                                             <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                 <SearchableDropdown
                                                     options={vendorsData?.results || []}
-                                                    value={billForm.selectedVendor?.id || null}
+                                                    value={journalEntryForm.selectedVendor?.id || null}
                                                     onChange={handleVendorSelect}
                                                     onClear={handleVendorClear}
                                                     placeholder="Search and select vendor..."
@@ -795,9 +795,9 @@ const ZohoExpenseBillDetail = () => {
                                             </label>
                                             <input
                                                 type="text"
-                                                name="billNumber"
-                                                value={billForm.billNumber}
-                                                onChange={(e) => handleFormChange('billNumber', e.target.value)}
+                                                name="referenceNumber"
+                                                value={journalEntryForm.referenceNumber}
+                                                onChange={(e) => handleFormChange('referenceNumber', e.target.value)}
                                                 placeholder="Enter bill number"
                                                 disabled={isVerified}
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
@@ -811,21 +811,21 @@ const ZohoExpenseBillDetail = () => {
                                         <div className="lg:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 GST Number
-                                                {/* {billForm.selectedVendor && (
+                                                {/* {journalEntryForm.selectedVendor && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
                                                 )} */}
                                             </label>
                                             <input
                                                 type="text"
                                                 name="vendorGST"
-                                                value={billForm.vendorGST}
+                                                value={journalEntryForm.vendorGST}
                                                 onChange={(e) => handleFormChange('vendorGST', e.target.value)}
                                                 placeholder="Enter GST number"
                                                 disabled={isVerified}
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
-                                                readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
+                                                readOnly={journalEntryForm.selectedVendor && journalEntryForm.selectedVendor.gstNo}
                                             />
-                                            {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
+                                            {journalEntryForm.selectedVendor && journalEntryForm.selectedVendor.gstNo && (
                                                 <p className="mt-1 text-xs">
                                                     GST number automatically filled from selected vendor
                                                 </p>
@@ -839,9 +839,9 @@ const ZohoExpenseBillDetail = () => {
                                             </label>
                                             <input
                                                 type="text"
-                                                name="billDate"
-                                                value={billForm.billDate}
-                                                onChange={(e) => handleFormChange('billDate', e.target.value)}
+                                                name="entryDate"
+                                                value={journalEntryForm.entryDate}
+                                                onChange={(e) => handleFormChange('entryDate', e.target.value)}
                                                 placeholder="DD-MM-YYYY"
                                                 disabled={isVerified}
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
@@ -856,7 +856,7 @@ const ZohoExpenseBillDetail = () => {
                                             <input
                                                 type="text"
                                                 name="dueDate"
-                                                value={billForm.dueDate}
+                                                value={journalEntryForm.dueDate}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
                                                 placeholder="DD-MM-YYYY"
                                                 disabled={isVerified}
@@ -867,7 +867,7 @@ const ZohoExpenseBillDetail = () => {
                                 </div>
                             </div>
 
-                            {/* Expense Items Section */}
+                            {/* Journal Entry Items Section */}
                             <div className="relative p-8 border-b border-gray-200">
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
@@ -875,11 +875,11 @@ const ZohoExpenseBillDetail = () => {
                                             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                             </svg>
-                                            <h3 className="text-lg font-semibold text-gray-900">Expense Items</h3>
+                                            <h3 className="text-lg font-semibold text-gray-900">Journal Entry Items</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <button
-                                                onClick={addExpenseItem}
+                                                onClick={addJournalLineItem}
                                                 disabled={isVerified}
                                                 className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                                                 title="Add"
@@ -891,7 +891,7 @@ const ZohoExpenseBillDetail = () => {
                                         </div>
                                     </div>
 
-                                    {/* Enhanced Expense Items Table - Scrollable */}
+                                    {/* Enhanced Journal Entry Items Table - Scrollable */}
                                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
                                         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                                             <table className="w-full min-w-[1000px]">
@@ -918,16 +918,16 @@ const ZohoExpenseBillDetail = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
-                                                    {expenseItems.map((item, index) => (
+                                                    {journalLineItems.map((item, index) => (
                                                         <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
                                                             {/* Item Details */}
                                                             <td className="px-4 py-3">
                                                                 <textarea
                                                                     value={item.item_details}
                                                                     onChange={(e) => {
-                                                                        const newItems = [...expenseItems];
+                                                                        const newItems = [...journalLineItems];
                                                                         newItems[index] = { ...item, item_details: e.target.value };
-                                                                        setExpenseItems(newItems);
+                                                                        setJournalLineItems(newItems);
                                                                     }}
                                                                     placeholder="Enter item details..."
                                                                     disabled={isVerified}
@@ -942,14 +942,14 @@ const ZohoExpenseBillDetail = () => {
                                                                     options={vendorsData?.results || []}
                                                                     value={item.vendor_id || null}
                                                                     onChange={(vendorId) => {
-                                                                        const newItems = [...expenseItems];
+                                                                        const newItems = [...journalLineItems];
                                                                         newItems[index] = { ...item, vendor_id: vendorId };
-                                                                        setExpenseItems(newItems);
+                                                                        setJournalLineItems(newItems);
                                                                     }}
                                                                     onClear={() => {
-                                                                        const newItems = [...expenseItems];
+                                                                        const newItems = [...journalLineItems];
                                                                         newItems[index] = { ...item, vendor_id: null };
-                                                                        setExpenseItems(newItems);
+                                                                        setJournalLineItems(newItems);
                                                                     }}
                                                                     placeholder="Select vendor..."
                                                                     searchPlaceholder="Type to search vendors..."
@@ -978,14 +978,14 @@ const ZohoExpenseBillDetail = () => {
                                                                         options={chartOfAccountsData?.results || []}
                                                                         value={item.chart_of_accounts_id || null}
                                                                         onChange={(accountId) => {
-                                                                            const newItems = [...expenseItems];
+                                                                            const newItems = [...journalLineItems];
                                                                             newItems[index] = { ...item, chart_of_accounts_id: accountId };
-                                                                            setExpenseItems(newItems);
+                                                                            setJournalLineItems(newItems);
                                                                         }}
                                                                         onClear={() => {
-                                                                            const newItems = [...expenseItems];
+                                                                            const newItems = [...journalLineItems];
                                                                             newItems[index] = { ...item, chart_of_accounts_id: null };
-                                                                            setExpenseItems(newItems);
+                                                                            setJournalLineItems(newItems);
                                                                         }}
                                                                         placeholder="Select chart of accounts..."
                                                                         searchPlaceholder="Type to search accounts..."
@@ -1009,9 +1009,9 @@ const ZohoExpenseBillDetail = () => {
                                                                     type="number"
                                                                     value={item.amount}
                                                                     onChange={(e) => {
-                                                                        const newItems = [...expenseItems];
+                                                                        const newItems = [...journalLineItems];
                                                                         newItems[index] = { ...item, amount: e.target.value };
-                                                                        setExpenseItems(newItems);
+                                                                        setJournalLineItems(newItems);
                                                                     }}
                                                                     placeholder="0.00"
                                                                     disabled={isVerified}
@@ -1026,9 +1026,9 @@ const ZohoExpenseBillDetail = () => {
                                                                 <select
                                                                     value={item.debit_or_credit}
                                                                     onChange={(e) => {
-                                                                        const newItems = [...expenseItems];
+                                                                        const newItems = [...journalLineItems];
                                                                         newItems[index] = { ...item, debit_or_credit: e.target.value };
-                                                                        setExpenseItems(newItems);
+                                                                        setJournalLineItems(newItems);
                                                                     }}
                                                                     disabled={isVerified}
                                                                     className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
@@ -1040,9 +1040,9 @@ const ZohoExpenseBillDetail = () => {
 
                                                             {/* Actions */}
                                                             <td className="px-4 py-3 text-center">
-                                                                {expenseItems.length > 1 && (
+                                                                {journalLineItems.length > 1 && (
                                                                     <button
-                                                                        onClick={() => removeExpenseItem(index)}
+                                                                        onClick={() => removeJournalLineItem(index)}
                                                                         disabled={isVerified}
                                                                         className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100' : ''}`}
                                                                         title="Remove Item"
@@ -1059,11 +1059,11 @@ const ZohoExpenseBillDetail = () => {
                                             </table>
                                         </div>
                                         
-                                        {/* Expense Items Summary */}
+                                        {/* Journal Entry Items Summary */}
                                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-gray-600">
-                                                    Total Items: {expenseItems.length}
+                                                    Total Items: {journalLineItems.length}
                                                 </span>
                                             </div>
                                         </div>
@@ -1090,7 +1090,7 @@ const ZohoExpenseBillDetail = () => {
                                                 <input
                                                     type="number"
                                                     name="cgst"
-                                                    value={taxSummaryForm.cgst}
+                                                    value={taxSummary.cgst}
                                                     onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
                                                     placeholder="0.00"
                                                     disabled={isVerified}
@@ -1105,7 +1105,7 @@ const ZohoExpenseBillDetail = () => {
                                                 <input
                                                     type="number"
                                                     name="sgst"
-                                                    value={taxSummaryForm.sgst}
+                                                    value={taxSummary.sgst}
                                                     onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
                                                     placeholder="0.00"
                                                     disabled={isVerified}
@@ -1120,7 +1120,7 @@ const ZohoExpenseBillDetail = () => {
                                                 <input
                                                     type="number"
                                                     name="igst"
-                                                    value={taxSummaryForm.igst}
+                                                    value={taxSummary.igst}
                                                     onChange={e => handleTaxSummaryChange('igst', e.target.value)}
                                                     placeholder="0.00"
                                                     disabled={isVerified}
@@ -1140,7 +1140,7 @@ const ZohoExpenseBillDetail = () => {
                                                     <input
                                                         type="number"
                                                         name="totalAmount"
-                                                        value={billForm.totalAmount}
+                                                        value={journalEntryForm.totalAmount}
                                                         onChange={e => handleFormChange('totalAmount', e.target.value)}
                                                         placeholder="0.00"
                                                         disabled={isVerified}
@@ -1161,7 +1161,7 @@ const ZohoExpenseBillDetail = () => {
                                         Notes
                                     </label>
                                     <textarea 
-                                        value={notes || `Bill from ${billForm.selectedVendor?.companyName || 'Vendor'} entered via BillMunshi ${window.location.href}\n\n`}
+                                        value={notes || `Journal Entry from ${journalEntryForm.selectedVendor?.companyName || 'Vendor'} entered via BillMunshi ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isVerified}
                                         className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
@@ -1176,16 +1176,16 @@ const ZohoExpenseBillDetail = () => {
             </Card>
 
             {/* Fullscreen Modal */}
-            {isFullscreen && billInfo?.file && (
+            {isFullscreen && journalInfo?.file && (
                 <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
                     <div className="relative w-full h-full flex flex-col">
                         {/* Fullscreen Header - Fixed */}
                         <div className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-white text-lg font-medium">
-                                    Bill Document - {billInfo.billmunshiName || analysedData.invoiceNumber || 'Unknown'}
+                                    Journal Entry Document - {journalInfo.billmunshiName || analysedData.invoiceNumber || 'Unknown'}
                                 </h3>
-                                {!isPDF(billInfo.file) && (
+                                {!isPDF(journalInfo.file) && (
                                     <div className="flex items-center gap-2 bg-white bg-opacity-10 rounded-lg px-3 py-2 backdrop-blur-sm">
                                         <button
                                             onClick={handleZoomOut}
@@ -1235,9 +1235,9 @@ const ZohoExpenseBillDetail = () => {
 
                         {/* Fullscreen Content - Scrollable */}
                         <div className="flex-1 overflow-auto">
-                            {isPDF(billInfo.file) ? (
+                            {isPDF(journalInfo.file) ? (
                                 <iframe
-                                    src={billInfo.file}
+                                    src={journalInfo.file}
                                     className="w-full h-full border-0"
                                     title="Bill PDF Document - Fullscreen"
                                 />
@@ -1253,7 +1253,7 @@ const ZohoExpenseBillDetail = () => {
                                     }}
                                 >
                                     <img
-                                        src={billInfo.file}
+                                        src={journalInfo.file}
                                         alt="Bill Document - Fullscreen"
                                         className="rounded-lg shadow-2xl transition-transform duration-200 select-none"
                                         style={{
@@ -1275,4 +1275,4 @@ const ZohoExpenseBillDetail = () => {
     );
 }
 
-export default ZohoExpenseBillDetail
+export default ZohoJournalEntryDetail
