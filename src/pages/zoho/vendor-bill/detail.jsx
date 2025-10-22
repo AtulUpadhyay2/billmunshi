@@ -101,8 +101,8 @@ const ZohoVendorBillDetail = () => {
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
     
-    // Check if bill is verified, synced, or posted (disable inputs if any of these statuses)
-    const isVerified = vendorBillData?.status === 'Verified' || vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
+    // Check if bill is synced or posted (disable inputs if any of these statuses)
+    const isVerified = vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
     
     // Update form when data is loaded
     useEffect(() => {
@@ -624,7 +624,7 @@ const ZohoVendorBillDetail = () => {
                             onClick={handleVerification}
                             disabled={isVerifying || isVerified || !selectedOrganization?.id}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerified ? "Bill already verified/synced/posted" : "Verify Bill"}
+                            title={isVerified ? "Bill already synced/posted" : "Verify Bill"}
                         >
                             {isVerifying ? (
                                 <>
