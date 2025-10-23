@@ -873,11 +873,6 @@ const ZohoExpenseBillDetail = () => {
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
                                                 readOnly={billForm.selectedVendor && billForm.selectedVendor.gstNo}
                                             />
-                                            {billForm.selectedVendor && billForm.selectedVendor.gstNo && (
-                                                <p className="mt-1 text-xs">
-                                                    GST number automatically filled from selected vendor
-                                                </p>
-                                            )}
                                         </div>
 
                                         {/* Bill Date Field */}
@@ -1010,9 +1005,6 @@ const ZohoExpenseBillDetail = () => {
                                                                             <div className="font-medium text-gray-900">{vendor.companyName}</div>
                                                                             {vendor.gstNo && (
                                                                                 <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
-                                                                            )}
-                                                                            {vendor.contactId && (
-                                                                                <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
                                                                             )}
                                                                         </div>
                                                                     )}
