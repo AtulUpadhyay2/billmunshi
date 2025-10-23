@@ -842,11 +842,6 @@ const ZohoJournalEntryDetail = () => {
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
                                                 readOnly={journalEntryForm.selectedVendor && journalEntryForm.selectedVendor.gstNo}
                                             />
-                                            {journalEntryForm.selectedVendor && journalEntryForm.selectedVendor.gstNo && (
-                                                <p className="mt-1 text-xs">
-                                                    GST number automatically filled from selected vendor
-                                                </p>
-                                            )}
                                         </div>
 
                                         {/* Bill Date Field */}
