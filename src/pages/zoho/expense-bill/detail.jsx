@@ -26,7 +26,8 @@ const ZohoExpenseBillDetail = () => {
         totalAmount: '',
         selectedVendor: null,
         vendorGST: '',
-        is_tax: 'TDS' // Default to TDS
+        is_tax: 'TDS', // Default to TDS
+        chart_of_accounts_id: null // Chart of Accounts for bill level
     });
 
     // State for managing expense items
@@ -250,7 +251,8 @@ const ZohoExpenseBillDetail = () => {
                 totalAmount: zoho?.total || data?.total || '',
                 selectedVendor: null, // Will be set when vendors are loaded
                 vendorGST: '',
-                is_tax: 'TDS'
+                is_tax: 'TDS',
+                chart_of_accounts_id: zoho?.chart_of_accounts || null // Set chart of accounts from API
             }));
 
             // Update tax summary
@@ -375,6 +377,7 @@ const ZohoExpenseBillDetail = () => {
                     bill_date: billForm.billDate,
                     due_date: billForm.dueDate,
                     total: billForm.totalAmount || "0",
+                    chart_of_accounts: billForm.chart_of_accounts_id || null,
                     igst: taxSummaryForm.igst || "0",
                     cgst: taxSummaryForm.cgst || "0",
                     sgst: taxSummaryForm.sgst || "0",
@@ -758,14 +761,14 @@ const ZohoExpenseBillDetail = () => {
 
                                 {/* Bill Form Fields */}
                                 <div className="space-y-4">
-                                    {/* First Row: Vendor and Bill Number */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {/* First Row: Vendor, Bill Number, and Chart of Accounts */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                         {/* Vendor Selection Field */}
                                         <div className="relative">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Vendor <span className="text-red-500">*</span>
                                                 {isVendorRequired && !isVerified && (
-                                                    <span className="text-red-500 text-xs ml-2">Required for verification</span>
+                                                    <span className="text-red-500 text-xs ml-2">Required</span>
                                                 )}
                                             </label>
                                             <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
@@ -791,18 +794,6 @@ const ZohoExpenseBillDetail = () => {
                                                     className="mb-2"
                                                 />
                                             </div>
-
-                                            {/* Bill From Badge - showing analysed_data.from.name */}
-                                            {analysedData?.from?.name && (
-                                                <div className="mt-3">
-                                                    <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                                        <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                        </svg>
-                                                        Bill From: {analysedData.from.name}
-                                                    </div>
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* Bill Number Field */}
@@ -820,7 +811,47 @@ const ZohoExpenseBillDetail = () => {
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                             />
                                         </div>
+
+                                        {/* Chart of Accounts Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Chart of Accounts
+                                            </label>
+                                            <SearchableDropdown
+                                                options={chartOfAccountsData?.results || []}
+                                                value={billForm.chart_of_accounts_id || null}
+                                                onChange={(accountId) => handleFormChange('chart_of_accounts_id', accountId)}
+                                                onClear={() => handleFormChange('chart_of_accounts_id', null)}
+                                                placeholder="Select chart of accounts..."
+                                                searchPlaceholder="Type to search accounts..."
+                                                optionLabelKey="accountName"
+                                                optionValueKey="id"
+                                                loading={chartOfAccountsLoading}
+                                                disabled={isVerified}
+                                                renderOption={(account) => (
+                                                    <div className="flex flex-col py-1">
+                                                        <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                        {account.accountCode && (
+                                                            <div className="text-xs text-gray-500">Code: {account.accountCode}</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                className="bill-coa-dropdown"
+                                            />
+                                        </div>
                                     </div>
+
+                                    {/* Bill From Badge Row - showing analysed_data.from.name */}
+                                    {analysedData?.from?.name && (
+                                        <div>
+                                            <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                                Bill From: {analysedData.from.name}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Second Row: GST, Bill Date, Due Date in 4 columns */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
