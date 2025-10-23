@@ -21,12 +21,12 @@ export const menuItems = [
     icon: "heroicons-outline:document-text",
     link: "zoho/vendor-bill",
   },
-  // {
-  //   title: "Expense Bill",
-  //   isHide: true,
-  //   icon: "heroicons-outline:clipboard",
-  //   link: "zoho/expense-bill",
-  // },
+  {
+    title: "Expense Bill",
+    isHide: true,
+    icon: "heroicons-outline:clipboard",
+    link: "zoho/expense-bill",
+  },
   {
     title: "Journal Entry",
     isHide: true,
@@ -158,11 +158,11 @@ export const topMenu = [
         childlink: "zoho/vendor-bill",
         childicon: "heroicons-outline:document-text",
       },
-      // {
-      //   childtitle: "Expense Bill",
-      //   childlink: "zoho/expense-bill",
-      //   childicon: "heroicons-outline:clipboard",
-      // },
+      {
+        childtitle: "Expense Bill",
+        childlink: "zoho/expense-bill",
+        childicon: "heroicons-outline:clipboard",
+      },
       {
         childtitle: "Journal Entry",
         childlink: "zoho/journal-entry",

@@ -148,6 +148,11 @@ const ZohoJournalEntryDetail = () => {
 
     // Handle back click
     const handleBackClick = () => {
+        // Open sidebar if it's collapsed
+        if (collapsed) {
+            setMenuCollapsed(false);
+        }
+        // Navigate back to journal entry list
         navigate('/zoho/journal-entry');
     };
 
@@ -190,6 +195,18 @@ const ZohoJournalEntryDetail = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullscreen]);
+
+    // Auto-close sidebar when component mounts
+    useEffect(() => {
+        // Close mobile menu if it's open
+        if (mobileMenu) {
+            setMobileMenu(false);
+        }
+        // Always collapse sidebar when entering detail page for better viewing experience
+        if (!collapsed) {
+            setMenuCollapsed(true);
+        }
+    }, []); // Empty dependency array to run only on mount
 
     // Add journal entry line item
     const addJournalLineItem = () => {
@@ -963,9 +980,9 @@ const ZohoJournalEntryDetail = () => {
                                                                             {vendor.gstNo && (
                                                                                 <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
                                                                             )}
-                                                                            {vendor.contactId && (
+                                                                            {/* {vendor.contactId && (
                                                                                 <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
-                                                                            )}
+                                                                            )} */}
                                                                         </div>
                                                                     )}
                                                                     className="vendor-dropdown"

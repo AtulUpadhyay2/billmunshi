@@ -148,6 +148,11 @@ const ZohoExpenseBillDetail = () => {
 
     // Handle back click
     const handleBackClick = () => {
+        // Open sidebar if it's collapsed
+        if (collapsed) {
+            setMenuCollapsed(false);
+        }
+        // Navigate back to expense bill list
         navigate('/zoho/expense-bill');
     };
 
@@ -190,6 +195,18 @@ const ZohoExpenseBillDetail = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullscreen]);
+
+    // Auto-close sidebar when component mounts
+    useEffect(() => {
+        // Close mobile menu if it's open
+        if (mobileMenu) {
+            setMobileMenu(false);
+        }
+        // Always collapse sidebar when entering detail page for better viewing experience
+        if (!collapsed) {
+            setMenuCollapsed(true);
+        }
+    }, []); // Empty dependency array to run only on mount
 
     // Add expense item
     const addExpenseItem = () => {
