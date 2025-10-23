@@ -213,15 +213,11 @@ const ZohoExpenseBillDetail = () => {
     const addExpenseItem = () => {
         setExpenseItems(prev => [...prev, {
             id: Date.now(), // Add unique ID
-            item_id: null,
             zohoBill: zohoBillData?.id || null,
-            item_name: '',
             item_details: '',
-            vendor_id: null,
             chart_of_accounts_id: null,
-            amount: '',
-            debit_or_credit: 'debit',
-            created_at: null
+            taxes: null,
+            amount: ''
         }]);
     };
 
@@ -271,38 +267,30 @@ const ZohoExpenseBillDetail = () => {
             if (zoho?.products && zoho.products.length > 0) {
                 setExpenseItems(zoho.products.map((item, index) => ({
                     id: item.id || index,
-                    item_id: item.id || null,
                     zohoBill: item.zohoBill || null,
                     item_details: item.item_details || '',
-                    vendor_id: item.vendor || null,
-                    chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
                     chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
                     amount: item.amount || '',
-                    debit_or_credit: item.debit_or_credit || 'debit',
                     created_at: item.created_at || null
                 })));
             } else if (data?.items && data.items.length > 0) {
                 // Fallback to analysed_data items if no zoho products
                 setExpenseItems(data.items.map((item, index) => ({
                     id: Date.now() + index,
-                    item_id: null,
                     item_details: item.description || '',
-                    vendor_id: null,
-                    chart_of_accounts: 'No COA Selected',
                     chart_of_accounts_id: null,
-                    amount: item.price || '',
-                    debit_or_credit: 'debit'
+                    taxes: null,
+                    amount: item.price || ''
                 })));
             } else {
                 // Initialize with empty expense item if no items exist
                 setExpenseItems([{
                     id: Date.now(),
-                    item_id: null,
                     item_details: '',
-                    chart_of_accounts: 'No COA Selected',
                     chart_of_accounts_id: null,
-                    amount: '',
-                    debit_or_credit: 'debit'
+                    taxes: null,
+                    amount: ''
                 }]);
             }
         }
@@ -384,14 +372,12 @@ const ZohoExpenseBillDetail = () => {
                     note: notes || `Auto-created from analysis for ${billForm.selectedVendor?.companyName || 'vendor'}.`,
                     created_at: zohoBillData?.created_at || new Date().toISOString(),
                     products: validItems.map((item, index) => ({
-                        id: item.id || item.item_id || null,
+                        id: item.id || null,
                         zohoBill: zohoBillData?.id || null,
                         item_details: item.item_details || '',
                         chart_of_accounts: item.chart_of_accounts_id || null,
-                        vendor: item.vendor_id || billForm.selectedVendor?.id || null,
-                        amount: item.amount,
-                        debit_or_credit: item.debit_or_credit || "debit",
-                        created_at: item.created_at || new Date().toISOString()
+                        taxes: item.taxes || null,
+                        amount: item.amount
                     }))
                 }
             };
@@ -944,16 +930,13 @@ const ZohoExpenseBillDetail = () => {
                                                             Item Details
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Vendor
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Chart of Accounts <span className="text-red-500">*</span>
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                            Taxes
                                                         </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
-                                                        </th>
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
-                                                            Type
                                                         </th>
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
                                                             Actions
@@ -979,39 +962,7 @@ const ZohoExpenseBillDetail = () => {
                                                                 />
                                                             </td>
                                                             
-                                                            {/* Vendor */}
-                                                            <td className="px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    options={vendorsData?.results || []}
-                                                                    value={item.vendor_id || null}
-                                                                    onChange={(vendorId) => {
-                                                                        const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, vendor_id: vendorId };
-                                                                        setExpenseItems(newItems);
-                                                                    }}
-                                                                    onClear={() => {
-                                                                        const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, vendor_id: null };
-                                                                        setExpenseItems(newItems);
-                                                                    }}
-                                                                    placeholder="Select vendor..."
-                                                                    searchPlaceholder="Type to search vendors..."
-                                                                    optionLabelKey="companyName"
-                                                                    optionValueKey="id"
-                                                                    loading={vendorsLoading}
-                                                                    disabled={isVerified}
-                                                                    renderOption={(vendor) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{vendor.companyName}</div>
-                                                                            {vendor.gstNo && (
-                                                                                <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                    className="vendor-dropdown"
-                                                                />
-                                                            </td>
-                                                            
+                                                            {/* Chart of Accounts */}
                                                             <td className="px-4 py-3">
                                                                 <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                                     <SearchableDropdown
@@ -1043,6 +994,31 @@ const ZohoExpenseBillDetail = () => {
                                                                 </div>
                                                             </td>
                                                             
+                                                            {/* Taxes */}
+                                                            <td className="relative px-4 py-3">
+                                                                <SearchableDropdown
+                                                                    options={taxesData?.results?.map(tax => ({
+                                                                        value: tax.id,
+                                                                        label: tax.taxName
+                                                                    })) || []}
+                                                                    value={item.taxes || ''}
+                                                                    onChange={(value) => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, taxes: value || null };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    onClear={() => {
+                                                                        const newItems = [...expenseItems];
+                                                                        newItems[index] = { ...item, taxes: null };
+                                                                        setExpenseItems(newItems);
+                                                                    }}
+                                                                    placeholder="Select Tax..."
+                                                                    searchPlaceholder="Search taxes..."
+                                                                    loading={taxesLoading}
+                                                                    disabled={isVerified}
+                                                                />
+                                                            </td>
+                                                            
                                                             {/* Amount */}
                                                             <td className="px-4 py-3">
                                                                 <input
@@ -1059,23 +1035,6 @@ const ZohoExpenseBillDetail = () => {
                                                                     min="0"
                                                                     step="0.01"
                                                                 />
-                                                            </td>
-
-                                                            {/* Debit/Credit Type */}
-                                                            <td className="px-4 py-3">
-                                                                <select
-                                                                    value={item.debit_or_credit}
-                                                                    onChange={(e) => {
-                                                                        const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, debit_or_credit: e.target.value };
-                                                                        setExpenseItems(newItems);
-                                                                    }}
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                >
-                                                                    <option value="debit">Debit</option>
-                                                                    <option value="credit">Credit</option>
-                                                                </select>
                                                             </td>
 
                                                             {/* Actions */}
