@@ -5,7 +5,7 @@ import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBill, useVerifyVendorBill } from "@/hooks/api/zoho/zohoVendorBillService";
-import { useGetVendors, useGetChartOfAccounts, useGetTaxes, useGetTdsTcs } from "@/hooks/api/zoho/zohoApiService";
+import { useGetVendors, useGetAllChartOfAccounts, useGetAllTaxes, useGetAllTdsTcs } from "@/hooks/api/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -75,21 +75,20 @@ const ZohoVendorBillDetail = () => {
         selectedOrganization?.id
     );
 
-    // Fetch chart of accounts for dropdown
-    const { data: chartOfAccountsData, isLoading: chartOfAccountsLoading } = useGetChartOfAccounts(
-        { organizationId: selectedOrganization?.id, page: 1 }
+    // Fetch all chart of accounts for dropdown
+    const { data: chartOfAccountsData, isLoading: chartOfAccountsLoading } = useGetAllChartOfAccounts(
+        selectedOrganization?.id
     );
 
-    // Fetch taxes for dropdown
-    const { data: taxesData, isLoading: taxesLoading } = useGetTaxes(
-        { organizationId: selectedOrganization?.id, page: 1 }
+    // Fetch all taxes for dropdown
+    const { data: taxesData, isLoading: taxesLoading } = useGetAllTaxes(
+        selectedOrganization?.id
     );
 
-    // Fetch TDS/TCS data based on selected tax type
-    const { data: tdsTcsData, isLoading: tdsTcsLoading } = useGetTdsTcs(
+    // Fetch all TDS/TCS data based on selected tax type
+    const { data: tdsTcsData, isLoading: tdsTcsLoading } = useGetAllTdsTcs(
         { 
             organizationId: selectedOrganization?.id, 
-            page: 1, 
             tax_type: vendorForm.is_tax 
         },
         { 

@@ -59,6 +59,37 @@ export const useGetChartOfAccounts = ({ organizationId, page = 1 }, options = {}
   });
 };
 
+// Fetch ALL Chart of Accounts (for dropdowns)
+export const useGetAllChartOfAccounts = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoAllChartOfAccounts", organizationId],
+    queryFn: async () => {
+      let allResults = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await apiFetch(`zoho/org/${organizationId}/chart-of-accounts/?page=${page}`);
+        
+        if (response.results && response.results.length > 0) {
+          allResults = [...allResults, ...response.results];
+          
+          // Check if there's a next page
+          hasMore = !!response.next;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return { results: allResults, count: allResults.length };
+    },
+    enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes since this data doesn't change often
+    ...options,
+  });
+};
+
 // Sync Chart of Accounts
 export const useSyncChartOfAccounts = () => {
   const queryClient = useQueryClient();
@@ -84,6 +115,35 @@ export const useGetTaxes = ({ organizationId, page = 1 }, options = {}) => {
     queryKey: ["zohoTaxes", organizationId, page],
     queryFn: () => apiFetch(`zoho/org/${organizationId}/taxes/${page ? `?page=${page}` : ''}`),
     enabled: !!organizationId,
+    ...options,
+  });
+};
+
+// Fetch ALL Taxes (for dropdowns)
+export const useGetAllTaxes = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoAllTaxes", organizationId],
+    queryFn: async () => {
+      let allResults = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await apiFetch(`zoho/org/${organizationId}/taxes/?page=${page}`);
+        
+        if (response.results && response.results.length > 0) {
+          allResults = [...allResults, ...response.results];
+          hasMore = !!response.next;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return { results: allResults, count: allResults.length };
+    },
+    enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -119,6 +179,39 @@ export const useGetTdsTcs = ({ organizationId, page = 1, tax_type }, options = {
       return apiFetch(`zoho/org/${organizationId}/tds-tcs/${params.toString() ? `?${params.toString()}` : ''}`);
     },
     enabled: !!organizationId,
+    ...options,
+  });
+};
+
+// Fetch ALL TDS/TCS (for dropdowns)
+export const useGetAllTdsTcs = ({ organizationId, tax_type }, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoAllTdsTcs", organizationId, tax_type],
+    queryFn: async () => {
+      let allResults = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        if (tax_type) params.append('tax_type', tax_type);
+        
+        const response = await apiFetch(`zoho/org/${organizationId}/tds-tcs/?${params.toString()}`);
+        
+        if (response.results && response.results.length > 0) {
+          allResults = [...allResults, ...response.results];
+          hasMore = !!response.next;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return { results: allResults, count: allResults.length };
+    },
+    enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
