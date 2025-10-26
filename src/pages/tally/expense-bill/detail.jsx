@@ -696,7 +696,7 @@ const TallyExpenseBillDetail = () => {
             globalToast.success('Expense bill verified successfully');
 
             // Navigate to expense bill list after successful verification
-            navigate('/tally/expense-bill');
+            // navigate('/tally/expense-bill');
         } catch (error) {
             console.error('Failed to verify expense bill:', error);
 
