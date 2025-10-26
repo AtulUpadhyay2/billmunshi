@@ -142,7 +142,8 @@ const TallyVendorBillDetail = () => {
     // Validation helper functions
     const isVendorRequired = !vendorForm.selectedVendor;
     const getProductsWithoutItemName = () => productSync ? products.filter(product => !product.item_id) : [];
-    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0);
+    const getProductsWithoutTaxLedger = () => products.filter(product => !product.tax_ledger_id);
+    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0;
     
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
@@ -916,6 +917,12 @@ const TallyVendorBillDetail = () => {
                 globalToast.error('Please select Item Name for all products');
                 return;
             }
+
+            // Validate Tax Ledger for all products
+            if (getProductsWithoutTaxLedger().length > 0) {
+                globalToast.error('Please select Tax Ledger for all products');
+                return;
+            }
             
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
@@ -1362,6 +1369,9 @@ const TallyVendorBillDetail = () => {
                                                     {productSync && getProductsWithoutItemName().length > 0 && (
                                                         <li>• Select Item Name for {getProductsWithoutItemName().length} product{getProductsWithoutItemName().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {getProductsWithoutTaxLedger().length > 0 && (
+                                                        <li>• Select Tax Ledger for {getProductsWithoutTaxLedger().length} product{getProductsWithoutTaxLedger().length > 1 ? 's' : ''}</li>
+                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -1532,7 +1542,7 @@ const TallyVendorBillDetail = () => {
                                                             Item Details
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                            Tax Ledger
+                                                            Tax Ledger <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
                                                             Price
@@ -1598,7 +1608,8 @@ const TallyVendorBillDetail = () => {
 
                                                             {/* Tax Ledger */}
                                                             <td className="px-4 py-3">
-                                                                <SearchableDropdown
+                                                                <div className={`${!product.tax_ledger_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
                                                                     options={taxLedgerOptions}
                                                                     value={product.tax_ledger_id || null}
                                                                     onChange={(taxLedgerId) => handleTaxLedgerSelect(index, taxLedgerId)}
@@ -1616,6 +1627,7 @@ const TallyVendorBillDetail = () => {
                                                                     )}
                                                                     className="tax-ledger-dropdown"
                                                                 />
+                                                                </div>
                                                             </td>
 
                                                             {/* Price */}

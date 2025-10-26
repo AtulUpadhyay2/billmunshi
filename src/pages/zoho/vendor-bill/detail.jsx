@@ -112,7 +112,8 @@ const ZohoVendorBillDetail = () => {
     // Validation helper functions
     const isVendorRequired = !vendorForm.selectedVendor;
     const getProductsWithoutCOA = () => products.filter(product => !product.chart_of_accounts);
-    const hasValidationErrors = () => isVendorRequired || getProductsWithoutCOA().length > 0 || products.length === 0;
+    const getProductsWithoutTaxes = () => products.filter(product => !product.taxes);
+    const hasValidationErrors = () => isVendorRequired || getProductsWithoutCOA().length > 0 || getProductsWithoutTaxes().length > 0 || products.length === 0;
     
     // Update form when data is loaded
     useEffect(() => {
@@ -447,6 +448,15 @@ const ZohoVendorBillDetail = () => {
                 globalToast.error('Please select Chart of Accounts for all products');
                 setVerificationStatus('error');
                 setVerificationMessage('Please select Chart of Accounts for all products');
+                return;
+            }
+
+            // Check if all products have taxes
+            const productsWithoutTaxes = validProducts.filter(p => !p.taxes);
+            if (productsWithoutTaxes.length > 0) {
+                globalToast.error('Please select Taxes for all products');
+                setVerificationStatus('error');
+                setVerificationMessage('Please select Taxes for all products');
                 return;
             }
             
@@ -891,6 +901,9 @@ const ZohoVendorBillDetail = () => {
                                                     {getProductsWithoutCOA().length > 0 && (
                                                         <li>• Select Chart of Accounts for {getProductsWithoutCOA().length} product{getProductsWithoutCOA().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {getProductsWithoutTaxes().length > 0 && (
+                                                        <li>• Select Taxes for {getProductsWithoutTaxes().length} product{getProductsWithoutTaxes().length > 1 ? 's' : ''}</li>
+                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -1086,7 +1099,7 @@ const ZohoVendorBillDetail = () => {
                                                             Chart of Accounts <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
-                                                            Taxes
+                                                            Taxes <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Reverse Charge
@@ -1146,7 +1159,8 @@ const ZohoVendorBillDetail = () => {
 
                                                             {/* Taxes */}
                                                             <td className="relative px-4 py-3">
-                                                                <SearchableDropdown
+                                                                <div className={`${!product.taxes && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
                                                                     options={taxesData?.results?.map(tax => ({
                                                                         value: tax.id,
                                                                         label: tax.taxName
@@ -1161,6 +1175,7 @@ const ZohoVendorBillDetail = () => {
                                                                     noOptionsMessage="No taxes found"
                                                                     disabled={isVerified}
                                                                 />
+                                                                </div>
                                                             </td>
 
                                                             {/* Reverse Charge Tax */}
