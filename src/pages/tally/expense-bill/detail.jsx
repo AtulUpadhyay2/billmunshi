@@ -1537,6 +1537,44 @@ const TallyExpenseBillDetail = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    {/* Vendor Summary Section */}
+                                    <div className="col-span-12 pt-2">
+                                        <div className="grid grid-cols-12 gap-3 items-center py-2">
+                                            <div className="col-span-2">
+                                                <span className="text-sm font-medium text-gray-700">Payable to Vendor:</span>
+                                            </div>
+                                            <div className="col-span-5">
+                                                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                                                    {billForm.selectedVendor ? (
+                                                        <div className="flex flex-col">
+                                                            <div className="font-medium text-gray-900">{billForm.selectedVendor.name}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500 italic">No vendor selected</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={taxSummaryForm.vendorDebitCredit || 'credit'}
+                                                    onChange={(e) => handleTaxSummaryChange('vendorDebitCredit', e.target.value)}
+                                                    disabled={isVerified}
+                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                >
+                                                    <option value="debit">Debit</option>
+                                                    <option value="credit">Credit</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-3">
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
+                                                        {billForm.totalAmount ? parseFloat(billForm.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
