@@ -1288,7 +1288,7 @@ const TallyExpenseBillDetail = () => {
                                                 Due Date
                                             </label>
                                             <input
-                                                type="text"
+                                                type="date"
                                                 name="dueDate"
                                                 value={billForm.dueDate}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
