@@ -901,7 +901,7 @@ const TallyVendorBillDetail = () => {
             globalToast.success('Vendor bill verified successfully');
             
             // Navigate to vendor bill list after successful verification
-            navigate('/tally/vendor-bill');
+            // navigate('/tally/vendor-bill');
         } catch (error) {
             console.error('Failed to verify vendor bill:', error);
             globalToast.error(error?.response?.data?.message || error?.message || 'Failed to verify vendor bill');
