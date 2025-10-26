@@ -834,9 +834,6 @@ const TallyVendorBillDetail = () => {
 
     // Transform form data to API format
     const transformToVerifyFormat = () => {
-        // Get vendor ledger information
-        const selectedVendor = vendorForm.selectedVendor;
-        
         // Get tax ledger information for summary
         const cgstLedger = cgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.cgstLedgerId);
         const sgstLedger = sgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.sgstLedgerId);
@@ -846,14 +843,13 @@ const TallyVendorBillDetail = () => {
             bill_id: billId,
             analyzed_bill: vendorBillData?.analyzed_bill || null,
             analyzed_data: {
-                vendor_name: vendorForm.vendorName || "Unknown Vendor",
+                vendor: {
+                    vendor_name: vendorForm.vendorName || "Unknown Vendor"
+                },
                 bill_no: vendorForm.invoiceNumber || "",
                 bill_date: vendorForm.dateIssued ? 
                     new Date(vendorForm.dateIssued).toLocaleDateString('en-GB').split('/').reverse().join('-') : "",
-                due_date: vendorForm.dueDate ? 
-                    new Date(vendorForm.dueDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : "",
                 total_amount: parseFloat(billSummaryForm.total) || 0,
-                company_id: selectedVendor?.company || "Unknown",
                 taxes: {
                     igst: {
                         amount: parseFloat(billSummaryForm.igst) || 0.0,
@@ -895,7 +891,7 @@ const TallyVendorBillDetail = () => {
             
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
-            
+
             // Call the verify API
             await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
