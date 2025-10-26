@@ -139,6 +139,11 @@ const TallyVendorBillDetail = () => {
     const isVerified = billInfo?.status === 'Synced' || billInfo?.bill_status === 'Synced' ||
                        billInfo?.status === 'Posted' || billInfo?.bill_status === 'Posted';
     
+    // Validation helper functions
+    const isVendorRequired = !vendorForm.selectedVendor;
+    const getProductsWithoutItemName = () => productSync ? products.filter(product => !product.item_id) : [];
+    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0);
+    
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
         if (!vendorLedgersData?.grouped_ledgers) return [];
@@ -900,6 +905,18 @@ const TallyVendorBillDetail = () => {
         try {
             setIsVerifying(true);
             
+            // Validate vendor selection
+            if (!vendorForm.selectedVendor) {
+                globalToast.error('Please select a vendor');
+                return;
+            }
+
+            // Validate Item Name when productSync is enabled
+            if (productSync && getProductsWithoutItemName().length > 0) {
+                globalToast.error('Please select Item Name for all products');
+                return;
+            }
+            
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
 
@@ -1124,9 +1141,9 @@ const TallyVendorBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleSave}
-                            disabled={isVerifying || isVerified}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already synced/posted" : "Verify"}
+                            disabled={isVerifying || isVerified || hasValidationErrors()}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already synced/posted" : hasValidationErrors() ? "Please select a vendor" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1331,6 +1348,26 @@ const TallyVendorBillDetail = () => {
                                     <h3 className="text-lg font-semibold text-gray-900">Vendor Information</h3>
                                 </div>
 
+                                {/* Validation Summary */}
+                                {!isVerified && hasValidationErrors() && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <div className="flex items-start">
+                                            <svg className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                            <div>
+                                                <h4 className="text-sm font-medium text-red-800 mb-2">Required for verification:</h4>
+                                                <ul className="text-sm text-red-700 space-y-1">
+                                                    {isVendorRequired && <li>• Select a vendor</li>}
+                                                    {productSync && getProductsWithoutItemName().length > 0 && (
+                                                        <li>• Select Item Name for {getProductsWithoutItemName().length} product{getProductsWithoutItemName().length > 1 ? 's' : ''}</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Simple Form Fields */}
                                 <div className="space-y-4">
                                     {/* First Row: Vendor and Invoice Number */}
@@ -1338,9 +1375,13 @@ const TallyVendorBillDetail = () => {
                                         {/* Vendor Selection Field */}
                                         <div className="relative">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Vendor
+                                                Vendor <span className="text-red-500">*</span>
+                                                {isVendorRequired && !isVerified && (
+                                                    <span className="text-red-500 text-xs ml-2">Required for verification</span>
+                                                )}
                                             </label>
-                                            <SearchableDropdown
+                                            <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                <SearchableDropdown
                                                 options={vendorOptions}
                                                 value={vendorForm.selectedVendor?.id || null}
                                                 onChange={handleVendorSelect}
@@ -1364,6 +1405,7 @@ const TallyVendorBillDetail = () => {
                                                 )}
                                                 className="mb-2"
                                             />
+                                            </div>
 
                                             {/* Bill To Badge - showing analysed_data.from.name */}
                                             {analysedData?.from?.name && (
@@ -1483,7 +1525,7 @@ const TallyVendorBillDetail = () => {
                                                     <tr>
                                                         {productSync && (
                                                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                                Item Name
+                                                                Item Name <span className="text-red-500">*</span>
                                                             </th>
                                                         )}
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
@@ -1515,7 +1557,8 @@ const TallyVendorBillDetail = () => {
                                                             {/* Item Name - Only show if productSync is true */}
                                                             {productSync && (
                                                                 <td className="px-4 py-3">
-                                                                    <SearchableDropdown
+                                                                    <div className={`${!product.item_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                        <SearchableDropdown
                                                                         key={`item-${product.id}-${product.item_id}`}
                                                                         options={stockItemOptions}
                                                                         value={product.item_id || null}
@@ -1537,6 +1580,7 @@ const TallyVendorBillDetail = () => {
                                                                         )}
                                                                         className="item-name-dropdown"
                                                                     />
+                                                                    </div>
                                                                 </td>
                                                             )}
                                                             
