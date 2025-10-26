@@ -471,7 +471,7 @@ const TallyVendorBillDetail = () => {
             
             // Only update if there are actual changes
             if (hasChanges) {
-                console.log('Updating products with analyzed data matching:', updatedProducts);
+                console.log('Updating products with analyzed data matching:', JSON.stringify(updatedProducts, null, 2));
                 setProducts(updatedProducts);
             }
             stockItemsMatchedRef.current = true; // Mark as matched
@@ -531,36 +531,70 @@ const TallyVendorBillDetail = () => {
     
     // Match product tax ledgers from API response
     useEffect(() => {
-        if (productTaxMatchedRef.current) return; // Skip if already matched
-        
-        if (taxLedgerOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
-            // Check if any products need tax ledger matching (don't have tax_ledger_id yet)
-            const needsMatching = products.some(product => !product.tax_ledger_id);
-            if (!needsMatching) {
-                productTaxMatchedRef.current = true;
-                return;
+        // Check if we need to run matching logic
+        // Skip if already matched AND taxLedgerOptions and tallyAnalysedData haven't changed
+        if (productTaxMatchedRef.current && taxLedgerOptions.length > 0) {
+            // Check if any products have invalid or missing tax_ledger_id
+            const needsReMatching = products.some(product => 
+                !product.tax_ledger_id || 
+                !taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id)
+            );
+            
+            if (!needsReMatching) {
+                return; // Skip if all products have valid tax_ledger_id
             }
+        }
+        
+        if (taxLedgerOptions.length > 0 && products.length > 0) {
+            let hasChanges = false;
             
             const updatedProducts = products.map((product, index) => {
-                // If product already has tax_ledger_id selected, don't override
+                // If product already has a valid tax_ledger_id, don't override
                 if (product.tax_ledger_id) {
-                    return product;
+                    const isValidId = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
+                    if (isValidId) {
+                        return product;
+                    }
                 }
                 
-                // Find corresponding product in analyzed_data
-                const analyzedProduct = tallyAnalysedData.products[index] || 
-                    tallyAnalysedData.products.find(p => 
-                        p.item_details === product.item_details || 
-                        p.item_name === product.item_name
-                    );
+                // Try to match by the tax_ledger name from the product
+                let taxLedgerToMatch = product.tax_ledger;
                 
-                if (analyzedProduct && analyzedProduct.tax_ledger && analyzedProduct.tax_ledger !== 'No Tax Ledger') {
-                    // Try to match by tax ledger name
-                    const matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
-                        taxLedger.name === analyzedProduct.tax_ledger
+                // Also check analyzed_data if available
+                if (tallyAnalysedData?.products) {
+                    const analyzedProduct = tallyAnalysedData.products[index] || 
+                        tallyAnalysedData.products.find(p => 
+                            p.item_details === product.item_details || 
+                            p.item_name === product.item_name
+                        );
+                    
+                    if (analyzedProduct && analyzedProduct.tax_ledger && analyzedProduct.tax_ledger !== 'No Tax Ledger') {
+                        taxLedgerToMatch = analyzedProduct.tax_ledger;
+                    }
+                }
+                
+                if (taxLedgerToMatch && taxLedgerToMatch !== 'No Tax Ledger') {
+                    let matchedTaxLedger = null;
+                    
+                    // First try: Exact match (case-insensitive and trimmed)
+                    matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
+                        taxLedger.name && 
+                        taxLedger.name.toLowerCase().trim() === taxLedgerToMatch.toLowerCase().trim()
                     );
                     
-                    if (matchedTaxLedger) {
+                    // Second try: Partial match if exact match fails (for typos like PURCHAGE vs PURCHASE)
+                    if (!matchedTaxLedger) {
+                        const searchTerm = taxLedgerToMatch.toLowerCase().trim();
+                        matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
+                            taxLedger.name && 
+                            (taxLedger.name.toLowerCase().includes(searchTerm) || 
+                             searchTerm.includes(taxLedger.name.toLowerCase()))
+                        );
+                    }
+                    
+                    if (matchedTaxLedger && product.tax_ledger_id !== matchedTaxLedger.id) {
+                        hasChanges = true;
+                        console.log(`Matching tax ledger "${taxLedgerToMatch}" to "${matchedTaxLedger.name}" with ID ${matchedTaxLedger.id}`);
                         return {
                             ...product,
                             tax_ledger: matchedTaxLedger.name,
@@ -572,18 +606,17 @@ const TallyVendorBillDetail = () => {
                 return product;
             });
             
-            // Only update if there are actual changes
-            const hasChanges = updatedProducts.some((product, index) => 
-                product.tax_ledger_id !== products[index].tax_ledger_id
-            );
-            
             if (hasChanges) {
+                console.log('Updating products with tax ledger matching:', updatedProducts);
                 setProducts(updatedProducts);
+                productTaxMatchedRef.current = true; // Mark as matched only after successful update
+            } else {
+                // No changes needed, mark as matched
+                productTaxMatchedRef.current = true;
             }
-            productTaxMatchedRef.current = true; // Mark as matched
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [taxLedgerOptions, tallyAnalysedData]);
+    }, [taxLedgerOptions, tallyAnalysedData, products]);
     
     // Specific effect to handle initial stock item selection after products are loaded
     useEffect(() => {
@@ -641,7 +674,7 @@ const TallyVendorBillDetail = () => {
             });
             
             if (needsUpdate) {
-                console.log('Updating products with stock item matching:', updatedProducts);
+                console.log('Updating products with stock item matching:', JSON.stringify(updatedProducts, null, 2));
                 setProducts(updatedProducts);
             }
             stockItemsInitialMatchedRef.current = true; // Mark as matched
@@ -884,7 +917,7 @@ const TallyVendorBillDetail = () => {
                 products: products.map(product => {
                     const taxLedger = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
                     return {
-                        item_id: product.item_id || null,
+                        item_id: product.id || null,
                         item_name: product.item_name || null,
                         item_details: product.item_details || "",
                         tax_ledger: taxLedger?.name || "No Tax Ledger",
@@ -926,7 +959,7 @@ const TallyVendorBillDetail = () => {
             
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
-
+            console.log('Transformed verify data:', verifyData);
             // Call the verify API
             await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
