@@ -109,6 +109,11 @@ const ZohoVendorBillDetail = () => {
     // Check if bill is synced or posted (disable inputs if any of these statuses)
     const isVerified = vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
     
+    // Validation helper functions
+    const isVendorRequired = !vendorForm.selectedVendor;
+    const getProductsWithoutCOA = () => products.filter(product => !product.chart_of_accounts);
+    const hasValidationErrors = () => isVendorRequired || getProductsWithoutCOA().length > 0 || products.length === 0;
+    
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.analysed_data) {
@@ -399,6 +404,13 @@ const ZohoVendorBillDetail = () => {
             setVerificationMessage('');
             
             // Basic validation
+            if (!vendorForm.selectedVendor) {
+                globalToast.error('Please select a vendor');
+                setVerificationStatus('error');
+                setVerificationMessage('Please select a vendor');
+                return;
+            }
+
             if (!vendorForm.invoiceNumber.trim()) {
                 globalToast.error('Invoice number is required');
                 setVerificationStatus('error');
@@ -426,6 +438,15 @@ const ZohoVendorBillDetail = () => {
                 globalToast.error('At least one product with valid details, rate, and quantity is required');
                 setVerificationStatus('error');
                 setVerificationMessage('At least one product with valid details, rate, and quantity is required');
+                return;
+            }
+
+            // Check if all products have chart of accounts
+            const productsWithoutCOA = validProducts.filter(p => !p.chart_of_accounts);
+            if (productsWithoutCOA.length > 0) {
+                globalToast.error('Please select Chart of Accounts for all products');
+                setVerificationStatus('error');
+                setVerificationMessage('Please select Chart of Accounts for all products');
                 return;
             }
             
@@ -653,9 +674,9 @@ const ZohoVendorBillDetail = () => {
                         </button>
                         <button 
                             onClick={handleVerification}
-                            disabled={isVerifying || isVerified || !selectedOrganization?.id}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerified ? "Bill already synced/posted" : "Verify Bill"}
+                            disabled={isVerifying || isVerified || !selectedOrganization?.id || hasValidationErrors()}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
+                            title={isVerified ? "Bill already synced/posted" : hasValidationErrors() ? "Please select vendor and chart of accounts for all products" : "Verify Bill"}
                         >
                             {isVerifying ? (
                                 <>
@@ -855,6 +876,27 @@ const ZohoVendorBillDetail = () => {
                         <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
                             {/* Vendor Information Section */}
                             <div className="p-8 border-b border-gray-200">
+                                {/* Validation Summary */}
+                                {!isVerified && hasValidationErrors() && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <div className="flex items-start">
+                                            <svg className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                            <div>
+                                                <h4 className="text-sm font-medium text-red-800 mb-2">Required for verification:</h4>
+                                                <ul className="text-sm text-red-700 space-y-1">
+                                                    {isVendorRequired && <li>• Select a vendor</li>}
+                                                    {products.length === 0 && <li>• Add at least one product</li>}
+                                                    {getProductsWithoutCOA().length > 0 && (
+                                                        <li>• Select Chart of Accounts for {getProductsWithoutCOA().length} product{getProductsWithoutCOA().length > 1 ? 's' : ''}</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 {/* Simple Form Fields */}
                                 <div className="space-y-4">
                                     {/* First Row: Vendor and Invoice Number */}
@@ -862,52 +904,57 @@ const ZohoVendorBillDetail = () => {
                                         {/* Vendor Selection Field */}
                                         <div className="relative">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Vendor
+                                                Vendor <span className="text-red-500">*</span>
+                                                {isVendorRequired && !isVerified && (
+                                                    <span className="text-red-500 text-xs ml-2">Required for verification</span>
+                                                )}
                                             </label>
                                             <div className="space-y-2">
-                                                <SearchableDropdown
-                                                    options={vendorsData?.results?.map(vendor => ({
-                                                        value: vendor.id,
-                                                        label: vendor.companyName,
-                                                        gstNo: vendor.gstNo
-                                                    })) || []}
-                                                    value={
-                                                        // If selectedVendor is an object, use its id
-                                                        // If selectedVendor is a string (from zohoData), use it directly
-                                                        typeof vendorForm.selectedVendor === 'object' && vendorForm.selectedVendor !== null
-                                                            ? vendorForm.selectedVendor.id 
-                                                            : vendorForm.selectedVendor || ''
-                                                    }
-                                                    onChange={(value) => {
-                                                        if (value === null || value === '') {
-                                                            // Clear vendor selection
-                                                            handleVendorSelect(null);
-                                                        } else {
-                                                            const selectedVendor = vendorsData?.results?.find(v => v.id === value);
-                                                            if (selectedVendor) {
-                                                                handleVendorSelect(selectedVendor);
-                                                            }
+                                                <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                    <SearchableDropdown
+                                                        options={vendorsData?.results?.map(vendor => ({
+                                                            value: vendor.id,
+                                                            label: vendor.companyName,
+                                                            gstNo: vendor.gstNo
+                                                        })) || []}
+                                                        value={
+                                                            // If selectedVendor is an object, use its id
+                                                            // If selectedVendor is a string (from zohoData), use it directly
+                                                            typeof vendorForm.selectedVendor === 'object' && vendorForm.selectedVendor !== null
+                                                                ? vendorForm.selectedVendor.id 
+                                                                : vendorForm.selectedVendor || ''
                                                         }
-                                                    }}
-                                                    onClear={() => {
-                                                        // Explicitly clear vendor selection
-                                                        handleVendorSelect(null);
-                                                    }}
-                                                    placeholder="Select a vendor..."
-                                                    searchPlaceholder="Search vendors..."
-                                                    loading={vendorsLoading}
-                                                    loadingMessage="Loading vendors..."
-                                                    disabled={isVerified}
-                                                    noOptionsMessage="No vendors found"
-                                                    renderOption={(option) => (
-                                                        <div>
-                                                            <div className="font-medium">{option.label}</div>
-                                                            {option.gstNo && (
-                                                                <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                />
+                                                        onChange={(value) => {
+                                                            if (value === null || value === '') {
+                                                                // Clear vendor selection
+                                                                handleVendorSelect(null);
+                                                            } else {
+                                                                const selectedVendor = vendorsData?.results?.find(v => v.id === value);
+                                                                if (selectedVendor) {
+                                                                    handleVendorSelect(selectedVendor);
+                                                                }
+                                                            }
+                                                        }}
+                                                        onClear={() => {
+                                                            // Explicitly clear vendor selection
+                                                            handleVendorSelect(null);
+                                                        }}
+                                                        placeholder="Select a vendor..."
+                                                        searchPlaceholder="Search vendors..."
+                                                        loading={vendorsLoading}
+                                                        loadingMessage="Loading vendors..."
+                                                        disabled={isVerified}
+                                                        noOptionsMessage="No vendors found"
+                                                        renderOption={(option) => (
+                                                            <div>
+                                                                <div className="font-medium">{option.label}</div>
+                                                                {option.gstNo && (
+                                                                    <div className="text-xs text-gray-500">GST: {option.gstNo}</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    />
+                                                </div>
                                                 
                                                 {/* No vendors notification */}
                                                 {vendorsData?.results?.length === 0 && !vendorsLoading && (
@@ -1036,7 +1083,7 @@ const ZohoVendorBillDetail = () => {
                                                             Item Details
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                            Chart of Accounts
+                                                            Chart of Accounts <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Taxes
@@ -1078,7 +1125,8 @@ const ZohoVendorBillDetail = () => {
 
                                                             {/* Chart of Accounts - Only show if productSync is true */}
                                                             <td className="relative px-4 py-3">
-                                                                <SearchableDropdown
+                                                                <div className={`${!product.chart_of_accounts && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
                                                                     options={chartOfAccountsData?.results?.map(account => ({
                                                                         value: account.id,
                                                                         label: account.accountName
@@ -1093,6 +1141,7 @@ const ZohoVendorBillDetail = () => {
                                                                     noOptionsMessage="No accounts found"
                                                                     disabled={isVerified}
                                                                 />
+                                                                </div>
                                                             </td>
 
                                                             {/* Taxes */}
