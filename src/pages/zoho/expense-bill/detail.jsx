@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
-import { useGetZohoExpenseBillDetails, useVerifyZohoExpenseBill } from "@/hooks/api/zoho/zohoExpenseBillService";
+import { useGetZohoExpenseBillDetails, useVerifyZohoExpenseBill, useSyncZohoExpenseBill } from "@/hooks/api/zoho/zohoExpenseBillService";
 import { useGetVendors, useGetAllChartOfAccounts, useGetAllTaxes, useGetAllTdsTcs } from "@/hooks/api/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -60,6 +60,9 @@ const ZohoExpenseBillDetail = () => {
     // State to track if user manually cleared vendor selection
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
     
+    // State for sync operation
+    const [isSyncing, setIsSyncing] = useState(false);
+    
     // Fetch expense bill data using the exact endpoint: zoho/org/{org_id}/expense-bills/{bill_id}/details/
     const { data: expenseBillData, error, isLoading, refetch } = useGetZohoExpenseBillDetails(
         { organizationId: selectedOrganization?.id, billId },
@@ -68,6 +71,9 @@ const ZohoExpenseBillDetail = () => {
 
     // Verify expense bill mutation
     const { mutateAsync: verifyExpenseBill } = useVerifyZohoExpenseBill();
+    
+    // Sync expense bill mutation
+    const { mutateAsync: syncExpenseBill } = useSyncZohoExpenseBill();
 
     // Fetch vendors list for dropdown
     const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
@@ -427,6 +433,26 @@ const ZohoExpenseBillDetail = () => {
             setIsVerifying(false);
         }
     };
+    
+    // Sync function
+    const handleSync = async () => {
+        try {
+            setIsSyncing(true);
+            
+            await syncExpenseBill({
+                organizationId: selectedOrganization?.id,
+                billId
+            });
+
+            globalToast.success('Expense bill synced to Zoho successfully');
+            refetch(); // Refresh the data to show updated status
+        } catch (error) {
+            console.error('Failed to sync expense bill:', error);
+            globalToast.error(error?.response?.data?.message || error?.message || 'Failed to sync expense bill');
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     // Show loading state
     if (isLoading) {
@@ -541,6 +567,37 @@ const ZohoExpenseBillDetail = () => {
                                 </svg>
                             )}
                             {isVerifying ? 'Verifying...' : isVerified ? 'Verified' : 'Verify'}
+                        </button>
+                        {/* Sync Button - Always show but only enable when status is Verified */}
+                        <button 
+                            onClick={handleSync}
+                            disabled={isSyncing || isVerified || billInfo?.status !== 'Verified'}
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
+                                (isSyncing || isVerified || billInfo?.status !== 'Verified')
+                                    ? 'text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75'
+                                    : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500'
+                            }`}
+                            title={
+                                isSyncing 
+                                    ? "Syncing in progress..." 
+                                    : isVerified 
+                                        ? "Bill already synced/posted" 
+                                        : billInfo?.status !== 'Verified'
+                                            ? "Bill must be verified before sync"
+                                            : "Sync with Zoho"
+                            }
+                        >
+                            {isSyncing ? (
+                                <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform duration-200">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            )}
+                            {isSyncing ? 'Syncing...' : 'Sync'}
                         </button>
                     </div>
                 }
