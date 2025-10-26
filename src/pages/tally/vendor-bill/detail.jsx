@@ -414,44 +414,43 @@ const TallyVendorBillDetail = () => {
                     }
                 }
                 
-                // Find corresponding product in analyzed_data by item_id first, then by item_name
-                let analyzedProduct = null;
-                if (product.item_id) {
-                    analyzedProduct = tallyAnalysedData.products.find(p => p.item_id === product.item_id);
-                }
-                
-                if (!analyzedProduct) {
-                    analyzedProduct = tallyAnalysedData.products.find(p => 
-                        p.item_details === product.item_details || 
-                        p.item_name === product.item_name ||
-                        (p.item_name && product.item_name && p.item_name === product.item_name)
-                    );
-                }
+                // Find corresponding product in analyzed_data by matching various fields
+                let analyzedProduct = tallyAnalysedData.products.find(p => 
+                    p.item_details === product.item_details || 
+                    (p.item_id && p.item_id === product.item_id) ||
+                    (p.item_name && p.item_name === product.item_name)
+                );
                 
                 if (analyzedProduct) {
                     let matchedStockItem = null;
                     
-                    // First try to match by item_id if available
+                    // First try to match by item_id if available and valid
                     if (analyzedProduct.item_id) {
                         matchedStockItem = stockItemOptions.find(stockItem => 
                             stockItem.id === analyzedProduct.item_id
                         );
                     }
                     
-                    // If not found by ID, try to match by item_name
+                    // If not found by ID, try to match by item_name with case-insensitive comparison
                     if (!matchedStockItem && analyzedProduct.item_name) {
                         matchedStockItem = stockItemOptions.find(stockItem => 
-                            stockItem.name === analyzedProduct.item_name
+                            stockItem.name && stockItem.name.toLowerCase().trim() === analyzedProduct.item_name.toLowerCase().trim()
                         );
                     }
                     
-                    if (matchedStockItem && (product.item_id !== matchedStockItem.id || product.item_name !== matchedStockItem.name)) {
-                        hasChanges = true;
-                        return {
-                            ...product,
-                            item_id: matchedStockItem.id,
-                            item_name: matchedStockItem.name
-                        };
+                    // Update product if we found a matching stock item
+                    if (matchedStockItem) {
+                        const currentItemValid = product.item_id && stockItemOptions.find(item => item.id === product.item_id);
+                        
+                        // Only update if current selection is invalid or different
+                        if (!currentItemValid || product.item_id !== matchedStockItem.id) {
+                            hasChanges = true;
+                            return {
+                                ...product,
+                                item_id: matchedStockItem.id,
+                                item_name: matchedStockItem.name
+                            };
+                        }
                     }
                 }
                 
@@ -460,6 +459,7 @@ const TallyVendorBillDetail = () => {
             
             // Only update if there are actual changes
             if (hasChanges) {
+                console.log('Updating products with analyzed data matching:', updatedProducts);
                 setProducts(updatedProducts);
             }
             stockItemsMatchedRef.current = true; // Mark as matched
@@ -578,28 +578,32 @@ const TallyVendorBillDetail = () => {
         if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
         
         if (stockItemOptions.length > 0 && products.length > 0) {
-            // Check if any products need stock item matching
-            const needsMatching = products.some(product => 
-                (product.item_id && !stockItemOptions.find(item => item.id === product.item_id)) ||
-                (!product.item_id && product.item_name)
-            );
-            
-            if (!needsMatching) {
-                stockItemsInitialMatchedRef.current = true;
-                return;
-            }
-            
             let needsUpdate = false;
             const updatedProducts = products.map(product => {
-                // Check if product has item_id but the dropdown might not be showing it
-                if (product.item_id && product.item_name) {
+                // Case 1: Product has item_id and it exists in stockItemOptions
+                if (product.item_id) {
                     const stockItemExists = stockItemOptions.find(item => item.id === product.item_id);
                     if (stockItemExists) {
+                        // Ensure item_name is also set if it's missing
+                        if (!product.item_name && stockItemExists.name) {
+                            needsUpdate = true;
+                            return {
+                                ...product,
+                                item_name: stockItemExists.name
+                            };
+                        }
                         return product;
-                    } else {
-                        // Try to find by name
-                        const stockItemByName = stockItemOptions.find(item => item.name === product.item_name);
-                        if (stockItemByName) {
+                    }
+                }
+                
+                // Case 2: Product has item_name (even if item_id doesn't match or is invalid)
+                if (product.item_name) {
+                    const stockItemByName = stockItemOptions.find(item => 
+                        item.name && item.name.toLowerCase().trim() === product.item_name.toLowerCase().trim()
+                    );
+                    if (stockItemByName) {
+                        // Update both item_id and item_name to ensure consistency
+                        if (product.item_id !== stockItemByName.id || product.item_name !== stockItemByName.name) {
                             needsUpdate = true;
                             return {
                                 ...product,
@@ -608,29 +612,30 @@ const TallyVendorBillDetail = () => {
                             };
                         }
                     }
-                } else if (product.item_name && !product.item_id) {
-                    // Product has name but no ID, try to find matching stock item
-                    const stockItemByName = stockItemOptions.find(item => item.name === product.item_name);
-                    if (stockItemByName) {
-                        needsUpdate = true;
-                        return {
-                            ...product,
-                            item_id: stockItemByName.id,
-                            item_name: stockItemByName.name
-                        };
-                    }
+                }
+                
+                // Case 3: Product has item_id but no matching stock item found
+                // In this case, clear the item_id since it's invalid
+                if (product.item_id && !stockItemOptions.find(item => item.id === product.item_id)) {
+                    needsUpdate = true;
+                    return {
+                        ...product,
+                        item_id: null,
+                        item_name: null
+                    };
                 }
                 
                 return product;
             });
             
             if (needsUpdate) {
+                console.log('Updating products with stock item matching:', updatedProducts);
                 setProducts(updatedProducts);
             }
             stockItemsInitialMatchedRef.current = true; // Mark as matched
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [stockItemOptions]);
+    }, [stockItemOptions, products]);
     
     // Handle form input changes
     const handleFormChange = (name, value) => {
@@ -867,7 +872,7 @@ const TallyVendorBillDetail = () => {
                 products: products.map(product => {
                     const taxLedger = taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id);
                     return {
-                        item_id: product.id || null,
+                        item_id: product.item_id || null,
                         item_name: product.item_name || null,
                         item_details: product.item_details || "",
                         tax_ledger: taxLedger?.name || "No Tax Ledger",
@@ -1353,11 +1358,6 @@ const TallyVendorBillDetail = () => {
                                                 className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
                                                 readOnly={vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && !isVerified}
                                             />
-                                            {vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && !isVerified && (
-                                                <p className="mt-1 text-xs">
-                                                    GST number automatically filled from selected vendor
-                                                </p>
-                                            )}
                                         </div>
 
                                         {/* Date Issued Field */}
