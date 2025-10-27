@@ -80,7 +80,7 @@ const ZohoJournalEntryDetail = () => {
         { enabled: !!selectedOrganization?.id && !!journalEntryId }
     );
 
-    console.log(`test Data`, journalEntryData);
+    console.log(`test Data: `, JSON.stringify(journalEntryData, null, 2));
     
 
     // Verify journal entry mutation
@@ -436,12 +436,20 @@ const ZohoJournalEntryDetail = () => {
                     vendor: journalEntryForm.selectedVendor?.id || null,
                     bill_no: journalEntryForm.referenceNumber,
                     bill_date: journalEntryForm.entryDate,
-                    due_date: journalEntryForm.dueDate,
+                    vendor_coa: taxAndOtherItems.vendorAccountId || null,
+                    vendor_debit_or_credit: taxAndOtherItems.vendorDebitCredit || "credit",
+                    vendor_amount: journalEntryForm.totalAmount || "0.00",
                     total: journalEntryForm.totalAmount || "0",
                     igst: taxSummary.igst || "0",
+                    igst_coa: taxAndOtherItems.igstAccountId || null,
+                    igst_debit_or_credit: taxAndOtherItems.igstDebitCredit || "debit",
                     cgst: taxSummary.cgst || "0",
+                    cgst_coa: taxAndOtherItems.cgstAccountId || null,
+                    cgst_debit_or_credit: taxAndOtherItems.cgstDebitCredit || "debit",
                     sgst: taxSummary.sgst || "0",
-                    note: notes || `Auto-created from analysis for ${journalEntryForm.selectedVendor?.companyName || 'vendor'}.`,
+                    sgst_coa: taxAndOtherItems.sgstAccountId || null,
+                    sgst_debit_or_credit: taxAndOtherItems.sgstDebitCredit || "debit",
+                    note: notes || `Bill from analysis for ${journalEntryForm.selectedVendor?.companyName || 'vendor'} entered via Billmunshi`,
                     created_at: zohoJournalData?.created_at || new Date().toISOString(),
                     products: validLineItems.map((item, index) => ({
                         id: item.id || item.item_id || null,
@@ -454,6 +462,9 @@ const ZohoJournalEntryDetail = () => {
                     }))
                 }
             };
+
+            // console.log('Verification Payload:', verificationPayload);
+            
 
             await verifyJournalEntry({
                 organizationId: selectedOrganization?.id,
