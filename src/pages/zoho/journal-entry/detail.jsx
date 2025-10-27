@@ -112,7 +112,8 @@ const ZohoJournalEntryDetail = () => {
     // Validation helper functions
     const isVendorRequired = !journalEntryForm.selectedVendor;
     const getLineItemsWithoutCOA = () => journalLineItems.filter(item => !item.chart_of_accounts_id);
-    const hasValidationErrors = () => isVendorRequired || getLineItemsWithoutCOA().length > 0 || journalLineItems.length === 0;
+    const getLineItemsWithoutTaxes = () => journalLineItems.filter(item => !item.taxes);
+    const hasValidationErrors = () => isVendorRequired || getLineItemsWithoutCOA().length > 0 || getLineItemsWithoutTaxes().length > 0 || journalLineItems.length === 0;
 
     // Utility function to check if file is PDF
     const isPDF = (url) => url && url.toLowerCase().includes('.pdf');
@@ -223,6 +224,7 @@ const ZohoJournalEntryDetail = () => {
             item_details: '',
             vendor_id: null,
             chart_of_accounts_id: null,
+            taxes: null,
             amount: '',
             debit_or_credit: 'debit',
             created_at: null
@@ -280,6 +282,7 @@ const ZohoJournalEntryDetail = () => {
                     vendor_id: item.vendor || null,
                     chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
                     chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
                     amount: item.amount || '',
                     debit_or_credit: item.debit_or_credit || 'debit',
                     created_at: item.created_at || null
@@ -293,6 +296,7 @@ const ZohoJournalEntryDetail = () => {
                     vendor_id: null,
                     chart_of_accounts: 'No COA Selected',
                     chart_of_accounts_id: null,
+                    taxes: null,
                     amount: item.price || '',
                     debit_or_credit: 'debit'
                 })));
@@ -304,6 +308,7 @@ const ZohoJournalEntryDetail = () => {
                     item_details: '',
                     chart_of_accounts: 'No COA Selected',
                     chart_of_accounts_id: null,
+                    taxes: null,
                     amount: '',
                     debit_or_credit: 'debit'
                 }]);
@@ -390,6 +395,7 @@ const ZohoJournalEntryDetail = () => {
                         zohoBill: zohoJournalData?.id || null,
                         item_details: item.item_details || '',
                         chart_of_accounts: item.chart_of_accounts_id || null,
+                        taxes: item.taxes || null,
                         vendor: item.vendor_id || journalEntryForm.selectedVendor?.id || null,
                         amount: item.amount,
                         debit_or_credit: item.debit_or_credit || "debit",
@@ -407,9 +413,9 @@ const ZohoJournalEntryDetail = () => {
             globalToast.success('Journal entry verified successfully!');
             
             // Redirect to journal entries list after successful verification
-            setTimeout(() => {
-                navigate('/zoho/journal-entry');
-            }, 1500); // Small delay to show success message
+            // setTimeout(() => {
+            //     navigate('/zoho/journal-entry');
+            // }, 1500); // Small delay to show success message
         } catch (error) {
             console.error('Verification failed:', error);
             
@@ -806,6 +812,9 @@ const ZohoJournalEntryDetail = () => {
                                                     {getLineItemsWithoutCOA().length > 0 && (
                                                         <li>• Select Chart of Accounts for {getLineItemsWithoutCOA().length} line item{getLineItemsWithoutCOA().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {getLineItemsWithoutTaxes().length > 0 && (
+                                                        <li>• Select Taxes for {getLineItemsWithoutTaxes().length} line item{getLineItemsWithoutTaxes().length > 1 ? 's' : ''}</li>
+                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -969,10 +978,10 @@ const ZohoJournalEntryDetail = () => {
                                                             Item Details
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Vendor
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Chart of Accounts <span className="text-red-500">*</span>
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                            Taxes <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
@@ -1004,42 +1013,6 @@ const ZohoJournalEntryDetail = () => {
                                                                 />
                                                             </td>
                                                             
-                                                            {/* Vendor */}
-                                                            <td className="px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    options={vendorsData?.results || []}
-                                                                    value={item.vendor_id || null}
-                                                                    onChange={(vendorId) => {
-                                                                        const newItems = [...journalLineItems];
-                                                                        newItems[index] = { ...item, vendor_id: vendorId };
-                                                                        setJournalLineItems(newItems);
-                                                                    }}
-                                                                    onClear={() => {
-                                                                        const newItems = [...journalLineItems];
-                                                                        newItems[index] = { ...item, vendor_id: null };
-                                                                        setJournalLineItems(newItems);
-                                                                    }}
-                                                                    placeholder="Select vendor..."
-                                                                    searchPlaceholder="Type to search vendors..."
-                                                                    optionLabelKey="companyName"
-                                                                    optionValueKey="id"
-                                                                    loading={vendorsLoading}
-                                                                    disabled={isVerified}
-                                                                    renderOption={(vendor) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{vendor.companyName}</div>
-                                                                            {vendor.gstNo && (
-                                                                                <div className="text-xs text-gray-500">GST: {vendor.gstNo}</div>
-                                                                            )}
-                                                                            {/* {vendor.contactId && (
-                                                                                <div className="text-xs text-blue-600">ID: {vendor.contactId}</div>
-                                                                            )} */}
-                                                                        </div>
-                                                                    )}
-                                                                    className="vendor-dropdown"
-                                                                />
-                                                            </td>
-                                                            
                                                             <td className="px-4 py-3">
                                                                 <div className={`${!item.chart_of_accounts_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                                     <SearchableDropdown
@@ -1067,6 +1040,38 @@ const ZohoJournalEntryDetail = () => {
                                                                             </div>
                                                                         )}
                                                                         className="coa-dropdown"
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            
+                                                            {/* Taxes */}
+                                                            <td className="relative px-4 py-3">
+                                                                <div className={`${!item.taxes && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={taxesData?.results || []}
+                                                                        value={item.taxes || null}
+                                                                        onChange={(taxId) => {
+                                                                            const newItems = [...journalLineItems];
+                                                                            newItems[index] = { ...item, taxes: taxId };
+                                                                            setJournalLineItems(newItems);
+                                                                        }}
+                                                                        onClear={() => {
+                                                                            const newItems = [...journalLineItems];
+                                                                            newItems[index] = { ...item, taxes: null };
+                                                                            setJournalLineItems(newItems);
+                                                                        }}
+                                                                        placeholder="Select tax..."
+                                                                        searchPlaceholder="Type to search taxes..."
+                                                                        optionLabelKey="taxName"
+                                                                        optionValueKey="id"
+                                                                        loading={taxesLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(tax) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{tax.taxName}</div>
+                                                                            </div>
+                                                                        )}
+                                                                        className="tax-dropdown"
                                                                     />
                                                                 </div>
                                                             </td>
