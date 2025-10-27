@@ -43,6 +43,18 @@ const ZohoJournalEntryDetail = () => {
         total: ''
     });
 
+    // State for tax and vendor ledger mappings
+    const [taxAndOtherItems, setTaxAndOtherItems] = useState({
+        cgstAccountId: null,
+        sgstAccountId: null,
+        igstAccountId: null,
+        vendorAccountId: null,
+        cgstDebitCredit: 'debit',
+        sgstDebitCredit: 'debit',
+        igstDebitCredit: 'debit',
+        vendorDebitCredit: 'credit'
+    });
+
     // State for notes
     const [notes, setNotes] = useState('');
 
@@ -67,6 +79,9 @@ const ZohoJournalEntryDetail = () => {
         { organizationId: selectedOrganization?.id, billId: journalEntryId },
         { enabled: !!selectedOrganization?.id && !!journalEntryId }
     );
+
+    console.log(`test Data`, journalEntryData);
+    
 
     // Verify journal entry mutation
     const { mutateAsync: verifyJournalEntry } = useVerifyZohoJournalBill();
@@ -112,8 +127,7 @@ const ZohoJournalEntryDetail = () => {
     // Validation helper functions
     const isVendorRequired = !journalEntryForm.selectedVendor;
     const getLineItemsWithoutCOA = () => journalLineItems.filter(item => !item.chart_of_accounts_id);
-    const getLineItemsWithoutTaxes = () => journalLineItems.filter(item => !item.taxes);
-    const hasValidationErrors = () => isVendorRequired || getLineItemsWithoutCOA().length > 0 || getLineItemsWithoutTaxes().length > 0 || journalLineItems.length === 0;
+    const hasValidationErrors = () => isVendorRequired || getLineItemsWithoutCOA().length > 0 || journalLineItems.length === 0;
 
     // Utility function to check if file is PDF
     const isPDF = (url) => url && url.toLowerCase().includes('.pdf');
@@ -239,6 +253,45 @@ const ZohoJournalEntryDetail = () => {
     // Handle tax summary changes
     const handleTaxSummaryChange = (field, value) => {
         setTaxSummary(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Handle tax and other items changes
+    const handleTaxAndOtherItemsChange = (field, value) => {
+        setTaxAndOtherItems(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Handle chart of accounts selection for taxes
+    const handleCgstAccountSelect = (accountId) => {
+        setTaxAndOtherItems(prev => ({ ...prev, cgstAccountId: accountId }));
+    };
+
+    const handleSgstAccountSelect = (accountId) => {
+        setTaxAndOtherItems(prev => ({ ...prev, sgstAccountId: accountId }));
+    };
+
+    const handleIgstAccountSelect = (accountId) => {
+        setTaxAndOtherItems(prev => ({ ...prev, igstAccountId: accountId }));
+    };
+
+    const handleVendorAccountSelect = (accountId) => {
+        setTaxAndOtherItems(prev => ({ ...prev, vendorAccountId: accountId }));
+    };
+
+    // Handle clear functions
+    const handleCgstAccountClear = () => {
+        setTaxAndOtherItems(prev => ({ ...prev, cgstAccountId: null }));
+    };
+
+    const handleSgstAccountClear = () => {
+        setTaxAndOtherItems(prev => ({ ...prev, sgstAccountId: null }));
+    };
+
+    const handleIgstAccountClear = () => {
+        setTaxAndOtherItems(prev => ({ ...prev, igstAccountId: null }));
+    };
+
+    const handleVendorAccountClear = () => {
+        setTaxAndOtherItems(prev => ({ ...prev, vendorAccountId: null }));
     };
     
     // Update form data when journal entry data is loaded
@@ -395,8 +448,6 @@ const ZohoJournalEntryDetail = () => {
                         zohoBill: zohoJournalData?.id || null,
                         item_details: item.item_details || '',
                         chart_of_accounts: item.chart_of_accounts_id || null,
-                        taxes: item.taxes || null,
-                        vendor: item.vendor_id || journalEntryForm.selectedVendor?.id || null,
                         amount: item.amount,
                         debit_or_credit: item.debit_or_credit || "debit",
                         created_at: item.created_at || new Date().toISOString()
@@ -812,9 +863,6 @@ const ZohoJournalEntryDetail = () => {
                                                     {getLineItemsWithoutCOA().length > 0 && (
                                                         <li>• Select Chart of Accounts for {getLineItemsWithoutCOA().length} line item{getLineItemsWithoutCOA().length > 1 ? 's' : ''}</li>
                                                     )}
-                                                    {getLineItemsWithoutTaxes().length > 0 && (
-                                                        <li>• Select Taxes for {getLineItemsWithoutTaxes().length} line item{getLineItemsWithoutTaxes().length > 1 ? 's' : ''}</li>
-                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -980,9 +1028,6 @@ const ZohoJournalEntryDetail = () => {
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Chart of Accounts <span className="text-red-500">*</span>
                                                         </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
-                                                            Taxes <span className="text-red-500">*</span>
-                                                        </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
@@ -1040,38 +1085,6 @@ const ZohoJournalEntryDetail = () => {
                                                                             </div>
                                                                         )}
                                                                         className="coa-dropdown"
-                                                                    />
-                                                                </div>
-                                                            </td>
-                                                            
-                                                            {/* Taxes */}
-                                                            <td className="relative px-4 py-3">
-                                                                <div className={`${!item.taxes && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
-                                                                    <SearchableDropdown
-                                                                        options={taxesData?.results || []}
-                                                                        value={item.taxes || null}
-                                                                        onChange={(taxId) => {
-                                                                            const newItems = [...journalLineItems];
-                                                                            newItems[index] = { ...item, taxes: taxId };
-                                                                            setJournalLineItems(newItems);
-                                                                        }}
-                                                                        onClear={() => {
-                                                                            const newItems = [...journalLineItems];
-                                                                            newItems[index] = { ...item, taxes: null };
-                                                                            setJournalLineItems(newItems);
-                                                                        }}
-                                                                        placeholder="Select tax..."
-                                                                        searchPlaceholder="Type to search taxes..."
-                                                                        optionLabelKey="taxName"
-                                                                        optionValueKey="id"
-                                                                        loading={taxesLoading}
-                                                                        disabled={isVerified}
-                                                                        renderOption={(tax) => (
-                                                                            <div className="flex flex-col py-1">
-                                                                                <div className="font-medium text-gray-900">{tax.taxName}</div>
-                                                                            </div>
-                                                                        )}
-                                                                        className="tax-dropdown"
                                                                     />
                                                                 </div>
                                                             </td>
@@ -1144,7 +1157,7 @@ const ZohoJournalEntryDetail = () => {
                                 </div>
                             </div>
 
-                            {/* Tax Summary Section */}
+                            {/* Tax and Other Items Section */}
                             <div className="p-8 border-b border-gray-200">
                                 <div className="flex items-center gap-2 mb-6">
                                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1153,74 +1166,226 @@ const ZohoJournalEntryDetail = () => {
                                     <h3 className="text-lg font-semibold text-gray-900">Tax and Other Items</h3>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Left Column - Tax Details */}
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                                     <div className="space-y-4">
-                                        <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                            <span className="text-sm font-medium text-gray-700">CGST:</span>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                <input
-                                                    type="number"
-                                                    name="cgst"
-                                                    value={taxSummary.cgst}
-                                                    onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
-                                                    placeholder="0.00"
+                                        {/* CGST Row */}
+                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                            <div className="col-span-2">
+                                                <span className="text-sm font-medium text-gray-700">CGST:</span>
+                                            </div>
+                                            <div className="col-span-5">
+                                                <SearchableDropdown
+                                                    options={chartOfAccountsData?.results || []}
+                                                    value={taxAndOtherItems.cgstAccountId || null}
+                                                    onChange={handleCgstAccountSelect}
+                                                    onClear={handleCgstAccountClear}
+                                                    placeholder="Select chart of accounts..."
+                                                    searchPlaceholder="Type to search accounts..."
+                                                    optionLabelKey="accountName"
+                                                    optionValueKey="id"
+                                                    loading={chartOfAccountsLoading}
                                                     disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                    renderOption={(account) => (
+                                                        <div className="flex flex-col py-1">
+                                                            <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                        </div>
+                                                    )}
+                                                    className="text-xs"
                                                 />
                                             </div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                            <span className="text-sm font-medium text-gray-700">SGST:</span>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                <input
-                                                    type="number"
-                                                    name="sgst"
-                                                    value={taxSummary.sgst}
-                                                    onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
-                                                    placeholder="0.00"
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={taxAndOtherItems.cgstDebitCredit || 'debit'}
+                                                    onChange={(e) => handleTaxAndOtherItemsChange('cgstDebitCredit', e.target.value)}
                                                     disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                />
+                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                >
+                                                    <option value="debit">Debit</option>
+                                                    <option value="credit">Credit</option>
+                                                </select>
                                             </div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                            <span className="text-sm font-medium text-gray-700">IGST:</span>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                <input
-                                                    type="number"
-                                                    name="igst"
-                                                    value={taxSummary.igst}
-                                                    onChange={e => handleTaxSummaryChange('igst', e.target.value)}
-                                                    placeholder="0.00"
-                                                    disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Right Column - Total */}
-                                    <div className="flex items-center justify-center">
-                                        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
-                                            <div className="text-center">
-                                                <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">Total Amount</div>
-                                                <div className="flex items-center justify-center">
-                                                    <span className="text-2xl font-bold text-blue-600 mr-2">₹</span>
+                                            <div className="col-span-3">
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
                                                     <input
                                                         type="number"
-                                                        name="totalAmount"
-                                                        value={journalEntryForm.totalAmount}
-                                                        onChange={e => handleFormChange('totalAmount', e.target.value)}
+                                                        name="cgst"
+                                                        value={taxSummary.cgst}
+                                                        onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
                                                         placeholder="0.00"
                                                         disabled={isVerified}
-                                                        className={`w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                                                     />
                                                 </div>
-                                                <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
+                                            </div>
+                                        </div>
+
+                                        {/* SGST Row */}
+                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                            <div className="col-span-2">
+                                                <span className="text-sm font-medium text-gray-700">SGST:</span>
+                                            </div>
+                                            <div className="col-span-5">
+                                                <SearchableDropdown
+                                                    options={chartOfAccountsData?.results || []}
+                                                    value={taxAndOtherItems.sgstAccountId || null}
+                                                    onChange={handleSgstAccountSelect}
+                                                    onClear={handleSgstAccountClear}
+                                                    placeholder="Select chart of accounts..."
+                                                    searchPlaceholder="Type to search accounts..."
+                                                    optionLabelKey="accountName"
+                                                    optionValueKey="id"
+                                                    loading={chartOfAccountsLoading}
+                                                    disabled={isVerified}
+                                                    renderOption={(account) => (
+                                                        <div className="flex flex-col py-1">
+                                                            <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                        </div>
+                                                    )}
+                                                    className="text-xs"
+                                                />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={taxAndOtherItems.sgstDebitCredit || 'debit'}
+                                                    onChange={(e) => handleTaxAndOtherItemsChange('sgstDebitCredit', e.target.value)}
+                                                    disabled={isVerified}
+                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                >
+                                                    <option value="debit">Debit</option>
+                                                    <option value="credit">Credit</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-3">
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="sgst"
+                                                        value={taxSummary.sgst}
+                                                        onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
+                                                        placeholder="0.00"
+                                                        disabled={isVerified}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* IGST Row */}
+                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                                            <div className="col-span-2">
+                                                <span className="text-sm font-medium text-gray-700">IGST:</span>
+                                            </div>
+                                            <div className="col-span-5">
+                                                <SearchableDropdown
+                                                    options={chartOfAccountsData?.results || []}
+                                                    value={taxAndOtherItems.igstAccountId || null}
+                                                    onChange={handleIgstAccountSelect}
+                                                    onClear={handleIgstAccountClear}
+                                                    placeholder="Select chart of accounts..."
+                                                    searchPlaceholder="Type to search accounts..."
+                                                    optionLabelKey="accountName"
+                                                    optionValueKey="id"
+                                                    loading={chartOfAccountsLoading}
+                                                    disabled={isVerified}
+                                                    renderOption={(account) => (
+                                                        <div className="flex flex-col py-1">
+                                                            <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                        </div>
+                                                    )}
+                                                    className="text-xs"
+                                                />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <select
+                                                    value={taxAndOtherItems.igstDebitCredit || 'debit'}
+                                                    onChange={(e) => handleTaxAndOtherItemsChange('igstDebitCredit', e.target.value)}
+                                                    disabled={isVerified}
+                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                >
+                                                    <option value="debit">Debit</option>
+                                                    <option value="credit">Credit</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-3">
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="igst"
+                                                        value={taxSummary.igst}
+                                                        onChange={e => handleTaxSummaryChange('igst', e.target.value)}
+                                                        placeholder="0.00"
+                                                        disabled={isVerified}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Vendor Summary Section */}
+                                        <div className="col-span-12 pt-2">
+                                            <div className="grid grid-cols-12 gap-3 items-center py-2">
+                                                <div className="col-span-2">
+                                                    <span className="text-sm font-medium text-gray-700">Payable to Vendor:</span>
+                                                </div>
+                                                <div className="col-span-5">
+                                                    <div className="space-y-2">
+                                                        {/* Display Selected Vendor Name */}
+                                                        {/* <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                                                            {journalEntryForm.selectedVendor ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                                    </svg>
+                                                                    <div className="font-medium text-blue-900">{journalEntryForm.selectedVendor.companyName}</div>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-500 italic">No vendor selected</span>
+                                                            )}
+                                                        </div> */}
+                                                        
+                                                        {/* Chart of Accounts Dropdown */}
+                                                        <SearchableDropdown
+                                                            options={chartOfAccountsData?.results || []}
+                                                            value={taxAndOtherItems.vendorAccountId || null}
+                                                            onChange={handleVendorAccountSelect}
+                                                            onClear={handleVendorAccountClear}
+                                                            placeholder="Select chart of accounts..."
+                                                            searchPlaceholder="Type to search accounts..."
+                                                            optionLabelKey="accountName"
+                                                            optionValueKey="id"
+                                                            loading={chartOfAccountsLoading}
+                                                            disabled={isVerified}
+                                                            renderOption={(account) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{account.accountName}</div>
+                                                                </div>
+                                                            )}
+                                                            className="text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <select
+                                                        value={taxAndOtherItems.vendorDebitCredit || 'credit'}
+                                                        onChange={(e) => handleTaxAndOtherItemsChange('vendorDebitCredit', e.target.value)}
+                                                        disabled={isVerified}
+                                                        className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                    >
+                                                        <option value="debit">Debit</option>
+                                                        <option value="credit">Credit</option>
+                                                    </select>
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <div className="flex items-center">
+                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                        <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
+                                                            {journalEntryForm.totalAmount ? parseFloat(journalEntryForm.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
