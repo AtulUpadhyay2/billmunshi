@@ -18,6 +18,10 @@ const usePageTitle = () => {
         pageTitle = `Bill Munshi | Zoho Expense Bill`;
         document.title = pageTitle;
         return;
+      } else if (path.includes('/zoho/journal-entry/') && path.split('/').length === 4) {
+        pageTitle = `Bill Munshi | Zoho Journal Entry`;
+        document.title = pageTitle;
+        return;
       } else if (path.includes('/tally/vendor-bill/') && path.split('/').length === 4) {
         pageTitle = `Bill Munshi | Tally Vendor Bill`;
         document.title = pageTitle;
@@ -37,6 +41,7 @@ const usePageTitle = () => {
         // Zoho routes
         '/zoho/vendor-bill': 'Zoho Vendor Bills',
         '/zoho/expense-bill': 'Zoho Expense Bills',
+        '/zoho/journal-entry': 'Zoho Journal Entries',
         '/zoho/credentials': 'Zoho Credentials',
         '/zoho/chart-of-account': 'Zoho Chart of Accounts',
         '/zoho/taxes': 'Zoho Taxes',
