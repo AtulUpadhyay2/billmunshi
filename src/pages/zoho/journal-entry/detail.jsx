@@ -322,6 +322,19 @@ const ZohoJournalEntryDetail = () => {
                 total: zoho?.total || data?.total || ''
             }));
 
+            // Update tax and other items (COA mappings) from zoho_bill
+            setTaxAndOtherItems(prev => ({
+                ...prev,
+                cgstAccountId: zoho?.cgst_coa || null,
+                sgstAccountId: zoho?.sgst_coa || null,
+                igstAccountId: zoho?.igst_coa || null,
+                vendorAccountId: zoho?.vendor_coa || null,
+                cgstDebitCredit: zoho?.cgst_debit_or_credit || 'debit',
+                sgstDebitCredit: zoho?.sgst_debit_or_credit || 'debit',
+                igstDebitCredit: zoho?.igst_debit_or_credit || 'debit',
+                vendorDebitCredit: zoho?.vendor_debit_or_credit || 'credit'
+            }));
+
             // Update notes
             setNotes(zoho?.note || '');
 
