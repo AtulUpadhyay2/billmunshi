@@ -396,9 +396,9 @@ const ZohoExpenseBillDetail = () => {
             globalToast.success('Expense bill verified successfully!');
             
             // Redirect to expense bills list after successful verification
-            setTimeout(() => {
-                navigate('/zoho/expense-bill');
-            }, 1500); // Small delay to show success message
+            // setTimeout(() => {
+            //     navigate('/zoho/expense-bill');
+            // }, 1500); // Small delay to show success message
         } catch (error) {
             console.error('Verification failed:', error);
             
