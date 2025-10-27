@@ -114,7 +114,7 @@ const OverviewCards = ({ overviewData }) => {
         <div className="p-4 relative">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Expense Bills
+              Journal Entry
             </h3>
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

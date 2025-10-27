@@ -119,7 +119,7 @@ const OverviewCards = ({ overviewData }) => {
         <div className="p-4 relative">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Expense Bills
+              Journal Entry
             </h3>
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@ const OverviewCards = ({ overviewData }) => {
             </div>
             <div className="mt-3">
               <button 
-                onClick={() => navigate('/zoho/expense-bill')}
+                onClick={() => navigate('/zoho/journal-entry')}
                 className="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
               >
                 View Bills
