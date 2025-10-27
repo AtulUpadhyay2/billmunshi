@@ -504,9 +504,9 @@ const ZohoVendorBillDetail = () => {
             // setVerificationMessage('Vendor bill verified successfully');
             
             // Redirect to vendor bill list after a short delay
-            setTimeout(() => {
-                navigate('/zoho/vendor-bill');
-            }, 1500);
+            // setTimeout(() => {
+            //     navigate('/zoho/vendor-bill');
+            // }, 1500);
             
         } catch (error) {
             console.error('Verification failed:', error);
