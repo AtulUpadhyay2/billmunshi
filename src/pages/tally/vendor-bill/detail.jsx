@@ -481,44 +481,91 @@ const TallyVendorBillDetail = () => {
     
     // Match tax ledgers from API response when both are available
     useEffect(() => {
-        if (taxLedgersMatchedRef.current) return; // Skip if already matched
+        // Check if we need to run matching logic
+        // Allow re-matching if any of the ledger IDs are still null
+        const needsMatching = !billSummaryForm.cgstLedgerId || !billSummaryForm.sgstLedgerId || !billSummaryForm.igstLedgerId;
+        
+        if (!needsMatching && taxLedgersMatchedRef.current) return; // Skip if already matched and all IDs are set
         
         if (cgstLedgerOptions.length > 0 && sgstLedgerOptions.length > 0 && igstLedgerOptions.length > 0 && tallyAnalysedData?.taxes) {
             const taxes = tallyAnalysedData.taxes;
             const updates = {};
             
             // Match CGST ledger
-            if (taxes.cgst?.ledger && !billSummaryForm.cgstLedgerId) {
-                const matchedCgstLedger = cgstLedgerOptions.find(ledger => 
-                    ledger.name === taxes.cgst.ledger
+            if (taxes.cgst?.ledger && taxes.cgst.ledger !== 'No Tax Ledger' && !billSummaryForm.cgstLedgerId) {
+                // Try exact match first
+                let matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                    ledger.name && ledger.name.toLowerCase().trim() === taxes.cgst.ledger.toLowerCase().trim()
                 );
+                
+                // Try partial match if exact match fails
+                if (!matchedCgstLedger) {
+                    const searchTerm = taxes.cgst.ledger.toLowerCase().trim();
+                    matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                        ledger.name && (
+                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            searchTerm.includes(ledger.name.toLowerCase())
+                        )
+                    );
+                }
+                
                 if (matchedCgstLedger) {
+                    console.log(`Matched CGST ledger "${taxes.cgst.ledger}" to "${matchedCgstLedger.name}"`);
                     updates.cgstLedgerId = matchedCgstLedger.id;
                 }
             }
             
             // Match SGST ledger
-            if (taxes.sgst?.ledger && !billSummaryForm.sgstLedgerId) {
-                const matchedSgstLedger = sgstLedgerOptions.find(ledger => 
-                    ledger.name === taxes.sgst.ledger
+            if (taxes.sgst?.ledger && taxes.sgst.ledger !== 'No Tax Ledger' && !billSummaryForm.sgstLedgerId) {
+                // Try exact match first
+                let matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                    ledger.name && ledger.name.toLowerCase().trim() === taxes.sgst.ledger.toLowerCase().trim()
                 );
+                
+                // Try partial match if exact match fails
+                if (!matchedSgstLedger) {
+                    const searchTerm = taxes.sgst.ledger.toLowerCase().trim();
+                    matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                        ledger.name && (
+                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            searchTerm.includes(ledger.name.toLowerCase())
+                        )
+                    );
+                }
+                
                 if (matchedSgstLedger) {
+                    console.log(`Matched SGST ledger "${taxes.sgst.ledger}" to "${matchedSgstLedger.name}"`);
                     updates.sgstLedgerId = matchedSgstLedger.id;
                 }
             }
             
             // Match IGST ledger
-            if (taxes.igst?.ledger && !billSummaryForm.igstLedgerId) {
-                const matchedIgstLedger = igstLedgerOptions.find(ledger => 
-                    ledger.name === taxes.igst.ledger
+            if (taxes.igst?.ledger && taxes.igst.ledger !== 'No Tax Ledger' && !billSummaryForm.igstLedgerId) {
+                // Try exact match first
+                let matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                    ledger.name && ledger.name.toLowerCase().trim() === taxes.igst.ledger.toLowerCase().trim()
                 );
+                
+                // Try partial match if exact match fails
+                if (!matchedIgstLedger) {
+                    const searchTerm = taxes.igst.ledger.toLowerCase().trim();
+                    matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                        ledger.name && (
+                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            searchTerm.includes(ledger.name.toLowerCase())
+                        )
+                    );
+                }
+                
                 if (matchedIgstLedger) {
+                    console.log(`Matched IGST ledger "${taxes.igst.ledger}" to "${matchedIgstLedger.name}"`);
                     updates.igstLedgerId = matchedIgstLedger.id;
                 }
             }
             
             // Apply all updates in a single setState call
             if (Object.keys(updates).length > 0) {
+                console.log('Applying tax ledger updates:', updates);
                 setBillSummaryForm(prev => ({
                     ...prev,
                     ...updates
@@ -527,7 +574,7 @@ const TallyVendorBillDetail = () => {
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData]);
+    }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData, billSummaryForm.cgstLedgerId, billSummaryForm.sgstLedgerId, billSummaryForm.igstLedgerId]);
     
     // Match product tax ledgers from API response
     useEffect(() => {
