@@ -296,7 +296,9 @@ const TallyVendorBillDetail = () => {
                 dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
                            (tally?.bill_details?.date ? new Date(tally.bill_details.date.split('-').reverse().join('-')).toISOString().split('T')[0] : 
                            (tally?.bill_date ? new Date(tally.bill_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '')),
-                dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : '',
+                dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : 
+                        (tally?.bill_details?.due_date ? new Date(tally.bill_details.due_date.split('-').reverse().join('-')).toISOString().split('T')[0] : 
+                        (tally?.due_date ? new Date(tally.due_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '')),
                 selectedVendor: null, // Will be set in the next useEffect
                 is_tax: 'TDS' // Default to TDS
             });
