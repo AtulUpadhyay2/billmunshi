@@ -16,14 +16,14 @@ const TallyVendorBillDetail = () => {
     const navigate = useNavigate();
     const { id: billId } = useParams();
     const { selectedOrganization } = useSelector((state) => state.auth);
-    
+
     // Refs to track if initial matching has been done
     const vendorMatchedRef = useRef(false);
     const stockItemsMatchedRef = useRef(false);
     const taxLedgersMatchedRef = useRef(false);
     const productTaxMatchedRef = useRef(false);
     const stockItemsInitialMatchedRef = useRef(false);
-    
+
     // Form state for vendor information
     const [vendorForm, setVendorForm] = useState({
         vendorName: '',
@@ -58,20 +58,20 @@ const TallyVendorBillDetail = () => {
 
     // State for notes
     const [notes, setNotes] = useState('');
-    
+
     // State for image zoom and viewing
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    
+
     // State for verification loading
     const [isVerifying, setIsVerifying] = useState(false);
-    
+
     // State to track if user manually cleared vendor selection
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
-    
+
     // State for sync operation
     const [isSyncing, setIsSyncing] = useState(false);
-    
+
     // Fetch vendor bill details
     const { data: vendorBillData, error, isLoading, refetch } = useGetTallyVendorBillDetails(
         { organizationId: selectedOrganization?.id, billId },
@@ -122,10 +122,10 @@ const TallyVendorBillDetail = () => {
 
     // Update mutation
     const { mutateAsync: updateVendorBill } = useUpdateTallyVendorBill();
-    
+
     // Verify mutation
     const { mutateAsync: verifyVendorBill } = useVerifyTallyVendorBill();
-    
+
     // Sync mutation
     const { mutateAsync: syncVendorBill } = useSyncTallyVendorBill();
 
@@ -134,22 +134,22 @@ const TallyVendorBillDetail = () => {
     const analysedData = useMemo(() => billInfo?.analysed_data || {}, [billInfo]);
     const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_data || {}, [vendorBillData]);
     const productSync = useMemo(() => vendorBillData?.product_sync || false, [vendorBillData]);
-    
+
     // Check if bill is synced or posted (disable inputs if any of these statuses)
     const isVerified = billInfo?.status === 'Synced' || billInfo?.bill_status === 'Synced' ||
-                       billInfo?.status === 'Posted' || billInfo?.bill_status === 'Posted';
-    
+        billInfo?.status === 'Posted' || billInfo?.bill_status === 'Posted';
+
     // Validation helper functions
     const isVendorRequired = !vendorForm.selectedVendor;
     const getProductsWithoutItemName = () => productSync ? products.filter(product => !product.item_id) : [];
     const getProductsWithoutTaxLedger = () => products.filter(product => !product.tax_ledger_id);
     const getProductsWithoutGST = () => products.filter(product => !product.gst);
     const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0 || getProductsWithoutGST().length > 0;
-    
+
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
         if (!vendorLedgersData?.grouped_ledgers) return [];
-        
+
         const vendors = [];
         Object.values(vendorLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -169,11 +169,11 @@ const TallyVendorBillDetail = () => {
         });
         return vendors;
     }, [vendorLedgersData]);
-    
+
     // Process tax ledgers data for dropdown - Memoized
     const taxLedgerOptions = useMemo(() => {
         if (!taxLedgersData?.grouped_ledgers) return [];
-        
+
         const taxLedgers = [];
         Object.values(taxLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -192,11 +192,11 @@ const TallyVendorBillDetail = () => {
         });
         return taxLedgers;
     }, [taxLedgersData]);
-    
+
     // Process CGST ledgers data for dropdown - Memoized
     const cgstLedgerOptions = useMemo(() => {
         if (!cgstLedgersData?.grouped_ledgers) return [];
-        
+
         const cgstLedgers = [];
         Object.values(cgstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -219,7 +219,7 @@ const TallyVendorBillDetail = () => {
     // Process SGST ledgers data for dropdown - Memoized
     const sgstLedgerOptions = useMemo(() => {
         if (!sgstLedgersData?.grouped_ledgers) return [];
-        
+
         const sgstLedgers = [];
         Object.values(sgstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -242,7 +242,7 @@ const TallyVendorBillDetail = () => {
     // Process IGST ledgers data for dropdown - Memoized
     const igstLedgerOptions = useMemo(() => {
         if (!igstLedgersData?.grouped_ledgers) return [];
-        
+
         const igstLedgers = [];
         Object.values(igstLedgersData.grouped_ledgers).forEach(group => {
             if (group.ledgers && Array.isArray(group.ledgers)) {
@@ -261,11 +261,11 @@ const TallyVendorBillDetail = () => {
         });
         return igstLedgers;
     }, [igstLedgersData]);
-    
+
     // Process masters data for item name dropdown - Memoized
     const stockItemOptions = useMemo(() => {
         if (!mastersData?.stock_items) return [];
-        
+
         return mastersData.stock_items.map(item => ({
             id: item.id,
             name: item.name,
@@ -276,7 +276,7 @@ const TallyVendorBillDetail = () => {
             gst_applicable: item.gst_applicable
         }));
     }, [mastersData]);
-    
+
     // Update form when data is loaded
     useEffect(() => {
         if (vendorBillData?.bill) {
@@ -286,10 +286,10 @@ const TallyVendorBillDetail = () => {
             taxLedgersMatchedRef.current = false;
             productTaxMatchedRef.current = false;
             stockItemsInitialMatchedRef.current = false;
-            
+
             const data = analysedData;
             const tally = tallyAnalysedData;
-            
+
             setVendorForm({
                 vendorName: tallyAnalysedData?.vendor_name || data.from?.name || '',
                 invoiceNumber: data.invoiceNumber || tally?.bill_details?.bill_number || tally?.bill_no || '',
@@ -378,26 +378,26 @@ const TallyVendorBillDetail = () => {
     // Only auto-match if user hasn't manually cleared the vendor
     useEffect(() => {
         if (vendorMatchedRef.current) return; // Skip if already matched
-        
+
         if (vendorOptions.length > 0 && tallyAnalysedData && !vendorForm.selectedVendor && !vendorManuallyCleared) {
             // First try to match by vendor_name from analyzed_data
             let matchedVendor = null;
-            
+
             if (tallyAnalysedData.vendor_name) {
-                matchedVendor = vendorOptions.find(vendor => 
+                matchedVendor = vendorOptions.find(vendor =>
                     vendor.name === tallyAnalysedData.vendor_name
                 );
             }
-            
+
             // If not found by vendor_name, try other matching methods
             if (!matchedVendor && tallyAnalysedData.vendor) {
-                matchedVendor = vendorOptions.find(vendor => 
-                    vendor.name === tallyAnalysedData.vendor.name || 
+                matchedVendor = vendorOptions.find(vendor =>
+                    vendor.name === tallyAnalysedData.vendor.name ||
                     vendor.gst_in === tallyAnalysedData.vendor.gst_in ||
                     vendor.id === tallyAnalysedData.vendor.id
                 );
             }
-            
+
             if (matchedVendor) {
                 setVendorForm(prev => ({
                     ...prev,
@@ -409,11 +409,11 @@ const TallyVendorBillDetail = () => {
             }
         }
     }, [vendorOptions, tallyAnalysedData, vendorForm.selectedVendor, vendorManuallyCleared]);
-    
+
     // Match stock items from API response with stock item options when both are available
     useEffect(() => {
         if (stockItemsMatchedRef.current) return; // Skip if already matched
-        
+
         if (stockItemOptions.length > 0 && tallyAnalysedData?.products && products.length > 0) {
             let hasChanges = false;
             const updatedProducts = products.map(product => {
@@ -424,35 +424,35 @@ const TallyVendorBillDetail = () => {
                         return product;
                     }
                 }
-                
+
                 // Find corresponding product in analyzed_data by matching various fields
-                let analyzedProduct = tallyAnalysedData.products.find(p => 
-                    p.item_details === product.item_details || 
+                let analyzedProduct = tallyAnalysedData.products.find(p =>
+                    p.item_details === product.item_details ||
                     (p.item_id && p.item_id === product.item_id) ||
                     (p.item_name && p.item_name === product.item_name)
                 );
-                
+
                 if (analyzedProduct) {
                     let matchedStockItem = null;
-                    
+
                     // First try to match by item_id if available and valid
                     if (analyzedProduct.item_id) {
-                        matchedStockItem = stockItemOptions.find(stockItem => 
+                        matchedStockItem = stockItemOptions.find(stockItem =>
                             stockItem.id === analyzedProduct.item_id
                         );
                     }
-                    
+
                     // If not found by ID, try to match by item_name with case-insensitive comparison
                     if (!matchedStockItem && analyzedProduct.item_name) {
-                        matchedStockItem = stockItemOptions.find(stockItem => 
+                        matchedStockItem = stockItemOptions.find(stockItem =>
                             stockItem.name && stockItem.name.toLowerCase().trim() === analyzedProduct.item_name.toLowerCase().trim()
                         );
                     }
-                    
+
                     // Update product if we found a matching stock item
                     if (matchedStockItem) {
                         const currentItemValid = product.item_id && stockItemOptions.find(item => item.id === product.item_id);
-                        
+
                         // Only update if current selection is invalid or different
                         if (!currentItemValid || product.item_id !== matchedStockItem.id) {
                             hasChanges = true;
@@ -464,10 +464,10 @@ const TallyVendorBillDetail = () => {
                         }
                     }
                 }
-                
+
                 return product;
             });
-            
+
             // Only update if there are actual changes
             if (hasChanges) {
                 console.log('Updating products with analyzed data matching:', JSON.stringify(updatedProducts, null, 2));
@@ -475,93 +475,93 @@ const TallyVendorBillDetail = () => {
             }
             stockItemsMatchedRef.current = true; // Mark as matched
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stockItemOptions, tallyAnalysedData]);
-    
+
     // Match tax ledgers from API response when both are available
     useEffect(() => {
         // Check if we need to run matching logic
         // Allow re-matching if any of the ledger IDs are still null
         const needsMatching = !billSummaryForm.cgstLedgerId || !billSummaryForm.sgstLedgerId || !billSummaryForm.igstLedgerId;
-        
+
         if (!needsMatching && taxLedgersMatchedRef.current) return; // Skip if already matched and all IDs are set
-        
+
         if (cgstLedgerOptions.length > 0 && sgstLedgerOptions.length > 0 && igstLedgerOptions.length > 0 && tallyAnalysedData?.taxes) {
             const taxes = tallyAnalysedData.taxes;
             const updates = {};
-            
+
             // Match CGST ledger
             if (taxes.cgst?.ledger && taxes.cgst.ledger !== 'No Tax Ledger' && !billSummaryForm.cgstLedgerId) {
                 // Try exact match first
-                let matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                let matchedCgstLedger = cgstLedgerOptions.find(ledger =>
                     ledger.name && ledger.name.toLowerCase().trim() === taxes.cgst.ledger.toLowerCase().trim()
                 );
-                
+
                 // Try partial match if exact match fails
                 if (!matchedCgstLedger) {
                     const searchTerm = taxes.cgst.ledger.toLowerCase().trim();
-                    matchedCgstLedger = cgstLedgerOptions.find(ledger => 
+                    matchedCgstLedger = cgstLedgerOptions.find(ledger =>
                         ledger.name && (
-                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            ledger.name.toLowerCase().includes(searchTerm) ||
                             searchTerm.includes(ledger.name.toLowerCase())
                         )
                     );
                 }
-                
+
                 if (matchedCgstLedger) {
                     console.log(`Matched CGST ledger "${taxes.cgst.ledger}" to "${matchedCgstLedger.name}"`);
                     updates.cgstLedgerId = matchedCgstLedger.id;
                 }
             }
-            
+
             // Match SGST ledger
             if (taxes.sgst?.ledger && taxes.sgst.ledger !== 'No Tax Ledger' && !billSummaryForm.sgstLedgerId) {
                 // Try exact match first
-                let matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                let matchedSgstLedger = sgstLedgerOptions.find(ledger =>
                     ledger.name && ledger.name.toLowerCase().trim() === taxes.sgst.ledger.toLowerCase().trim()
                 );
-                
+
                 // Try partial match if exact match fails
                 if (!matchedSgstLedger) {
                     const searchTerm = taxes.sgst.ledger.toLowerCase().trim();
-                    matchedSgstLedger = sgstLedgerOptions.find(ledger => 
+                    matchedSgstLedger = sgstLedgerOptions.find(ledger =>
                         ledger.name && (
-                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            ledger.name.toLowerCase().includes(searchTerm) ||
                             searchTerm.includes(ledger.name.toLowerCase())
                         )
                     );
                 }
-                
+
                 if (matchedSgstLedger) {
                     console.log(`Matched SGST ledger "${taxes.sgst.ledger}" to "${matchedSgstLedger.name}"`);
                     updates.sgstLedgerId = matchedSgstLedger.id;
                 }
             }
-            
+
             // Match IGST ledger
             if (taxes.igst?.ledger && taxes.igst.ledger !== 'No Tax Ledger' && !billSummaryForm.igstLedgerId) {
                 // Try exact match first
-                let matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                let matchedIgstLedger = igstLedgerOptions.find(ledger =>
                     ledger.name && ledger.name.toLowerCase().trim() === taxes.igst.ledger.toLowerCase().trim()
                 );
-                
+
                 // Try partial match if exact match fails
                 if (!matchedIgstLedger) {
                     const searchTerm = taxes.igst.ledger.toLowerCase().trim();
-                    matchedIgstLedger = igstLedgerOptions.find(ledger => 
+                    matchedIgstLedger = igstLedgerOptions.find(ledger =>
                         ledger.name && (
-                            ledger.name.toLowerCase().includes(searchTerm) || 
+                            ledger.name.toLowerCase().includes(searchTerm) ||
                             searchTerm.includes(ledger.name.toLowerCase())
                         )
                     );
                 }
-                
+
                 if (matchedIgstLedger) {
                     console.log(`Matched IGST ledger "${taxes.igst.ledger}" to "${matchedIgstLedger.name}"`);
                     updates.igstLedgerId = matchedIgstLedger.id;
                 }
             }
-            
+
             // Apply all updates in a single setState call
             if (Object.keys(updates).length > 0) {
                 console.log('Applying tax ledger updates:', updates);
@@ -572,28 +572,28 @@ const TallyVendorBillDetail = () => {
                 taxLedgersMatchedRef.current = true; // Mark as matched
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions, tallyAnalysedData, billSummaryForm.cgstLedgerId, billSummaryForm.sgstLedgerId, billSummaryForm.igstLedgerId]);
-    
+
     // Match product tax ledgers from API response
     useEffect(() => {
         // Check if we need to run matching logic
         // Skip if already matched AND taxLedgerOptions and tallyAnalysedData haven't changed
         if (productTaxMatchedRef.current && taxLedgerOptions.length > 0) {
             // Check if any products have invalid or missing tax_ledger_id
-            const needsReMatching = products.some(product => 
-                !product.tax_ledger_id || 
+            const needsReMatching = products.some(product =>
+                !product.tax_ledger_id ||
                 !taxLedgerOptions.find(ledger => ledger.id === product.tax_ledger_id)
             );
-            
+
             if (!needsReMatching) {
                 return; // Skip if all products have valid tax_ledger_id
             }
         }
-        
+
         if (taxLedgerOptions.length > 0 && products.length > 0) {
             let hasChanges = false;
-            
+
             const updatedProducts = products.map((product, index) => {
                 // If product already has a valid tax_ledger_id, don't override
                 if (product.tax_ledger_id) {
@@ -602,42 +602,42 @@ const TallyVendorBillDetail = () => {
                         return product;
                     }
                 }
-                
+
                 // Try to match by the tax_ledger name from the product
                 let taxLedgerToMatch = product.tax_ledger;
-                
+
                 // Also check analyzed_data if available
                 if (tallyAnalysedData?.products) {
-                    const analyzedProduct = tallyAnalysedData.products[index] || 
-                        tallyAnalysedData.products.find(p => 
-                            p.item_details === product.item_details || 
+                    const analyzedProduct = tallyAnalysedData.products[index] ||
+                        tallyAnalysedData.products.find(p =>
+                            p.item_details === product.item_details ||
                             p.item_name === product.item_name
                         );
-                    
+
                     if (analyzedProduct && analyzedProduct.tax_ledger && analyzedProduct.tax_ledger !== 'No Tax Ledger') {
                         taxLedgerToMatch = analyzedProduct.tax_ledger;
                     }
                 }
-                
+
                 if (taxLedgerToMatch && taxLedgerToMatch !== 'No Tax Ledger') {
                     let matchedTaxLedger = null;
-                    
+
                     // First try: Exact match (case-insensitive and trimmed)
-                    matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
-                        taxLedger.name && 
+                    matchedTaxLedger = taxLedgerOptions.find(taxLedger =>
+                        taxLedger.name &&
                         taxLedger.name.toLowerCase().trim() === taxLedgerToMatch.toLowerCase().trim()
                     );
-                    
+
                     // Second try: Partial match if exact match fails (for typos like PURCHAGE vs PURCHASE)
                     if (!matchedTaxLedger) {
                         const searchTerm = taxLedgerToMatch.toLowerCase().trim();
-                        matchedTaxLedger = taxLedgerOptions.find(taxLedger => 
-                            taxLedger.name && 
-                            (taxLedger.name.toLowerCase().includes(searchTerm) || 
-                             searchTerm.includes(taxLedger.name.toLowerCase()))
+                        matchedTaxLedger = taxLedgerOptions.find(taxLedger =>
+                            taxLedger.name &&
+                            (taxLedger.name.toLowerCase().includes(searchTerm) ||
+                                searchTerm.includes(taxLedger.name.toLowerCase()))
                         );
                     }
-                    
+
                     if (matchedTaxLedger && product.tax_ledger_id !== matchedTaxLedger.id) {
                         hasChanges = true;
                         console.log(`Matching tax ledger "${taxLedgerToMatch}" to "${matchedTaxLedger.name}" with ID ${matchedTaxLedger.id}`);
@@ -648,10 +648,10 @@ const TallyVendorBillDetail = () => {
                         };
                     }
                 }
-                
+
                 return product;
             });
-            
+
             if (hasChanges) {
                 console.log('Updating products with tax ledger matching:', updatedProducts);
                 setProducts(updatedProducts);
@@ -661,13 +661,13 @@ const TallyVendorBillDetail = () => {
                 productTaxMatchedRef.current = true;
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [taxLedgerOptions, tallyAnalysedData, products]);
-    
+
     // Specific effect to handle initial stock item selection after products are loaded
     useEffect(() => {
         if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
-        
+
         if (stockItemOptions.length > 0 && products.length > 0) {
             let needsUpdate = false;
             const updatedProducts = products.map(product => {
@@ -686,10 +686,10 @@ const TallyVendorBillDetail = () => {
                         return product;
                     }
                 }
-                
+
                 // Case 2: Product has item_name (even if item_id doesn't match or is invalid)
                 if (product.item_name) {
-                    const stockItemByName = stockItemOptions.find(item => 
+                    const stockItemByName = stockItemOptions.find(item =>
                         item.name && item.name.toLowerCase().trim() === product.item_name.toLowerCase().trim()
                     );
                     if (stockItemByName) {
@@ -704,7 +704,7 @@ const TallyVendorBillDetail = () => {
                         }
                     }
                 }
-                
+
                 // Case 3: Product has item_id but no matching stock item found
                 // In this case, clear the item_id since it's invalid
                 if (product.item_id && !stockItemOptions.find(item => item.id === product.item_id)) {
@@ -715,19 +715,19 @@ const TallyVendorBillDetail = () => {
                         item_name: null
                     };
                 }
-                
+
                 return product;
             });
-            
+
             if (needsUpdate) {
                 console.log('Updating products with stock item matching:', JSON.stringify(updatedProducts, null, 2));
                 setProducts(updatedProducts);
             }
             stockItemsInitialMatchedRef.current = true; // Mark as matched
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stockItemOptions, products]);
-    
+
     // Handle form input changes
     const handleFormChange = (name, value) => {
         setVendorForm(prev => ({
@@ -743,7 +743,7 @@ const TallyVendorBillDetail = () => {
             handleVendorClear();
             return;
         }
-        
+
         const vendor = vendorOptions.find(v => v.id === vendorId);
         if (vendor) {
             setVendorForm(prev => ({
@@ -892,14 +892,14 @@ const TallyVendorBillDetail = () => {
         setProducts(prev => {
             const updated = [...prev];
             updated[index] = { ...updated[index], [field]: value };
-            
+
             // Auto-calculate amount when price or quantity changes
             if (field === 'price' || field === 'quantity') {
                 const price = field === 'price' ? parseFloat(value) || 0 : parseFloat(updated[index].price) || 0;
                 const quantity = field === 'quantity' ? parseFloat(value) || 0 : parseFloat(updated[index].quantity) || 0;
                 updated[index].amount = (price * quantity).toString();
             }
-            
+
             return updated;
         });
     };
@@ -934,7 +934,7 @@ const TallyVendorBillDetail = () => {
         const cgstLedger = cgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.cgstLedgerId);
         const sgstLedger = sgstLedgerOptions.find(ledger => ledger.id === billSummaryForm.sgstLedgerId);
         const igstLedger = igstLedgerOptions.find(ledger => ledger.id === billSummaryForm.igstLedgerId);
-        
+
         return {
             bill_id: billId,
             analyzed_bill: vendorBillData?.analyzed_bill || null,
@@ -943,9 +943,9 @@ const TallyVendorBillDetail = () => {
                     vendor_name: vendorForm.vendorName || "Unknown Vendor"
                 },
                 bill_no: vendorForm.invoiceNumber || "",
-                bill_date: vendorForm.dateIssued ? 
+                bill_date: vendorForm.dateIssued ?
                     new Date(vendorForm.dateIssued).toLocaleDateString('en-GB').split('/').reverse().join('-') : "",
-                due_date: vendorForm.dueDate ? 
+                due_date: vendorForm.dueDate ?
                     new Date(vendorForm.dueDate).toLocaleDateString('en-GB').split('/').reverse().join('-') : "",
                 total_amount: parseFloat(billSummaryForm.total) || 0,
                 taxes: {
@@ -986,7 +986,7 @@ const TallyVendorBillDetail = () => {
     const handleSave = async () => {
         try {
             setIsVerifying(true);
-            
+
             // Validate vendor selection
             if (!vendorForm.selectedVendor) {
                 globalToast.error('Please select a vendor');
@@ -1010,7 +1010,7 @@ const TallyVendorBillDetail = () => {
                 globalToast.error('Please select GST % for all products');
                 return;
             }
-            
+
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
             console.log('Transformed verify data:', verifyData);
@@ -1021,7 +1021,7 @@ const TallyVendorBillDetail = () => {
             });
 
             globalToast.success('Vendor bill verified successfully');
-            
+
             // Navigate to vendor bill list after successful verification
             // navigate('/tally/vendor-bill');
         } catch (error) {
@@ -1031,12 +1031,12 @@ const TallyVendorBillDetail = () => {
             setIsVerifying(false);
         }
     };
-    
+
     // Sync function
     const handleSync = async () => {
         try {
             setIsSyncing(true);
-            
+
             await syncVendorBill({
                 organizationId: selectedOrganization?.id,
                 billId
@@ -1051,7 +1051,7 @@ const TallyVendorBillDetail = () => {
             setIsSyncing(false);
         }
     };
-    
+
     // Zoom and viewing functions
     const handleZoomIn = () => {
         setZoomLevel(prev => Math.min(prev + 0.25, 3));
@@ -1078,8 +1078,8 @@ const TallyVendorBillDetail = () => {
     useEffect(() => {
         const handleKeyPress = (e) => {
             if (!billInfo?.file || isPDF(billInfo.file)) return;
-            
-            switch(e.key) {
+
+            switch (e.key) {
                 case 'f':
                 case 'F':
                     if (e.ctrlKey || e.metaKey) {
@@ -1196,12 +1196,12 @@ const TallyVendorBillDetail = () => {
 
     return (
         <div className="space-y-5">
-            <Card 
-                title={`Tally Vendor Bill Detail`} 
+            <Card
+                title={`Tally Vendor Bill Detail`}
                 noBorder
                 headerSlot={
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={() => refetch()}
                             disabled={isLoading}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1212,7 +1212,7 @@ const TallyVendorBillDetail = () => {
                             </svg>
                             {isLoading ? 'Refreshing...' : 'Refresh'}
                         </button>
-                        <button 
+                        <button
                             onClick={handleBackClick}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-500 border border-transparent rounded-lg shadow-sm hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
                             title="Back"
@@ -1222,7 +1222,7 @@ const TallyVendorBillDetail = () => {
                             </svg>
                             Back
                         </button>
-                        <button 
+                        <button
                             onClick={() => navigate(`/tally/vendor-bill/${vendorBillData?.next_bill}`)}
                             disabled={!vendorBillData?.next_bill}
                             className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1233,7 +1233,7 @@ const TallyVendorBillDetail = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
-                        <button 
+                        <button
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
@@ -1255,19 +1255,18 @@ const TallyVendorBillDetail = () => {
                             {isVerifying ? 'Verifying...' : isVerified ? 'Verified' : 'Verify'}
                         </button>
                         {/* Sync Button - Always show but only enable when status is Verified */}
-                        <button 
+                        <button
                             onClick={handleSync}
                             disabled={isSyncing || isVerified || billInfo?.status !== 'Verified'}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
-                                (isSyncing || isVerified || billInfo?.status !== 'Verified')
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${(isSyncing || isVerified || billInfo?.status !== 'Verified')
                                     ? 'text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75'
                                     : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500'
-                            }`}
+                                }`}
                             title={
-                                isSyncing 
-                                    ? "Syncing in progress..." 
-                                    : isVerified 
-                                        ? "Bill already synced/posted" 
+                                isSyncing
+                                    ? "Syncing in progress..."
+                                    : isVerified
+                                        ? "Bill already synced/posted"
                                         : billInfo?.status !== 'Verified'
                                             ? "Bill must be verified before sync"
                                             : "Sync with Tally"
@@ -1316,7 +1315,7 @@ const TallyVendorBillDetail = () => {
                                                     </div>
                                                 </div>
                                             )}
-                                            
+
                                             {/* Zoom Controls - only for images */}
                                             {!isPDF(billInfo.file) && (
                                                 <>
@@ -1354,7 +1353,7 @@ const TallyVendorBillDetail = () => {
                                                     </button>
                                                 </>
                                             )}
-                                            
+
                                             {/* Fullscreen Toggle */}
                                             <button
                                                 onClick={toggleFullscreen}
@@ -1367,7 +1366,7 @@ const TallyVendorBillDetail = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Scrollable Content Area */}
                                     <div className="flex-1 overflow-auto bg-white">
                                         {isPDF(billInfo.file) ? (
@@ -1382,9 +1381,9 @@ const TallyVendorBillDetail = () => {
                                             />
                                         ) : (
                                             // Image Viewer with Zoom and Scroll
-                                            <div 
+                                            <div
                                                 className="w-full h-full p-4"
-                                                style={{ 
+                                                style={{
                                                     cursor: zoomLevel > 1 ? 'move' : 'default',
                                                     minHeight: '100%',
                                                     display: 'flex',
@@ -1392,7 +1391,7 @@ const TallyVendorBillDetail = () => {
                                                     justifyContent: zoomLevel <= 1 ? 'center' : 'flex-start'
                                                 }}
                                             >
-                                                <img 
+                                                <img
                                                     src={billInfo.file}
                                                     alt="Bill Document"
                                                     className="rounded-lg shadow-lg transition-transform duration-200 select-none"
@@ -1408,7 +1407,7 @@ const TallyVendorBillDetail = () => {
                                                         e.target.nextSibling.style.display = 'flex';
                                                     }}
                                                 />
-                                                <div style={{display: 'none'}} className="flex flex-col items-center justify-center w-full h-full">
+                                                <div style={{ display: 'none' }} className="flex flex-col items-center justify-center w-full h-full">
                                                     <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                     </svg>
@@ -1482,29 +1481,29 @@ const TallyVendorBillDetail = () => {
                                             </label>
                                             <div className={`${isVendorRequired && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                 <SearchableDropdown
-                                                options={vendorOptions}
-                                                value={vendorForm.selectedVendor?.id || null}
-                                                onChange={handleVendorSelect}
-                                                onClear={handleVendorClear}
-                                                placeholder="Search and select vendor..."
-                                                searchPlaceholder="Type to search vendors..."
-                                                optionLabelKey="name"
-                                                optionValueKey="id"
-                                                loading={vendorLedgersLoading}
-                                                disabled={isVerified}
-                                                renderOption={(vendor) => (
-                                                    <div className="flex flex-col py-1">
-                                                        <div className="font-medium text-gray-900">{vendor.name}</div>
-                                                        {vendor.gst_in && (
-                                                            <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
-                                                        )}
-                                                        {/* {vendor.parent_name && (
+                                                    options={vendorOptions}
+                                                    value={vendorForm.selectedVendor?.id || null}
+                                                    onChange={handleVendorSelect}
+                                                    onClear={handleVendorClear}
+                                                    placeholder="Search and select vendor..."
+                                                    searchPlaceholder="Type to search vendors..."
+                                                    optionLabelKey="name"
+                                                    optionValueKey="id"
+                                                    loading={vendorLedgersLoading}
+                                                    disabled={isVerified}
+                                                    renderOption={(vendor) => (
+                                                        <div className="flex flex-col py-1">
+                                                            <div className="font-medium text-gray-900">{vendor.name}</div>
+                                                            {vendor.gst_in && (
+                                                                <div className="text-xs text-gray-500">GST: {vendor.gst_in}</div>
+                                                            )}
+                                                            {/* {vendor.parent_name && (
                                                             <div className="text-xs text-blue-600">{vendor.parent_name}</div>
                                                         )} */}
-                                                    </div>
-                                                )}
-                                                className="mb-2"
-                                            />
+                                                        </div>
+                                                    )}
+                                                    className="mb-2"
+                                                />
                                             </div>
 
                                             {/* Bill To Badge - showing analysed_data.from.name */}
@@ -1564,29 +1563,41 @@ const TallyVendorBillDetail = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Date Issued
                                             </label>
-                                            <input
-                                                type="date"
-                                                name="dateIssued"
-                                                value={vendorForm.dateIssued}
-                                                onChange={(e) => handleFormChange('dateIssued', e.target.value)}
-                                                disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                            />
-                                        </div>
-
-                                        {/* Due Date Field */}
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    name="dateIssued"
+                                                    value={vendorForm.dateIssued}
+                                                    onChange={(e) => handleFormChange('dateIssued', e.target.value)}
+                                                    disabled={isVerified}
+                                                    className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                />
+                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>                                        {/* Due Date Field */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Due Date
                                             </label>
-                                            <input
-                                                type="date"
-                                                name="dueDate"
-                                                value={vendorForm.dueDate}
-                                                onChange={(e) => handleFormChange('dueDate', e.target.value)}
-                                                disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    name="dueDate"
+                                                    value={vendorForm.dueDate}
+                                                    onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                                                    disabled={isVerified}
+                                                    className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                />
+                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1659,31 +1670,31 @@ const TallyVendorBillDetail = () => {
                                                                 <td className="px-4 py-3">
                                                                     <div className={`${!product.item_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                                         <SearchableDropdown
-                                                                        key={`item-${product.id}-${product.item_id}`}
-                                                                        options={stockItemOptions}
-                                                                        value={product.item_id || null}
-                                                                        onChange={(itemId) => handleItemNameSelect(index, itemId)}
-                                                                        onClear={() => handleItemNameClear(index)}
-                                                                        placeholder="Select item name..."
-                                                                        searchPlaceholder="Type to search stock items..."
-                                                                        optionLabelKey="name"
-                                                                        optionValueKey="id"
-                                                                        loading={mastersLoading}
-                                                                        disabled={isVerified}
-                                                                        renderOption={(stockItem) => (
-                                                                            <div className="flex flex-col py-1">
-                                                                                <div className="font-medium text-gray-900">{stockItem.name}</div>
-                                                                                {stockItem.alias !== "0" && stockItem.alias && (
-                                                                                    <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                        className="item-name-dropdown"
-                                                                    />
+                                                                            key={`item-${product.id}-${product.item_id}`}
+                                                                            options={stockItemOptions}
+                                                                            value={product.item_id || null}
+                                                                            onChange={(itemId) => handleItemNameSelect(index, itemId)}
+                                                                            onClear={() => handleItemNameClear(index)}
+                                                                            placeholder="Select item name..."
+                                                                            searchPlaceholder="Type to search stock items..."
+                                                                            optionLabelKey="name"
+                                                                            optionValueKey="id"
+                                                                            loading={mastersLoading}
+                                                                            disabled={isVerified}
+                                                                            renderOption={(stockItem) => (
+                                                                                <div className="flex flex-col py-1">
+                                                                                    <div className="font-medium text-gray-900">{stockItem.name}</div>
+                                                                                    {stockItem.alias !== "0" && stockItem.alias && (
+                                                                                        <div className="text-xs text-blue-600">Alias: {stockItem.alias}</div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                            className="item-name-dropdown"
+                                                                        />
                                                                     </div>
                                                                 </td>
                                                             )}
-                                                            
+
                                                             {/* Item Details */}
                                                             <td className="px-4 py-3">
                                                                 <textarea
@@ -1700,23 +1711,23 @@ const TallyVendorBillDetail = () => {
                                                             <td className="px-4 py-3">
                                                                 <div className={`${!product.tax_ledger_id && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                                     <SearchableDropdown
-                                                                    options={taxLedgerOptions}
-                                                                    value={product.tax_ledger_id || null}
-                                                                    onChange={(taxLedgerId) => handleTaxLedgerSelect(index, taxLedgerId)}
-                                                                    onClear={() => handleTaxLedgerClear(index)}
-                                                                    placeholder="Select tax ledger..."
-                                                                    searchPlaceholder="Type to search tax ledgers..."
-                                                                    optionLabelKey="name"
-                                                                    optionValueKey="id"
-                                                                    loading={taxLedgersLoading}
-                                                                    disabled={isVerified}
-                                                                    renderOption={(taxLedger) => (
-                                                                        <div className="flex flex-col py-1">
-                                                                            <div className="font-medium text-gray-900">{taxLedger.name}</div>
-                                                                        </div>
-                                                                    )}
-                                                                    className="tax-ledger-dropdown"
-                                                                />
+                                                                        options={taxLedgerOptions}
+                                                                        value={product.tax_ledger_id || null}
+                                                                        onChange={(taxLedgerId) => handleTaxLedgerSelect(index, taxLedgerId)}
+                                                                        onClear={() => handleTaxLedgerClear(index)}
+                                                                        placeholder="Select tax ledger..."
+                                                                        searchPlaceholder="Type to search tax ledgers..."
+                                                                        optionLabelKey="name"
+                                                                        optionValueKey="id"
+                                                                        loading={taxLedgersLoading}
+                                                                        disabled={isVerified}
+                                                                        renderOption={(taxLedger) => (
+                                                                            <div className="flex flex-col py-1">
+                                                                                <div className="font-medium text-gray-900">{taxLedger.name}</div>
+                                                                            </div>
+                                                                        )}
+                                                                        className="tax-ledger-dropdown"
+                                                                    />
                                                                 </div>
                                                             </td>
 
@@ -1803,7 +1814,7 @@ const TallyVendorBillDetail = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        
+
                                         {/* Products Summary */}
                                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                                             <div className="flex justify-between items-center text-sm">
@@ -1827,7 +1838,7 @@ const TallyVendorBillDetail = () => {
                                     </svg>
                                     <h3 className="text-lg font-semibold text-gray-900">Tax and Other Items</h3>
                                 </div>
-                                
+
                                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                                     <div className="grid grid-cols-2 gap-6">
                                         {/* Left Column - Tax Details */}
@@ -1977,7 +1988,7 @@ const TallyVendorBillDetail = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Right Column - Total */}
                                         <div className="flex items-center justify-center">
                                             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
@@ -2009,7 +2020,7 @@ const TallyVendorBillDetail = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Notes
                                     </label>
-                                    <textarea 
+                                    <textarea
                                         value={notes || `Bill from ${vendorForm.selectedVendor?.name || 'Vendor'} entered via BillMunshi ${window.location.href}\n\n`}
                                         onChange={(e) => setNotes(e.target.value)}
                                         disabled={isVerified}
@@ -2091,7 +2102,7 @@ const TallyVendorBillDetail = () => {
                                     title="Bill PDF Document - Fullscreen"
                                 />
                             ) : (
-                                <div 
+                                <div
                                     className="w-full h-full p-8"
                                     style={{
                                         cursor: zoomLevel > 1 ? 'move' : 'default',
