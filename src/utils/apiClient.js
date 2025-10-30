@@ -138,14 +138,21 @@ export const apiFetch = async (endpoint, options = {}) => {
 
     return response.data;
   } catch (error) {
-    // Extract meaningful error message
+    // Extract meaningful error data including details
+    const errorData = error.response?.data || {};
     const errorMessage =
-      error.response?.data?.message ||
-      error.response?.data?.detail ||
+      errorData.message ||
+      errorData.detail ||
       error.message ||
       "An error occurred";
 
-    throw new Error(errorMessage);
+    // Create a custom error object that preserves all error data
+    const customError = new Error(errorMessage);
+    customError.data = errorData; // Preserve the full error data including details
+    customError.status = error.response?.status;
+    customError.statusText = error.response?.statusText;
+
+    throw customError;
   }
 };
 

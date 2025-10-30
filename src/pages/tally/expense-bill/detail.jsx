@@ -59,7 +59,7 @@ const TallyExpenseBillDetail = () => {
     const [isVerifying, setIsVerifying] = useState(false);
 
     // State for error alert
-    const [errorAlert, setErrorAlert] = useState({ show: false, message: '' });
+    const [errorAlert, setErrorAlert] = useState({ show: false, message: '', details: '' });
     
     // State to track if user manually cleared vendor selection
     const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
@@ -711,19 +711,39 @@ const TallyExpenseBillDetail = () => {
 
             // Handle specific error messages from API response
             let errorMessage = 'Failed to verify journal entry';
+            let errorDetails = '';
 
-            if (error?.response?.data) {
-                // Check if error.response.data has an 'error' property with the specific message
-                if (error.response.data.error) {
-                    errorMessage = error.response.data.error;
+            // React Query + apiFetch error structure
+            if (error?.data) {
+                console.log('Error data:', error.data);
+                const errorData = error.data;
+                
+                // Extract message
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                } else if (error.message) {
+                    errorMessage = error.message;
                 }
-                // Fallback to message property
-                else if (error.response.data.message) {
-                    errorMessage = error.response.data.message;
+
+                // Extract details if available
+                if (errorData.details) {
+                    errorDetails = errorData.details;
                 }
-                // If error.response.data is a string
-                else if (typeof error.response.data === 'string') {
-                    errorMessage = error.response.data;
+            }
+            // Fallback to axios error structure (if any direct axios calls)
+            else if (error?.response?.data) {
+                const responseData = error.response.data;
+                
+                if (responseData.message) {
+                    errorMessage = responseData.message;
+                } else if (responseData.error) {
+                    errorMessage = responseData.error;
+                }
+
+                if (responseData.details) {
+                    errorDetails = responseData.details;
                 }
             }
             // Fallback to error message
@@ -731,7 +751,7 @@ const TallyExpenseBillDetail = () => {
                 errorMessage = error.message;
             }
 
-            setErrorAlert({ show: true, message: errorMessage });
+            setErrorAlert({ show: true, message: errorMessage, details: errorDetails });
         } finally {
             setIsVerifying(false);
         }
@@ -1003,9 +1023,15 @@ const TallyExpenseBillDetail = () => {
                             <div className="flex-1">
                                 <strong className="font-medium">Verification Error:</strong>
                                 <div className="mt-1 text-sm">{errorAlert.message}</div>
+                                {errorAlert.details && (
+                                    <div className="mt-2 text-sm bg-red-50 border border-red-300 rounded p-2">
+                                        <strong className="font-medium">Details:</strong>
+                                        <div className="mt-1">{errorAlert.details}</div>
+                                    </div>
+                                )}
                             </div>
                             <button
-                                onClick={() => setErrorAlert({ show: false, message: '' })}
+                                onClick={() => setErrorAlert({ show: false, message: '', details: '' })}
                                 className="ml-4 text-red-500 hover:text-red-700 focus:outline-none"
                                 aria-label="Close alert"
                             >
