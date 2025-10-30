@@ -143,7 +143,8 @@ const TallyVendorBillDetail = () => {
     const isVendorRequired = !vendorForm.selectedVendor;
     const getProductsWithoutItemName = () => productSync ? products.filter(product => !product.item_id) : [];
     const getProductsWithoutTaxLedger = () => products.filter(product => !product.tax_ledger_id);
-    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0;
+    const getProductsWithoutGST = () => products.filter(product => !product.gst);
+    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0 || getProductsWithoutGST().length > 0;
     
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
@@ -1003,6 +1004,12 @@ const TallyVendorBillDetail = () => {
                 globalToast.error('Please select Tax Ledger for all products');
                 return;
             }
+
+            // Validate GST for all products
+            if (getProductsWithoutGST().length > 0) {
+                globalToast.error('Please select GST % for all products');
+                return;
+            }
             
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
@@ -1452,6 +1459,9 @@ const TallyVendorBillDetail = () => {
                                                     {getProductsWithoutTaxLedger().length > 0 && (
                                                         <li>• Select Tax Ledger for {getProductsWithoutTaxLedger().length} product{getProductsWithoutTaxLedger().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {getProductsWithoutGST().length > 0 && (
+                                                        <li>• Select GST % for {getProductsWithoutGST().length} product{getProductsWithoutGST().length > 1 ? 's' : ''}</li>
+                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -1633,8 +1643,8 @@ const TallyVendorBillDetail = () => {
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
                                                             Amount
                                                         </th>
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
-                                                            GST %
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                            GST % <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
                                                             Actions
@@ -1754,21 +1764,23 @@ const TallyVendorBillDetail = () => {
 
                                                             {/* GST % */}
                                                             <td className="px-4 py-3">
-                                                                <select
-                                                                    value={product.gst || ''}
-                                                                    onChange={(e) => handleProductChange(index, 'gst', e.target.value)}
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                >
-                                                                    <option value="">Select GST</option>
-                                                                    <option value="0%">0%</option>
-                                                                    <option value="5%">5%</option>
-                                                                    <option value="12%">12%</option>
-                                                                    <option value="18%">18%</option>
-                                                                    <option value="28%">28%</option>
-                                                                    <option value="Exempted">Exempted</option>
-                                                                    <option value="N/A">N/A</option>
-                                                                </select>
+                                                                <div className={`${!product.gst && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <select
+                                                                        value={product.gst || ''}
+                                                                        onChange={(e) => handleProductChange(index, 'gst', e.target.value)}
+                                                                        disabled={isVerified}
+                                                                        className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                    >
+                                                                        <option value="">Select GST</option>
+                                                                        <option value="0%">0%</option>
+                                                                        <option value="5%">5%</option>
+                                                                        <option value="12%">12%</option>
+                                                                        <option value="18%">18%</option>
+                                                                        <option value="28%">28%</option>
+                                                                        <option value="Exempted">Exempted</option>
+                                                                        <option value="N/A">N/A</option>
+                                                                    </select>
+                                                                </div>
                                                             </td>
 
                                                             {/* Actions */}
