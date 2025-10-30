@@ -9,6 +9,7 @@ import { useGetTallyVendorLedgers, useGetTallyTaxLedgers, useGetTallyExpenseChar
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { ta } from 'date-fns/locale';
 
 const TallyExpenseBillDetail = () => {
     const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -43,7 +44,8 @@ const TallyExpenseBillDetail = () => {
         igstDebitCredit: 'debit',
         cgstDebitCredit: 'debit',
         sgstDebitCredit: 'debit',
-        vendorDebitCredit: 'credit'
+        vendorDebitCredit: 'credit',
+        vendorAmount: ''
     });
 
     // State for notes
@@ -284,8 +286,8 @@ const TallyExpenseBillDetail = () => {
 
             setBillForm({
                 billNumber: tally?.bill_no || data.billNumber || '',
-                billDate: tally?.bill_date || data.dateIssued || '',
-                dueDate: tally?.due_date || data.dueDate || '',
+                billDate: tally?.bill_date ? new Date(tally?.bill_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '',
+                dueDate: tally?.due_date ? new Date(tally?.due_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '',
                 vendorName: tally?.name || data.from?.name || '',
                 companyId: tally?.company_id || '',
                 totalAmount: tally?.total || data.total || '',
@@ -300,7 +302,8 @@ const TallyExpenseBillDetail = () => {
                 sgst: tally?.taxes?.sgst?.amount || data.sgst || '',
                 igstLedgerId: null,
                 cgstLedgerId: null,
-                sgstLedgerId: null
+                sgstLedgerId: null,
+                vendorAmount: data.total || ''
             });
 
             // Initialize notes
@@ -632,7 +635,7 @@ const TallyExpenseBillDetail = () => {
                 total: parseFloat(billForm.totalAmount) || 0,
                 company_id: selectedVendor?.company || billForm.companyId || "Unknown",
                 vendor_debit_or_credit: taxSummaryForm.vendorDebitCredit || "credit",
-                vendor_amount: parseFloat(billForm.totalAmount) || 0,
+                vendor_amount: parseFloat(taxSummaryForm.vendorAmount) || 0,
                 taxes: {
                     igst: {
                         amount: parseFloat(taxSummaryForm.igst) || 0.0,
@@ -699,15 +702,15 @@ const TallyExpenseBillDetail = () => {
                 ...verifyData
             });
 
-            globalToast.success('Expense bill verified successfully');
+            globalToast.success('Journal entry verified successfully');
 
             // Navigate to expense bill list after successful verification
             // navigate('/tally/expense-bill');
         } catch (error) {
-            console.error('Failed to verify expense bill:', error);
+            console.error('Failed to verify journal entry:', error);
 
             // Handle specific error messages from API response
-            let errorMessage = 'Failed to verify expense bill';
+            let errorMessage = 'Failed to verify journal entry';
 
             if (error?.response?.data) {
                 // Check if error.response.data has an 'error' property with the specific message
@@ -747,8 +750,8 @@ const TallyExpenseBillDetail = () => {
             globalToast.success('Bill synced to Tally successfully');
             refetch(); // Refresh the data to show updated status
         } catch (error) {
-            console.error('Failed to sync expense bill:', error);
-            globalToast.error(error?.response?.data?.message || error?.message || 'Failed to sync expense bill');
+            console.error('Failed to sync journal entry:', error);
+            globalToast.error(error?.response?.data?.message || error?.message || 'Failed to sync journal entry to Tally');
         } finally {
             setIsSyncing(false);
         }
@@ -861,9 +864,9 @@ const TallyExpenseBillDetail = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-red-600 text-center">
-                            <p className="text-lg font-medium">Failed to load expense bill</p>
+                            <p className="text-lg font-medium">Failed to load journal entry</p>
                             <p className="text-sm text-gray-500 mt-2">
-                                {error?.data?.message || error?.message || 'An error occurred while fetching expense bill details'}
+                                {error?.data?.message || error?.message || 'An error occurred while fetching journal entry details'}
                             </p>
                         </div>
                         <div className="flex gap-3 mt-4">
@@ -891,7 +894,7 @@ const TallyExpenseBillDetail = () => {
         return (
             <div className="text-center py-8">
                 <div className="text-slate-500">No organization selected</div>
-                <div className="text-xs text-slate-400 mt-2">Please select an organization to view expense bill details</div>
+                <div className="text-xs text-slate-400 mt-2">Please select an organization to view journal entry details</div>
             </div>
         );
     }
@@ -1248,21 +1251,22 @@ const TallyExpenseBillDetail = () => {
                                         </div>
                                     </div>
 
-                                    {/* Second Row: Total Amount, Bill Date, Due Date in 4 columns */}
+                                    {/* Second Row: Vendor GST, Bill Date, Due Date */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {/* Total Amount Field */}
+                                        {/* GST Number Field */}
                                         <div className="lg:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Total Amount
+                                                GST Number
                                             </label>
                                             <input
-                                                type="number"
-                                                name="totalAmount"
-                                                value={billForm.totalAmount}
-                                                onChange={e => handleFormChange('totalAmount', e.target.value)}
-                                                placeholder="0.00"
+                                                type="text"
+                                                name="vendorGST"
+                                                value={billForm.vendorGST}
+                                                onChange={(e) => handleFormChange('vendorGST', e.target.value)}
+                                                placeholder="Enter GST number"
                                                 disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                                                readOnly={billForm.selectedVendor && billForm.selectedVendor.gst_in && !isVerified}
                                             />
                                         </div>
 
@@ -1271,15 +1275,22 @@ const TallyExpenseBillDetail = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Bill Date
                                             </label>
-                                            <input
-                                                type="text"
-                                                name="billDate"
-                                                value={billForm.billDate}
-                                                onChange={(e) => handleFormChange('billDate', e.target.value)}
-                                                placeholder="DD-MM-YYYY"
-                                                disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    name="billDate"
+                                                    value={billForm.billDate}
+                                                    onChange={(e) => handleFormChange('billDate', e.target.value)}
+                                                    placeholder="DD-MM-YYYY"
+                                                    disabled={isVerified}
+                                                    className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                />
+                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Due Date Field */}
@@ -1287,15 +1298,22 @@ const TallyExpenseBillDetail = () => {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Due Date
                                             </label>
-                                            <input
-                                                type="date"
-                                                name="dueDate"
-                                                value={billForm.dueDate}
-                                                onChange={(e) => handleFormChange('dueDate', e.target.value)}
-                                                placeholder="DD-MM-YYYY"
-                                                disabled={isVerified}
-                                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    name="dueDate"
+                                                    value={billForm.dueDate}
+                                                    onChange={(e) => handleFormChange('dueDate', e.target.value)}
+                                                    placeholder="DD-MM-YYYY"
+                                                    disabled={isVerified}
+                                                    className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                />
+                                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1332,7 +1350,7 @@ const TallyExpenseBillDetail = () => {
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
-                                                            Item Details
+                                                            Item Details <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
                                                             Chart of Accounts <span className="text-red-500">*</span>
@@ -1340,6 +1358,7 @@ const TallyExpenseBillDetail = () => {
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
                                                         </th>
+                                                        
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
                                                             Type
                                                         </th>
@@ -1353,14 +1372,16 @@ const TallyExpenseBillDetail = () => {
                                                         <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
                                                             {/* Item Details */}
                                                             <td className="px-4 py-3">
-                                                                <textarea
-                                                                    value={item.item_details}
-                                                                    onChange={(e) => handleExpenseItemChange(index, 'item_details', e.target.value)}
-                                                                    placeholder="Enter item details..."
-                                                                    disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                                    rows={3}
-                                                                />
+                                                                <div className={`${!item.item_details && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <textarea
+                                                                        value={item.item_details}
+                                                                        onChange={(e) => handleExpenseItemChange(index, 'item_details', e.target.value)}
+                                                                        placeholder="Enter item details..."
+                                                                        disabled={isVerified}
+                                                                        className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                        rows={3}
+                                                                    />
+                                                                </div>
                                                             </td>
 
                                                             <td className="px-4 py-3">
@@ -1462,7 +1483,7 @@ const TallyExpenseBillDetail = () => {
                                             <div className="col-span-2">
                                                 <span className="text-sm font-medium text-gray-700">CGST:</span>
                                             </div>
-                                            <div className="col-span-5">
+                                            <div className="col-span-6">
                                                 <SearchableDropdown
                                                     options={cgstLedgerOptions}
                                                     value={taxSummaryForm.cgstLedgerId || null}
@@ -1488,20 +1509,18 @@ const TallyExpenseBillDetail = () => {
                                                     className="text-xs"
                                                 />
                                             </div>
-                                            <div className="col-span-2">
+                                            <div className="col-span-4 flex items-center gap-2">
                                                 <select
                                                     value={taxSummaryForm.cgstDebitCredit || 'debit'}
                                                     onChange={(e) => handleTaxSummaryChange('cgstDebitCredit', e.target.value)}
                                                     disabled={isVerified}
-                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                 >
                                                     <option value="debit">Debit</option>
                                                     <option value="credit">Credit</option>
                                                 </select>
-                                            </div>
-                                            <div className="col-span-3">
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                <div className="flex items-center flex-1">
+                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
                                                     <input
                                                         type="number"
                                                         name="cgst"
@@ -1509,7 +1528,7 @@ const TallyExpenseBillDetail = () => {
                                                         onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
                                                         placeholder="0.00"
                                                         disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                                                     />
                                                 </div>
                                             </div>
@@ -1520,7 +1539,7 @@ const TallyExpenseBillDetail = () => {
                                             <div className="col-span-2">
                                                 <span className="text-sm font-medium text-gray-700">SGST:</span>
                                             </div>
-                                            <div className="col-span-5">
+                                            <div className="col-span-6">
                                                 <SearchableDropdown
                                                     options={sgstLedgerOptions}
                                                     value={taxSummaryForm.sgstLedgerId || null}
@@ -1546,20 +1565,18 @@ const TallyExpenseBillDetail = () => {
                                                     className="text-xs"
                                                 />
                                             </div>
-                                            <div className="col-span-2">
+                                            <div className="col-span-4 flex items-center gap-2">
                                                 <select
                                                     value={taxSummaryForm.sgstDebitCredit || 'debit'}
                                                     onChange={(e) => handleTaxSummaryChange('sgstDebitCredit', e.target.value)}
                                                     disabled={isVerified}
-                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                 >
                                                     <option value="debit">Debit</option>
                                                     <option value="credit">Credit</option>
                                                 </select>
-                                            </div>
-                                            <div className="col-span-3">
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                <div className="flex items-center flex-1">
+                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
                                                     <input
                                                         type="number"
                                                         name="sgst"
@@ -1567,7 +1584,7 @@ const TallyExpenseBillDetail = () => {
                                                         onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
                                                         placeholder="0.00"
                                                         disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                                                     />
                                                 </div>
                                             </div>
@@ -1578,7 +1595,7 @@ const TallyExpenseBillDetail = () => {
                                             <div className="col-span-2">
                                                 <span className="text-sm font-medium text-gray-700">IGST:</span>
                                             </div>
-                                            <div className="col-span-5">
+                                            <div className="col-span-6">
                                                 <SearchableDropdown
                                                     options={igstLedgerOptions}
                                                     value={taxSummaryForm.igstLedgerId || null}
@@ -1604,20 +1621,18 @@ const TallyExpenseBillDetail = () => {
                                                     className="text-xs"
                                                 />
                                             </div>
-                                            <div className="col-span-2">
+                                            <div className="col-span-4 flex items-center gap-2">
                                                 <select
                                                     value={taxSummaryForm.igstDebitCredit || 'debit'}
                                                     onChange={(e) => handleTaxSummaryChange('igstDebitCredit', e.target.value)}
                                                     disabled={isVerified}
-                                                    className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                 >
                                                     <option value="debit">Debit</option>
                                                     <option value="credit">Credit</option>
                                                 </select>
-                                            </div>
-                                            <div className="col-span-3">
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                <div className="flex items-center flex-1">
+                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
                                                     <input
                                                         type="number"
                                                         name="igst"
@@ -1625,7 +1640,7 @@ const TallyExpenseBillDetail = () => {
                                                         onChange={e => handleTaxSummaryChange('igst', e.target.value)}
                                                         placeholder="0.00"
                                                         disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                                                     />
                                                 </div>
                                             </div>
@@ -1637,8 +1652,8 @@ const TallyExpenseBillDetail = () => {
                                                 <div className="col-span-2">
                                                     <span className="text-sm font-medium text-gray-700">Payable to Vendor:</span>
                                                 </div>
-                                                <div className="col-span-5">
-                                                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                                                <div className="col-span-6">
+                                                    <div className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs">
                                                         {billForm.selectedVendor ? (
                                                             <div className="flex flex-col">
                                                                 <div className="font-medium text-gray-900">{billForm.selectedVendor.name}</div>
@@ -1648,24 +1663,53 @@ const TallyExpenseBillDetail = () => {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="col-span-2">
+                                                <div className="col-span-4 flex items-center gap-2">
                                                     <select
                                                         value={taxSummaryForm.vendorDebitCredit || 'credit'}
                                                         onChange={(e) => handleTaxSummaryChange('vendorDebitCredit', e.target.value)}
                                                         disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                        className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
                                                     >
                                                         <option value="debit">Debit</option>
                                                         <option value="credit">Credit</option>
                                                     </select>
-                                                </div>
-                                                <div className="col-span-3">
-                                                    <div className="flex items-center">
-                                                        <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                        <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
-                                                            {billForm.totalAmount ? parseFloat(billForm.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
-                                                        </div>
+                                                    <div className="flex items-center flex-1">
+                                                        <span className="text-xs text-gray-600 mr-1">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            name="vendorAmount"
+                                                            value={taxSummaryForm.vendorAmount}
+                                                            onChange={e => handleTaxSummaryChange('vendorAmount', e.target.value)}
+                                                            placeholder="0.00"
+                                                            disabled={isVerified}
+                                                            className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                        />
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Total Amount Row */}
+                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-t border-gray-300 pt-4">
+                                            <div className="col-span-2">
+                                                <span className="text-sm font-medium text-gray-700">Total Amount:</span>
+                                            </div>
+                                            <div className="col-span-6">
+                                                {/* Empty space to align with other rows */}
+                                            </div>
+                                            <div className="col-span-4 flex items-center gap-2">
+                                                <div className="w-24"></div>
+                                                <div className="flex items-center flex-1">
+                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="totalAmount"
+                                                        value={billForm.totalAmount}
+                                                        onChange={e => handleFormChange('totalAmount', e.target.value)}
+                                                        placeholder="0.00"
+                                                        disabled={isVerified}
+                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
