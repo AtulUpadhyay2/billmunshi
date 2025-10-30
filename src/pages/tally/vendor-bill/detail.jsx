@@ -144,7 +144,10 @@ const TallyVendorBillDetail = () => {
     const getProductsWithoutItemName = () => productSync ? products.filter(product => !product.item_id) : [];
     const getProductsWithoutTaxLedger = () => products.filter(product => !product.tax_ledger_id);
     const getProductsWithoutGST = () => products.filter(product => !product.gst);
-    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0 || getProductsWithoutGST().length > 0;
+    const isCgstLedgerRequired = () => parseFloat(billSummaryForm.cgst || 0) > 0 && !billSummaryForm.cgstLedgerId;
+    const isSgstLedgerRequired = () => parseFloat(billSummaryForm.sgst || 0) > 0 && !billSummaryForm.sgstLedgerId;
+    const isIgstLedgerRequired = () => parseFloat(billSummaryForm.igst || 0) > 0 && !billSummaryForm.igstLedgerId;
+    const hasValidationErrors = () => isVendorRequired || (productSync && getProductsWithoutItemName().length > 0) || getProductsWithoutTaxLedger().length > 0 || getProductsWithoutGST().length > 0 || isCgstLedgerRequired() || isSgstLedgerRequired() || isIgstLedgerRequired();
 
     // Process vendor ledgers data for dropdown - Memoized
     const vendorOptions = useMemo(() => {
@@ -1461,6 +1464,9 @@ const TallyVendorBillDetail = () => {
                                                     {getProductsWithoutGST().length > 0 && (
                                                         <li>• Select GST % for {getProductsWithoutGST().length} product{getProductsWithoutGST().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {isCgstLedgerRequired() && <li>• Select CGST ledger (amount is greater than 0)</li>}
+                                                    {isSgstLedgerRequired() && <li>• Select SGST ledger (amount is greater than 0)</li>}
+                                                    {isIgstLedgerRequired() && <li>• Select IGST ledger (amount is greater than 0)</li>}
                                                 </ul>
                                             </div>
                                         </div>
@@ -1845,7 +1851,10 @@ const TallyVendorBillDetail = () => {
                                                 </div>
                                             </div> */}
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">CGST:</span>
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    CGST:
+                                                    {parseFloat(billSummaryForm.cgst || 0) > 0 && <span className="text-red-500 ml-1">*</span>}
+                                                </span>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex items-center">
                                                         <span className="text-sm text-gray-600 mr-2">₹</span>
@@ -1859,13 +1868,13 @@ const TallyVendorBillDetail = () => {
                                                             className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className={`flex-1 min-w-[200px] ${isCgstLedgerRequired() && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                         <SearchableDropdown
                                                             options={cgstLedgerOptions}
                                                             value={billSummaryForm.cgstLedgerId || null}
                                                             onChange={handleCgstLedgerSelect}
                                                             onClear={handleCgstLedgerClear}
-                                                            placeholder="Select CGST ledger..."
+                                                            placeholder={parseFloat(billSummaryForm.cgst || 0) > 0 ? "* Select CGST ledger... *" : "Select CGST ledger..."}
                                                             searchPlaceholder="Type to search CGST ledgers..."
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
@@ -1888,7 +1897,10 @@ const TallyVendorBillDetail = () => {
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">SGST:</span>
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    SGST:
+                                                    {parseFloat(billSummaryForm.sgst || 0) > 0 && <span className="text-red-500 ml-1">*</span>}
+                                                </span>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex items-center">
                                                         <span className="text-sm text-gray-600 mr-2">₹</span>
@@ -1902,13 +1914,13 @@ const TallyVendorBillDetail = () => {
                                                             className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className={`flex-1 min-w-[200px] ${isSgstLedgerRequired() && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                         <SearchableDropdown
                                                             options={sgstLedgerOptions}
                                                             value={billSummaryForm.sgstLedgerId || null}
                                                             onChange={handleSgstLedgerSelect}
                                                             onClear={handleSgstLedgerClear}
-                                                            placeholder="Select SGST ledger..."
+                                                            placeholder={parseFloat(billSummaryForm.sgst || 0) > 0 ? "* Select SGST ledger... *" : "Select SGST ledger..."}
                                                             searchPlaceholder="Type to search SGST ledgers..."
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
@@ -1931,7 +1943,10 @@ const TallyVendorBillDetail = () => {
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">IGST:</span>
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    IGST:
+                                                    {parseFloat(billSummaryForm.igst || 0) > 0 && <span className="text-red-500 ml-1">*</span>}
+                                                </span>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex items-center">
                                                         <span className="text-sm text-gray-600 mr-2">₹</span>
@@ -1945,13 +1960,13 @@ const TallyVendorBillDetail = () => {
                                                             className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                         />
                                                     </div>
-                                                    <div className="flex-1 min-w-[200px]">
+                                                    <div className={`flex-1 min-w-[200px] ${isIgstLedgerRequired() && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
                                                         <SearchableDropdown
                                                             options={igstLedgerOptions}
                                                             value={billSummaryForm.igstLedgerId || null}
                                                             onChange={handleIgstLedgerSelect}
                                                             onClear={handleIgstLedgerClear}
-                                                            placeholder="Select IGST ledger..."
+                                                            placeholder={parseFloat(billSummaryForm.igst || 0) > 0 ? "* Select IGST ledger... *" : "Select IGST ledger..."}
                                                             searchPlaceholder="Type to search IGST ledgers..."
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
