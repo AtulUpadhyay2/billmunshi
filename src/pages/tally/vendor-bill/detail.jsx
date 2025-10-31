@@ -1772,7 +1772,14 @@ const TallyVendorBillDetail = () => {
                                                                         value={product.gst || ''}
                                                                         onChange={(e) => handleProductChange(index, 'gst', e.target.value)}
                                                                         disabled={isVerified}
-                                                                        className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                        className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                        style={{
+                                                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                            backgroundPosition: 'right 0.5rem center',
+                                                                            backgroundRepeat: 'no-repeat',
+                                                                            backgroundSize: '1.25rem 1.25rem',
+                                                                            paddingRight: '2.5rem'
+                                                                        }}
                                                                     >
                                                                         <option value="">Select GST</option>
                                                                         <option value="0%">0%</option>
@@ -1874,7 +1881,7 @@ const TallyVendorBillDetail = () => {
                                                             value={billSummaryForm.cgstLedgerId || null}
                                                             onChange={handleCgstLedgerSelect}
                                                             onClear={handleCgstLedgerClear}
-                                                            placeholder={parseFloat(billSummaryForm.cgst || 0) > 0 ? "* Select CGST ledger... *" : "Select CGST ledger..."}
+                                                            placeholder="Select CGST ledger..."
                                                             searchPlaceholder="Type to search CGST ledgers..."
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
@@ -1920,7 +1927,7 @@ const TallyVendorBillDetail = () => {
                                                             value={billSummaryForm.sgstLedgerId || null}
                                                             onChange={handleSgstLedgerSelect}
                                                             onClear={handleSgstLedgerClear}
-                                                            placeholder={parseFloat(billSummaryForm.sgst || 0) > 0 ? "* Select SGST ledger... *" : "Select SGST ledger..."}
+                                                            placeholder="Select SGST ledger..."
                                                             searchPlaceholder="Type to search SGST ledgers..."
                                                             optionLabelKey="name"
                                                             optionValueKey="id"
