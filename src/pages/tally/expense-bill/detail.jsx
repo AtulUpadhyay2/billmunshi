@@ -1371,7 +1371,7 @@ const TallyExpenseBillDetail = () => {
                                                             Amount
                                                         </th>
                                                         
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Type
                                                         </th>
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
@@ -1438,7 +1438,14 @@ const TallyExpenseBillDetail = () => {
                                                                     value={item.debit_or_credit}
                                                                     onChange={(e) => handleExpenseItemChange(index, 'debit_or_credit', e.target.value)}
                                                                     disabled={isVerified}
-                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                                    style={{
+                                                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                        backgroundPosition: 'right 0.5rem center',
+                                                                        backgroundRepeat: 'no-repeat',
+                                                                        backgroundSize: '1.25rem 1.25rem',
+                                                                        paddingRight: '2.5rem'
+                                                                    }}
                                                                 >
                                                                     <option value="debit">Debit</option>
                                                                     <option value="credit">Credit</option>
@@ -1488,205 +1495,231 @@ const TallyExpenseBillDetail = () => {
                                     <h3 className="text-lg font-semibold text-gray-900">Tax and Other Items</h3>
                                 </div>
                                 
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                                    <div className="space-y-4">
-                                        {/* CGST Row */}
-                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
-                                            <div className="col-span-2">
-                                                <span className="text-sm font-medium text-gray-700">CGST:</span>
-                                            </div>
-                                            <div className="col-span-6">
-                                                <SearchableDropdown
-                                                    options={cgstLedgerOptions}
-                                                    value={taxSummaryForm.cgstLedgerId || null}
-                                                    onChange={handleCgstLedgerSelect}
-                                                    onClear={handleCgstLedgerClear}
-                                                    placeholder="Select CGST ledger..."
-                                                    searchPlaceholder="Type to search CGST ledgers..."
-                                                    optionLabelKey="name"
-                                                    optionValueKey="id"
-                                                    loading={cgstLedgersLoading}
-                                                    disabled={isVerified}
-                                                    renderOption={(ledger) => (
-                                                        <div className="flex flex-col py-1">
-                                                            <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                            {/* {ledger.parent_name && (
-                                                                <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                {/* Tax and Other Items Table */}
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[800px]">
+                                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                        Tax Type
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                                                        Ledger Account
+                                                    </th>
+                                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                                        Type
+                                                    </th>
+                                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                                                        Amount
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {/* CGST Row */}
+                                                <tr className="hover:bg-gray-50 transition-colors duration-150">
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-sm font-medium text-gray-900">CGST</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <SearchableDropdown
+                                                            options={cgstLedgerOptions}
+                                                            value={taxSummaryForm.cgstLedgerId || null}
+                                                            onChange={handleCgstLedgerSelect}
+                                                            onClear={handleCgstLedgerClear}
+                                                            placeholder="Select CGST ledger..."
+                                                            searchPlaceholder="Type to search CGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={cgstLedgersLoading}
+                                                            disabled={isVerified}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                </div>
                                                             )}
-                                                            {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                            )} */}
-                                                        </div>
-                                                    )}
-                                                    className="text-xs"
-                                                />
-                                            </div>
-                                            <div className="col-span-4 flex items-center gap-2">
-                                                <select
-                                                    value={taxSummaryForm.cgstDebitCredit || 'debit'}
-                                                    onChange={(e) => handleTaxSummaryChange('cgstDebitCredit', e.target.value)}
-                                                    disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                >
-                                                    <option value="debit">Debit</option>
-                                                    <option value="credit">Credit</option>
-                                                </select>
-                                                <div className="flex items-center flex-1">
-                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="cgst"
-                                                        value={taxSummaryForm.cgst}
-                                                        onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <select
+                                                            value={taxSummaryForm.cgstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('cgstDebitCredit', e.target.value)}
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                backgroundPosition: 'right 0.5rem center',
+                                                                backgroundRepeat: 'no-repeat',
+                                                                backgroundSize: '1.25rem 1.25rem',
+                                                                paddingRight: '2.5rem'
+                                                            }}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="number"
+                                                            name="cgst"
+                                                            value={taxSummaryForm.cgst}
+                                                            onChange={e => handleTaxSummaryChange('cgst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            min="0"
+                                                            step="0.01"
+                                                        />
+                                                    </td>
+                                                </tr>
 
-                                        {/* SGST Row */}
-                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
-                                            <div className="col-span-2">
-                                                <span className="text-sm font-medium text-gray-700">SGST:</span>
-                                            </div>
-                                            <div className="col-span-6">
-                                                <SearchableDropdown
-                                                    options={sgstLedgerOptions}
-                                                    value={taxSummaryForm.sgstLedgerId || null}
-                                                    onChange={handleSgstLedgerSelect}
-                                                    onClear={handleSgstLedgerClear}
-                                                    placeholder="Select SGST ledger..."
-                                                    searchPlaceholder="Type to search SGST ledgers..."
-                                                    optionLabelKey="name"
-                                                    optionValueKey="id"
-                                                    loading={sgstLedgersLoading}
-                                                    disabled={isVerified}
-                                                    renderOption={(ledger) => (
-                                                        <div className="flex flex-col py-1">
-                                                            <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                            {/* {ledger.parent_name && (
-                                                                <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                {/* SGST Row */}
+                                                <tr className="hover:bg-gray-50 transition-colors duration-150">
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-sm font-medium text-gray-900">SGST</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <SearchableDropdown
+                                                            options={sgstLedgerOptions}
+                                                            value={taxSummaryForm.sgstLedgerId || null}
+                                                            onChange={handleSgstLedgerSelect}
+                                                            onClear={handleSgstLedgerClear}
+                                                            placeholder="Select SGST ledger..."
+                                                            searchPlaceholder="Type to search SGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={sgstLedgersLoading}
+                                                            disabled={isVerified}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                </div>
                                                             )}
-                                                            {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                            )} */}
-                                                        </div>
-                                                    )}
-                                                    className="text-xs"
-                                                />
-                                            </div>
-                                            <div className="col-span-4 flex items-center gap-2">
-                                                <select
-                                                    value={taxSummaryForm.sgstDebitCredit || 'debit'}
-                                                    onChange={(e) => handleTaxSummaryChange('sgstDebitCredit', e.target.value)}
-                                                    disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                >
-                                                    <option value="debit">Debit</option>
-                                                    <option value="credit">Credit</option>
-                                                </select>
-                                                <div className="flex items-center flex-1">
-                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="sgst"
-                                                        value={taxSummaryForm.sgst}
-                                                        onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <select
+                                                            value={taxSummaryForm.sgstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('sgstDebitCredit', e.target.value)}
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                backgroundPosition: 'right 0.5rem center',
+                                                                backgroundRepeat: 'no-repeat',
+                                                                backgroundSize: '1.25rem 1.25rem',
+                                                                paddingRight: '2.5rem'
+                                                            }}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="number"
+                                                            name="sgst"
+                                                            value={taxSummaryForm.sgst}
+                                                            onChange={e => handleTaxSummaryChange('sgst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            min="0"
+                                                            step="0.01"
+                                                        />
+                                                    </td>
+                                                </tr>
 
-                                        {/* IGST Row */}
-                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
-                                            <div className="col-span-2">
-                                                <span className="text-sm font-medium text-gray-700">IGST:</span>
-                                            </div>
-                                            <div className="col-span-6">
-                                                <SearchableDropdown
-                                                    options={igstLedgerOptions}
-                                                    value={taxSummaryForm.igstLedgerId || null}
-                                                    onChange={handleIgstLedgerSelect}
-                                                    onClear={handleIgstLedgerClear}
-                                                    placeholder="Select IGST ledger..."
-                                                    searchPlaceholder="Type to search IGST ledgers..."
-                                                    optionLabelKey="name"
-                                                    optionValueKey="id"
-                                                    loading={igstLedgersLoading}
-                                                    disabled={isVerified}
-                                                    renderOption={(ledger) => (
-                                                        <div className="flex flex-col py-1">
-                                                            <div className="font-medium text-gray-900">{ledger.name}</div>
-                                                            {/* {ledger.parent_name && (
-                                                                <div className="text-xs text-blue-600">{ledger.parent_name}</div>
+                                                {/* IGST Row */}
+                                                <tr className="hover:bg-gray-50 transition-colors duration-150">
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-sm font-medium text-gray-900">IGST</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <SearchableDropdown
+                                                            options={igstLedgerOptions}
+                                                            value={taxSummaryForm.igstLedgerId || null}
+                                                            onChange={handleIgstLedgerSelect}
+                                                            onClear={handleIgstLedgerClear}
+                                                            placeholder="Select IGST ledger..."
+                                                            searchPlaceholder="Type to search IGST ledgers..."
+                                                            optionLabelKey="name"
+                                                            optionValueKey="id"
+                                                            loading={igstLedgersLoading}
+                                                            disabled={isVerified}
+                                                            renderOption={(ledger) => (
+                                                                <div className="flex flex-col py-1">
+                                                                    <div className="font-medium text-gray-900">{ledger.name}</div>
+                                                                </div>
                                                             )}
-                                                            {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                            )} */}
-                                                        </div>
-                                                    )}
-                                                    className="text-xs"
-                                                />
-                                            </div>
-                                            <div className="col-span-4 flex items-center gap-2">
-                                                <select
-                                                    value={taxSummaryForm.igstDebitCredit || 'debit'}
-                                                    onChange={(e) => handleTaxSummaryChange('igstDebitCredit', e.target.value)}
-                                                    disabled={isVerified}
-                                                    className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                >
-                                                    <option value="debit">Debit</option>
-                                                    <option value="credit">Credit</option>
-                                                </select>
-                                                <div className="flex items-center flex-1">
-                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="igst"
-                                                        value={taxSummaryForm.igst}
-                                                        onChange={e => handleTaxSummaryChange('igst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Vendor Summary Section */}
-                                        <div className="col-span-12 pt-2">
-                                            <div className="grid grid-cols-12 gap-3 items-center py-2">
-                                                <div className="col-span-2">
-                                                    <span className="text-sm font-medium text-gray-700">Payable to Vendor:</span>
-                                                </div>
-                                                <div className="col-span-6">
-                                                    <div className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md text-xs">
-                                                        {billForm.selectedVendor ? (
-                                                            <div className="flex flex-col">
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <select
+                                                            value={taxSummaryForm.igstDebitCredit || 'debit'}
+                                                            onChange={(e) => handleTaxSummaryChange('igstDebitCredit', e.target.value)}
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                backgroundPosition: 'right 0.5rem center',
+                                                                backgroundRepeat: 'no-repeat',
+                                                                backgroundSize: '1.25rem 1.25rem',
+                                                                paddingRight: '2.5rem'
+                                                            }}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="number"
+                                                            name="igst"
+                                                            value={taxSummaryForm.igst}
+                                                            onChange={e => handleTaxSummaryChange('igst', e.target.value)}
+                                                            placeholder="0.00"
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            min="0"
+                                                            step="0.01"
+                                                        />
+                                                    </td>
+                                                </tr>
+
+                                                {/* Payable to Vendor Row */}
+                                                <tr className="hover:bg-gray-50 transition-colors duration-150 bg-blue-50">
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-sm font-medium text-gray-900">Payable to Vendor</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm">
+                                                            {billForm.selectedVendor ? (
                                                                 <div className="font-medium text-gray-900">{billForm.selectedVendor.name}</div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-500 italic">No vendor selected</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="col-span-4 flex items-center gap-2">
-                                                    <select
-                                                        value={taxSummaryForm.vendorDebitCredit || 'credit'}
-                                                        onChange={(e) => handleTaxSummaryChange('vendorDebitCredit', e.target.value)}
-                                                        disabled={isVerified}
-                                                        className={`w-24 px-2 py-1 text-xs text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
-                                                    >
-                                                        <option value="debit">Debit</option>
-                                                        <option value="credit">Credit</option>
-                                                    </select>
-                                                    <div className="flex items-center flex-1">
-                                                        <span className="text-xs text-gray-600 mr-1">₹</span>
+                                                            ) : (
+                                                                <span className="text-gray-500 italic">No vendor selected</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <select
+                                                            value={taxSummaryForm.vendorDebitCredit || 'credit'}
+                                                            onChange={(e) => handleTaxSummaryChange('vendorDebitCredit', e.target.value)}
+                                                            disabled={isVerified}
+                                                            className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                backgroundPosition: 'right 0.5rem center',
+                                                                backgroundRepeat: 'no-repeat',
+                                                                backgroundSize: '1.25rem 1.25rem',
+                                                                paddingRight: '2.5rem'
+                                                            }}
+                                                        >
+                                                            <option value="debit">Debit</option>
+                                                            <option value="credit">Credit</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-4 py-3">
                                                         <input
                                                             type="number"
                                                             name="vendorAmount"
@@ -1694,35 +1727,33 @@ const TallyExpenseBillDetail = () => {
                                                             onChange={e => handleTaxSummaryChange('vendorAmount', e.target.value)}
                                                             placeholder="0.00"
                                                             disabled={isVerified}
-                                                            className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                            className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+                                                            min="0"
+                                                            step="0.01"
                                                         />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
 
-                                        {/* Total Amount Row */}
-                                        <div className="grid grid-cols-12 gap-3 items-center py-2 border-t border-gray-300 pt-4">
-                                            <div className="col-span-2">
-                                                <span className="text-sm font-medium text-gray-700">Total Amount:</span>
-                                            </div>
-                                            <div className="col-span-6">
-                                                {/* Empty space to align with other rows */}
-                                            </div>
-                                            <div className="col-span-4 flex items-center gap-2">
-                                                <div className="w-24"></div>
-                                                <div className="flex items-center flex-1">
-                                                    <span className="text-xs text-gray-600 mr-1">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="totalAmount"
-                                                        value={billForm.totalAmount}
-                                                        onChange={e => handleFormChange('totalAmount', e.target.value)}
-                                                        placeholder="0.00"
-                                                        disabled={isVerified}
-                                                        className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                                                    />
-                                                </div>
+                                    {/* Total Amount Footer */}
+                                    <div className="px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-base font-semibold text-gray-900">Total Amount:</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">₹</span>
+                                                <input
+                                                    type="number"
+                                                    name="totalAmount"
+                                                    value={billForm.totalAmount}
+                                                    onChange={e => handleFormChange('totalAmount', e.target.value)}
+                                                    placeholder="0.00"
+                                                    disabled={isVerified}
+                                                    className={`w-48 px-3 py-2 text-right border border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none text-sm font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                                                    min="0"
+                                                    step="0.01"
+                                                />
                                             </div>
                                         </div>
                                     </div>
