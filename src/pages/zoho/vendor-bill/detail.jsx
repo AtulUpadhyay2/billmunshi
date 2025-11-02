@@ -37,6 +37,14 @@ const ZohoVendorBillDetail = () => {
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
 
+    // State for Discount
+    const [discountForm, setDiscountForm] = useState({
+        discount_type: '', // No default - user must select
+        discount: '',
+        discount_amount: '',
+        discount_account: null
+    });
+
     // Form state for bill summary
     const [billSummaryForm, setBillSummaryForm] = useState({
         subtotal: '',
@@ -115,7 +123,11 @@ const ZohoVendorBillDetail = () => {
     const isVendorRequired = !vendorForm.selectedVendor;
     const getProductsWithoutCOA = () => products.filter(product => !product.chart_of_accounts);
     const getProductsWithoutTaxes = () => products.filter(product => !product.taxes);
-    const hasValidationErrors = () => isVendorRequired || getProductsWithoutCOA().length > 0 || getProductsWithoutTaxes().length > 0 || products.length === 0;
+    const isDiscountAccountRequired = () => {
+        // If user has entered a discount value, discount account is required
+        return (discountForm.discount && parseFloat(discountForm.discount) > 0) && !discountForm.discount_account;
+    };
+    const hasValidationErrors = () => isVendorRequired || getProductsWithoutCOA().length > 0 || getProductsWithoutTaxes().length > 0 || products.length === 0 || isDiscountAccountRequired();
     
     // Update form when data is loaded
     useEffect(() => {
@@ -178,6 +190,14 @@ const ZohoVendorBillDetail = () => {
 
             // Initialize notes from zoho_bill.note
             setNotes(zoho?.note || '');
+
+            // Initialize discount form from zoho_bill
+            setDiscountForm({
+                discount_type: zoho?.discount_type || '',
+                discount: zoho?.discount || '',
+                discount_amount: zoho?.discount_amount || '',
+                discount_account: zoho?.discount_account || null
+            });
 
             // Initialize products from zoho_bill.products
             if (zoho?.products && zoho.products.length > 0) {
@@ -259,6 +279,33 @@ const ZohoVendorBillDetail = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    // Handle Discount form changes
+    const handleDiscountChange = (name, value) => {
+        setDiscountForm(prev => {
+            const updated = { ...prev, [name]: value };
+            
+            // Calculate discount_amount when discount or discount_type changes
+            if (name === 'discount' || name === 'discount_type') {
+                const discount = name === 'discount' ? value : prev.discount;
+                const discountType = name === 'discount_type' ? value : prev.discount_type;
+                const total = parseFloat(billSummaryForm.total) || 0;
+                
+                if (discount && total > 0) {
+                    if (discountType === 'INR') {
+                        updated.discount_amount = parseFloat(discount).toFixed(2);
+                    } else if (discountType === 'Percentage') {
+                        const discountAmount = (total * parseFloat(discount)) / 100;
+                        updated.discount_amount = discountAmount.toFixed(2);
+                    }
+                } else {
+                    updated.discount_amount = '';
+                }
+            }
+            
+            return updated;
+        });
     };
 
     // Handle quantity updates
@@ -487,6 +534,14 @@ const ZohoVendorBillDetail = () => {
                 setVerificationMessage('Please select Taxes for all products');
                 return;
             }
+
+            // Check if discount account is required but not selected
+            if (discountForm.discount && parseFloat(discountForm.discount) > 0 && !discountForm.discount_account) {
+                globalToast.error('Please select Discount Account when discount is provided');
+                setVerificationStatus('error');
+                setVerificationMessage('Please select Discount Account when discount is provided');
+                return;
+            }
             
             // Prepare the verification data based on the structure you provided
             const verificationData = {
@@ -506,6 +561,10 @@ const ZohoVendorBillDetail = () => {
                     adjustment_description: billSummaryForm.adjustment_description || "",
                     tds_tcs_id: selectedTdsTcs,
                     is_tax: vendorForm.is_tax,
+                    discount_type: discountForm.discount_type || null,
+                    discount: discountForm.discount || "0",
+                    discount_amount: discountForm.discount_amount || "0",
+                    discount_account: discountForm.discount_account || null,
                     note: notes,
                     products: validProducts.map(product => ({
                         item_name: product.item_details.substring(0, 100), // Truncate if needed
@@ -909,6 +968,9 @@ const ZohoVendorBillDetail = () => {
                                                     )}
                                                     {getProductsWithoutTaxes().length > 0 && (
                                                         <li>• Select Taxes for {getProductsWithoutTaxes().length} product{getProductsWithoutTaxes().length > 1 ? 's' : ''}</li>
+                                                    )}
+                                                    {isDiscountAccountRequired() && (
+                                                        <li>• Select Discount Account (required when discount value is provided)</li>
                                                     )}
                                                 </ul>
                                             </div>
@@ -1412,6 +1474,124 @@ const ZohoVendorBillDetail = () => {
                                                 )} */}
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Discount Section */}
+                            <div className="p-8 border-b border-gray-200">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h3 className="text-lg font-semibold text-gray-900">Discount</h3>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Discount Type */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-800 mb-3">
+                                                Discount Type
+                                            </label>
+                                            <div className="flex items-center gap-6">
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="radio"
+                                                        id="discount-inr"
+                                                        name="discount_type"
+                                                        value="INR"
+                                                        checked={discountForm.discount_type === 'INR'}
+                                                        onChange={(e) => handleDiscountChange('discount_type', e.target.value)}
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
+                                                        disabled={isVerified}
+                                                    />
+                                                    <label htmlFor="discount-inr" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
+                                                        <span className="font-semibold text-blue-600">INR</span>
+                                                        <span className="text-gray-500 ml-1">(Fixed Amount)</span>
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="radio"
+                                                        id="discount-percentage"
+                                                        name="discount_type"
+                                                        value="Percentage"
+                                                        checked={discountForm.discount_type === 'Percentage'}
+                                                        onChange={(e) => handleDiscountChange('discount_type', e.target.value)}
+                                                        className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
+                                                        disabled={isVerified}
+                                                    />
+                                                    <label htmlFor="discount-percentage" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
+                                                        <span className="font-semibold text-green-600">Percentage</span>
+                                                        <span className="text-gray-500 ml-1">(%)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Discount Value */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                                Discount {discountForm.discount_type === 'Percentage' ? '(%)' : '(₹)'}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="discount"
+                                                value={discountForm.discount}
+                                                onChange={(e) => handleDiscountChange('discount', e.target.value)}
+                                                placeholder={discountForm.discount_type === 'Percentage' ? 'Enter percentage' : 'Enter amount'}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm"
+                                                disabled={isVerified}
+                                                min="0"
+                                                step={discountForm.discount_type === 'Percentage' ? '0.01' : '0.01'}
+                                            />
+                                        </div>
+
+                                        {/* Discount Amount (Calculated) */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                                Discount Amount (₹)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="discount_amount"
+                                                value={discountForm.discount_amount}
+                                                readOnly
+                                                placeholder="0.00"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-medium text-gray-700 cursor-not-allowed"
+                                                disabled
+                                            />
+                                        </div>
+
+                                        {/* Discount Account */}
+                                        <div className="relative">
+                                            <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                                Discount Account
+                                                {isDiscountAccountRequired() && !isVerified && (
+                                                    <span className="text-red-500 text-xs ml-1">*</span>
+                                                )}
+                                            </label>
+                                            <div className={`${isDiscountAccountRequired() && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                <SearchableDropdown
+                                                    options={chartOfAccountsData?.results?.map(account => ({
+                                                        value: account.id,
+                                                        label: account.accountName
+                                                    })) || []}
+                                                    value={discountForm.discount_account || ''}
+                                                    onChange={(value) => handleDiscountChange('discount_account', value || null)}
+                                                    onClear={() => handleDiscountChange('discount_account', null)}
+                                                    placeholder="Select discount account..."
+                                                    searchPlaceholder="Search accounts..."
+                                                    loading={chartOfAccountsLoading}
+                                                    loadingMessage="Loading accounts..."
+                                                    noOptionsMessage="No accounts found"
+                                                    disabled={isVerified}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
