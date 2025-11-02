@@ -43,6 +43,8 @@ const ZohoVendorBillDetail = () => {
         cgst: '',
         sgst: '',
         igst: '',
+        adjustment_amount: '',
+        adjustment_description: '',
         total: ''
     });
 
@@ -169,6 +171,8 @@ const ZohoVendorBillDetail = () => {
                 cgst: data.cgst || zoho?.cgst || '',
                 sgst: data.sgst || zoho?.sgst || '',
                 igst: data.igst || zoho?.igst || '',
+                adjustment_amount: zoho?.adjustment_amount || '',
+                adjustment_description: zoho?.adjustment_description || '',
                 total: data.total || zoho?.total || ''
             });
 
@@ -498,6 +502,8 @@ const ZohoVendorBillDetail = () => {
                     igst: billSummaryForm.igst || "0",
                     cgst: billSummaryForm.cgst || "0",
                     sgst: billSummaryForm.sgst || "0",
+                    adjustment_amount: billSummaryForm.adjustment_amount || "0",
+                    adjustment_description: billSummaryForm.adjustment_description || "",
                     tds_tcs_id: selectedTdsTcs,
                     is_tax: vendorForm.is_tax,
                     note: notes,
@@ -1425,21 +1431,6 @@ const ZohoVendorBillDetail = () => {
                                     <div className="grid grid-cols-2 gap-6">
                                         {/* Left Column - Tax Details */}
                                         <div className="space-y-4">
-                                            {/* <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="subtotal"
-                                                        value={billSummaryForm.subtotal}
-                                                        onChange={e => handleBillSummaryChange('subtotal', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                        disabled={isVerified}
-                                                    />
-                                                </div>
-                                            </div> */}
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-sm font-medium text-gray-700">CGST:</span>
                                                 <div className="flex items-center">
@@ -1449,8 +1440,8 @@ const ZohoVendorBillDetail = () => {
                                                         name="cgst"
                                                         value={billSummaryForm.cgst}
                                                         onChange={e => handleBillSummaryChange('cgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        placeholder="0"
+                                                        className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                         disabled={isVerified}
                                                     />
                                                 </div>
@@ -1464,8 +1455,8 @@ const ZohoVendorBillDetail = () => {
                                                         name="sgst"
                                                         value={billSummaryForm.sgst}
                                                         onChange={e => handleBillSummaryChange('sgst', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        placeholder="0"
+                                                        className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                         disabled={isVerified}
                                                     />
                                                 </div>
@@ -1479,16 +1470,33 @@ const ZohoVendorBillDetail = () => {
                                                         name="igst"
                                                         value={billSummaryForm.igst}
                                                         onChange={e => handleBillSummaryChange('igst', e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        disabled={isVerified}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Adjustment Section in Left Column */}
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-200 pt-4">
+                                                <span className="text-sm font-medium text-gray-700">Adjustment:</span>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        name="adjustment_amount"
+                                                        value={billSummaryForm.adjustment_amount}
+                                                        onChange={e => handleBillSummaryChange('adjustment_amount', e.target.value)}
                                                         placeholder="0.00"
-                                                        className="w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                         disabled={isVerified}
                                                     />
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        {/* Right Column - Total */}
-                                        <div className="flex items-center justify-center">
+                                        {/* Right Column - Total and Adjustment Description */}
+                                        <div className="space-y-4">
                                             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
                                                 <div className="text-center">
                                                     <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">Total Amount</div>
@@ -1507,11 +1515,21 @@ const ZohoVendorBillDetail = () => {
                                                     <div className="text-xs text-blue-600 mt-2">Including all taxes</div>
                                                 </div>
                                             </div>
+
+                                            {/* Adjustment Description */}
+                                            <textarea
+                                                name="adjustment_description"
+                                                value={billSummaryForm.adjustment_description}
+                                                onChange={e => handleBillSummaryChange('adjustment_description', e.target.value)}
+                                                placeholder="Enter adjustment description..."
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm resize-none"
+                                                rows={3}
+                                                disabled={isVerified}
+                                            />
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             {/* Notes Section */}
                             <div className="p-8">
                                 <div>
