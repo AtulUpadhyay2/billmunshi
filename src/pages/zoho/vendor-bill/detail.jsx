@@ -126,15 +126,39 @@ const ZohoVendorBillDetail = () => {
             if (zoho?.vendor && vendorsData?.results) {
                 selectedVendorObj = vendorsData.results.find(v => v.id === zoho.vendor);
             }
+            // Helper function to parse date - handles both DD-MM-YYYY and YYYY-MM-DD formats
+            // Always returns YYYY-MM-DD format or empty string
+            const parseDate = (dateStr) => {
+                if (!dateStr) return '';
+                
+                // Check if date is already in ISO format (YYYY-MM-DD)
+                const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (isoDateRegex.test(dateStr)) {
+                    // Already in ISO format, just validate it
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? '' : dateStr;
+                }
+                
+                // Try DD-MM-YYYY format
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const [day, month, year] = parts;
+                    // Convert to YYYY-MM-DD
+                    const isoDate = `${year}-${month}-${day}`;
+                    const date = new Date(isoDate);
+                    return isNaN(date.getTime()) ? '' : isoDate;
+                }
+                
+                // If no valid format found, return empty string (don't default to today)
+                return '';
+            };
             
             setVendorForm({
                 vendorName: selectedVendorObj?.companyName || data.from?.name || '',
                 invoiceNumber: data.invoiceNumber || zoho?.bill_no || '',
                 vendorGST: selectedVendorObj?.gstNo || '',
-                dateIssued: data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : 
-                           (zoho?.bill_date ? new Date(zoho.bill_date).toISOString().split('T')[0] : ''),
-                dueDate: data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : 
-                        (zoho?.due_date ? new Date(zoho.due_date).toISOString().split('T')[0] : ''),
+                dateIssued: parseDate(zoho.bill_date),
+                dueDate: parseDate(zoho.due_date),
                 selectedVendor: selectedVendorObj || zoho?.vendor || null,
                 is_tax: zoho?.is_tax || 'TDS' // Load from zoho_bill or default to TDS
             });
@@ -597,30 +621,6 @@ const ZohoVendorBillDetail = () => {
     return (
         <div className="space-y-5">
             {/* Verification Status Messages */}
-            {verificationStatus === 'success' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                        <svg className="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                            <h3 className="text-sm font-medium text-green-800">Verification Successful</h3>
-                            <p className="text-sm text-green-700 mt-1">
-                                {verificationMessage || 'The vendor bill has been successfully verified and submitted to Zoho.'}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setVerificationStatus(null)}
-                            className="ml-auto text-green-600 hover:text-green-800"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {verificationStatus === 'error' && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center">
