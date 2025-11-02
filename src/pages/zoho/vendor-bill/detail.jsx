@@ -552,7 +552,7 @@ const ZohoVendorBillDetail = () => {
                     vendor: vendorForm.selectedVendor?.id || null,
                     bill_no: vendorForm.invoiceNumber,
                     bill_date: vendorForm.dateIssued,
-                    due_date: vendorForm.dueDate,
+                    due_date: vendorForm.dueDate || null,
                     total: billSummaryForm.total,
                     igst: billSummaryForm.igst || "0",
                     cgst: billSummaryForm.cgst || "0",
@@ -1120,7 +1120,7 @@ const ZohoVendorBillDetail = () => {
                                             <input
                                                 type="date"
                                                 name="dueDate"
-                                                value={vendorForm.dueDate}
+                                                value={vendorForm.dueDate || ''}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                                 disabled={isVerified}
