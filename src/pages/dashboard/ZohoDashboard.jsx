@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/hooks/api/zoho/zohoDashboardService';
+import { useUploadVendorBills } from '@/hooks/api/zoho/zohoVendorBillService';
+import { useUploadZohoJournalBills } from '@/hooks/api/zoho/zohoJournalEntryService';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
+import UploadBillModal from '@/components/modals/UploadBillModal';
+import { globalToast } from '@/utils/toast';
 import {
   AreaChart,
   Area,
@@ -22,7 +26,7 @@ import {
   Legend
 } from 'recharts';
 
-const OverviewCards = ({ overviewData }) => {
+const OverviewCards = ({ overviewData, onVendorUploadClick, onExpenseUploadClick }) => {
   const { vendor_bills, expense_bills, financial_summary, vendor_count, recent_activity } = overviewData;
   const navigate = useNavigate();
 
@@ -98,7 +102,7 @@ const OverviewCards = ({ overviewData }) => {
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
               <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-1 rounded-full transition-all duration-300" style={{width: `${vendor_bills.total_count > 0 ? (vendor_bills.synced_count / vendor_bills.total_count) * 100 : 0}%`}}></div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex gap-6">
               <button 
                 onClick={() => navigate('/zoho/vendor-bill')}
                 className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
@@ -107,6 +111,16 @@ const OverviewCards = ({ overviewData }) => {
                 <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                 </svg>
+              </button>
+              <button 
+                onClick={onVendorUploadClick}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
+                title="Upload vendor bills"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M16 10l-4-4m0 0-4 4m4-4v12" />
+                </svg>
+                Upload
               </button>
             </div>
           </div>
@@ -138,7 +152,7 @@ const OverviewCards = ({ overviewData }) => {
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1 mt-2">
               <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-1 rounded-full transition-all duration-300" style={{width: `${expense_bills.total_count > 0 ? (expense_bills.synced_count / expense_bills.total_count) * 100 : 0}%`}}></div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex gap-6">
               <button 
                 onClick={() => navigate('/zoho/journal-entry')}
                 className="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
@@ -147,6 +161,16 @@ const OverviewCards = ({ overviewData }) => {
                 <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                 </svg>
+              </button>
+              <button 
+                onClick={onExpenseUploadClick}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors duration-200 cursor-pointer"
+                title="Upload journal entries"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M16 10l-4-4m0 0-4 4m4-4v12" />
+                </svg>
+                Upload
               </button>
             </div>
           </div>
@@ -378,12 +402,15 @@ const FunnelCard = ({ title, data, type }) => {
 
 const ZohoDashboard = () => {
   const selectedOrganization = useSelector(state => state.auth.selectedOrganization);
+  const [isVendorUploadModalOpen, setIsVendorUploadModalOpen] = useState(false);
+  const [isExpenseUploadModalOpen, setIsExpenseUploadModalOpen] = useState(false);
   
   const {
     data: funnelData,
     isLoading: isFunnelLoading,
     isError: isFunnelError,
-    error: funnelError
+    error: funnelError,
+    refetch: refetchFunnel
   } = useGetZohoFunnel(selectedOrganization?.id, {
     refetchOnMount: true,
   });
@@ -392,7 +419,8 @@ const ZohoDashboard = () => {
     data: overviewData,
     isLoading: isOverviewLoading,
     isError: isOverviewError,
-    error: overviewError
+    error: overviewError,
+    refetch: refetchOverview
   } = useGetZohoOverview(selectedOrganization?.id, {
     refetchOnMount: true,
   });
@@ -401,10 +429,42 @@ const ZohoDashboard = () => {
     data: usageData,
     isLoading: isUsageLoading,
     isError: isUsageError,
-    error: usageError
+    error: usageError,
+    refetch: refetchUsage
   } = useGetZohoUsage(selectedOrganization?.id, {
     refetchOnMount: true,
   });
+
+  const { mutateAsync: uploadVendorBills } = useUploadVendorBills();
+  const { mutateAsync: uploadExpenseBills } = useUploadZohoJournalBills();
+
+  const handleVendorUpload = async (formData) => {
+    try {
+      await uploadVendorBills({ organizationId: selectedOrganization?.id, formData });
+      globalToast.success('Vendor bills uploaded successfully');
+      // Refresh all dashboard data
+      refetchOverview();
+      refetchUsage();
+      refetchFunnel();
+    } catch (error) {
+      console.error('Upload failed:', error);
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload vendor bills');
+    }
+  };
+
+  const handleExpenseUpload = async (formData) => {
+    try {
+      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData });
+      globalToast.success('Journal entries uploaded successfully');
+      // Refresh all dashboard data
+      refetchOverview();
+      refetchUsage();
+      refetchFunnel();
+    } catch (error) {
+      console.error('Upload failed:', error);
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload journal entries');
+    }
+  };
 
   if (!selectedOrganization) {
     return (
@@ -446,7 +506,13 @@ const ZohoDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      {overviewData && <OverviewCards overviewData={overviewData} />}
+      {overviewData && (
+        <OverviewCards 
+          overviewData={overviewData} 
+          onVendorUploadClick={() => setIsVendorUploadModalOpen(true)}
+          onExpenseUploadClick={() => setIsExpenseUploadModalOpen(true)}
+        />
+      )}
 
       {/* Usage Analytics */}
       {usageData && <UsageAnalytics usageData={usageData} />}
@@ -471,6 +537,21 @@ const ZohoDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Upload Modals */}
+      <UploadBillModal
+        isOpen={isVendorUploadModalOpen}
+        onClose={() => setIsVendorUploadModalOpen(false)}
+        onUpload={handleVendorUpload}
+        title="Upload Vendor Bills"
+      />
+
+      <UploadBillModal
+        isOpen={isExpenseUploadModalOpen}
+        onClose={() => setIsExpenseUploadModalOpen(false)}
+        onUpload={handleExpenseUpload}
+        title="Upload Journal Entries"
+      />
     </div>
   );
 };
