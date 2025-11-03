@@ -113,7 +113,8 @@ const ZohoExpenseBillDetail = () => {
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;
     const getItemsWithoutCOA = () => expenseItems.filter(item => !item.chart_of_accounts_id);
-    const hasValidationErrors = () => isVendorRequired || getItemsWithoutCOA().length > 0 || expenseItems.length === 0;
+    const getItemsWithoutTaxes = () => expenseItems.filter(item => !item.taxes);
+    const hasValidationErrors = () => isVendorRequired || getItemsWithoutCOA().length > 0 || getItemsWithoutTaxes().length > 0 || expenseItems.length === 0;
 
     // Utility function to check if file is PDF
     const isPDF = (url) => url && url.toLowerCase().includes('.pdf');
@@ -242,12 +243,38 @@ const ZohoExpenseBillDetail = () => {
             const data = analysedData;
             const zoho = zohoBillData;
             
+            // Helper function to parse date - handles both DD-MM-YYYY and YYYY-MM-DD formats
+            // Always returns YYYY-MM-DD format or empty string
+            const parseDate = (dateStr) => {
+                if (!dateStr) return '';
+                
+                // Check if date is already in ISO format (YYYY-MM-DD)
+                const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (isoDateRegex.test(dateStr)) {
+                    // Already in ISO format, just validate it
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? '' : dateStr;
+                }
+                
+                // Try DD-MM-YYYY format
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const [day, month, year] = parts;
+                    // Convert to YYYY-MM-DD
+                    const isoDate = `${year}-${month}-${day}`;
+                    const date = new Date(isoDate);
+                    return isNaN(date.getTime()) ? '' : isoDate;
+                }
+                
+                return '';
+            };
+            
             // Update bill form with data from API response
             setBillForm(prev => ({
                 ...prev,
                 billNumber: zoho?.bill_no || data?.invoiceNumber || '',
-                billDate: zoho?.bill_date || data?.dateIssued || '',
-                dueDate: zoho?.due_date || data?.dueDate || '',
+                billDate: parseDate(zoho?.bill_date),
+                dueDate: parseDate(zoho?.due_date),
                 vendorName: data?.from?.name || '',
                 totalAmount: zoho?.total || data?.total || '',
                 selectedVendor: null, // Will be set when vendors are loaded
@@ -551,7 +578,7 @@ const ZohoExpenseBillDetail = () => {
                             onClick={handleSave}
                             disabled={isVerifying || isVerified || hasValidationErrors()}
                             className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isVerified ? 'bg-gray-400 hover:bg-gray-400' : hasValidationErrors() ? 'bg-gray-400 hover:bg-gray-400' : ''}`}
-                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already synced/posted" : hasValidationErrors() ? "Please select vendor and chart of accounts for all items" : "Verify"}
+                            title={isVerifying ? "Verifying..." : isVerified ? "Bill already synced/posted" : hasValidationErrors() ? "Please select vendor, chart of accounts, and taxes for all items" : "Verify"}
                         >
                             {isVerifying ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -795,6 +822,9 @@ const ZohoExpenseBillDetail = () => {
                                                     {getItemsWithoutCOA().length > 0 && (
                                                         <li>• Select Chart of Accounts for {getItemsWithoutCOA().length} expense item{getItemsWithoutCOA().length > 1 ? 's' : ''}</li>
                                                     )}
+                                                    {getItemsWithoutTaxes().length > 0 && (
+                                                        <li>• Select Taxes for {getItemsWithoutTaxes().length} expense item{getItemsWithoutTaxes().length > 1 ? 's' : ''}</li>
+                                                    )}
                                                 </ul>
                                             </div>
                                         </div>
@@ -857,7 +887,7 @@ const ZohoExpenseBillDetail = () => {
                                         {/* Chart of Accounts Field */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Expense Accounts
+                                                Paid Through
                                             </label>
                                             <SearchableDropdown
                                                 options={chartOfAccountsData?.results || []}
@@ -923,7 +953,7 @@ const ZohoExpenseBillDetail = () => {
                                                 Bill Date
                                             </label>
                                             <input
-                                                type="text"
+                                                type="date"
                                                 name="billDate"
                                                 value={billForm.billDate}
                                                 onChange={(e) => handleFormChange('billDate', e.target.value)}
@@ -939,7 +969,7 @@ const ZohoExpenseBillDetail = () => {
                                                 Due Date
                                             </label>
                                             <input
-                                                type="text"
+                                                type="date"
                                                 name="dueDate"
                                                 value={billForm.dueDate}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
@@ -983,13 +1013,13 @@ const ZohoExpenseBillDetail = () => {
                                                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
-                                                            Item Details
+                                                            Notes
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                                            Chart of Accounts <span className="text-red-500">*</span>
+                                                            Expense Accounts <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                                                            Taxes
+                                                            Taxes <span className="text-red-500">*</span>
                                                         </th>
                                                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
                                                             Amount
@@ -1052,27 +1082,29 @@ const ZohoExpenseBillDetail = () => {
                                                             
                                                             {/* Taxes */}
                                                             <td className="relative px-4 py-3">
-                                                                <SearchableDropdown
-                                                                    options={taxesData?.results?.map(tax => ({
-                                                                        value: tax.id,
-                                                                        label: tax.taxName
-                                                                    })) || []}
-                                                                    value={item.taxes || ''}
-                                                                    onChange={(value) => {
-                                                                        const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, taxes: value || null };
-                                                                        setExpenseItems(newItems);
-                                                                    }}
-                                                                    onClear={() => {
-                                                                        const newItems = [...expenseItems];
-                                                                        newItems[index] = { ...item, taxes: null };
-                                                                        setExpenseItems(newItems);
-                                                                    }}
-                                                                    placeholder="Select Tax..."
-                                                                    searchPlaceholder="Search taxes..."
-                                                                    loading={taxesLoading}
-                                                                    disabled={isVerified}
-                                                                />
+                                                                <div className={`${!item.taxes && !isVerified ? 'ring-2 ring-red-300 rounded-md' : ''}`}>
+                                                                    <SearchableDropdown
+                                                                        options={taxesData?.results?.map(tax => ({
+                                                                            value: tax.id,
+                                                                            label: tax.taxName
+                                                                        })) || []}
+                                                                        value={item.taxes || ''}
+                                                                        onChange={(value) => {
+                                                                            const newItems = [...expenseItems];
+                                                                            newItems[index] = { ...item, taxes: value || null };
+                                                                            setExpenseItems(newItems);
+                                                                        }}
+                                                                        onClear={() => {
+                                                                            const newItems = [...expenseItems];
+                                                                            newItems[index] = { ...item, taxes: null };
+                                                                            setExpenseItems(newItems);
+                                                                        }}
+                                                                        placeholder="Select Tax..."
+                                                                        searchPlaceholder="Search taxes..."
+                                                                        loading={taxesLoading}
+                                                                        disabled={isVerified}
+                                                                    />
+                                                                </div>
                                                             </td>
                                                             
                                                             {/* Amount */}
