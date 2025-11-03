@@ -475,6 +475,7 @@ const ZohoJournalEntryDetail = () => {
                     vendor: journalEntryForm.selectedVendor?.id || null,
                     bill_no: journalEntryForm.referenceNumber,
                     bill_date: journalEntryForm.entryDate,
+                    due_date: journalEntryForm.dueDate,
                     vendor_coa: taxAndOtherItems.vendorAccountId || null,
                     vendor_debit_or_credit: taxAndOtherItems.vendorDebitCredit || "credit",
                     vendor_amount: journalEntryForm.totalAmount || "0.00",
