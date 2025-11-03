@@ -300,12 +300,38 @@ const ZohoJournalEntryDetail = () => {
             const data = analysedData;
             const zoho = zohoJournalData;
             
+            // Helper function to parse date - handles both DD-MM-YYYY and YYYY-MM-DD formats
+            // Always returns YYYY-MM-DD format or empty string
+            const parseDate = (dateStr) => {
+                if (!dateStr) return '';
+                
+                // Check if date is already in ISO format (YYYY-MM-DD)
+                const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (isoDateRegex.test(dateStr)) {
+                    // Already in ISO format, just validate it
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? '' : dateStr;
+                }
+                
+                // Try DD-MM-YYYY format
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const [day, month, year] = parts;
+                    // Convert to YYYY-MM-DD
+                    const isoDate = `${year}-${month}-${day}`;
+                    const date = new Date(isoDate);
+                    return isNaN(date.getTime()) ? '' : isoDate;
+                }
+                
+                return '';
+            };
+            
             // Update journal entry form with data from API response
             setJournalEntryForm(prev => ({
                 ...prev,
                 referenceNumber: zoho?.bill_no || data?.invoiceNumber || '',
-                entryDate: zoho?.bill_date || data?.dateIssued || '',
-                dueDate: zoho?.due_date || data?.dueDate || '',
+                entryDate: parseDate(zoho?.bill_date),
+                dueDate: parseDate(zoho?.due_date),
                 vendorName: data?.from?.name || '',
                 totalAmount: zoho?.total || data?.total || '',
                 selectedVendor: null, // Will be set when vendors are loaded
@@ -987,7 +1013,7 @@ const ZohoJournalEntryDetail = () => {
                                                 Bill Date
                                             </label>
                                             <input
-                                                type="text"
+                                                type="date"
                                                 name="entryDate"
                                                 value={journalEntryForm.entryDate}
                                                 onChange={(e) => handleFormChange('entryDate', e.target.value)}
@@ -1003,7 +1029,7 @@ const ZohoJournalEntryDetail = () => {
                                                 Due Date
                                             </label>
                                             <input
-                                                type="text"
+                                                type="date"
                                                 name="dueDate"
                                                 value={journalEntryForm.dueDate}
                                                 onChange={(e) => handleFormChange('dueDate', e.target.value)}
