@@ -1479,6 +1479,9 @@ const TallyExpenseBillDetail = () => {
                                                 <span className="text-gray-600">
                                                     Total Items: {expenseItems.length}
                                                 </span>
+                                                <span className="font-semibold text-gray-900">
+                                                    Subtotal: ₹{expenseItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
                                             </div>
                                         </div>
 
