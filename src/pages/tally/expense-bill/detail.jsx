@@ -467,6 +467,62 @@ const TallyExpenseBillDetail = () => {
         }
     }, [ledgerOptions, tallyAnalysedData, expenseItems]);
 
+    // Calculate vendor amount in real-time based on debit-credit difference
+    useEffect(() => {
+        // Calculate total debit amount from expense items
+        const totalDebit = expenseItems
+            .filter(item => item.debit_or_credit === 'debit')
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Calculate total credit amount from expense items
+        const totalCredit = expenseItems
+            .filter(item => item.debit_or_credit === 'credit')
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Add tax amounts based on their debit/credit type
+        let taxAdjustment = 0;
+
+        // CGST
+        if (taxSummaryForm.cgst) {
+            const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
+            if (taxSummaryForm.cgstDebitCredit === 'debit') {
+                taxAdjustment += cgstAmount;
+            } else {
+                taxAdjustment -= cgstAmount;
+            }
+        }
+
+        // SGST
+        if (taxSummaryForm.sgst) {
+            const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
+            if (taxSummaryForm.sgstDebitCredit === 'debit') {
+                taxAdjustment += sgstAmount;
+            } else {
+                taxAdjustment -= sgstAmount;
+            }
+        }
+
+        // IGST
+        if (taxSummaryForm.igst) {
+            const igstAmount = parseFloat(taxSummaryForm.igst || 0);
+            if (taxSummaryForm.igstDebitCredit === 'debit') {
+                taxAdjustment += igstAmount;
+            } else {
+                taxAdjustment -= igstAmount;
+            }
+        }
+
+        // Calculate final vendor amount: (debit - credit) + tax adjustment
+        const vendorAmount = (totalDebit - totalCredit) + taxAdjustment;
+
+        // Update vendor amount with the calculated value
+        setTaxSummaryForm(prev => ({
+            ...prev,
+            vendorAmount: vendorAmount.toFixed(2)
+        }));
+    }, [expenseItems, taxSummaryForm.cgst, taxSummaryForm.sgst, taxSummaryForm.igst, 
+        taxSummaryForm.cgstDebitCredit, taxSummaryForm.sgstDebitCredit, taxSummaryForm.igstDebitCredit]); // Re-calculate whenever expense items or tax amounts change
+
     // Handle form input changes
     const handleFormChange = (name, value) => {
         setBillForm(prev => ({
