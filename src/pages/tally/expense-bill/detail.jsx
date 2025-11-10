@@ -73,6 +73,9 @@ const TallyExpenseBillDetail = () => {
         { enabled: !!selectedOrganization?.id && !!billId }
     );
 
+    console.log('Expense Bill Data:', expenseBillData);
+    
+
     // Fetch expense chart of accounts ledgers for Chart of Accounts dropdown
     const { data: ledgersData, isLoading: ledgersLoading } = useGetTallyExpenseChartOfAccountsLedgers(
         selectedOrganization?.id,
@@ -303,6 +306,10 @@ const TallyExpenseBillDetail = () => {
                 igstLedgerId: null,
                 cgstLedgerId: null,
                 sgstLedgerId: null,
+                igstDebitCredit: tally?.taxes?.igst?.debit_or_credit || 'credit', // Default tax as credit for input tax
+                cgstDebitCredit: tally?.taxes?.cgst?.debit_or_credit || 'credit', // Default tax as credit for input tax  
+                sgstDebitCredit: tally?.taxes?.sgst?.debit_or_credit || 'credit', // Default tax as credit for input tax
+                vendorDebitCredit: 'credit', // Default vendor as credit (typical for expense bills)
                 vendorAmount: data.total || ''
             });
 
@@ -467,61 +474,102 @@ const TallyExpenseBillDetail = () => {
         }
     }, [ledgerOptions, tallyAnalysedData, expenseItems]);
 
-    // Calculate vendor amount in real-time based on debit-credit difference
+    // Calculate vendor amount using double-entry accounting principle (Total Debit = Total Credit)
     useEffect(() => {
-        // Calculate total debit amount from expense items
-        const totalDebit = expenseItems
+        // Calculate total debit amount from all expense items
+        const totalExpenseDebit = expenseItems
             .filter(item => item.debit_or_credit === 'debit')
             .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-        // Calculate total credit amount from expense items
-        const totalCredit = expenseItems
+        // Calculate total credit amount from all expense items
+        const totalExpenseCredit = expenseItems
             .filter(item => item.debit_or_credit === 'credit')
             .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-        // Add tax amounts based on their debit/credit type
-        let taxAdjustment = 0;
+        // Calculate total tax debit amounts
+        let totalTaxDebit = 0;
+        let totalTaxCredit = 0;
 
-        // CGST
+        // CGST calculation
         if (taxSummaryForm.cgst) {
             const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
             if (taxSummaryForm.cgstDebitCredit === 'debit') {
-                taxAdjustment += cgstAmount;
+                totalTaxDebit += cgstAmount;
             } else {
-                taxAdjustment -= cgstAmount;
+                totalTaxCredit += cgstAmount;
             }
         }
 
-        // SGST
+        // SGST calculation
         if (taxSummaryForm.sgst) {
             const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
             if (taxSummaryForm.sgstDebitCredit === 'debit') {
-                taxAdjustment += sgstAmount;
+                totalTaxDebit += sgstAmount;
             } else {
-                taxAdjustment -= sgstAmount;
+                totalTaxCredit += sgstAmount;
             }
         }
 
-        // IGST
+        // IGST calculation
         if (taxSummaryForm.igst) {
             const igstAmount = parseFloat(taxSummaryForm.igst || 0);
             if (taxSummaryForm.igstDebitCredit === 'debit') {
-                taxAdjustment += igstAmount;
+                totalTaxDebit += igstAmount;
             } else {
-                taxAdjustment -= igstAmount;
+                totalTaxCredit += igstAmount;
             }
         }
 
-        // Calculate final vendor amount: (debit - credit) + tax adjustment
-        const vendorAmount = (totalDebit - totalCredit) + taxAdjustment;
+        // Calculate total debit and credit amounts including taxes
+        const grandTotalDebit = totalExpenseDebit + totalTaxDebit;
+        const grandTotalCredit = totalExpenseCredit + totalTaxCredit;
+
+        // Calculate vendor amount to balance the equation (Total Debit = Total Credit)
+        // In expense bills: Expenses (Debit) + Taxes (Debit/Credit) = Vendor Payable (Credit)
+        let vendorAmount = 0;
+        
+        if (taxSummaryForm.vendorDebitCredit === 'credit') {
+            // If vendor is credit (typical case for expense bills):
+            // Total Debit = Total Credit + Vendor Amount
+            // Vendor Amount = Total Debit - Total Credit
+            vendorAmount = grandTotalDebit - grandTotalCredit;
+        } else {
+            // If vendor is debit:
+            // Total Debit + Vendor Amount = Total Credit
+            // Vendor Amount = Total Credit - Total Debit
+            vendorAmount = grandTotalCredit - grandTotalDebit;
+        }
+
+        // Ensure vendor amount is not negative
+        if (vendorAmount < 0) {
+            vendorAmount = Math.abs(vendorAmount);
+        }
 
         // Update vendor amount with the calculated value
         setTaxSummaryForm(prev => ({
             ...prev,
             vendorAmount: vendorAmount.toFixed(2)
         }));
+
+        // Debug log for development
+        console.log('Vendor Amount Calculation:', {
+            totalExpenseDebit,
+            totalExpenseCredit,
+            totalTaxDebit,
+            totalTaxCredit,
+            grandTotalDebit,
+            grandTotalCredit,
+            vendorDebitCredit: taxSummaryForm.vendorDebitCredit,
+            calculatedVendorAmount: vendorAmount.toFixed(2),
+            finalBalance: {
+                totalDebit: grandTotalDebit + (taxSummaryForm.vendorDebitCredit === 'debit' ? vendorAmount : 0),
+                totalCredit: grandTotalCredit + (taxSummaryForm.vendorDebitCredit === 'credit' ? vendorAmount : 0)
+            }
+        });
+
     }, [expenseItems, taxSummaryForm.cgst, taxSummaryForm.sgst, taxSummaryForm.igst, 
-        taxSummaryForm.cgstDebitCredit, taxSummaryForm.sgstDebitCredit, taxSummaryForm.igstDebitCredit]); // Re-calculate whenever expense items or tax amounts change
+        taxSummaryForm.cgstDebitCredit, taxSummaryForm.sgstDebitCredit, taxSummaryForm.igstDebitCredit,
+        taxSummaryForm.vendorDebitCredit]); // Re-calculate whenever expense items, tax amounts, or vendor debit/credit type changes
 
     // Handle form input changes
     const handleFormChange = (name, value) => {
@@ -597,6 +645,85 @@ const TallyExpenseBillDetail = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    // Helper function to get calculation summary for display
+    const getCalculationSummary = () => {
+        // Calculate total debit amount from all expense items
+        const totalExpenseDebit = expenseItems
+            .filter(item => item.debit_or_credit === 'debit')
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Calculate total credit amount from all expense items
+        const totalExpenseCredit = expenseItems
+            .filter(item => item.debit_or_credit === 'credit')
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Calculate total tax debit amounts
+        let totalTaxDebit = 0;
+        let totalTaxCredit = 0;
+
+        // CGST calculation
+        if (taxSummaryForm.cgst) {
+            const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
+            if (taxSummaryForm.cgstDebitCredit === 'debit') {
+                totalTaxDebit += cgstAmount;
+            } else {
+                totalTaxCredit += cgstAmount;
+            }
+        }
+
+        // SGST calculation
+        if (taxSummaryForm.sgst) {
+            const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
+            if (taxSummaryForm.sgstDebitCredit === 'debit') {
+                totalTaxDebit += sgstAmount;
+            } else {
+                totalTaxCredit += sgstAmount;
+            }
+        }
+
+        // IGST calculation
+        if (taxSummaryForm.igst) {
+            const igstAmount = parseFloat(taxSummaryForm.igst || 0);
+            if (taxSummaryForm.igstDebitCredit === 'debit') {
+                totalTaxDebit += igstAmount;
+            } else {
+                totalTaxCredit += igstAmount;
+            }
+        }
+
+        const grandTotalDebit = totalExpenseDebit + totalTaxDebit;
+        const grandTotalCredit = totalExpenseCredit + totalTaxCredit;
+        const vendorAmount = parseFloat(taxSummaryForm.vendorAmount || 0);
+
+        return {
+            expenseItems: {
+                debit: totalExpenseDebit,
+                credit: totalExpenseCredit
+            },
+            taxItems: {
+                debit: totalTaxDebit,
+                credit: totalTaxCredit
+            },
+            totals: {
+                debit: grandTotalDebit,
+                credit: grandTotalCredit
+            },
+            vendor: {
+                amount: vendorAmount,
+                type: taxSummaryForm.vendorDebitCredit
+            },
+            finalTotals: {
+                debit: grandTotalDebit + (taxSummaryForm.vendorDebitCredit === 'debit' ? vendorAmount : 0),
+                credit: grandTotalCredit + (taxSummaryForm.vendorDebitCredit === 'credit' ? vendorAmount : 0)
+            },
+            isBalanced: function() {
+                const finalDebit = this.finalTotals.debit;
+                const finalCredit = this.finalTotals.credit;
+                return Math.abs(finalDebit - finalCredit) < 0.01; // Allow for rounding differences
+            }
+        };
     };
 
     // Handle tax ledger selections
