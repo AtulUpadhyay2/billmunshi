@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 //import Dashboard from "./pages/dashboard";
 const Dashboard = lazy(() => import("./pages/dashboard"));
 
+const Landing = lazy(() => import("./pages/Landing"));
 const Login = lazy(() => import("./pages/auth/login"));
 const Register = lazy(() => import("./pages/auth/register"));
 const ForgotPass = lazy(() => import("./pages/auth/forgot-password"));
@@ -54,11 +55,16 @@ function App() {
   return (
     <main className="App  relative">
       <Routes>
-        <Route path="/" element={<AuthLayout />}>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPass />} />
-          <Route path="/no-organization" element={<NoOrganization />} />
+        <Route path="/" element={
+          <Suspense fallback={<Loading />}>
+            <Landing />
+          </Suspense>
+        } />
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/forgot-password" element={<ForgotPass />} />
+          <Route path="/auth/no-organization" element={<NoOrganization />} />
         </Route>
         <Route path="/*" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
