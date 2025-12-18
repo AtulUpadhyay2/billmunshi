@@ -50,6 +50,9 @@ const TallyHelp = lazy(() => import("./pages/settings/help"));
 const ApiKeys = lazy(() => import("./pages/settings/api-keys"));
 const Members = lazy(() => import("./pages/settings/members"));
 
+// Clients
+const Clients = lazy(() => import("./pages/client"));
+
 import Loading from "@/components/Loading";
 
 function App() {
@@ -102,6 +105,9 @@ function App() {
           {/** Settings */}
           <Route path="api-keys" element={<ApiKeys />} />
           <Route path="members" element={<Members />} />
+
+          {/* Clients */}
+          <Route path="clients" element={<Clients />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>

@@ -131,12 +131,12 @@ export const menuItems = [
     icon: "heroicons-outline:users",
     link: "members",
   },
-  // {
-  //   title: "Subscriptions",
-  //   isHide: true,
-  //   icon: "heroicons-outline:credit-card",
-  //   link: "pricing",
-  // },
+  {
+    title: "Clients",
+    isHide: true,
+    icon: "heroicons-outline:user-group",
+    link: "clients",
+  },
 
 
 ];
@@ -242,9 +242,9 @@ export const topMenu = [
         childicon: "heroicons-outline:users",
       },
       {
-        childtitle: "Subscriptions",
-        childlink: "pricing",
-        childicon: "heroicons-outline:credit-card",
+        childtitle: "Clients",
+        childlink: "clients",
+        childicon: "heroicons-outline:user-group",
       },
     ],
   },
