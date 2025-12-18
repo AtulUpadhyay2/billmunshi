@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
 import UploadBillModal from "@/components/modals/UploadBillModal";
 import FileViewerModal from "@/components/modals/FileViewerModal";
 import { globalToast } from "@/utils/toast";
@@ -39,10 +40,12 @@ const ZohoExpenseBill = () => {
   const { mutateAsync: syncExpenseBill } = useSyncZohoExpenseBill();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
+  const [selectedBills, setSelectedBills] = useState(new Set());
 
   const tabs = [
     { key: 'all', label: 'All' },
@@ -54,8 +57,66 @@ const ZohoExpenseBill = () => {
   const handleTabChange = (tabKey) => {
     setIsTabChanging(true);
     setActiveTab(tabKey);
+    setSelectedBills(new Set()); // Clear selection when changing tabs
     // Reset the tab changing state after a short delay to ensure smooth transition
     setTimeout(() => setIsTabChanging(false), 300);
+  };
+
+  const handleSelectBill = (billId) => {
+    setSelectedBills(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(billId)) {
+        newSet.delete(billId);
+      } else {
+        newSet.add(billId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const selectableBills = expenseBills.filter(bill => 
+      bill.status === 'Draft' || bill.status === 'Analysed'
+    );
+    
+    if (selectedBills.size === selectableBills.length && selectableBills.length > 0) {
+      // Deselect all
+      setSelectedBills(new Set());
+    } else {
+      // Select all selectable bills
+      setSelectedBills(new Set(selectableBills.map(bill => bill.id)));
+    }
+  };
+
+  const handleMoveSelected = () => {
+    if (selectedBills.size === 0) return;
+    setIsMoveModalOpen(true);
+  };
+
+  const handleMoveToVendorBill = async () => {
+    try {
+      // TODO: Implement the actual move to Vendor Bill logic here
+      globalToast.success(`${selectedBills.size} bill(s) moved to Vendor Bill successfully`);
+      setIsMoveModalOpen(false);
+      setSelectedBills(new Set());
+      refetch();
+    } catch (error) {
+      console.error('Move to Vendor Bill failed:', error);
+      globalToast.error('Failed to move bills to Vendor Bill');
+    }
+  };
+
+  const handleMoveToJournalEntry = async () => {
+    try {
+      // TODO: Implement the actual move to Journal Entry logic here
+      globalToast.success(`${selectedBills.size} bill(s) moved to Journal Entry successfully`);
+      setIsMoveModalOpen(false);
+      setSelectedBills(new Set());
+      refetch();
+    } catch (error) {
+      console.error('Move to Journal Entry failed:', error);
+      globalToast.error('Failed to move bills to Journal Entry');
+    }
   };
 
   const handleAction = async (billId, action) => {
@@ -307,6 +368,18 @@ const ZohoExpenseBill = () => {
         noBorder
         headerSlot={
           <div className="flex items-center gap-2">
+            {selectedBills.size > 0 && (
+              <button 
+                onClick={handleMoveSelected}
+                className="group relative inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95"
+                title="Move selected bills"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+                Move ({selectedBills.size})
+              </button>
+            )}
             <button
               onClick={() => refetch()}
               disabled={isLoading}
@@ -371,6 +444,16 @@ const ZohoExpenseBill = () => {
               <table className="min-w-full divide-y divide-slate-100 table-fixed dark:divide-slate-700!">
                 <thead className="bg-slate-200 dark:bg-slate-700">
                   <tr>
+                    <th scope='col' className='table-th w-12'>
+                      {expenseBills.some(bill => bill.status === 'Draft' || bill.status === 'Analysed') && (
+                        <input
+                          type="checkbox"
+                          checked={selectedBills.size > 0 && selectedBills.size === expenseBills.filter(bill => bill.status === 'Draft' || bill.status === 'Analysed').length}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                        />
+                      )}
+                    </th>
                     <th scope='col' className='table-th'>Sr. No</th>
                     <th scope='col' className='table-th'>Document ID</th>
                     <th scope='col' className='table-th'>Status</th>
@@ -383,7 +466,7 @@ const ZohoExpenseBill = () => {
                 <tbody className="bg-white divide-y divide-slate-100 dark:bg-slate-800 dark:divide-slate-700!">
                   {(isLoading || isFetching || isTabChanging) ? (
                     <tr>
-                      <td colSpan="7" className="table-td text-center py-8">
+                      <td colSpan="8" className="table-td text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                           <span className="text-slate-600">Loading expense bills...</span>
@@ -392,7 +475,7 @@ const ZohoExpenseBill = () => {
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan="7" className="table-td text-center py-8">
+                      <td colSpan="8" className="table-td text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -414,7 +497,7 @@ const ZohoExpenseBill = () => {
                     </tr>
                   ) : !expenseBills.length ? (
                     <tr>
-                      <td colSpan="7" className="table-td text-center py-8">
+                      <td colSpan="8" className="table-td text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-3">
                           <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -426,7 +509,17 @@ const ZohoExpenseBill = () => {
                     </tr>
                   ) : (
                     expenseBills.map((bill, index) => (
-                      <tr key={bill.id}>
+                      <tr key={bill.id} className={selectedBills.has(bill.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                        <td className="table-td">
+                          {(bill.status === 'Draft' || bill.status === 'Analysed') && (
+                            <input
+                              type="checkbox"
+                              checked={selectedBills.has(bill.id)}
+                              onChange={() => handleSelectBill(bill.id)}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                            />
+                          )}
+                        </td>
                         <td className="table-td">{index + 1}</td>
                         <td className="table-td">
                           <div className="flex flex-col">
@@ -519,6 +612,59 @@ const ZohoExpenseBill = () => {
         fileUrl={selectedFile.url}
         fileName={selectedFile.name}
       />
+
+      {/* Move Modal */}
+      <Modal
+        activeModal={isMoveModalOpen}
+        onClose={() => setIsMoveModalOpen(false)}
+        title="Move Bills"
+        className="max-w-md"
+      >
+        <div className="space-y-4 p-6">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600 dark:text-blue-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
+              Move {selectedBills.size} Bill{selectedBills.size > 1 ? 's' : ''}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Select where you want to move the selected bills
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 mt-6">
+            <button
+              onClick={handleMoveToVendorBill}
+              className="group relative flex items-center justify-center gap-3 px-6 py-4 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 border border-transparent rounded-lg shadow-md hover:from-purple-700 hover:to-purple-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 active:scale-98"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              <span className="font-semibold">Vendor Bill</span>
+            </button>
+
+            <button
+              onClick={handleMoveToJournalEntry}
+              className="group relative flex items-center justify-center gap-3 px-6 py-4 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 active:scale-98"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+              </svg>
+              <span className="font-semibold">Journal Entry</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsMoveModalOpen(false)}
+            className="w-full mt-4 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };
