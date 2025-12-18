@@ -146,6 +146,11 @@ const OrganizationSelectModal = ({
                       {org.name}
                     </h4>
                     <div className="flex items-center space-x-2">
+                      {org.unique_name && (
+                        <span className="px-2 py-1 text-xs rounded-full font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
+                          {org.unique_name}
+                        </span>
+                      )}
                       {org.role && (
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${getRoleColor(org.role)}`}>
                           {org.role}
@@ -163,6 +168,12 @@ const OrganizationSelectModal = ({
                   {org.slug && (
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                       @{org.slug}
+                    </p>
+                  )}
+                  
+                  {org.owner && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                      Owner: {org.owner.full_name || org.owner.email}
                     </p>
                   )}
                 </div>

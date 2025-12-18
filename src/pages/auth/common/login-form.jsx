@@ -12,19 +12,17 @@ import { useLoginMutation, useLazyGetProfileQuery } from "@/store/api/auth/authA
 import { setUser } from "@/store/api/auth/authSlice";
 import { toast } from "react-toastify";
 import { handleApiError } from "@/utils/apiErrorHandler";
-import OrganizationSelectModal from "@/components/partials/auth/OrganizationSelectModal";
+
 const schema = yup
   .object({
     email: yup.string().email("Invalid email").required("Email is Required"),
     password: yup.string().required("Password is Required"),
   })
   .required();
+
 const LoginForm = () => {
   const [login, { isLoading, isError, error, isSuccess }] = useLoginMutation();
   const [triggerGetProfile, { isLoading: isProfileLoading }] = useLazyGetProfileQuery();
-  const [showOrgModal, setShowOrgModal] = useState(false);
-  const [userOrganizations, setUserOrganizations] = useState([]);
-  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   const dispatch = useDispatch();
 
@@ -34,10 +32,12 @@ const LoginForm = () => {
     handleSubmit,
   } = useForm({
     resolver: yupResolver(schema),
-    //
     mode: "all",
   });
+  
   const navigate = useNavigate();
+  const [checked, setChecked] = useState(false);
+
   const onSubmit = async (data) => {
     try {
       const response = await login(data);
@@ -77,38 +77,16 @@ const LoginForm = () => {
         var userData = profileResult.data;
       }
 
-      // Check if user has any organizations
-      const userOrganizations = userData?.organizations || [];
-      
-      // Store login data for potential use after organization selection
-      setPendingLoginData({
-        user: userData,
-        access: loginTokens.access,
-        refresh: loginTokens.refresh
+      // Navigate to organization selection page with login data
+      navigate("/auth/select-organization", {
+        state: {
+          loginData: {
+            user: userData,
+            access: loginTokens.access,
+            refresh: loginTokens.refresh
+          }
+        }
       });
-      
-      // Handle organization logic
-      if (userOrganizations.length === 0) {
-        // No organizations - dispatch user data and redirect to no-organization page
-        dispatch(setUser({
-          user: userData,
-          access: loginTokens.access,
-          refresh: loginTokens.refresh
-        }));
-        navigate("/no-organization");
-      } else if (userOrganizations.length > 1) {
-        // More than 1 organization - show selection modal
-        setUserOrganizations(userOrganizations);
-        setShowOrgModal(true);
-      } else {
-        // 1 organization - dispatch user data and redirect to dashboard
-        dispatch(setUser({
-          user: userData,
-          access: loginTokens.access,
-          refresh: loginTokens.refresh
-        }));
-        navigate("/dashboard");
-      }
     } catch (error) {
       console.error("Login error:", error);
       
@@ -119,24 +97,6 @@ const LoginForm = () => {
       // Token expiration errors are handled automatically by the error handler
     }
   };
-
-  const handleOrganizationSelect = (selectedOrg) => {
-    // Dispatch the user data with the selected organization
-    if (pendingLoginData) {
-      dispatch(setUser(pendingLoginData));
-      setShowOrgModal(false);
-      navigate("/dashboard");
-    }
-  };
-
-  const handleCloseOrgModal = () => {
-    setShowOrgModal(false);
-    // Clear pending data if user cancels
-    setPendingLoginData(null);
-    setUserOrganizations([]);
-  };
-
-  const [checked, setChecked] = useState(false);
 
   return (
     <>
@@ -181,13 +141,6 @@ const LoginForm = () => {
           isLoading={isLoading || isProfileLoading}
         />
       </form>
-
-      <OrganizationSelectModal
-        isOpen={showOrgModal}
-        onClose={handleCloseOrgModal}
-        organizations={userOrganizations}
-        onSelectOrganization={handleOrganizationSelect}
-      />
     </>
   );
 };

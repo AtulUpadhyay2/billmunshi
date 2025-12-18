@@ -36,6 +36,12 @@ export const authApi = apiSlice.injectEndpoints({
         body: data,
       }),
     }),
+    getOrganizations: builder.query({
+      query: () => ({
+        url: "org/",
+        method: "GET",
+      }),
+    }),
   }),
 });
-export const { useRegisterUserMutation, useLoginMutation, useGetProfileQuery, useLazyGetProfileQuery, useRefreshTokenMutation, useChangePasswordMutation } = authApi;
+export const { useRegisterUserMutation, useLoginMutation, useGetProfileQuery, useLazyGetProfileQuery, useRefreshTokenMutation, useChangePasswordMutation, useGetOrganizationsQuery, useLazyGetOrganizationsQuery } = authApi;

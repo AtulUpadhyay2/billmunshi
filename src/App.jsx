@@ -10,6 +10,7 @@ const Login = lazy(() => import("./pages/auth/login"));
 const Register = lazy(() => import("./pages/auth/register"));
 const ForgotPass = lazy(() => import("./pages/auth/forgot-password"));
 const NoOrganization = lazy(() => import("./pages/auth/no-organization"));
+const SelectOrganization = lazy(() => import("./pages/auth/select-organization"));
 const Error = lazy(() => import("./pages/404"));
 
 import Layout from "./layout/Layout";
@@ -65,6 +66,7 @@ function App() {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPass />} />
           <Route path="/auth/no-organization" element={<NoOrganization />} />
+          <Route path="/auth/select-organization" element={<SelectOrganization />} />
         </Route>
         <Route path="/*" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
