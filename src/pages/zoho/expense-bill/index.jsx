@@ -235,9 +235,50 @@ const ZohoExpenseBill = () => {
 
   const handleUpload = async (formData) => {
     try {
-      await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData });
+      const response = await uploadExpenseBills({ organizationId: selectedOrganization?.id, formData });
       globalToast.success('Bills uploaded successfully');
-      refetch(); // Refresh the list
+      
+      // Refresh the list and wait for it to complete
+      await refetch();
+      
+      // Close the upload modal immediately after successful upload
+      setIsUploadModalOpen(false);
+      
+      // Automatically analyze uploaded bills
+      const uploadedBills = response?.bills || [];
+      
+      if (uploadedBills.length > 0) {
+        // Analyze each uploaded bill
+        for (const uploadedBill of uploadedBills) {
+          const billId = uploadedBill?.id || uploadedBill?._id;
+          
+          if (billId) {
+            // Set loading state for the bill
+            setAnalyzingBills(prev => new Set([...prev, billId]));
+            
+            try {
+              await analyzeExpenseBill({ 
+                organizationId: selectedOrganization?.id, 
+                billId: billId 
+              });
+              globalToast.success(`Bill analysis started successfully`);
+            } catch (analyzeError) {
+              console.error(`Failed to analyze bill ${billId}:`, analyzeError);
+              globalToast.error(`Failed to analyze bill: ${analyzeError?.response?.data?.message || analyzeError?.message || 'Unknown error'}`);
+            } finally {
+              // Remove loading state
+              setAnalyzingBills(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(billId);
+                return newSet;
+              });
+            }
+          }
+        }
+        
+        // Final refresh to show updated analysis status
+        await refetch();
+      }
     } catch (error) {
       console.error('Upload failed:', error);
       globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
