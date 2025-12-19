@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import useFooterType from "@/hooks/useFooterType";
 
 const Footer = ({ className = "custom-class" }) => {
@@ -20,6 +21,14 @@ const Footer = ({ className = "custom-class" }) => {
         <div className="grid md:grid-cols-2 grid-cols-1 md:gap-5">
           <div className="text-center md:ltr:text-start md:rtl:text-right text-sm">
             COPYRIGHT &copy; {date.getFullYear()} Bill Munshi, All rights Reserved
+          </div>
+          <div className="ltr:md:text-right rtl:md:text-end text-center text-sm">
+            <Link to="/privacy-policy" className="hover:text-slate-900 dark:hover:text-white mr-4">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="hover:text-slate-900 dark:hover:text-white">
+              Terms & Conditions
+            </Link>
           </div>
         </div>
       </div>
