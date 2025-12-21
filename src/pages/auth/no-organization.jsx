@@ -26,7 +26,7 @@ const NoOrganization = () => {
     const handleLogout = () => {
         dispatch(logOut());
         toast.success("Logged out successfully");
-        navigate("/");
+        navigate("/auth/login");
     };
 
     const handleOnboardOrganization = () => {
