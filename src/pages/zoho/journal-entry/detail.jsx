@@ -548,15 +548,28 @@ const ZohoJournalEntryDetail = () => {
                     note: notes || `Bill from analysis for ${journalEntryForm.selectedVendor?.companyName || 'vendor'} entered via Billmunshi`,
                     consolidate: isConsolidated,
                     created_at: zohoJournalData?.created_at || new Date().toISOString(),
-                    products: validLineItems.map((item, index) => ({
-                        id: item.id || item.item_id || null,
-                        zohoBill: zohoJournalData?.id || null,
-                        item_details: item.item_details || '',
-                        chart_of_accounts: item.chart_of_accounts_id || null,
-                        amount: item.amount,
-                        debit_or_credit: item.debit_or_credit || "debit",
-                        created_at: item.created_at || new Date().toISOString()
-                    }))
+                    // Send items to the appropriate key based on consolidate status
+                    ...(isConsolidated ? {
+                        consolidate_prod: validLineItems.map((item, index) => ({
+                            id: item.id || item.item_id || null,
+                            zohoBill: zohoJournalData?.id || null,
+                            item_details: item.item_details || '',
+                            chart_of_accounts: item.chart_of_accounts_id || null,
+                            amount: item.amount,
+                            debit_or_credit: item.debit_or_credit || "debit",
+                            created_at: item.created_at || new Date().toISOString()
+                        }))
+                    } : {
+                        products: validLineItems.map((item, index) => ({
+                            id: item.id || item.item_id || null,
+                            zohoBill: zohoJournalData?.id || null,
+                            item_details: item.item_details || '',
+                            chart_of_accounts: item.chart_of_accounts_id || null,
+                            amount: item.amount,
+                            debit_or_credit: item.debit_or_credit || "debit",
+                            created_at: item.created_at || new Date().toISOString()
+                        }))
+                    })
                 }
             };
 
@@ -1136,8 +1149,8 @@ const ZohoJournalEntryDetail = () => {
                                             </div>
                                             <button
                                                 onClick={addJournalLineItem}
-                                                disabled={isConsolidated || isVerified}
-                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified || isConsolidated ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                disabled={isVerified}
+                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                                                 title="Add"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

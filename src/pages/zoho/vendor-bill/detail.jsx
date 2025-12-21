@@ -619,20 +619,35 @@ const ZohoVendorBillDetail = () => {
                     discount_account: discountForm.discount_account || null,
                     note: notes,
                     consolidate: isConsolidated,
-                    products: validProducts.map(product => ({
-                        item_name: product.item_details.substring(0, 100), // Truncate if needed
-                        item_details: product.item_details,
-                        chart_of_accounts: product.chart_of_accounts,
-                        taxes: product.taxes,
-                        reverse_charge_tax_id: product.reverse_charge_tax_id,
-                        itc_eligibility: product.itc_eligibility,
-                        rate: product.rate,
-                        quantity: product.quantity,
-                        amount: product.amount
-                    }))
+                    // Send products to the appropriate key based on consolidate status
+                    ...(isConsolidated ? {
+                        consolidate_prod: validProducts.map(product => ({
+                            item_name: product.item_details.substring(0, 100),
+                            item_details: product.item_details,
+                            chart_of_accounts: product.chart_of_accounts,
+                            taxes: product.taxes,
+                            reverse_charge_tax_id: product.reverse_charge_tax_id,
+                            itc_eligibility: product.itc_eligibility,
+                            rate: product.rate,
+                            quantity: product.quantity,
+                            amount: product.amount
+                        }))
+                    } : {
+                        products: validProducts.map(product => ({
+                            item_name: product.item_details.substring(0, 100),
+                            item_details: product.item_details,
+                            chart_of_accounts: product.chart_of_accounts,
+                            taxes: product.taxes,
+                            reverse_charge_tax_id: product.reverse_charge_tax_id,
+                            itc_eligibility: product.itc_eligibility,
+                            rate: product.rate,
+                            quantity: product.quantity,
+                            amount: product.amount
+                        }))
+                    })
                 }
             };
-
+            console.log('Verification Data:', verificationData);
             const result = await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
                 billId,
@@ -1223,7 +1238,7 @@ const ZohoVendorBillDetail = () => {
                                                 onClick={addProduct}
                                                 className="inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                                                 title="Add"
-                                                disabled={isConsolidated || isVerified}
+                                                disabled={isVerified}
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
