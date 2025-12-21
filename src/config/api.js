@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: "https://billmunshi.com/api/v1",
+  BASE_URL: "http://192.168.31.246:8000/api/v1",
   TIMEOUT: 30000, // 30 seconds
 };
 

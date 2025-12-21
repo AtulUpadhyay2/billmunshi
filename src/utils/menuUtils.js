@@ -62,6 +62,11 @@ export const getFilteredMenuItems = (enabledModules = []) => {
       return enabledModuleNames.includes("zoho");
     }
 
+    // Handle Zoho Journal Entry specifically
+    if (item.title === "Journal Entry" && item.link === "zoho/journal-entry") {
+      return enabledModuleNames.includes("zoho");
+    }
+
     // Handle Zoho Expense Bill with children (Journal Entry, Expense)
     if (item.title === "Expense Bill" && item.child && 
         item.child.some(child => child.childlink && child.childlink.startsWith("zoho/"))) {
@@ -84,8 +89,17 @@ export const getFilteredMenuItems = (enabledModules = []) => {
       return enabledModuleNames.includes("tally");
     }
 
-    // Handle Tally Expense Bill
-    if (item.title === "Expense Bill" && item.link === "tally/expense-bill") {
+    // Handle Tally Journal Entry (which has link tally/expense-bill)
+    if (item.title === "Journal Entry" && item.link === "tally/expense-bill") {
+      return enabledModuleNames.includes("tally");
+    }
+
+    // Handle Tally Config with children (Api Key, Config, Ledgers, Masters, Help)
+    if (item.title === "Config" && item.child && 
+        item.child.some(child => 
+          child.childlink === "api-keys" || 
+          (child.childlink && child.childlink.startsWith("tally/"))
+        )) {
       return enabledModuleNames.includes("tally");
     }
 
