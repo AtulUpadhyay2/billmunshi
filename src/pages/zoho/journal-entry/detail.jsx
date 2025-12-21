@@ -124,9 +124,9 @@ const ZohoJournalEntryDetail = () => {
     const analysedData = journalEntryData?.analysed_data || {};
     const zohoJournalData = journalEntryData?.zoho_bill || {};
     
-    // Check if journal entry is synced or posted (disable inputs if any of these statuses)
-    const isVerified = journalInfo?.status === 'Synced' || journalInfo?.status === 'Posted' ||
-                       zohoJournalData?.bill_status === 'Synced' || zohoJournalData?.bill_status === 'Posted';
+    // Check if journal entry is synced, posted, or verified (disable inputs if any of these statuses)
+    const isVerified = journalInfo?.status === 'Synced' || journalInfo?.status === 'Posted' || journalInfo?.status === 'Verified' ||
+                       zohoJournalData?.bill_status === 'Synced' || zohoJournalData?.bill_status === 'Posted' || zohoJournalData?.bill_status === 'Verified';
     
     // Validation helper functions
     const isVendorRequired = !journalEntryForm.selectedVendor;

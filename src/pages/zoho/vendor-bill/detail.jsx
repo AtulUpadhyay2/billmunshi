@@ -120,8 +120,8 @@ const ZohoVendorBillDetail = () => {
     const analysedData = vendorBillData?.analysed_data || {};
     const zohoData = vendorBillData?.zoho_bill || {};
     
-    // Check if bill is synced or posted (disable inputs if any of these statuses)
-    const isVerified = vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted';
+    // Check if bill is synced, posted, or verified (disable inputs if any of these statuses)
+    const isVerified = vendorBillData?.status === 'Synced' || vendorBillData?.status === 'Posted' || vendorBillData?.status === 'Verified';
     
     // Validation helper functions
     const isVendorRequired = !vendorForm.selectedVendor;

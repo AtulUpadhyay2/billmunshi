@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetZohoExpenseBillDetails, useVerifyZohoExpenseBill, useSyncZohoExpenseBill } from "@/hooks/api/zoho/zohoExpenseBillService";
@@ -32,6 +33,9 @@ const ZohoExpenseBillDetail = () => {
 
     // State for managing expense items
     const [expenseItems, setExpenseItems] = useState([]);
+    
+    // State for consolidate toggle
+    const [isConsolidated, setIsConsolidated] = useState(false);
 
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
@@ -106,9 +110,9 @@ const ZohoExpenseBillDetail = () => {
     const analysedData = expenseBillData?.analysed_data || {};
     const zohoBillData = expenseBillData?.zoho_bill || {};
     
-    // Check if bill is synced or posted (disable inputs if any of these statuses)
-    const isVerified = billInfo?.status === 'Synced' || billInfo?.status === 'Posted' ||
-                       zohoBillData?.bill_status === 'Synced' || zohoBillData?.bill_status === 'Posted';
+    // Check if bill is synced, posted, or verified (disable inputs if any of these statuses)
+    const isVerified = billInfo?.status === 'Synced' || billInfo?.status === 'Posted' || billInfo?.status === 'Verified' ||
+                       zohoBillData?.bill_status === 'Synced' || zohoBillData?.bill_status === 'Posted' || zohoBillData?.bill_status === 'Verified';
     
     // Validation helper functions
     const isVendorRequired = !billForm.selectedVendor;
@@ -232,6 +236,42 @@ const ZohoExpenseBillDetail = () => {
         setExpenseItems(prev => prev.filter((_, i) => i !== index));
     };
 
+    // Handle consolidate toggle
+    const handleConsolidateToggle = () => {
+        const newConsolidateStatus = !isConsolidated;
+        setIsConsolidated(newConsolidateStatus);
+        
+        const zoho = zohoBillData;
+        
+        // When toggling to consolidated, use consolidate_prod if available
+        if (newConsolidateStatus) {
+            if (zoho?.consolidate_prod && zoho.consolidate_prod.length > 0) {
+                setExpenseItems(zoho.consolidate_prod.map((item, index) => ({
+                    id: item.id || index,
+                    zohoBill: item.zohoBill || null,
+                    item_details: item.item_details || '',
+                    chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
+                    amount: item.amount || '',
+                    created_at: item.created_at || null
+                })));
+            }
+        } else {
+            // When toggling to non-consolidated, use products if available
+            if (zoho?.products && zoho.products.length > 0) {
+                setExpenseItems(zoho.products.map((item, index) => ({
+                    id: item.id || index,
+                    zohoBill: item.zohoBill || null,
+                    item_details: item.item_details || '',
+                    chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
+                    amount: item.amount || '',
+                    created_at: item.created_at || null
+                })));
+            }
+        }
+    };
+
     // Handle tax summary changes
     const handleTaxSummaryChange = (field, value) => {
         setTaxSummaryForm(prev => ({ ...prev, [field]: value }));
@@ -295,9 +335,17 @@ const ZohoExpenseBillDetail = () => {
             // Update notes
             setNotes(zoho?.note || '');
 
-            // Initialize expense items from zoho_bill.products or analysed_data.items
-            if (zoho?.products && zoho.products.length > 0) {
-                setExpenseItems(zoho.products.map((item, index) => ({
+            // Initialize consolidate status from zoho_bill
+            const consolidateStatus = zoho?.consolidate || false;
+            setIsConsolidated(consolidateStatus);
+
+            // Initialize expense items from zoho_bill.products or consolidate_prod based on consolidate status
+            const sourceProducts = consolidateStatus && zoho?.consolidate_prod?.length > 0 
+                ? zoho.consolidate_prod 
+                : zoho?.products || [];
+            
+            if (sourceProducts.length > 0) {
+                setExpenseItems(sourceProducts.map((item, index) => ({
                     id: item.id || index,
                     zohoBill: item.zohoBill || null,
                     item_details: item.item_details || '',
@@ -402,15 +450,28 @@ const ZohoExpenseBillDetail = () => {
                     cgst: taxSummaryForm.cgst || "0",
                     sgst: taxSummaryForm.sgst || "0",
                     note: notes || `Auto-created from analysis for ${billForm.selectedVendor?.companyName || 'vendor'}.`,
+                    consolidate: isConsolidated,
                     created_at: zohoBillData?.created_at || new Date().toISOString(),
-                    products: validItems.map((item, index) => ({
-                        id: item.id || null,
-                        zohoBill: zohoBillData?.id || null,
-                        item_details: item.item_details || '',
-                        chart_of_accounts: item.chart_of_accounts_id || null,
-                        taxes: item.taxes || null,
-                        amount: item.amount
-                    }))
+                    // Send items to the appropriate key based on consolidate status
+                    ...(isConsolidated ? {
+                        consolidate_prod: validItems.map((item, index) => ({
+                            id: item.id || null,
+                            zohoBill: zohoBillData?.id || null,
+                            item_details: item.item_details || '',
+                            chart_of_accounts: item.chart_of_accounts_id || null,
+                            taxes: item.taxes || null,
+                            amount: item.amount
+                        }))
+                    } : {
+                        products: validItems.map((item, index) => ({
+                            id: item.id || null,
+                            zohoBill: zohoBillData?.id || null,
+                            item_details: item.item_details || '',
+                            chart_of_accounts: item.chart_of_accounts_id || null,
+                            taxes: item.taxes || null,
+                            amount: item.amount
+                        }))
+                    })
                 }
             };
 
@@ -1006,6 +1067,16 @@ const ZohoExpenseBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Expense Items</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
+                                            {/* Consolidate Toggle Switch */}
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">Consolidate Items</span>
+                                                <Switch
+                                                    value={isConsolidated}
+                                                    onChange={handleConsolidateToggle}
+                                                    disabled={isVerified}
+                                                    activeClass="bg-blue-600"
+                                                />
+                                            </div>
                                             <button
                                                 onClick={addExpenseItem}
                                                 disabled={isVerified}
