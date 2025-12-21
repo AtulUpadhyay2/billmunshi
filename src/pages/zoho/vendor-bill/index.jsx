@@ -13,6 +13,7 @@ import {
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
 import FileViewerModal from "@/components/modals/FileViewerModal";
+import DuplicateDetectionModal from "@/components/modals/DuplicateDetectionModal";
 import { useSelector } from "react-redux";
 import Swal from 'sweetalert2';
 
@@ -40,6 +41,8 @@ const ZohoVendorBill = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
     const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+    const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+    const [duplicateData, setDuplicateData] = useState(null);
     const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
     const [analyzingBills, setAnalyzingBills] = useState(new Set());
     const [syncingBills, setSyncingBills] = useState(new Set());
@@ -235,9 +238,22 @@ const ZohoVendorBill = () => {
     const handleUpload = async (formData) => {
         try {
             const response = await uploadVendorBills({ organizationId: selectedOrganization?.id, formData });
-            globalToast.success('Bills uploaded successfully');
+            
+            // Check if there are any duplicates detected
+            const hasDuplicates = response?.auto_analysis_results?.some(result => result.duplicate_detected === true);
+            
+            if (hasDuplicates) {
+                // Find the first duplicate result and show modal
+                const duplicateResult = response.auto_analysis_results.find(result => result.duplicate_detected === true);
+                setDuplicateData(duplicateResult);
+                setIsDuplicateModalOpen(true);
+                globalToast.warning('Bills uploaded, but duplicates were detected!');
+            } else {
+                globalToast.success('Bills uploaded successfully');
+            }
+            
             refetch(); // Refresh the list
-            setIsUploadModalOpen(false); // Close the modal after successful upload
+            setIsUploadModalOpen(false); // Close the upload modal
         } catch (error) {
             console.error('Upload failed:', error);
             globalToast.error(error?.response?.data?.message || error?.message || 'Failed to upload bills');
@@ -709,6 +725,16 @@ const ZohoVendorBill = () => {
                     </button>
                 </div>
             </Modal>
+
+            {/* Duplicate Detection Modal */}
+            <DuplicateDetectionModal
+                isOpen={isDuplicateModalOpen}
+                onClose={() => {
+                    setIsDuplicateModalOpen(false);
+                    setDuplicateData(null);
+                }}
+                duplicateData={duplicateData}
+            />
         </div>
     );
 };
