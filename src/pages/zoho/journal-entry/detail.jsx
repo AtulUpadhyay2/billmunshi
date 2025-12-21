@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetZohoJournalBillDetails, useVerifyZohoJournalBill, useSyncZohoJournalBill } from "@/hooks/api/zoho/zohoJournalEntryService";
@@ -31,6 +32,9 @@ const ZohoJournalEntryDetail = () => {
 
     // State for managing journal entry line items
     const [journalLineItems, setJournalLineItems] = useState([]);
+    
+    // State for consolidate toggle
+    const [isConsolidated, setIsConsolidated] = useState(false);
 
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
@@ -250,6 +254,50 @@ const ZohoJournalEntryDetail = () => {
         setJournalLineItems(prev => prev.filter((_, i) => i !== index));
     };
 
+    // Handle consolidate toggle
+    const handleConsolidateToggle = () => {
+        const newConsolidateStatus = !isConsolidated;
+        setIsConsolidated(newConsolidateStatus);
+        
+        const zoho = zohoJournalData;
+        
+        // When toggling to consolidated, use consolidate_prod if available
+        if (newConsolidateStatus) {
+            if (zoho?.consolidate_prod && zoho.consolidate_prod.length > 0) {
+                setJournalLineItems(zoho.consolidate_prod.map((item, index) => ({
+                    id: item.id || index,
+                    item_id: item.id || null,
+                    zohoBill: item.zohoBill || null,
+                    item_details: item.item_details || '',
+                    vendor_id: item.vendor || null,
+                    chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
+                    chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
+                    amount: item.amount || '',
+                    debit_or_credit: item.debit_or_credit || 'debit',
+                    created_at: item.created_at || null
+                })));
+            }
+        } else {
+            // When toggling to non-consolidated, use products if available
+            if (zoho?.products && zoho.products.length > 0) {
+                setJournalLineItems(zoho.products.map((item, index) => ({
+                    id: item.id || index,
+                    item_id: item.id || null,
+                    zohoBill: item.zohoBill || null,
+                    item_details: item.item_details || '',
+                    vendor_id: item.vendor || null,
+                    chart_of_accounts: item.chart_of_accounts ? 'Selected' : 'No COA Selected',
+                    chart_of_accounts_id: item.chart_of_accounts || null,
+                    taxes: item.taxes || null,
+                    amount: item.amount || '',
+                    debit_or_credit: item.debit_or_credit || 'debit',
+                    created_at: item.created_at || null
+                })));
+            }
+        }
+    };
+
     // Handle tax summary changes
     const handleTaxSummaryChange = (field, value) => {
         setTaxSummary(prev => ({ ...prev, [field]: value }));
@@ -364,9 +412,17 @@ const ZohoJournalEntryDetail = () => {
             // Update notes
             setNotes(zoho?.note || '');
 
-            // Initialize journal entry line items from zoho_bill.products or analysed_data.items
-            if (zoho?.products && zoho.products.length > 0) {
-                setJournalLineItems(zoho.products.map((item, index) => ({
+            // Initialize consolidate status from zoho_bill
+            const consolidateStatus = zoho?.consolidate || false;
+            setIsConsolidated(consolidateStatus);
+
+            // Initialize journal entry line items from zoho_bill.products or consolidate_prod based on consolidate status
+            const sourceProducts = consolidateStatus && zoho?.consolidate_prod?.length > 0 
+                ? zoho.consolidate_prod 
+                : zoho?.products || [];
+            
+            if (sourceProducts.length > 0) {
+                setJournalLineItems(sourceProducts.map((item, index) => ({
                     id: item.id || index,
                     item_id: item.id || null,
                     zohoBill: item.zohoBill || null,
@@ -490,6 +546,7 @@ const ZohoJournalEntryDetail = () => {
                     sgst_coa: taxAndOtherItems.sgstAccountId || null,
                     sgst_debit_or_credit: taxAndOtherItems.sgstDebitCredit || "debit",
                     note: notes || `Bill from analysis for ${journalEntryForm.selectedVendor?.companyName || 'vendor'} entered via Billmunshi`,
+                    consolidate: isConsolidated,
                     created_at: zohoJournalData?.created_at || new Date().toISOString(),
                     products: validLineItems.map((item, index) => ({
                         id: item.id || item.item_id || null,
@@ -1067,10 +1124,20 @@ const ZohoJournalEntryDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Journal Entry Items</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
+                                            {/* Consolidate Toggle Switch */}
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">Consolidate Items</span>
+                                                <Switch
+                                                    value={isConsolidated}
+                                                    onChange={handleConsolidateToggle}
+                                                    disabled={isVerified}
+                                                    activeClass="bg-blue-600"
+                                                />
+                                            </div>
                                             <button
                                                 onClick={addJournalLineItem}
-                                                disabled={isVerified}
-                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                                                disabled={isConsolidated || isVerified}
+                                                className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${isVerified || isConsolidated ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                                                 title="Add"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
