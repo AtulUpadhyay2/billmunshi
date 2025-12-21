@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetVendorBill, useVerifyVendorBill, useSyncVendorBill } from "@/hooks/api/zoho/zohoVendorBillService";
@@ -33,6 +34,9 @@ const ZohoVendorBillDetail = () => {
 
     // State for managing products from zoho_bill
     const [products, setProducts] = useState([]);
+    
+    // State for consolidate toggle
+    const [isConsolidated, setIsConsolidated] = useState(false);
 
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
@@ -199,9 +203,17 @@ const ZohoVendorBillDetail = () => {
                 discount_account: zoho?.discount_account || null
             });
 
-            // Initialize products from zoho_bill.products
-            if (zoho?.products && zoho.products.length > 0) {
-                setProducts(zoho.products.map(product => ({
+            // Initialize consolidate status from zoho_bill
+            const consolidateStatus = zoho?.consolidate || false;
+            setIsConsolidated(consolidateStatus);
+
+            // Initialize products from zoho_bill.products or consolidate_prod based on consolidate status
+            const sourceProducts = consolidateStatus && zoho?.consolidate_prod?.length > 0 
+                ? zoho.consolidate_prod 
+                : zoho?.products || [];
+                
+            if (sourceProducts.length > 0) {
+                setProducts(sourceProducts.map(product => ({
                     id: product.id,
                     item_details: product.item_details || product.item_name || '',
                     chart_of_accounts: product.chart_of_accounts || null,
@@ -375,6 +387,46 @@ const ZohoVendorBillDetail = () => {
     const removeProduct = (index) => {
         if (products.length > 1) {
             setProducts(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    // Handle consolidate toggle
+    const handleConsolidateToggle = () => {
+        const newConsolidateStatus = !isConsolidated;
+        setIsConsolidated(newConsolidateStatus);
+        
+        const zoho = vendorBillData?.zoho_bill;
+        
+        // When toggling to consolidated, use consolidate_prod if available
+        if (newConsolidateStatus) {
+            if (zoho?.consolidate_prod && zoho.consolidate_prod.length > 0) {
+                setProducts(zoho.consolidate_prod.map(product => ({
+                    id: product.id,
+                    item_details: product.item_details || product.item_name || '',
+                    chart_of_accounts: product.chart_of_accounts || null,
+                    taxes: product.taxes || null,
+                    reverse_charge_tax_id: product.reverse_charge_tax_id || false,
+                    itc_eligibility: product.itc_eligibility || 'eligible',
+                    rate: product.rate || '',
+                    quantity: product.quantity || '',
+                    amount: product.amount || ''
+                })));
+            }
+        } else {
+            // When toggling to non-consolidated, use products if available
+            if (zoho?.products && zoho.products.length > 0) {
+                setProducts(zoho.products.map(product => ({
+                    id: product.id,
+                    item_details: product.item_details || product.item_name || '',
+                    chart_of_accounts: product.chart_of_accounts || null,
+                    taxes: product.taxes || null,
+                    reverse_charge_tax_id: product.reverse_charge_tax_id || false,
+                    itc_eligibility: product.itc_eligibility || 'eligible',
+                    rate: product.rate || '',
+                    quantity: product.quantity || '',
+                    amount: product.amount || ''
+                })));
+            }
         }
     };
 
@@ -566,6 +618,7 @@ const ZohoVendorBillDetail = () => {
                     discount_amount: discountForm.discount_amount || "0",
                     discount_account: discountForm.discount_account || null,
                     note: notes,
+                    consolidate: isConsolidated,
                     products: validProducts.map(product => ({
                         item_name: product.item_details.substring(0, 100), // Truncate if needed
                         item_details: product.item_details,
@@ -1156,10 +1209,21 @@ const ZohoVendorBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Products Details</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
+                                            {/* Consolidate Toggle Switch */}
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">Consolidate Items</span>
+                                                <Switch
+                                                    value={isConsolidated}
+                                                    onChange={handleConsolidateToggle}
+                                                    disabled={isVerified}
+                                                    activeClass="bg-blue-600"
+                                                />
+                                            </div>
                                             <button
                                                 onClick={addProduct}
                                                 className="inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                                                 title="Add"
+                                                disabled={isConsolidated || isVerified}
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
