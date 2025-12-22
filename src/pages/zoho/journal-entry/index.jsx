@@ -13,7 +13,8 @@ import {
   useDeleteZohoJournalBill,
   useUploadZohoJournalBills,
   useAnalyzeZohoJournalBill,
-  useSyncZohoJournalBill
+  useSyncZohoJournalBill,
+  useMoveJournalBills
 } from '@/hooks/api/zoho/zohoJournalEntryService';
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
@@ -39,6 +40,7 @@ const ZohoJournalEntry = () => {
   const { mutateAsync: uploadExpenseBills } = useUploadZohoJournalBills();
   const { mutateAsync: analyzeExpenseBill } = useAnalyzeZohoJournalBill();
   const { mutateAsync: syncExpenseBill } = useSyncZohoJournalBill();
+  const { mutateAsync: moveJournalBills } = useMoveJournalBills();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -98,27 +100,37 @@ const ZohoJournalEntry = () => {
 
   const handleMoveToVendorBill = async () => {
     try {
-      // TODO: Implement the actual move to Vendor Bill logic here
+      await moveJournalBills({
+        organizationId: selectedOrganization?.id,
+        from: 'journal',
+        to: 'vendor',
+        bill_ids: Array.from(selectedBills)
+      });
       globalToast.success(`${selectedBills.size} bill(s) moved to Vendor Bill successfully`);
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
       refetch();
     } catch (error) {
       console.error('Move to Vendor Bill failed:', error);
-      globalToast.error('Failed to move bills to Vendor Bill');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to move bills to Vendor Bill');
     }
   };
 
   const handleMoveToExpenseBill = async () => {
     try {
-      // TODO: Implement the actual move to Expense Bill logic here
+      await moveJournalBills({
+        organizationId: selectedOrganization?.id,
+        from: 'journal',
+        to: 'expense',
+        bill_ids: Array.from(selectedBills)
+      });
       globalToast.success(`${selectedBills.size} bill(s) moved to Expense Bill successfully`);
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
       refetch();
     } catch (error) {
       console.error('Move to Expense Bill failed:', error);
-      globalToast.error('Failed to move bills to Expense Bill');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to move bills to Expense Bill');
     }
   };
 

@@ -210,3 +210,21 @@ export const useSyncZohoJournalBill = () => {
     },
   });
 };
+
+// Move journal bills
+export const useMoveJournalBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`zoho/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoJournalBills", variables.organizationId],
+      });
+    },
+  });
+};

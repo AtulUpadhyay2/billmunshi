@@ -188,3 +188,21 @@ export const useSyncVendorBill = () => {
     },
   });
 };
+
+// Move vendor bills
+export const useMoveVendorBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`zoho/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoVendorBills", variables.organizationId],
+      });
+    },
+  });
+};

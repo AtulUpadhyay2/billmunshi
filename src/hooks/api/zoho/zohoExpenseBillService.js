@@ -210,3 +210,21 @@ export const useSyncZohoExpenseBill = () => {
     },
   });
 };
+
+// Move expense bills
+export const useMoveExpenseBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`zoho/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoExpenseBills", variables.organizationId],
+      });
+    },
+  });
+};
