@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from "@/components/ui/Card";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import { useGetTallyVendorBillDetails, useUpdateTallyVendorBill, useVerifyTallyVendorBill, useSyncTallyVendorBill } from "@/hooks/api/tally/tallyVendorBillService";
@@ -40,6 +41,9 @@ const TallyVendorBillDetail = () => {
 
     // State for managing products from tally_bill
     const [products, setProducts] = useState([]);
+
+    // State for consolidate toggle
+    const [isConsolidated, setIsConsolidated] = useState(false);
 
     // State for TDS/TCS selection
     const [selectedTdsTcs, setSelectedTdsTcs] = useState(null);
@@ -130,9 +134,9 @@ const TallyVendorBillDetail = () => {
     const { mutateAsync: syncVendorBill } = useSyncTallyVendorBill();
 
     // Extract data from the API response - Memoized to prevent recreating objects on every render
-    const billInfo = useMemo(() => vendorBillData?.bill || {}, [vendorBillData]);
-    const analysedData = useMemo(() => billInfo?.analysed_data || {}, [billInfo]);
-    const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_data || {}, [vendorBillData]);
+    const billInfo = useMemo(() => vendorBillData?.bill || vendorBillData || {}, [vendorBillData]);
+    const analysedData = useMemo(() => vendorBillData?.analysed_data || billInfo?.analysed_data || {}, [vendorBillData, billInfo]);
+    const tallyAnalysedData = useMemo(() => vendorBillData?.analyzed_bill || {}, [vendorBillData]);
     const productSync = useMemo(() => vendorBillData?.product_sync || false, [vendorBillData]);
 
     // Check if bill is synced or posted (disable inputs if any of these statuses)
@@ -282,7 +286,7 @@ const TallyVendorBillDetail = () => {
 
     // Update form when data is loaded
     useEffect(() => {
-        if (vendorBillData?.bill) {
+        if (vendorBillData) {
             // Reset all matching refs when new data is loaded
             vendorMatchedRef.current = false;
             stockItemsMatchedRef.current = false;
@@ -294,11 +298,11 @@ const TallyVendorBillDetail = () => {
             const tally = tallyAnalysedData;
 
             setVendorForm({
-                vendorName: tallyAnalysedData?.vendor_name || data.from?.name || '',
-                invoiceNumber: data.invoiceNumber || tally?.bill_details?.bill_number || tally?.bill_no || '',
+                vendorName: tally?.vendor?.name || data.from?.name || '',
+                invoiceNumber: data.invoiceNumber || tally?.bill_no || '',
                 vendorGST: tally?.vendor?.gst_in || '',
-                dateIssued: tallyAnalysedData?.bill_date ? new Date(tallyAnalysedData.bill_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '',
-                dueDate: tallyAnalysedData?.due_date ? new Date(tallyAnalysedData.due_date.split('-').reverse().join('-')).toISOString().split('T')[0] : '',
+                dateIssued: tally?.bill_date || (data.dateIssued ? new Date(data.dateIssued).toISOString().split('T')[0] : ''),
+                dueDate: tally?.due_date || (data.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : ''),
                 selectedVendor: null, // Will be set in the next useEffect
                 is_tax: 'TDS' // Default to TDS
             });
@@ -306,10 +310,10 @@ const TallyVendorBillDetail = () => {
             // Initialize Bill Summary Form
             setBillSummaryForm({
                 subtotal: (data.items?.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0) || '').toString(),
-                cgst: tally?.taxes?.cgst?.amount || data.cgst || '',
-                sgst: tally?.taxes?.sgst?.amount || data.sgst || '',
-                igst: tally?.taxes?.igst?.amount || data.igst || '',
-                total: tally?.total_amount || tally?.bill_details?.total_amount || data.total || '',
+                cgst: tally?.cgst || data.cgst || '',
+                sgst: tally?.sgst || data.sgst || '',
+                igst: tally?.igst || data.igst || '',
+                total: tally?.total || data.total || '',
                 cgstLedgerId: null,
                 sgstLedgerId: null,
                 igstLedgerId: null
@@ -318,9 +322,17 @@ const TallyVendorBillDetail = () => {
             // Initialize notes (if any notes field exists in the API)
             setNotes('');
 
-            // Initialize products from tally products
-            if (tally?.products && tally.products.length > 0) {
-                setProducts(tally.products.map((item, index) => ({
+            // Initialize consolidate status from analyzed_bill
+            const consolidateStatus = tally?.consolidate || false;
+            setIsConsolidated(consolidateStatus);
+
+            // Initialize products from analyzed_bill.products or consolidated_product based on consolidate status
+            const sourceProducts = consolidateStatus && tally?.consolidated_product 
+                ? [tally.consolidated_product] 
+                : tally?.products || [];
+                
+            if (sourceProducts.length > 0) {
+                setProducts(sourceProducts.map((item, index) => ({
                     id: item.item_id || index,
                     item_id: item.item_id || null,
                     item_name: item.item_name || null,
@@ -879,6 +891,54 @@ const TallyVendorBillDetail = () => {
         }));
     };
 
+    // Handle consolidate toggle
+    const handleConsolidateToggle = () => {
+        const newConsolidateStatus = !isConsolidated;
+        setIsConsolidated(newConsolidateStatus);
+        
+        const tally = tallyAnalysedData;
+        
+        // When toggling to consolidated, use consolidated_product if available
+        if (newConsolidateStatus) {
+            if (tally?.consolidated_product) {
+                setProducts([{
+                    id: tally.consolidated_product.id,
+                    item_id: null,
+                    item_name: tally.consolidated_product.item_name || null,
+                    item_details: tally.consolidated_product.item_details || '',
+                    tax_ledger: 'No Tax Ledger',
+                    tax_ledger_id: null,
+                    price: tally.consolidated_product.price || '',
+                    quantity: tally.consolidated_product.quantity || '',
+                    amount: tally.consolidated_product.amount || '',
+                    gst: tally.consolidated_product.product_gst || '',
+                    igst: tally.consolidated_product.igst || 0.0,
+                    cgst: tally.consolidated_product.cgst || 0.0,
+                    sgst: tally.consolidated_product.sgst || 0.0
+                }]);
+            }
+        } else {
+            // When toggling to non-consolidated, use products if available
+            if (tally?.products && tally.products.length > 0) {
+                setProducts(tally.products.map((item, index) => ({
+                    id: item.item_id || index,
+                    item_id: item.item_id || null,
+                    item_name: item.item_name || null,
+                    item_details: item.item_details || '',
+                    tax_ledger: item.tax_ledger || 'No Tax Ledger',
+                    tax_ledger_id: item.tax_ledger_id || null,
+                    price: item.price || '',
+                    quantity: item.quantity || '',
+                    amount: item.amount || '',
+                    gst: item.product_gst || '',
+                    igst: item.igst || 0.0,
+                    cgst: item.cgst || 0.0,
+                    sgst: item.sgst || 0.0
+                })));
+            }
+        }
+    };
+
     // Handle quantity updates
     const updateQuantity = (index, newQuantity) => {
         if (newQuantity >= 0) {
@@ -941,6 +1001,7 @@ const TallyVendorBillDetail = () => {
         return {
             bill_id: billId,
             analyzed_bill: vendorBillData?.analyzed_bill || null,
+            consolidate: isConsolidated,
             analyzed_data: {
                 vendor: {
                     vendor_name: vendorForm.vendorName || "Unknown Vendor"
@@ -1016,7 +1077,7 @@ const TallyVendorBillDetail = () => {
 
             // Transform data to the required API format
             const verifyData = transformToVerifyFormat();
-            console.log('Transformed verify data:', verifyData);
+            console.log('Transformed verify data:', JSON.stringify(verifyData));
             // Call the verify API
             await verifyVendorBill({
                 organizationId: selectedOrganization?.id,
@@ -1620,6 +1681,16 @@ const TallyVendorBillDetail = () => {
                                             <h3 className="text-lg font-semibold text-gray-900">Products Details</h3>
                                         </div>
                                         <div className="flex items-center gap-3">
+                                            {/* Consolidate Toggle Switch */}
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                                                <span className="text-sm font-medium text-gray-700">Consolidate Items</span>
+                                                <Switch
+                                                    value={isConsolidated}
+                                                    onChange={handleConsolidateToggle}
+                                                    disabled={isVerified}
+                                                    activeClass="bg-blue-600"
+                                                />
+                                            </div>
                                             <button
                                                 onClick={addProduct}
                                                 disabled={isVerified}

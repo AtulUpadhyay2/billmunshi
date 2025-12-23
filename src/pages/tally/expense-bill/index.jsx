@@ -12,7 +12,8 @@ import {
   useDeleteTallyExpenseBill,
   useUploadTallyExpenseBills,
   useAnalyzeTallyExpenseBill,
-  useSyncTallyExpenseBill
+  useSyncTallyExpenseBill,
+  useMoveTallyExpenseBills
 } from '@/hooks/api/tally/tallyExpenseBillService';
 import Loading from "@/components/Loading";
 import Swal from 'sweetalert2';
@@ -40,6 +41,7 @@ const TallyExpenseBill = () => {
   const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
   const { mutateAsync: analyzeExpenseBill } = useAnalyzeTallyExpenseBill();
   const { mutateAsync: syncExpenseBill } = useSyncTallyExpenseBill();
+  const { mutateAsync: moveExpenseBills } = useMoveTallyExpenseBills();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -97,14 +99,19 @@ const TallyExpenseBill = () => {
 
   const handleMoveToVendorBill = async () => {
     try {
-      // TODO: Implement the actual move to Vendor Bill logic here
+      await moveExpenseBills({
+        organizationId: selectedOrganization?.id,
+        from: 'expense',
+        to: 'vendor',
+        bill_ids: Array.from(selectedBills)
+      });
       globalToast.success(`${selectedBills.size} bill(s) moved to Vendor Bill successfully`);
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
       refetch();
     } catch (error) {
       console.error('Move to Vendor Bill failed:', error);
-      globalToast.error('Failed to move bills to Vendor Bill');
+      globalToast.error(error?.response?.data?.message || error?.message || 'Failed to move bills to Vendor Bill');
     }
   };
 

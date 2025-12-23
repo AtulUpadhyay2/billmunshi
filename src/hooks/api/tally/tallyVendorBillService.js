@@ -263,3 +263,23 @@ export const useSyncTallyVendorBill = () => {
     },
   });
 };
+
+/**
+ * Move Tally vendor bills to another bill type
+ */
+export const useMoveTallyVendorBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`tally/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["tallyVendorBills", variables.organizationId],
+      });
+    },
+  });
+};

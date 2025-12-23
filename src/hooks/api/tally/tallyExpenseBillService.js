@@ -263,3 +263,23 @@ export const useSyncTallyExpenseBill = () => {
     },
   });
 };
+
+/**
+ * Move Tally expense bills to another bill type
+ */
+export const useMoveTallyExpenseBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`tally/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["tallyExpenseBills", variables.organizationId],
+      });
+    },
+  });
+};
