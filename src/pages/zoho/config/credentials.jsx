@@ -132,7 +132,9 @@ const ZohoCredentials = () => {
 
   // Show connect button if no credentials (empty object) or if credentials exist but not connected
   const showConnectButton =
-    !credentials || Object.keys(credentials).length === 0 || (credentials && !isConnected);
+    !credentials ||
+    Object.keys(credentials).length === 0 ||
+    (credentials && !isConnected);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -235,7 +237,7 @@ const ZohoCredentials = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-slate-600">
+                  <span className="ml-3 text-slate-600 text-xl">
                     Loading credentials...
                   </span>
                 </div>
@@ -260,11 +262,11 @@ const ZohoCredentials = () => {
                       <h3 className="text-xl font-semibold text-slate-900 mb-3">
                         Ready to Connect Zoho Books
                       </h3>
-                      <p className="text-slate-600 mb-2">
+                      <p className="text-xl text-slate-600 mb-2">
                         Get started by connecting your Zoho Books account to
                         sync your financial data.
                       </p>
-                      <p className="text-sm text-slate-500 mb-8">
+                      <p className="text-lg text-slate-500 mb-8">
                         Click the "Connect to Zoho Books" button above to begin
                         the secure OAuth authentication.
                       </p>
@@ -286,7 +288,7 @@ const ZohoCredentials = () => {
                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                               />
                             </svg>
-                            <h4 className="font-medium text-green-900 text-sm">
+                            <h4 className="font-medium text-green-900 text-xl">
                               Sync Vendors
                             </h4>
                           </div>
@@ -306,7 +308,7 @@ const ZohoCredentials = () => {
                                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                               />
                             </svg>
-                            <h4 className="font-medium text-blue-900 text-sm">
+                            <h4 className="font-medium text-blue-900 text-xl">
                               Chart of Accounts
                             </h4>
                           </div>
@@ -326,7 +328,7 @@ const ZohoCredentials = () => {
                                 d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                               />
                             </svg>
-                            <h4 className="font-medium text-purple-900 text-sm">
+                            <h4 className="font-medium text-purple-900 text-xl">
                               Process Bills
                             </h4>
                           </div>
@@ -351,10 +353,10 @@ const ZohoCredentials = () => {
                           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <p className="text-lg font-medium">
+                      <p className="text-xl font-medium">
                         Failed to load credentials
                       </p>
-                      <p className="text-sm text-slate-500 mt-2">
+                      <p className="text-lg text-slate-500 mt-2">
                         {error?.response?.data?.message ||
                           error?.message ||
                           "An error occurred while fetching credentials"}
@@ -384,8 +386,8 @@ const ZohoCredentials = () => {
                         d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                       />
                     </svg>
-                    <p className="text-lg font-medium">No credentials found</p>
-                    <p className="text-sm mt-2">
+                    <p className="text-xl font-medium">No credentials found</p>
+                    <p className="text-lg mt-2">
                       Please configure your Zoho Books credentials first
                     </p>
                   </div>
@@ -417,10 +419,10 @@ const ZohoCredentials = () => {
                             />
                           </svg>
                           <div>
-                            <h3 className="text-green-800 font-medium">
+                            <h3 className="text-green-800 font-medium text-xl">
                               Connected to Zoho Books
                             </h3>
-                            <p className="text-green-700 text-sm">
+                            <p className="text-green-700 text-lg">
                               Your integration is active and ready to sync data
                             </p>
                           </div>
@@ -441,7 +443,7 @@ const ZohoCredentials = () => {
                             />
                           </svg>
                           <div>
-                            <h3 className="text-yellow-800 font-medium">
+                            <h3 className="text-yellow-800 font-medium text-xl">
                               Not Connected to Zoho Books
                             </h3>
                             <p className="text-yellow-700 text-sm">
@@ -458,65 +460,65 @@ const ZohoCredentials = () => {
                   <div className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400 mb-1">
                           Client ID
                         </h3>
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white font-mono break-all">
+                        <p className="text-xl font-semibold text-slate-900 dark:text-white font-mono break-all">
                           {credentials.clientId || "N/A"}
                         </p>
                       </div>
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400 mb-1">
                           Organisation ID
                         </h3>
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white break-words">
+                        <p className="text-xl font-semibold text-slate-900 dark:text-white break-words">
                           {credentials.organisationId || "N/A"}
                         </p>
                       </div>
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400 mb-1">
                           Redirect URL
                         </h3>
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white break-all word-wrap overflow-hidden">
+                        <p className="text-xl font-semibold text-slate-900 dark:text-white break-all word-wrap overflow-hidden">
                           {credentials.redirectUrl || "N/A"}
                         </p>
                       </div>
                     </div>
 
                     <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
                         Sensitive Information
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                          <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                          <h3 className="text-lg font-medium text-amber-800 dark:text-amber-200 mb-1">
                             Client Secret
                           </h3>
-                          <p className="text-sm font-mono text-amber-900 dark:text-amber-100 break-all overflow-hidden">
+                          <p className="text-lg font-mono text-amber-900 dark:text-amber-100 break-all overflow-hidden">
                             {maskSensitiveData(credentials.clientSecret)}
                           </p>
                         </div>
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                          <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                          <h3 className="text-lg font-medium text-amber-800 dark:text-amber-200 mb-1">
                             Access Code
                           </h3>
-                          <p className="text-sm font-mono text-amber-900 dark:text-amber-100 break-all overflow-hidden">
+                          <p className="text-lg font-mono text-amber-900 dark:text-amber-100 break-all overflow-hidden">
                             {maskSensitiveData(credentials.accessCode)}
                           </p>
                         </div>
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                          <h3 className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                          <h3 className="text-lg font-medium text-green-800 dark:text-green-200 mb-1">
                             Access Token
                           </h3>
-                          <p className="text-sm font-mono text-green-900 dark:text-green-100 break-all overflow-hidden">
+                          <p className="text-lg font-mono text-green-900 dark:text-green-100 break-all overflow-hidden">
                             {maskSensitiveData(credentials.accessToken)}
                           </p>
                         </div>
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                          <h3 className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                          <h3 className="text-lg font-medium text-green-800 dark:text-green-200 mb-1">
                             Refresh Token
                           </h3>
-                          <p className="text-sm font-mono text-green-900 dark:text-green-100 break-all overflow-hidden">
+                          <p className="text-lg font-mono text-green-900 dark:text-green-100 break-all overflow-hidden">
                             {maskSensitiveData(credentials.refreshToken)}
                           </p>
                         </div>
@@ -524,15 +526,15 @@ const ZohoCredentials = () => {
                     </div>
 
                     <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
                         Timestamps
                       </h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                          <h3 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-1">
                             Created At
                           </h3>
-                          <p className="text-sm text-blue-900 dark:text-blue-100 break-words">
+                          <p className="text-lg text-blue-900 dark:text-blue-100 break-words">
                             {formatDate(credentials.created_at)}
                           </p>
                         </div>

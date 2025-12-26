@@ -79,13 +79,16 @@ export const useHandleOAuthCallback = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ organizationId, code, state }) =>
-      apiFetch(
-        `zoho/org/${organizationId}/oauth/callback/?code=${code}&state=${state}`
-      ),
+    mutationFn: ({ organizationId, code, state }) => {
+      const params = new URLSearchParams({ code, state }).toString();
+      return apiFetch(`zoho/org/${organizationId}/oauth/callback/?${params}`);
+    },
     onSuccess: (data, { organizationId }) => {
       queryClient.invalidateQueries({
         queryKey: ["zohoCredentials", organizationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["zohoStatus", organizationId],
       });
     },
   });
