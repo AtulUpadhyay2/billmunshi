@@ -98,6 +98,7 @@ function App() {
           <Route path="zoho/journal-entry" element={<ZohoJournalEntry />} />
           <Route path="zoho/journal-entry/:id" element={<ZohoJournalEntryDetail />} />
           <Route path="zoho/credentials" element={<ZohoCredentials />} />
+          <Route path="zoho/config/credentials" element={<ZohoCredentials />} />
           <Route path="zoho/chart-of-account" element={<ZohoChartOfAccounts />} />
           <Route path="zoho/taxes" element={<ZohoTaxes />} />
           <Route path="zoho/tds-tcs" element={<ZohoTdsTcs />} />

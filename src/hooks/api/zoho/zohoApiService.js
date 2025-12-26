@@ -3,12 +3,29 @@ import { apiFetch } from "../../../utils/apiClient";
 
 // ==================== CREDENTIALS ====================
 
+// Get Zoho integration status
+export const useGetZohoStatus = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoStatus", organizationId],
+    queryFn: () => apiFetch(`zoho/org/${organizationId}/status/`),
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
 // Fetch Zoho credentials
 export const useGetZohoCredentials = (organizationId, options = {}) => {
   return useQuery({
     queryKey: ["zohoCredentials", organizationId],
     queryFn: () => apiFetch(`zoho/org/${organizationId}/settings/credentials/`),
     enabled: !!organizationId,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 - it's an expected state for first-time users
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
     ...options,
   });
 };
@@ -36,7 +53,7 @@ export const useGenerateZohoToken = () => {
 
   return useMutation({
     mutationFn: (organizationId) =>
-      apiFetch(`zoho/org/${organizationId}/settings/generate-token/`, {
+      apiFetch(`zoho/org/${organizationId}/generate-token/`, {
         method: "POST",
       }),
     onSuccess: (data, organizationId) => {
@@ -47,13 +64,48 @@ export const useGenerateZohoToken = () => {
   });
 };
 
+// Initiate Zoho OAuth flow
+export const useInitiateZohoOAuth = () => {
+  return useMutation({
+    mutationFn: (organizationId) =>
+      apiFetch(`zoho/org/${organizationId}/oauth/initiate/`, {
+        method: "POST",
+      }),
+  });
+};
+
+// Handle OAuth callback
+export const useHandleOAuthCallback = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, code, state }) =>
+      apiFetch(
+        `zoho/org/${organizationId}/oauth/callback/?code=${code}&state=${state}`
+      ),
+    onSuccess: (data, { organizationId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoCredentials", organizationId],
+      });
+    },
+  });
+};
+
 // ==================== CHART OF ACCOUNTS ====================
 
 // Fetch Chart of Accounts
-export const useGetChartOfAccounts = ({ organizationId, page = 1 }, options = {}) => {
+export const useGetChartOfAccounts = (
+  { organizationId, page = 1 },
+  options = {}
+) => {
   return useQuery({
     queryKey: ["zohoChartOfAccounts", organizationId, page],
-    queryFn: () => apiFetch(`zoho/org/${organizationId}/chart-of-accounts/${page ? `?page=${page}` : ''}`),
+    queryFn: () =>
+      apiFetch(
+        `zoho/org/${organizationId}/chart-of-accounts/${
+          page ? `?page=${page}` : ""
+        }`
+      ),
     enabled: !!organizationId,
     ...options,
   });
@@ -69,11 +121,13 @@ export const useGetAllChartOfAccounts = (organizationId, options = {}) => {
       let hasMore = true;
 
       while (hasMore) {
-        const response = await apiFetch(`zoho/org/${organizationId}/chart-of-accounts/?page=${page}`);
-        
+        const response = await apiFetch(
+          `zoho/org/${organizationId}/chart-of-accounts/?page=${page}`
+        );
+
         if (response.results && response.results.length > 0) {
           allResults = [...allResults, ...response.results];
-          
+
           // Check if there's a next page
           hasMore = !!response.next;
           page++;
@@ -113,7 +167,10 @@ export const useSyncChartOfAccounts = () => {
 export const useGetTaxes = ({ organizationId, page = 1 }, options = {}) => {
   return useQuery({
     queryKey: ["zohoTaxes", organizationId, page],
-    queryFn: () => apiFetch(`zoho/org/${organizationId}/taxes/${page ? `?page=${page}` : ''}`),
+    queryFn: () =>
+      apiFetch(
+        `zoho/org/${organizationId}/taxes/${page ? `?page=${page}` : ""}`
+      ),
     enabled: !!organizationId,
     ...options,
   });
@@ -129,8 +186,10 @@ export const useGetAllTaxes = (organizationId, options = {}) => {
       let hasMore = true;
 
       while (hasMore) {
-        const response = await apiFetch(`zoho/org/${organizationId}/taxes/?page=${page}`);
-        
+        const response = await apiFetch(
+          `zoho/org/${organizationId}/taxes/?page=${page}`
+        );
+
         if (response.results && response.results.length > 0) {
           allResults = [...allResults, ...response.results];
           hasMore = !!response.next;
@@ -168,15 +227,22 @@ export const useSyncTaxes = () => {
 // ==================== TDS/TCS ====================
 
 // Fetch TDS/TCS
-export const useGetTdsTcs = ({ organizationId, page = 1, tax_type }, options = {}) => {
+export const useGetTdsTcs = (
+  { organizationId, page = 1, tax_type },
+  options = {}
+) => {
   return useQuery({
     queryKey: ["zohoTdsTcs", organizationId, page, tax_type],
     queryFn: () => {
       const params = new URLSearchParams();
-      if (page) params.append('page', page);
-      if (tax_type) params.append('tax_type', tax_type);
-      
-      return apiFetch(`zoho/org/${organizationId}/tds-tcs/${params.toString() ? `?${params.toString()}` : ''}`);
+      if (page) params.append("page", page);
+      if (tax_type) params.append("tax_type", tax_type);
+
+      return apiFetch(
+        `zoho/org/${organizationId}/tds-tcs/${
+          params.toString() ? `?${params.toString()}` : ""
+        }`
+      );
     },
     enabled: !!organizationId,
     ...options,
@@ -194,11 +260,13 @@ export const useGetAllTdsTcs = ({ organizationId, tax_type }, options = {}) => {
 
       while (hasMore) {
         const params = new URLSearchParams();
-        params.append('page', page);
-        if (tax_type) params.append('tax_type', tax_type);
-        
-        const response = await apiFetch(`zoho/org/${organizationId}/tds-tcs/?${params.toString()}`);
-        
+        params.append("page", page);
+        if (tax_type) params.append("tax_type", tax_type);
+
+        const response = await apiFetch(
+          `zoho/org/${organizationId}/tds-tcs/?${params.toString()}`
+        );
+
         if (response.results && response.results.length > 0) {
           allResults = [...allResults, ...response.results];
           hasMore = !!response.next;

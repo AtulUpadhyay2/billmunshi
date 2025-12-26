@@ -13,8 +13,9 @@ const SelectOrganization = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  
-  const [triggerGetOrganizations, { isLoading }] = useLazyGetOrganizationsQuery();
+
+  const [triggerGetOrganizations, { isLoading }] =
+    useLazyGetOrganizationsQuery();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -40,15 +41,15 @@ const SelectOrganization = () => {
   const fetchOrganizations = async () => {
     try {
       const result = await triggerGetOrganizations();
-      
+
       if (result.error) {
-        console.error('Organizations fetch error:', result.error);
+        console.error("Organizations fetch error:", result.error);
         toast.error("Failed to fetch organizations");
         setOrganizations([]);
       } else {
         const orgs = result.data?.data || [];
         setOrganizations(orgs);
-        
+
         // Auto-select first organization
         if (orgs.length > 0) {
           setSelectedOrgId(orgs[0].id);
@@ -65,17 +66,17 @@ const SelectOrganization = () => {
 
     setIsSelecting(true);
     try {
-      const selectedOrg = organizations.find(org => org.id === selectedOrgId);
-      
+      const selectedOrg = organizations.find((org) => org.id === selectedOrgId);
+
       if (selectedOrg) {
         // Dispatch user data
         dispatch(setUser(loginData));
-        
+
         // Set selected organization
         dispatch(setSelectedOrganization(selectedOrg));
-        
+
         toast.success(`Selected ${selectedOrg.name}`);
-        
+
         // Navigate to dashboard
         navigate("/dashboard");
       }
@@ -93,11 +94,16 @@ const SelectOrganization = () => {
       INACTIVE: { color: "bg-red-500", text: "Inactive" },
       PENDING: { color: "bg-yellow-500", text: "Pending" },
     };
-    
-    const config = statusConfig[status?.toUpperCase()] || { color: "bg-gray-500", text: status };
-    
+
+    const config = statusConfig[status?.toUpperCase()] || {
+      color: "bg-gray-500",
+      text: status,
+    };
+
     return (
-      <span className={`px-3 py-1 text-xs rounded-full text-white ${config.color}`}>
+      <span
+        className={`px-3 py-1 text-xs rounded-full text-white ${config.color}`}
+      >
         {config.text}
       </span>
     );
@@ -134,7 +140,10 @@ const SelectOrganization = () => {
         <Card>
           {organizations.length === 0 ? (
             <div className="text-center py-16">
-              <Icon icon="heroicons:building-office" className="text-6xl text-slate-400 mx-auto mb-4" />
+              <Icon
+                icon="heroicons:building-office"
+                className="text-6xl text-slate-400 mx-auto mb-4"
+              />
               <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 No Clients Found
               </h3>
@@ -196,7 +205,10 @@ const SelectOrganization = () => {
                             }`}
                           >
                             {selectedOrgId === org.id && (
-                              <Icon icon="heroicons:check" className="text-white text-xs" />
+                              <Icon
+                                icon="heroicons:check"
+                                className="text-white text-xs"
+                              />
                             )}
                           </div>
                         </td>
@@ -249,7 +261,8 @@ const SelectOrganization = () => {
               {/* Footer Actions */}
               <div className="mt-6 px-6 pb-6 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-6">
                 <div className="text-sm text-slate-600 dark:text-slate-400">
-                  {organizations.length} client{organizations.length !== 1 ? "s" : ""} available
+                  {organizations.length} client
+                  {organizations.length !== 1 ? "s" : ""} available
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button
@@ -270,22 +283,6 @@ const SelectOrganization = () => {
             </>
           )}
         </Card>
-
-        {/* Info Card */}
-        {organizations.length > 0 && (
-          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-start">
-              <Icon icon="heroicons:information-circle" className="text-blue-500 text-xl mr-3 mt-0.5" />
-              <div className="text-sm text-blue-800 dark:text-blue-300">
-                <p className="font-medium mb-1">About Clients</p>
-                <p>
-                  Clients represent different clients or business entities. 
-                  You can switch between clients later from the dashboard header.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
