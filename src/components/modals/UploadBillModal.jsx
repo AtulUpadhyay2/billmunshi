@@ -17,7 +17,8 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
 
     const handleFileChange = (selectedFiles) => {
         const fileArray = Array.from(selectedFiles);
-        setFiles(prevFiles => [...prevFiles, ...fileArray]);
+        // Only allow one file at a time
+        setFiles(fileArray.slice(0, 1));
     };
 
     const handleRemoveFile = (indexToRemove) => {
@@ -43,7 +44,8 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
             const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
             return validTypes.includes(fileExtension);
         });
-        setFiles(prevFiles => [...prevFiles, ...validFiles]);
+        // Only allow one file at a time
+        setFiles(validFiles.slice(0, 1));
     };
 
     const handleFileInputClick = () => {
@@ -59,7 +61,7 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
 
     const handleUpload = async () => {
         if (files.length === 0) {
-            alert('Please select at least one file to upload');
+            alert('Please select a file to upload');
             return;
         }
 
@@ -140,7 +142,6 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                     <input
                         ref={fileInputRef}
                         type="file"
-                        multiple
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={handleFileInputChange}
                         className="hidden"
@@ -176,14 +177,14 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                             </svg>
                             <div>
                                 <p className="text-slate-600 dark:text-slate-300 font-medium">
-                                    {isDragOver ? 'Drop files here' : 'Drag & drop files here'}
+                                    {isDragOver ? 'Drop file here' : 'Drag & drop a file here'}
                                 </p>
                                 <p className="text-slate-400 text-sm mt-1">
                                     or <span className="text-blue-600 font-medium">click to browse</span>
                                 </p>
                             </div>
                             <div className="text-xs text-slate-500">
-                                Supported formats: PDF, JPG, JPEG, PNG, DOC, DOCX
+                                Supported formats: PDF, JPG, JPEG, PNG, DOC, DOCX (One file at a time)
                             </div>
                         </div>
                     </div>
@@ -194,7 +195,7 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                Selected Files ({files.length})
+                                Selected File
                             </h4>
                             <button
                                 onClick={() => setFiles([])}
@@ -265,7 +266,7 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                         disabled={isUploading}
                     />
                     <Button
-                        text={isUploading ? "Uploading..." : "Upload Bills"}
+                        text={isUploading ? "Uploading..." : "Upload Bill"}
                         className="btn-primary"
                         onClick={handleUpload}
                         disabled={files.length === 0 || isUploading}
