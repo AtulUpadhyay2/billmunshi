@@ -6,13 +6,13 @@ import { apiFetch } from '@/utils/apiClient';
 // ===========================
 
 /**
- * Get all Tally configurations for an organization
+ * Get Tally configuration for an organization (single endpoint)
  */
-export const useGetTallyConfigs = (organizationId, options = {}) => {
+export const useGetTallyConfig = (organizationId, options = {}) => {
   return useQuery({
-    queryKey: ['tallyConfigs', organizationId],
+    queryKey: ['tallyConfig', organizationId],
     queryFn: async () => {
-      const response = await apiFetch(`tally/org/${organizationId}/configs/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/config/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -26,16 +26,16 @@ export const useGetTallyConfigs = (organizationId, options = {}) => {
 };
 
 /**
- * Create a new Tally configuration
+ * Create or update Tally configuration (single endpoint handles both)
  */
-export const useCreateTallyConfig = () => {
+export const useCreateOrUpdateTallyConfig = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ organizationId, ...newConfig }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/configs/`, {
+    mutationFn: async ({ organizationId, ...configData }) => {
+      const response = await apiFetch(`tally/org/${organizationId}/config/save/`, {
         method: 'POST',
-        body: JSON.stringify(newConfig),
+        body: JSON.stringify(configData),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -43,56 +43,29 @@ export const useCreateTallyConfig = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      // Invalidate the configs list to refetch
-      queryClient.invalidateQueries({ queryKey: ['tallyConfigs', variables.organizationId] });
+      // Invalidate the config query to refetch
+      queryClient.invalidateQueries({ queryKey: ['tallyConfig', variables.organizationId] });
     },
   });
 };
 
 /**
- * Update an existing Tally configuration
+ * Get all Parent Ledgers for an organization (for form options)
  */
-export const useUpdateTallyConfig = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ organizationId, id, ...patch }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/configs/${id}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(patch),
+export const useGetParentLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['parentLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(`tally/org/${organizationId}/parent-ledgers/`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
       return response;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate the configs list to refetch
-      queryClient.invalidateQueries({ queryKey: ['tallyConfigs', variables.organizationId] });
-    },
-  });
-};
-
-/**
- * Delete a Tally configuration
- */
-export const useDeleteTallyConfig = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ organizationId, id }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/configs/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      return response;
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate the configs list to refetch
-      queryClient.invalidateQueries({ queryKey: ['tallyConfigs', variables.organizationId] });
-    },
+    enabled: !!organizationId,
+    ...options,
   });
 };
 
