@@ -11,7 +11,6 @@ import Logo from "./Tools/Logo";
 // import SearchModal from "./Tools/SearchModal";
 import Profile from "./Tools/Profile";
 import OrgSwitcher from "./Tools/OrgSwitcher";
-import Notification from "./Tools/Notification";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
 
@@ -121,7 +120,6 @@ const Header = ({ className = "custom-class" }) => {
             {/* <MonoChrome /> */}
             {/* <HeaderCart /> */}
             {/* {width >= breakpoints.md && <Message />} */}
-            {width >= breakpoints.md && <Notification />}
             {width >= breakpoints.md && <Profile />}
             {width <= breakpoints.md && (
               <div
