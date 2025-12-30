@@ -76,9 +76,10 @@ const SelectOrganization = () => {
         dispatch(setSelectedOrganization(selectedOrg));
 
         toast.success(`Selected ${selectedOrg.name}`);
-
-        // Navigate to dashboard
-        navigate("/dashboard");
+        // Redirect to dashboard
+        // navigate("/dashboard");
+        // Open dashboard in new tab
+        window.open("/dashboard", "_blank");
       }
     } catch (error) {
       console.error("Error selecting client:", error);
