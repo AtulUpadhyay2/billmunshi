@@ -17,8 +17,8 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
 
     const handleFileChange = (selectedFiles) => {
         const fileArray = Array.from(selectedFiles);
-        // Only allow one file at a time
-        setFiles(fileArray.slice(0, 1));
+        // Add new files to existing files
+        setFiles(prevFiles => [...prevFiles, ...fileArray]);
     };
 
     const handleRemoveFile = (indexToRemove) => {
@@ -44,8 +44,8 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
             const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
             return validTypes.includes(fileExtension);
         });
-        // Only allow one file at a time
-        setFiles(validFiles.slice(0, 1));
+        // Add valid files to existing files
+        setFiles(prevFiles => [...prevFiles, ...validFiles]);
     };
 
     const handleFileInputClick = () => {
@@ -70,16 +70,10 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
             // Create FormData for file upload
             const formData = new FormData();
             
-            // Add files to FormData - try different approaches
-            if (files.length === 1) {
-                // Single file
-                formData.append('file', files[0]);
-            } else {
-                // Multiple files - try both approaches
-                files.forEach((file, index) => {
-                    formData.append('file', file); // Some servers expect same field name for multiple files
-                });
-            }
+            // Add files to FormData
+            files.forEach((file) => {
+                formData.append('files', file); // Use 'files' for multiple file uploads
+            });
             
             // Add file type
             formData.append('fileType', fileType);
@@ -145,6 +139,7 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={handleFileInputChange}
                         className="hidden"
+                        multiple
                     />
                     
                     {/* Drag and Drop Zone */}
@@ -177,14 +172,14 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
                             </svg>
                             <div>
                                 <p className="text-slate-600 dark:text-slate-300 font-medium">
-                                    {isDragOver ? 'Drop file here' : 'Drag & drop a file here'}
+                                    {isDragOver ? 'Drop files here' : 'Drag & drop files here'}
                                 </p>
                                 <p className="text-slate-400 text-sm mt-1">
                                     or <span className="text-blue-600 font-medium">click to browse</span>
                                 </p>
                             </div>
                             <div className="text-xs text-slate-500">
-                                Supported formats: PDF, JPG, JPEG, PNG, DOC, DOCX (One file at a time)
+                                Supported formats: PDF, JPG, JPEG, PNG, DOC, DOCX (Multiple files supported)
                             </div>
                         </div>
                     </div>
