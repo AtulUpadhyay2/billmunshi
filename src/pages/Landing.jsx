@@ -218,28 +218,6 @@ const Landing = () => {
                         <span className="font-bold text-green-600 dark:text-green-400">Tally</span> integration.
                     </p>
 
-                    {/* Special Offer Banner */}
-                    <div className="mb-10 max-w-3xl mx-auto animate-fade-in">
-                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-700 rounded-2xl p-6 shadow-lg">
-                            <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                        <Icon icon="heroicons:gift" className="text-xl text-white" />
-                                    </div>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="inline-flex items-center gap-2 mb-2">
-                                        <Icon icon="heroicons:sparkles" className="text-amber-600 dark:text-amber-400 animate-pulse" />
-                                        <span className="text-sm font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide">Limited Time Offer</span>
-                                    </div>
-                                    <p className="text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
-                                        Process upto <span className="font-bold text-amber-700 dark:text-amber-400">50 bills/receipts per month</span> for free and get total storage of <span className="font-bold text-amber-700 dark:text-amber-400">1GB</span>. Offer available for first <span className="font-bold text-amber-700 dark:text-amber-400">100 users</span>.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up">
                         <Link
                             to="/auth/register"
