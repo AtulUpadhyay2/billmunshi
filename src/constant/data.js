@@ -65,7 +65,7 @@ export const menuItems = [
       // }
     ],
   },
-  
+
   {
     isHeadr: true,
     title: "Tally",
@@ -92,25 +92,25 @@ export const menuItems = [
     isHide: true,
     child: [
       {
-        childtitle: "Api Key",
+        childtitle: "Account Info",
         childlink: "api-keys",
       },
       {
-        childtitle: "Config",
+        childtitle: "Tally Integration",
         childlink: "tally/setup",
       },
       {
-        childtitle: "Ledgers",
+        childtitle: "Chart of Accounts",
         childlink: "tally/ledgers",
       },
       {
-        childtitle: "Masters",
+        childtitle: "Inventory Items",
         childlink: "tally/masters",
       },
       {
-        childtitle: "Help",
+        childtitle: "API Key",
         childlink: "tally/help",
-      }
+      },
     ],
   },
 
@@ -137,8 +137,6 @@ export const menuItems = [
     icon: "heroicons-outline:user-group",
     link: "clients",
   },
-
-
 ];
 
 export const topMenu = [
@@ -210,22 +208,22 @@ export const topMenu = [
         childicon: "heroicons-outline:clipboard",
       },
       {
-        childtitle: "Api Key",
+        childtitle: "Account Info",
         childlink: "api-keys",
         childicon: "heroicons-outline:key",
       },
       {
-        childtitle: "Config",
+        childtitle: "Tally Integration",
         childlink: "tally/setup",
         childicon: "heroicons-outline:cog",
       },
       {
-        childtitle: "Ledgers",
+        childtitle: "Chart of Accounts",
         childlink: "tally/ledgers",
         childicon: "heroicons-outline:book-open",
       },
       {
-        childtitle: "Masters",
+        childtitle: "Inventory Items",
         childlink: "tally/masters",
         childicon: "heroicons-outline:academic-cap",
       },

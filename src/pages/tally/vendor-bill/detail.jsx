@@ -361,7 +361,10 @@ const TallyVendorBillDetail = () => {
           tally?.due_date ||
           (data.dueDate
             ? new Date(data.dueDate).toISOString().split("T")[0]
-            : ""),
+            : tally?.bill_date ||
+              (data.dateIssued
+                ? new Date(data.dateIssued).toISOString().split("T")[0]
+                : "")),
         selectedVendor: null, // Will be set in the next useEffect
         is_tax: "TDS", // Default to TDS
       });
@@ -2264,7 +2267,7 @@ const TallyVendorBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
+            <div className="bg-white border border-gray-200 rounded-lg">
               {/* Vendor Information Section */}
               <div className="p-8 border-b border-gray-200">
                 <div className="flex items-center gap-2 mb-6">
@@ -2623,8 +2626,8 @@ const TallyVendorBillDetail = () => {
                   </div>
 
                   {/* Enhanced Products Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
-                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1000px]">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                           <tr>
@@ -2667,7 +2670,7 @@ const TallyVendorBillDetail = () => {
                               {productSync && (
                                 <td className="px-4 py-3">
                                   <div
-                                    className={`${
+                                    className={`relative ${
                                       !product.item_id && !isVerified
                                         ? "ring-2 ring-red-300 rounded-md"
                                         : ""
@@ -2731,7 +2734,7 @@ const TallyVendorBillDetail = () => {
                               {/* Tax Ledger */}
                               <td className="px-4 py-3">
                                 <div
-                                  className={`${
+                                  className={`relative ${
                                     !product.tax_ledger_id && !isVerified
                                       ? "ring-2 ring-red-300 rounded-md"
                                       : ""
@@ -3020,7 +3023,7 @@ const TallyVendorBillDetail = () => {
                             />
                           </div>
                           <div
-                            className={`flex-1 min-w-[200px] ${
+                            className={`relative flex-1 min-w-[200px] ${
                               isCgstLedgerRequired() && !isVerified
                                 ? "ring-2 ring-red-300 rounded-md"
                                 : ""
@@ -3084,7 +3087,7 @@ const TallyVendorBillDetail = () => {
                             />
                           </div>
                           <div
-                            className={`flex-1 min-w-[200px] ${
+                            className={`relative flex-1 min-w-[200px] ${
                               isSgstLedgerRequired() && !isVerified
                                 ? "ring-2 ring-red-300 rounded-md"
                                 : ""
@@ -3148,7 +3151,7 @@ const TallyVendorBillDetail = () => {
                             />
                           </div>
                           <div
-                            className={`flex-1 min-w-[200px] ${
+                            className={`relative flex-1 min-w-[200px] ${
                               isIgstLedgerRequired() && !isVerified
                                 ? "ring-2 ring-red-300 rounded-md"
                                 : ""
@@ -3236,12 +3239,13 @@ const TallyVendorBillDetail = () => {
                     value={
                       notes ||
                       `Bill from ${
-                        vendorForm.selectedVendor?.name || "Vendor"
+                        vendorForm.selectedVendor?.name ||
+                        analysedData?.from?.name ||
+                        tallyAnalysedData?.vendor_name ||
+                        "Vendor"
                       } entered via BillMunshi ${
                         window.location.origin
-                      }/tally/vendor-bill/${
-                        billInfo.bill_munshi_name || billId
-                      }\n\n`
+                      }/tally/vendor-bill/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}

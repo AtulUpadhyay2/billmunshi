@@ -338,6 +338,10 @@ const TallyExpenseBillDetail = () => {
           ? new Date(tally?.due_date).toISOString().split("T")[0]
           : data?.dueDate
           ? new Date(data?.dueDate).toISOString().split("T")[0]
+          : tally?.bill_date
+          ? new Date(tally?.bill_date).toISOString().split("T")[0]
+          : data?.dateIssued
+          ? new Date(data?.dateIssued).toISOString().split("T")[0]
           : "",
         vendorName: tally?.vendor_name || data?.from?.name || "",
         companyId: tally?.company_id || "",
@@ -380,10 +384,14 @@ const TallyExpenseBillDetail = () => {
           // Check if chart_of_accounts looks like a UUID (for ID) or is a name
           let chartOfAccountsName = "No COA Ledger";
           let chartOfAccountsId = null;
-          
-          if (item.chart_of_accounts && item.chart_of_accounts !== "No COA Ledger") {
+
+          if (
+            item.chart_of_accounts &&
+            item.chart_of_accounts !== "No COA Ledger"
+          ) {
             // If it's a UUID-like string, it's probably an ID
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const uuidRegex =
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
             if (uuidRegex.test(item.chart_of_accounts)) {
               chartOfAccountsId = item.chart_of_accounts;
               // We'll set the name later when ledger options are available
@@ -391,7 +399,7 @@ const TallyExpenseBillDetail = () => {
               chartOfAccountsName = item.chart_of_accounts;
             }
           }
-          
+
           return {
             id: item.id || index,
             item_id: item.id || null,
@@ -406,12 +414,17 @@ const TallyExpenseBillDetail = () => {
         // Use individual products from analyzed data - properly handle chart_of_accounts mapping
         sourceItems = tally.products.map((item, index) => {
           // Check if chart_of_accounts looks like a UUID (for ID) or is a name
-          let chartOfAccountsName = item.chart_of_accounts_name || "No COA Ledger";
+          let chartOfAccountsName =
+            item.chart_of_accounts_name || "No COA Ledger";
           let chartOfAccountsId = null;
-          
-          if (item.chart_of_accounts && item.chart_of_accounts !== "No COA Ledger") {
+
+          if (
+            item.chart_of_accounts &&
+            item.chart_of_accounts !== "No COA Ledger"
+          ) {
             // If it's a UUID-like string, it's probably an ID
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const uuidRegex =
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
             if (uuidRegex.test(item.chart_of_accounts)) {
               chartOfAccountsId = item.chart_of_accounts;
               // Use chart_of_accounts_name if available
@@ -422,7 +435,7 @@ const TallyExpenseBillDetail = () => {
               chartOfAccountsName = item.chart_of_accounts;
             }
           }
-          
+
           return {
             id: item.id || index,
             item_id: item.id || null,
@@ -526,7 +539,7 @@ const TallyExpenseBillDetail = () => {
         }
       }
 
-      // Match SGST ledger by ID first, then by name  
+      // Match SGST ledger by ID first, then by name
       if (tallyAnalysedData.sgst_taxes && !taxSummaryForm.sgstLedgerId) {
         const matchedSgstLedger = sgstLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.sgst_taxes
@@ -585,13 +598,16 @@ const TallyExpenseBillDetail = () => {
       expenseItems.length > 0
     ) {
       // Use consolidate_prod if consolidation is enabled, otherwise use products
-      const sourceProducts = isConsolidated 
-        ? tallyAnalysedData?.consolidate_prod 
+      const sourceProducts = isConsolidated
+        ? tallyAnalysedData?.consolidate_prod
         : tallyAnalysedData?.products;
-      
+
       const updatedItems = expenseItems.map((item, index) => {
         // If item already has chart_of_accounts_id selected and a proper name, don't override
-        if (item.chart_of_accounts_id && item.chart_of_accounts !== "No COA Ledger") {
+        if (
+          item.chart_of_accounts_id &&
+          item.chart_of_accounts !== "No COA Ledger"
+        ) {
           // But we might need to update the name if it's not set properly
           const matchedLedger = ledgerOptions.find(
             (ledger) => ledger.id === item.chart_of_accounts_id
@@ -606,19 +622,20 @@ const TallyExpenseBillDetail = () => {
         }
 
         // Find corresponding item in analyzed_bill
-        const analyzedItem = sourceProducts?.[index] ||
+        const analyzedItem =
+          sourceProducts?.[index] ||
           sourceProducts?.find((p) => p.item_details === item.item_details);
 
         if (analyzedItem && analyzedItem.chart_of_accounts) {
           let matchedLedger = null;
-          
+
           // First try to match by ID (if chart_of_accounts is a UUID)
           if (analyzedItem.chart_of_accounts !== "No COA Ledger") {
             // Check if it's a UUID by trying to match it as an ID first
             matchedLedger = ledgerOptions.find(
               (ledger) => ledger.id === analyzedItem.chart_of_accounts
             );
-            
+
             // If not found by ID, try to match by name directly
             if (!matchedLedger) {
               matchedLedger = ledgerOptions.find(
@@ -1152,7 +1169,7 @@ const TallyExpenseBillDetail = () => {
       cgst: transformedData.analyzed_data.taxes.cgst.amount,
       sgst: transformedData.analyzed_data.taxes.sgst.amount,
       igst: transformedData.analyzed_data.taxes.igst.amount,
-      tds: transformedData.analyzed_data.taxes.tds.amount
+      tds: transformedData.analyzed_data.taxes.tds.amount,
     });
 
     return transformedData;
@@ -2258,215 +2275,216 @@ const TallyExpenseBillDetail = () => {
                   </div>
 
                   {/* Enhanced Expense Items Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
-                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                      <table className="w-full min-w-[800px]">
-                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
-                              Item Details{" "}
-                              <span className="text-red-500">*</span>
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                              Chart of Accounts{" "}
-                              <span className="text-red-500">*</span>
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
-                              Amount
-                            </th>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                    <div className="overflow-x-auto">
+                      <div className="max-h-[600px] overflow-y-auto min-h-[350px]">
+                        <table className="w-full min-w-[800px]">
+                          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                                Item Details{" "}
+                                <span className="text-red-500">*</span>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                                Chart of Accounts{" "}
+                                <span className="text-red-500">*</span>
+                              </th>
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                Amount
+                              </th>
+                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                                Type
+                              </th>
+                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {expenseItems.map((item, index) => (
+                              <tr
+                                key={item.id}
+                                className="hover:bg-gray-50 transition-colors duration-150"
+                              >
+                                {/* Item Details */}
+                                <td className="px-4 py-3">
+                                  <div
+                                    className={`${
+                                      !item.item_details && !isVerified
+                                        ? "ring-2 ring-red-300 rounded-md"
+                                        : ""
+                                    }`}
+                                  >
+                                    <textarea
+                                      value={item.item_details}
+                                      onChange={(e) =>
+                                        handleExpenseItemChange(
+                                          index,
+                                          "item_details",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Enter item details..."
+                                      disabled={isVerified}
+                                      className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                        isVerified
+                                          ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                          : ""
+                                      }`}
+                                      rows={3}
+                                    />
+                                  </div>
+                                </td>
 
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
-                              Type
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {expenseItems.map((item, index) => (
-                            <tr
-                              key={item.id}
-                              className="hover:bg-gray-50 transition-colors duration-150"
-                            >
-                              {/* Item Details */}
-                              <td className="px-4 py-3">
-                                <div
-                                  className={`${
-                                    !item.item_details && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
-                                      : ""
-                                  }`}
-                                >
-                                  <textarea
-                                    value={item.item_details}
+                                <td className="px-4 py-3">
+                                  <div
+                                    className={`${
+                                      !item.chart_of_accounts_id && !isVerified
+                                        ? "ring-2 ring-red-300 rounded-md"
+                                        : ""
+                                    }`}
+                                  >
+                                    <SearchableDropdown
+                                      options={ledgerOptions}
+                                      value={item.chart_of_accounts_id || null}
+                                      onChange={(ledgerId) =>
+                                        handleChartOfAccountsSelect(
+                                          index,
+                                          ledgerId
+                                        )
+                                      }
+                                      onClear={() =>
+                                        handleChartOfAccountsClear(index)
+                                      }
+                                      placeholder="Select chart of accounts..."
+                                      searchPlaceholder="Type to search ledgers..."
+                                      optionLabelKey="name"
+                                      optionValueKey="id"
+                                      loading={ledgersLoading}
+                                      disabled={isVerified}
+                                      renderOption={(ledger) => (
+                                        <div className="flex flex-col py-1">
+                                          <div className="font-medium text-gray-900">
+                                            {ledger.name}
+                                          </div>
+                                        </div>
+                                      )}
+                                    />
+                                  </div>
+                                </td>
+
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="number"
+                                    value={item.amount}
                                     onChange={(e) =>
                                       handleExpenseItemChange(
                                         index,
-                                        "item_details",
+                                        "amount",
                                         e.target.value
                                       )
                                     }
-                                    placeholder="Enter item details..."
+                                    placeholder="0.00"
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                       isVerified
                                         ? "bg-gray-100 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
-                                    rows={3}
+                                    min="0"
+                                    step="0.01"
                                   />
-                                </div>
-                              </td>
+                                </td>
 
-                              <td className="px-4 py-3">
-                                <div
-                                  className={`${
-                                    !item.chart_of_accounts_id && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
-                                      : ""
-                                  }`}
-                                >
-                                  <SearchableDropdown
-                                    options={ledgerOptions}
-                                    value={item.chart_of_accounts_id || null}
-                                    onChange={(ledgerId) =>
-                                      handleChartOfAccountsSelect(
+                                {/* Debit/Credit Type */}
+                                <td className="px-4 py-3">
+                                  <select
+                                    value={item.debit_or_credit}
+                                    onChange={(e) =>
+                                      handleExpenseItemChange(
                                         index,
-                                        ledgerId
+                                        "debit_or_credit",
+                                        e.target.value
                                       )
                                     }
-                                    onClear={() =>
-                                      handleChartOfAccountsClear(index)
-                                    }
-                                    placeholder="Select chart of accounts..."
-                                    searchPlaceholder="Type to search ledgers..."
-                                    optionLabelKey="name"
-                                    optionValueKey="id"
-                                    loading={ledgersLoading}
                                     disabled={isVerified}
-                                    renderOption={(ledger) => (
-                                      <div className="flex flex-col py-1">
-                                        <div className="font-medium text-gray-900">
-                                          {ledger.name}
-                                        </div>
-                                      </div>
-                                    )}
-                                    className="coa-dropdown"
-                                  />
-                                </div>
-                              </td>
-
-                              <td className="px-4 py-3">
-                                <input
-                                  type="number"
-                                  value={item.amount}
-                                  onChange={(e) =>
-                                    handleExpenseItemChange(
-                                      index,
-                                      "amount",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="0.00"
-                                  disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                    isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
-                                      : ""
-                                  }`}
-                                  min="0"
-                                  step="0.01"
-                                />
-                              </td>
-
-                              {/* Debit/Credit Type */}
-                              <td className="px-4 py-3">
-                                <select
-                                  value={item.debit_or_credit}
-                                  onChange={(e) =>
-                                    handleExpenseItemChange(
-                                      index,
-                                      "debit_or_credit",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
-                                    isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
-                                      : ""
-                                  }`}
-                                  style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                                    backgroundPosition: "right 0.5rem center",
-                                    backgroundRepeat: "no-repeat",
-                                    backgroundSize: "1.25rem 1.25rem",
-                                    paddingRight: "2.5rem",
-                                  }}
-                                >
-                                  <option value="debit">Debit</option>
-                                  <option value="credit">Credit</option>
-                                </select>
-                              </td>
-
-                              {/* Actions */}
-                              <td className="px-4 py-3 text-center">
-                                {expenseItems.length > 1 && (
-                                  <button
-                                    onClick={() => removeExpenseItem(index)}
-                                    disabled={isVerified}
-                                    className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
+                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
                                       isVerified
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                        ? "bg-gray-100 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
-                                    title="Remove Item"
+                                    style={{
+                                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                      backgroundPosition: "right 0.5rem center",
+                                      backgroundRepeat: "no-repeat",
+                                      backgroundSize: "1.25rem 1.25rem",
+                                      paddingRight: "2.5rem",
+                                    }}
                                   >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                      />
-                                    </svg>
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                    <option value="debit">Debit</option>
+                                    <option value="credit">Credit</option>
+                                  </select>
+                                </td>
 
-                    {/* Expense Items Summary */}
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
-                          Total Items: {expenseItems.length}{" "}
-                          {isConsolidated && (
-                            <span className="text-blue-600 font-medium ml-2">
-                              (Consolidated)
-                            </span>
-                          )}
-                        </span>
-                        <span className="font-semibold text-gray-900">
-                          Subtotal: ₹
-                          {expenseItems
-                            .reduce(
-                              (sum, item) => sum + parseFloat(item.amount || 0),
-                              0
-                            )
-                            .toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                        </span>
+                                {/* Actions */}
+                                <td className="px-4 py-3 text-center">
+                                  {expenseItems.length > 1 && (
+                                    <button
+                                      onClick={() => removeExpenseItem(index)}
+                                      disabled={isVerified}
+                                      className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
+                                        isVerified
+                                          ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                          : ""
+                                      }`}
+                                      title="Remove Item"
+                                    >
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Expense Items Summary */}
+                      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">
+                            Total Items: {expenseItems.length}{" "}
+                            {isConsolidated && (
+                              <span className="text-blue-600 font-medium ml-2">
+                                (Consolidated)
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-semibold text-gray-900">
+                            Subtotal: ₹
+                            {expenseItems
+                              .reduce(
+                                (sum, item) =>
+                                  sum + parseFloat(item.amount || 0),
+                                0
+                              )
+                              .toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                              })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2495,7 +2513,7 @@ const TallyExpenseBillDetail = () => {
                 </div>
 
                 {/* Tax and Other Items Table */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[800px]">
                       <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -2936,12 +2954,13 @@ const TallyExpenseBillDetail = () => {
                     value={
                       notes ||
                       `Bill from ${
-                        billForm.selectedVendor?.name || "Vendor"
+                        billForm.selectedVendor?.name ||
+                        analysedData?.from?.name ||
+                        tallyAnalysedData?.vendor_name ||
+                        "Vendor"
                       } entered via BillMunshi ${
                         window.location.origin
-                      }/tally/expense-bill/${
-                        billInfo.bill_munshi_name || billId
-                      }\n\n`
+                      }/tally/expense-bill/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
