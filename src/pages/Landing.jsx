@@ -202,20 +202,15 @@ const Landing = () => {
                         <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Trusted by 100+ Organizations</span>
                     </div>
 
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight animate-fade-in-up">
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 leading-tight animate-fade-in-up">
                         <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 dark:from-white dark:via-blue-300 dark:to-white bg-clip-text text-transparent">
-                            Streamline Your
-                        </span>
-                        <br />
-                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Billing Management
+                            Tired of manually recording & organizing bills or expenses?
                         </span>
                     </h1>
 
                     <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-6 max-w-3xl mx-auto leading-relaxed animate-fade-in">
-                        Efficiently manage vendor bills, expense bills, and journal entries with seamless{' '}
-                        <span className="font-bold text-blue-600 dark:text-blue-400">Zoho</span> and{' '}
-                        <span className="font-bold text-green-600 dark:text-green-400">Tally</span> integration.
+                        Save hours each week in processing purchases & expenses. 
+                        Create accounting entries in a few clicks with accuracy & compliance.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up">
@@ -223,15 +218,15 @@ const Landing = () => {
                             to="/auth/register"
                             className="group inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold text-base hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
                         >
-                            <span>Start Free Trial</span>
+                            <span>Start for Free</span>
                             <Icon icon="heroicons:arrow-right" className="text-xl group-hover:translate-x-1 transition-transform" />
                         </Link>
                         <Link
-                            to="/auth/login"
+                            to="/book-demo"
                             className="group inline-flex items-center space-x-2 px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-base hover:border-blue-600 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-300 transform hover:scale-105"
                         >
                             <Icon icon="heroicons:play-circle" className="text-xl" />
-                            <span>Watch Demo</span>
+                            <span>Book your Demo</span>
                         </Link>
                     </div>
 
@@ -239,10 +234,6 @@ const Landing = () => {
                         <div className="flex items-center gap-2">
                             <Icon icon="heroicons:check-circle" className="text-green-500 text-lg" />
                             <span>No credit card required</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Icon icon="heroicons:check-circle" className="text-green-500 text-lg" />
-                            <span>14-day free trial</span>
                         </div>
                         <div className="hidden sm:flex items-center gap-2">
                             <Icon icon="heroicons:check-circle" className="text-green-500 text-lg" />
@@ -477,10 +468,6 @@ const Landing = () => {
                                 <div className="flex items-center gap-2">
                                     <Icon icon="heroicons:check-badge" className="text-green-400 text-xl" />
                                     <span className="text-sm">No credit card required</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="heroicons:check-badge" className="text-green-400 text-xl" />
-                                    <span className="text-sm">14-day free trial</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Icon icon="heroicons:check-badge" className="text-green-400 text-xl" />
