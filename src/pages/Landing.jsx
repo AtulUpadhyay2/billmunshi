@@ -131,8 +131,14 @@ const Landing = () => {
                         {/* Desktop Menu */}
                         <div className="hidden md:flex items-center space-x-2">
                             <Link
+                                to="/book-demo"
+                                className="px-6 py-2.5 text-sm font-medium bg-slate-500 dark:bg-slate-600 text-white rounded-lg hover:bg-slate-600 dark:hover:bg-slate-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                            >
+                                Book a Demo
+                            </Link>
+                            <Link
                                 to="/auth/login"
-                                className="px-6 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                                className="px-6 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-300 rounded-lg"
                             >
                                 Sign In
                             </Link>
@@ -157,8 +163,15 @@ const Landing = () => {
                     {mobileMenuOpen && (
                         <div className="md:hidden mt-4 pb-4 space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
                             <Link
+                                to="/book-demo"
+                                className="block px-4 py-2.5 text-sm font-medium text-center bg-slate-500 dark:bg-slate-600 text-white rounded-lg hover:bg-slate-600 dark:hover:bg-slate-700 transition-all duration-300"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Book a Demo
+                            </Link>
+                            <Link
                                 to="/auth/login"
-                                className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                className="block px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 text-center border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 rounded-lg transition-all duration-300"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 Sign In
@@ -199,11 +212,33 @@ const Landing = () => {
                         </span>
                     </h1>
 
-                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in">
+                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-6 max-w-3xl mx-auto leading-relaxed animate-fade-in">
                         Efficiently manage vendor bills, expense bills, and journal entries with seamless{' '}
                         <span className="font-bold text-blue-600 dark:text-blue-400">Zoho</span> and{' '}
                         <span className="font-bold text-green-600 dark:text-green-400">Tally</span> integration.
                     </p>
+
+                    {/* Special Offer Banner */}
+                    <div className="mb-10 max-w-3xl mx-auto animate-fade-in">
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-700 rounded-2xl p-6 shadow-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                        <Icon icon="heroicons:gift" className="text-xl text-white" />
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="inline-flex items-center gap-2 mb-2">
+                                        <Icon icon="heroicons:sparkles" className="text-amber-600 dark:text-amber-400 animate-pulse" />
+                                        <span className="text-sm font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide">Limited Time Offer</span>
+                                    </div>
+                                    <p className="text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
+                                        Process upto <span className="font-bold text-amber-700 dark:text-amber-400">50 bills/receipts per month</span> for free and get total storage of <span className="font-bold text-amber-700 dark:text-amber-400">1GB</span>. Offer available for first <span className="font-bold text-amber-700 dark:text-amber-400">100 users</span>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up">
                         <Link

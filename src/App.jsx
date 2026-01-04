@@ -6,6 +6,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 const Dashboard = lazy(() => import("./pages/dashboard"));
 
 const Landing = lazy(() => import("./pages/Landing"));
+const BookDemo = lazy(() => import("./pages/BookDemo"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Login = lazy(() => import("./pages/auth/login"));
@@ -64,6 +65,11 @@ function App() {
         <Route path="/" element={
           <Suspense fallback={<Loading />}>
             <Landing />
+          </Suspense>
+        } />
+        <Route path="/book-demo" element={
+          <Suspense fallback={<Loading />}>
+            <BookDemo />
           </Suspense>
         } />
         <Route path="/terms" element={
