@@ -62,19 +62,20 @@ const Select = ({
             <option value="" disabled>
               {placeholder}
             </option>
-            {options.map((option, i) => (
-              <Fragment key={i}>
-                {option.value && option.label ? (
+            {options.map((option, i) => {
+              if (typeof option === 'object' && option.value !== undefined && option.label !== undefined) {
+                return (
                   <option key={i} value={option.value}>
                     {option.label}
                   </option>
-                ) : (
-                  <option key={i} value={option}>
-                    {option}
-                  </option>
-                )}
-              </Fragment>
-            ))}
+                );
+              }
+              return (
+                <option key={i} value={option}>
+                  {option}
+                </option>
+              );
+            })}
           </select>
         )}
         {!name && (
@@ -94,19 +95,20 @@ const Select = ({
             <option value="" disabled>
               {placeholder}
             </option>
-            {options.map((option, i) => (
-              <Fragment key={i}>
-                {option.value && option.label ? (
+            {options.map((option, i) => {
+              if (typeof option === 'object' && option.value !== undefined && option.label !== undefined) {
+                return (
                   <option key={i} value={option.value}>
                     {option.label}
                   </option>
-                ) : (
-                  <option key={i} value={option}>
-                    {option}
-                  </option>
-                )}
-              </Fragment>
-            ))}
+                );
+              }
+              return (
+                <option key={i} value={option}>
+                  {option}
+                </option>
+              );
+            })}
           </select>
         )}
 
