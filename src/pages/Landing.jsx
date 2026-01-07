@@ -134,7 +134,7 @@ const Landing = () => {
                                 to="/book-demo"
                                 className="px-6 py-2.5 text-sm font-medium bg-slate-500 dark:bg-slate-600 text-white rounded-lg hover:bg-slate-600 dark:hover:bg-slate-700 transition-all duration-300 shadow-md hover:shadow-lg"
                             >
-                                Book a Demo
+                                Book Your Demo
                             </Link>
                             <Link
                                 to="/auth/login"
@@ -146,7 +146,7 @@ const Landing = () => {
                                 to="/auth/register"
                                 className="px-6 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                             >
-                                Get Started Free
+                                Start for Free
                             </Link>
                         </div>
 
@@ -181,7 +181,7 @@ const Landing = () => {
                                 className="block px-4 py-2.5 text-sm font-medium text-center bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                Get Started Free
+                                Start for Free
                             </Link>
                         </div>
                     )}
@@ -197,10 +197,10 @@ const Landing = () => {
 
                 <div className="relative text-center max-w-5xl mx-auto">
                     {/* Badge */}
-                    <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-700 rounded-full mb-8 backdrop-blur-sm shadow-lg animate-fade-in-down">
+                    {/* <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-700 rounded-full mb-8 backdrop-blur-sm shadow-lg animate-fade-in-down">
                         <Icon icon="heroicons:sparkles" className="text-blue-600 dark:text-blue-400 animate-pulse" />
                         <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Trusted by 100+ Organizations</span>
-                    </div>
+                    </div> */}
 
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 leading-tight animate-fade-in-up">
                         <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 dark:from-white dark:via-blue-300 dark:to-white bg-clip-text text-transparent">
@@ -209,7 +209,7 @@ const Landing = () => {
                     </h1>
 
                     <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-6 max-w-3xl mx-auto leading-relaxed animate-fade-in">
-                        Save hours each week in processing purchases & expenses. 
+                        Save hours each week in processing purchases & expenses. <br />
                         Create accounting entries in a few clicks with accuracy & compliance.
                     </p>
 
@@ -226,7 +226,7 @@ const Landing = () => {
                             className="group inline-flex items-center space-x-2 px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-base hover:border-blue-600 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-300 transform hover:scale-105"
                         >
                             <Icon icon="heroicons:play-circle" className="text-xl" />
-                            <span>Book your Demo</span>
+                            <span>Book Your Demo</span>
                         </Link>
                     </div>
 
