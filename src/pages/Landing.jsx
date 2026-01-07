@@ -5,6 +5,7 @@ import { Icon } from '@iconify/react';
 const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [openFaq, setOpenFaq] = useState(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -403,11 +404,22 @@ const Landing = () => {
                                 <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sync</h4>
                             </div>
                         </div>
-                        <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mt-8 leading-relaxed">
-                            We realize bookkeepers spend a lot of time organizing vendor bills & expense receipts and entering them in accounting software. 
-                            It's hard for business owners to keep track of expenses as multiple bills are sent from different sources - emails, WhatsApp, physical bills. 
-                            Multiple bills & receipts, prone to errors, time consuming, delay in compliance.
-                        </p>
+                        
+                        {/* Video Section */}
+                        <div className="max-w-4xl mx-auto mt-12">
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-200 dark:border-slate-700">
+                                <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800" style={{ paddingBottom: '56.25%' }}>
+                                    <iframe
+                                        className="absolute top-0 left-0 w-full h-full"
+                                        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                                        title="Bill Munshi Demo Video"
+                                       
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    ></iframe>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -461,44 +473,42 @@ const Landing = () => {
                             </p>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            {/* Features Section */}
-            <section className="py-20 bg-white dark:bg-slate-800/50">
-                <div className="container mx-auto px-6">
-                    <div className="text-center mb-16">
-                        <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-700 rounded-full mb-6 backdrop-blur-sm shadow-lg">
-                            <Icon icon="heroicons:star" className="text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Powerful Features</span>
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-                            <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                                Everything You Need
-                            </span>
-                        </h2>
-                        <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-                            Comprehensive tools to manage your bills and accounting in one unified platform
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                        {features.map((feature, index) => (
-                            <div
-                                key={index}
-                                className="group bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 hover:shadow-2xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 transform hover:-translate-y-1"
-                            >
-                                <div className={`w-16 h-16 ${feature.bgColor} rounded-2xl flex items-center justify-center mb-5 shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                                    <Icon icon={feature.icon} className="text-3xl text-white" />
-                                </div>
-                                <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                    {feature.title}
-                                </h3>
-                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    {feature.description}
-                                </p>
+                    {/* Benefits Grid */}
+                    <div className="grid md:grid-cols-3 gap-8 mt-12">
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-8 text-center shadow-lg">
+                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-lg">
+                                <Icon icon="heroicons:clock" className="text-3xl text-white" />
                             </div>
-                        ))}
+                            <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">
+                                Save Time
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Automate repetitive tasks and reduce manual data entry by up to 80%
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-8 text-center shadow-lg">
+                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-lg">
+                                <Icon icon="heroicons:currency-rupee" className="text-3xl text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">
+                                Reduce Costs
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Cut operational costs with streamlined workflows and automation
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-8 text-center shadow-lg">
+                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-lg">
+                                <Icon icon="heroicons:chart-bar-square" className="text-3xl text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">
+                                Better Insights
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Get real-time analytics and reports for informed decision making
+                            </p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -623,78 +633,204 @@ const Landing = () => {
                         </p>
                     </div>
 
-                    <div className="max-w-4xl mx-auto space-y-6">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">What is Bill Munshi?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                BM is a platform that helps automate bookkeeping tasks by capturing, processing and organising financial documents. 
-                                It uses AI to extract data from receipts and bills, reducing the need for manual entry. 
-                                BM integrates with widely used accounting software in India by both accountants and small businesses.
-                            </p>
+                    <div className="max-w-4xl mx-auto space-y-4">
+                        {/* FAQ 1 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 1 ? null : 1)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What is Bill Munshi?</h3>
+                                <Icon 
+                                    icon={openFaq === 1 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 1 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        BM is a platform that helps automate bookkeeping tasks by capturing, processing and organising financial documents. 
+                                        It uses AI to extract data from receipts and bills, reducing the need for manual entry. 
+                                        BM integrates with widely used accounting software in India by both accountants and small businesses.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">What kind of businesses uses Bill Munshi?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Bill Munshi is designed for businesses of all sizes and industries. It's commonly used by retail, wholesale, hospitality, construction, 
-                                and professional service businesses. Whether you handle a few transactions or thousands every month, 
-                                Bill Munshi grows with your business and adapts to your workload.
-                            </p>
+                        {/* FAQ 2 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 2 ? null : 2)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What kind of businesses uses Bill Munshi?</h3>
+                                <Icon 
+                                    icon={openFaq === 2 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 2 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Bill Munshi is designed for businesses of all sizes and industries. It's commonly used by retail, wholesale, hospitality, construction, 
+                                        and professional service businesses. Whether you handle a few transactions or thousands every month, 
+                                        Bill Munshi grows with your business and adapts to your workload.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Which accounting software Bill Munshi can integrate with?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Presently, BM integrates with Zoho Books and Tally.
-                            </p>
+                        {/* FAQ 3 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 3 ? null : 3)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Which accounting software Bill Munshi can integrate with?</h3>
+                                <Icon 
+                                    icon={openFaq === 3 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 3 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Presently, BM integrates with Zoho Books and Tally.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">What are the benefits of using Bill Munshi for accounting firms?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Bill Munshi helps accountants save time and work more efficiently. By automating routine admin and reducing manual data entry, 
-                                it frees up your time to serve more clients, focus on higher-value advisory work, 
-                                or simply enjoy better work-life balance—with fewer late nights.
-                            </p>
+                        {/* FAQ 4 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 4 ? null : 4)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What are the benefits of using Bill Munshi for accounting firms?</h3>
+                                <Icon 
+                                    icon={openFaq === 4 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 4 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Bill Munshi helps accountants save time and work more efficiently. By automating routine admin and reducing manual data entry, 
+                                        it frees up your time to serve more clients, focus on higher-value advisory work, 
+                                        or simply enjoy better work-life balance—with fewer late nights.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">How secure is the financial data on Bill Munshi?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Your financial data is safe with Bill Munshi. We use strong encryption to protect your information and follow industry best practices for data security. 
-                                All documents on Bill Munshi are handled in line with GDPR and ISO standards, so your data remains secure and compliant at all times.
-                            </p>
+                        {/* FAQ 5 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 5 ? null : 5)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">How secure is the financial data on Bill Munshi?</h3>
+                                <Icon 
+                                    icon={openFaq === 5 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 5 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Your financial data is safe with Bill Munshi. We use strong encryption to protect your information and follow industry best practices for data security. 
+                                        All documents on Bill Munshi are handled in line with GDPR and ISO standards, so your data remains secure and compliant at all times.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">How do I get started?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                You just need to submit a request here and our team will happily help you set up your account, and get your team up to speed.
-                            </p>
+                        {/* FAQ 6 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 6 ? null : 6)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">How do I get started?</h3>
+                                <Icon 
+                                    icon={openFaq === 6 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 6 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        You just need to submit a request here and our team will happily help you set up your account, and get your team up to speed.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Can I grant access of my Bill Munshi account to people outside my organization?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Yes. You can securely invite people outside your organization such as your accountant, consultant, or business partner to your Bill Munshi account. 
-                                You stay in control by choosing what they can see or edit through customizable access levels.
-                            </p>
+                        {/* FAQ 7 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 7 ? null : 7)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Can I grant access of my Bill Munshi account to people outside my organization?</h3>
+                                <Icon 
+                                    icon={openFaq === 7 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 7 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Yes. You can securely invite people outside your organization such as your accountant, consultant, or business partner to your Bill Munshi account. 
+                                        You stay in control by choosing what they can see or edit through customizable access levels.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Can I manage my clients from my account?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Yes. You can manage multiple clients from a single Bill Munshi account. 
-                                Easily keep each client's documents and data separate, control user access, and monitor activity—all from one dashboard.
-                            </p>
+                        {/* FAQ 8 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 8 ? null : 8)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Can I manage my clients from my account?</h3>
+                                <Icon 
+                                    icon={openFaq === 8 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 8 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Yes. You can manage multiple clients from a single Bill Munshi account. 
+                                        Easily keep each client's documents and data separate, control user access, and monitor activity—all from one dashboard.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Is Bill Munshi suitable for multi-user environment?</h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Yes, Bill Munshi works well for teams. Multiple users can upload and manage documents at the same time. 
-                                You can easily control each user's access and keep track of who has submitted what.
-                            </p>
+                        {/* FAQ 9 */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === 9 ? null : 9)}
+                                className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Is Bill Munshi suitable for multi-user environment?</h3>
+                                <Icon 
+                                    icon={openFaq === 9 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                    className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
+                                />
+                            </button>
+                            {openFaq === 9 && (
+                                <div className="px-8 pb-8 pt-0">
+                                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        Yes, Bill Munshi works well for teams. Multiple users can upload and manage documents at the same time. 
+                                        You can easily control each user's access and keep track of who has submitted what.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -722,10 +858,6 @@ const Landing = () => {
                             <span className="text-slate-300 dark:text-slate-700">•</span>
                             <Link to="/" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                                 About
-                            </Link>
-                            <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <Link to="/" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
-                                Contact
                             </Link>
                         </div>
                     </div>
