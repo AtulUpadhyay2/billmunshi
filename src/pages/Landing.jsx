@@ -839,39 +839,43 @@ const Landing = () => {
             {/* Footer */}
             <footer className="border-t border-slate-200 dark:border-slate-700 py-12 bg-white dark:bg-slate-900">
                 <div className="container mx-auto px-6">
-                    <div className="flex flex-col items-center mb-8">
-                        <Link to="/" className="flex items-center space-x-3 mb-6 group">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <Icon icon="heroicons:document-text" className="text-xl text-white" />
-                            </div>
-                            <span className="text-xl font-bold text-slate-900 dark:text-white">Bill Munshi</span>
-                        </Link>
-                        
-                        <div className="flex flex-wrap items-center justify-center gap-6 mb-6">
-                            <Link to="/terms" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
-                                Terms of Service
-                            </Link>
-                            <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <Link to="/privacy-policy" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
-                                Privacy Policy
-                            </Link>
-                            <span className="text-slate-300 dark:text-slate-700">•</span>
-                            <Link to="/" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
-                                About
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="pt-8 border-t border-slate-200 dark:border-slate-700">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                        {/* Column 1 - Copyright */}
+                        <div className="flex justify-center md:justify-start">
                             <p className="text-slate-600 dark:text-slate-400 text-sm">
                                 © {new Date().getFullYear()} Bill Munshi. All rights reserved.
                             </p>
-                            <div className="flex items-center gap-6">
-                                <a href="mailto:support@billmunshi.com" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors">
-                                    support@billmunshi.com
-                                </a>
+                        </div>
+
+                        {/* Column 2 - Logo and Links */}
+                        <div className="flex flex-col items-center">
+                            <Link to="/" className="flex items-center space-x-3 mb-4 group">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                    <Icon icon="heroicons:document-text" className="text-xl text-white" />
+                                </div>
+                                <span className="text-xl font-bold text-slate-900 dark:text-white">Bill Munshi</span>
+                            </Link>
+                            
+                            <div className="flex flex-wrap items-center justify-center gap-4">
+                                <Link to="/terms" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                                    Terms of Service
+                                </Link>
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <Link to="/privacy-policy" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                                    Privacy Policy
+                                </Link>
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <Link to="/" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                                    About
+                                </Link>
                             </div>
+                        </div>
+
+                        {/* Column 3 - Email */}
+                        <div className="flex justify-center md:justify-end">
+                            <a href="mailto:support@billmunshi.com" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors">
+                                support@billmunshi.com
+                            </a>
                         </div>
                     </div>
                 </div>
