@@ -160,10 +160,37 @@ const TallyExpenseBillDetail = () => {
   const isVendorRequired = !billForm.selectedVendor;
   const getItemsWithoutCOA = () =>
     expenseItems.filter((item) => !item.chart_of_accounts_id);
+  
+  // Tax ledger validation helpers
+  const isCgstLedgerRequired = () => {
+    const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
+    return cgstAmount > 0 && !taxSummaryForm.cgstLedgerId;
+  };
+  
+  const isSgstLedgerRequired = () => {
+    const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
+    return sgstAmount > 0 && !taxSummaryForm.sgstLedgerId;
+  };
+  
+  const isIgstLedgerRequired = () => {
+    const igstAmount = parseFloat(taxSummaryForm.igst || 0);
+    return igstAmount > 0 && !taxSummaryForm.igstLedgerId;
+  };
+  
+  const isTdsLedgerRequired = () => {
+    const tdsAmount = parseFloat(taxSummaryForm.tds || 0);
+    return tdsAmount > 0 && !taxSummaryForm.tdsLedgerId;
+  };
+  
   const hasValidationErrors = () =>
     isVendorRequired ||
     getItemsWithoutCOA().length > 0 ||
-    expenseItems.length === 0;
+    expenseItems.length === 0 ||
+    isCgstLedgerRequired() ||
+    isSgstLedgerRequired() ||
+    isIgstLedgerRequired() ||
+    isTdsLedgerRequired();
+
 
   // Process ledgers data for dropdown (Chart of Accounts)
   const processLedgers = () => {
@@ -1203,6 +1230,38 @@ const TallyExpenseBillDetail = () => {
         return;
       }
 
+      // Check if CGST amount > 0 and ledger is not selected
+      if (isCgstLedgerRequired()) {
+        globalToast.error(
+          "Please select CGST Ledger Account as CGST amount is greater than 0"
+        );
+        return;
+      }
+
+      // Check if SGST amount > 0 and ledger is not selected
+      if (isSgstLedgerRequired()) {
+        globalToast.error(
+          "Please select SGST Ledger Account as SGST amount is greater than 0"
+        );
+        return;
+      }
+
+      // Check if IGST amount > 0 and ledger is not selected
+      if (isIgstLedgerRequired()) {
+        globalToast.error(
+          "Please select IGST Ledger Account as IGST amount is greater than 0"
+        );
+        return;
+      }
+
+      // Check if TDS amount > 0 and ledger is not selected
+      if (isTdsLedgerRequired()) {
+        globalToast.error(
+          "Please select TDS Ledger Account as TDS amount is greater than 0"
+        );
+        return;
+      }
+
       setIsVerifying(true);
 
       // Transform data to the required API format
@@ -2004,6 +2063,18 @@ const TallyExpenseBillDetail = () => {
                               {getItemsWithoutCOA().length > 1 ? "s" : ""}
                             </li>
                           )}
+                          {isCgstLedgerRequired() && (
+                            <li>• Select CGST Ledger Account</li>
+                          )}
+                          {isSgstLedgerRequired() && (
+                            <li>• Select SGST Ledger Account</li>
+                          )}
+                          {isIgstLedgerRequired() && (
+                            <li>• Select IGST Ledger Account</li>
+                          )}
+                          {isTdsLedgerRequired() && (
+                            <li>• Select TDS Ledger Account</li>
+                          )}
                         </ul>
                       </div>
                     </div>
@@ -2541,25 +2612,38 @@ const TallyExpenseBillDetail = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <SearchableDropdown
-                              options={cgstLedgerOptions}
-                              value={taxSummaryForm.cgstLedgerId || null}
-                              onChange={handleCgstLedgerSelect}
-                              onClear={handleCgstLedgerClear}
-                              placeholder="Select CGST ledger..."
-                              searchPlaceholder="Type to search CGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={cgstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
+                            <div
+                              className={`${
+                                isCgstLedgerRequired() && !isVerified
+                                  ? "ring-2 ring-red-300 rounded-md"
+                                  : ""
+                              }`}
+                            >
+                              <SearchableDropdown
+                                options={cgstLedgerOptions}
+                                value={taxSummaryForm.cgstLedgerId || null}
+                                onChange={handleCgstLedgerSelect}
+                                onClear={handleCgstLedgerClear}
+                                placeholder="Select CGST ledger..."
+                                searchPlaceholder="Type to search CGST ledgers..."
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={cgstLedgersLoading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            />
+                                )}
+                              />
+                            </div>
+                            {isCgstLedgerRequired() && !isVerified && (
+                              <span className="text-red-500 text-xs mt-1 block">
+                                This field is required
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <select
@@ -2617,25 +2701,38 @@ const TallyExpenseBillDetail = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <SearchableDropdown
-                              options={sgstLedgerOptions}
-                              value={taxSummaryForm.sgstLedgerId || null}
-                              onChange={handleSgstLedgerSelect}
-                              onClear={handleSgstLedgerClear}
-                              placeholder="Select SGST ledger..."
-                              searchPlaceholder="Type to search SGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={sgstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
+                            <div
+                              className={`${
+                                isSgstLedgerRequired() && !isVerified
+                                  ? "ring-2 ring-red-300 rounded-md"
+                                  : ""
+                              }`}
+                            >
+                              <SearchableDropdown
+                                options={sgstLedgerOptions}
+                                value={taxSummaryForm.sgstLedgerId || null}
+                                onChange={handleSgstLedgerSelect}
+                                onClear={handleSgstLedgerClear}
+                                placeholder="Select SGST ledger..."
+                                searchPlaceholder="Type to search SGST ledgers..."
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={sgstLedgersLoading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            />
+                                )}
+                              />
+                            </div>
+                            {isSgstLedgerRequired() && !isVerified && (
+                              <span className="text-red-500 text-xs mt-1 block">
+                                This field is required
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <select
@@ -2693,25 +2790,38 @@ const TallyExpenseBillDetail = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <SearchableDropdown
-                              options={igstLedgerOptions}
-                              value={taxSummaryForm.igstLedgerId || null}
-                              onChange={handleIgstLedgerSelect}
-                              onClear={handleIgstLedgerClear}
-                              placeholder="Select IGST ledger..."
-                              searchPlaceholder="Type to search IGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={igstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
+                            <div
+                              className={`${
+                                isIgstLedgerRequired() && !isVerified
+                                  ? "ring-2 ring-red-300 rounded-md"
+                                  : ""
+                              }`}
+                            >
+                              <SearchableDropdown
+                                options={igstLedgerOptions}
+                                value={taxSummaryForm.igstLedgerId || null}
+                                onChange={handleIgstLedgerSelect}
+                                onClear={handleIgstLedgerClear}
+                                placeholder="Select IGST ledger..."
+                                searchPlaceholder="Type to search IGST ledgers..."
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={igstLedgersLoading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            />
+                                )}
+                              />
+                            </div>
+                            {isIgstLedgerRequired() && !isVerified && (
+                              <span className="text-red-500 text-xs mt-1 block">
+                                This field is required
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <select
@@ -2769,25 +2879,38 @@ const TallyExpenseBillDetail = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <SearchableDropdown
-                              options={taxLedgerOptions}
-                              value={taxSummaryForm.tdsLedgerId || null}
-                              onChange={handleTdsLedgerSelect}
-                              onClear={handleTdsLedgerClear}
-                              placeholder="Select TDS ledger..."
-                              searchPlaceholder="Type to search TDS ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={taxLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
+                            <div
+                              className={`${
+                                isTdsLedgerRequired() && !isVerified
+                                  ? "ring-2 ring-red-300 rounded-md"
+                                  : ""
+                              }`}
+                            >
+                              <SearchableDropdown
+                                options={taxLedgerOptions}
+                                value={taxSummaryForm.tdsLedgerId || null}
+                                onChange={handleTdsLedgerSelect}
+                                onClear={handleTdsLedgerClear}
+                                placeholder="Select TDS ledger..."
+                                searchPlaceholder="Type to search TDS ledgers..."
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={taxLedgersLoading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            />
+                                )}
+                              />
+                            </div>
+                            {isTdsLedgerRequired() && !isVerified && (
+                              <span className="text-red-500 text-xs mt-1 block">
+                                This field is required
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <select
