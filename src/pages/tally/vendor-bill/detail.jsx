@@ -19,6 +19,7 @@ import {
   useGetTallySgstLedgers,
   useGetTallyIgstLedgers,
   useGetTallyMasters,
+  useGetTallyConfig,
 } from "@/hooks/api/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -105,6 +106,12 @@ const TallyVendorBillDetail = () => {
     { enabled: !!selectedOrganization?.id && !!billId }
   );
 
+  // Fetch Tally config to get product sync setting
+  const { data: configResponse } = useGetTallyConfig(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id }
+  );
+
   // Fetch ledgers for dropdown (available for Tally)
   const { data: ledgersData, isLoading: ledgersLoading } = useGetTallyLedgers(
     selectedOrganization?.id,
@@ -170,8 +177,8 @@ const TallyVendorBillDetail = () => {
     [vendorBillData]
   );
   const productSync = useMemo(
-    () => vendorBillData?.product_sync || false,
-    [vendorBillData]
+    () => configResponse?.data?.tally_product_allow_sync || false,
+    [configResponse]
   );
 
   // Check if bill is synced or posted (disable inputs if any of these statuses)
