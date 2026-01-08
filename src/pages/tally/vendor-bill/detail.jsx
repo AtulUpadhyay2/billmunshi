@@ -2418,7 +2418,7 @@ const TallyVendorBillDetail = () => {
                       </div>
 
                       {/* Organization Mismatch Warning */}
-                      {vendorForm.selectedVendor &&
+                      {/* {vendorForm.selectedVendor &&
                         vendorForm.selectedVendor.organization_id !==
                           selectedOrganization?.id && (
                           <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
@@ -2441,7 +2441,7 @@ const TallyVendorBillDetail = () => {
                               cause issues during sync.
                             </span>
                           </div>
-                        )}
+                        )} */}
 
                       {/* Bill To Badge - showing analysed_data.from.name */}
                       {analysedData?.from?.name && (

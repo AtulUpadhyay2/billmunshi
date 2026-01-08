@@ -64,6 +64,9 @@ const TallyExpenseBillDetail = () => {
     tdsDebitCredit: "debit",
     vendorDebitCredit: "credit",
     vendorAmount: "",
+    other_adjustment: "0.00",
+    other_adjustment_debit_or_credit: "debit",
+    other_adjustment_taxes: null,
   });
 
   // State for notes
@@ -182,6 +185,11 @@ const TallyExpenseBillDetail = () => {
     return tdsAmount > 0 && !taxSummaryForm.tdsLedgerId;
   };
   
+  const isOtherAdjustmentLedgerRequired = () => {
+    const otherAdjustmentAmount = parseFloat(taxSummaryForm.other_adjustment || 0);
+    return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
+  };
+  
   const hasValidationErrors = () =>
     isVendorRequired ||
     getItemsWithoutCOA().length > 0 ||
@@ -189,7 +197,8 @@ const TallyExpenseBillDetail = () => {
     isCgstLedgerRequired() ||
     isSgstLedgerRequired() ||
     isIgstLedgerRequired() ||
-    isTdsLedgerRequired();
+    isTdsLedgerRequired() ||
+    isOtherAdjustmentLedgerRequired();
 
 
   // Process ledgers data for dropdown (Chart of Accounts)
@@ -393,6 +402,9 @@ const TallyExpenseBillDetail = () => {
         tdsDebitCredit: "debit", // TDS is typically debit
         vendorDebitCredit: tally?.vendor_debit_or_credit || "credit", // Use actual vendor debit/credit
         vendorAmount: tally?.vendor_amount || tally?.total || data?.total || "",
+        other_adjustment: tally?.other_adjustment || "0.00",
+        other_adjustment_debit_or_credit: tally?.other_adjustment_debit_or_credit || "debit",
+        other_adjustment_taxes: null,
       });
 
       // Initialize notes
@@ -604,17 +616,32 @@ const TallyExpenseBillDetail = () => {
           }));
         }
       }
+
+      // Match Other Adjustment ledger by ID
+      if (tallyAnalysedData.other_adjustment_taxes && !taxSummaryForm.other_adjustment_taxes) {
+        const matchedOtherAdjustmentLedger = ledgerOptions.find(
+          (ledger) => ledger.id === tallyAnalysedData.other_adjustment_taxes
+        );
+        if (matchedOtherAdjustmentLedger) {
+          setTaxSummaryForm((prev) => ({
+            ...prev,
+            other_adjustment_taxes: matchedOtherAdjustmentLedger.id,
+          }));
+        }
+      }
     }
   }, [
     cgstLedgerOptions,
     sgstLedgerOptions,
     igstLedgerOptions,
     taxLedgerOptions,
+    ledgerOptions,
     tallyAnalysedData,
     taxSummaryForm.cgstLedgerId,
     taxSummaryForm.sgstLedgerId,
     taxSummaryForm.igstLedgerId,
     taxSummaryForm.tdsLedgerId,
+    taxSummaryForm.other_adjustment_taxes,
   ]);
 
   // Match chart of accounts ledgers from API response
@@ -1024,6 +1051,14 @@ const TallyExpenseBillDetail = () => {
     setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: null }));
   };
 
+  const handleOtherAdjustmentLedgerSelect = (ledgerId) => {
+    setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: ledgerId }));
+  };
+
+  const handleOtherAdjustmentLedgerClear = () => {
+    setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: null }));
+  };
+
   // Expense item manipulation functions
   const handleExpenseItemChange = (index, field, value) => {
     setExpenseItems((prev) => {
@@ -1120,6 +1155,9 @@ const TallyExpenseBillDetail = () => {
     const tdsLedger = taxLedgerOptions.find(
       (ledger) => ledger.id === taxSummaryForm.tdsLedgerId
     );
+    const otherAdjustmentLedger = ledgerOptions.find(
+      (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes
+    );
 
     const transformedData = {
       bill_id: billId,
@@ -1154,6 +1192,11 @@ const TallyExpenseBillDetail = () => {
             amount: formatDecimal(taxSummaryForm.tds),
             ledger: tdsLedger?.name || "No Tax Ledger",
             debit_or_credit: taxSummaryForm.tdsDebitCredit || "debit",
+          },
+          other_adjustment: {
+            amount: formatDecimal(taxSummaryForm.other_adjustment),
+            ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
+            debit_or_credit: taxSummaryForm.other_adjustment_debit_or_credit || "debit",
           },
         },
         expense_items: expenseItems.map((item) => {
@@ -1258,6 +1301,14 @@ const TallyExpenseBillDetail = () => {
       if (isTdsLedgerRequired()) {
         globalToast.error(
           "Please select TDS Ledger Account as TDS amount is greater than 0"
+        );
+        return;
+      }
+
+      // Check if Other Adjustment amount > 0 and ledger is not selected
+      if (isOtherAdjustmentLedgerRequired()) {
+        globalToast.error(
+          "Please select Other Adjustment Ledger Account as Other Adjustment amount is greater than 0"
         );
         return;
       }
@@ -2133,7 +2184,7 @@ const TallyExpenseBillDetail = () => {
                       </div>
 
                       {/* Organization Mismatch Warning */}
-                      {billForm.selectedVendor &&
+                      {/* {billForm.selectedVendor &&
                         billForm.selectedVendor.organization_id !==
                           selectedOrganization?.id && (
                           <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
@@ -2156,7 +2207,7 @@ const TallyExpenseBillDetail = () => {
                               cause issues during sync.
                             </span>
                           </div>
-                        )}
+                        )} */}
 
                       {/* Bill From Badge - showing analysed_data.from.name */}
                       {analysedData?.from?.name && (
@@ -2946,6 +2997,95 @@ const TallyExpenseBillDetail = () => {
                               value={taxSummaryForm.tds}
                               onChange={(e) =>
                                 handleTaxSummaryChange("tds", e.target.value)
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  : ""
+                              }`}
+                              min="0"
+                              step="0.01"
+                            />
+                          </td>
+                        </tr>
+
+                        {/* Other Adjustment Row */}
+                        <tr className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-4 py-3">
+                            <span className="text-sm font-medium text-gray-900">
+                              Other Adjustment
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div
+                              className={`${
+                                isOtherAdjustmentLedgerRequired() && !isVerified
+                                  ? "ring-2 ring-red-300 rounded-md"
+                                  : ""
+                              }`}
+                            >
+                              <SearchableDropdown
+                                options={ledgerOptions}
+                                value={taxSummaryForm.other_adjustment_taxes || null}
+                                onChange={handleOtherAdjustmentLedgerSelect}
+                                onClear={handleOtherAdjustmentLedgerClear}
+                                placeholder="Select Chart of Accounts..."
+                                searchPlaceholder="Type to search Chart of Accounts..."
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={ledgersLoading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
+                                    </div>
+                                  </div>
+                                )}
+                              />
+                            </div>
+                            {isOtherAdjustmentLedgerRequired() && !isVerified && (
+                              <span className="text-red-500 text-xs mt-1 block">
+                                This field is required
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={taxSummaryForm.other_adjustment_debit_or_credit || "debit"}
+                              onChange={(e) =>
+                                handleTaxSummaryChange(
+                                  "other_adjustment_debit_or_credit",
+                                  e.target.value
+                                )
+                              }
+                              disabled={isVerified}
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                                isVerified
+                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  : ""
+                              }`}
+                              style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                backgroundPosition: "right 0.5rem center",
+                                backgroundRepeat: "no-repeat",
+                                backgroundSize: "1.25rem 1.25rem",
+                                paddingRight: "2.5rem",
+                              }}
+                            >
+                              <option value="debit">Debit</option>
+                              <option value="credit">Credit</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              name="other_adjustment"
+                              value={taxSummaryForm.other_adjustment}
+                              onChange={(e) =>
+                                handleTaxSummaryChange("other_adjustment", e.target.value)
                               }
                               placeholder="0.00"
                               disabled={isVerified}
