@@ -678,157 +678,63 @@ const TallyVendorBill = () => {
       <Modal
         activeModal={isDuplicateModalOpen}
         onClose={() => setIsDuplicateModalOpen(false)}
-        title="Duplicate Bill Details"
-        className="max-w-4xl"
+        title="Duplicate Detected"
+        className="max-w-md"
       >
-        {selectedDuplicateBill && (
-          <div className="space-y-6 p-6">
-            {/* Header */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/30">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-orange-600 dark:text-orange-400">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Duplicate Detected
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {selectedDuplicateBill.bill_munshi_name}
-                  </p>
-                </div>
+        {selectedDuplicateBill && selectedDuplicateBill.duplicate_matched_bills && selectedDuplicateBill.duplicate_matched_bills.length > 0 && (
+          <div className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5 text-orange-600 dark:text-orange-400"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                  />
+                </svg>
               </div>
-              <div className="text-right">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-lg">
-                  <span className="font-semibold">{selectedDuplicateBill.duplicate_score?.toFixed(1)}%</span>
-                  <span>Similarity</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Current Bill Info */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Current Bill Information</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Invoice Number</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {selectedDuplicateBill.analysed_data?.invoiceNumber || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Vendor</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {selectedDuplicateBill.analysed_data?.from?.name || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Date</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {selectedDuplicateBill.analysed_data?.dateIssued || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Amount</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    ₹{selectedDuplicateBill.analysed_data?.total?.toLocaleString() || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Duplicate Description */}
-            {selectedDuplicateBill.duplicate_description && (
-              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-orange-900 dark:text-orange-100 mb-2">Detection Summary</h4>
-                <p className="text-sm text-orange-800 dark:text-orange-200">
-                  {selectedDuplicateBill.duplicate_description}
+              <div className="flex-1">
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  This bill is already processed under Document ID{" "}
+                  {selectedDuplicateBill.duplicate_matched_bills.map((matchedBill, index) => (
+                    <span key={index}>
+                      {index > 0 && (index === selectedDuplicateBill.duplicate_matched_bills.length - 1 ? " and " : ", ")}
+                      <button
+                        onClick={() => {
+                          if (matchedBill.bill_id) {
+                            navigate(`/tally/vendor-bill/${matchedBill.bill_id}`);
+                            setIsDuplicateModalOpen(false);
+                          }
+                        }}
+                        className="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 hover:underline-offset-4 transition-all"
+                      >
+                        Bill {index + 1}
+                      </button>
+                    </span>
+                  ))}
+                  {" "}created on{" "}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {selectedDuplicateBill.duplicate_matched_bills[0].date 
+                      ? formatDate(selectedDuplicateBill.duplicate_matched_bills[0].date)
+                      : "N/A"}
+                  </span>
                 </p>
               </div>
-            )}
+            </div>
 
-            {/* Matched Bills */}
-            {selectedDuplicateBill.duplicate_matched_bills && selectedDuplicateBill.duplicate_matched_bills.length > 0 && (
-              <div>
-                <h4 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4">
-                  Matched Bills ({selectedDuplicateBill.duplicate_matched_bills.length})
-                </h4>
-                <div className="space-y-3">
-                  {selectedDuplicateBill.duplicate_matched_bills.map((matchedBill, index) => (
-                    <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            Match #{index + 1}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-md">
-                            <span>{matchedBill.similarity_score?.toFixed(1)}%</span>
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Bill ID</p>
-                          <p className="font-medium text-slate-900 dark:text-slate-100 font-mono text-xs">
-                            {matchedBill.bill_id?.slice(0, 8)}...
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Invoice Number</p>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {matchedBill.invoice_number || 'N/A'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Vendor</p>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {matchedBill.vendor_name || 'N/A'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Date</p>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {matchedBill.date || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Amount</span>
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            ₹{matchedBill.total?.toLocaleString() || 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setIsDuplicateModalOpen(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
               >
                 Close
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedDuplicateBill?.file) {
-                    handleViewFile(selectedDuplicateBill.file, selectedDuplicateBill.bill_munshi_name);
-                    setIsDuplicateModalOpen(false);
-                  }
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                View File
               </button>
             </div>
           </div>

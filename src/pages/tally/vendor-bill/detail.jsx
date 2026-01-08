@@ -2347,17 +2347,17 @@ const TallyVendorBillDetail = () => {
                           )}
                           {isCgstLedgerRequired() && (
                             <li>
-                              • Select CGST ledger (amount is greater than 0)
+                              • Select CGST ledger
                             </li>
                           )}
                           {isSgstLedgerRequired() && (
                             <li>
-                              • Select SGST ledger (amount is greater than 0)
+                              • Select SGST ledger
                             </li>
                           )}
                           {isIgstLedgerRequired() && (
                             <li>
-                              • Select IGST ledger (amount is greater than 0)
+                              • Select IGST ledger
                             </li>
                           )}
                         </ul>

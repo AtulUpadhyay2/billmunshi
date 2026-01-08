@@ -236,8 +236,6 @@ const TallyExpenseBill = () => {
   };
 
   const handleViewDuplicates = (bill) => {
-    console.log(bill);
-    
     setSelectedDuplicateBill(bill);
     setIsDuplicateModalOpen(true);
   };
