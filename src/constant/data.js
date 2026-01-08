@@ -86,7 +86,7 @@ export const menuItems = [
   },
 
   {
-    title: "Config",
+    title: "Settings",
     icon: "heroicons-outline:cog",
     link: "#",
     isHide: true,

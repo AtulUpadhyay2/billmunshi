@@ -504,7 +504,7 @@ const TallySetup = () => {
   return (
     <div className="space-y-5">
       <Card
-        title="Tally Configuration"
+        title="Configure Your Tally Ledgers"
         noBorder
         headerSlot={
           <div className="flex gap-3">
@@ -657,7 +657,7 @@ const TallySetup = () => {
                           Product Sync Setting
                         </h3>
                         <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                          Allow synchronization of Tally products
+                          Enable / Disable Inventory Tracking in Tally
                         </p>
                       </div>
                       <div
@@ -677,7 +677,7 @@ const TallySetup = () => {
                   {/* Tax Configuration */}
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
-                      Tax Configuration
+                      Tax Ledgers
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {renderParentNamesList(
@@ -704,29 +704,29 @@ const TallySetup = () => {
                     </div>
                   </div>
 
-                  {/* Account Configuration */}
+                  {/* Tally Ledgers Configuration */}
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-8">
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
-                      Account Configuration
+                      Tally Ledgers Configuration
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {renderParentNamesList(
                         config.vendor_parent_names,
-                        "Vendor Parent Names",
+                        "Vendor Ledgers",
                         "bg-purple-50",
                         "text-purple-900",
                         "border-purple-200"
                       )}
                       {renderParentNamesList(
                         config.coa_parent_names,
-                        "COA Parent Names",
+                        "Purchase Ledger",
                         "bg-indigo-50",
                         "text-indigo-900",
                         "border-indigo-200"
                       )}
                       {renderParentNamesList(
                         config.expense_coa_parent_names,
-                        "Expense COA Parent Names",
+                        "Expense Ledger",
                         "bg-teal-50",
                         "text-teal-900",
                         "border-teal-200"
