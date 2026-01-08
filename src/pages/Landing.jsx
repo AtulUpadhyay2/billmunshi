@@ -280,9 +280,13 @@ const Landing = () => {
                     {/* For Accountants */}
                     <div className="grid md:grid-cols-2 gap-12 mb-20 items-center">
                         <div className="order-2 md:order-1">
-                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-8 rounded-3xl border border-blue-200 dark:border-blue-800">
-                                <div className="flex items-center justify-center h-64 text-slate-400">
-                                    <Icon icon="heroicons:user-group" className="text-9xl" />
+                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 rounded-3xl border border-blue-200 dark:border-blue-800 overflow-hidden">
+                                <div className="aspect-video w-full rounded-2xl overflow-hidden">
+                                    <img
+                                        src="/accountants_dashboard_illustration.png"
+                                        alt="Accountants managing multiple clients with dashboard"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -365,9 +369,13 @@ const Landing = () => {
                             </ul>
                         </div>
                         <div>
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-8 rounded-3xl border border-purple-200 dark:border-purple-800">
-                                <div className="flex items-center justify-center h-64 text-slate-400">
-                                    <Icon icon="heroicons:building-office" className="text-9xl" />
+                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-3xl border border-purple-200 dark:border-purple-800 overflow-hidden">
+                                <div className="aspect-video w-full rounded-2xl overflow-hidden">
+                                    <img
+                                        src="/business_owner_expenses_illustration.png"
+                                        alt="Business owners managing expenses and receipts"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -404,7 +412,7 @@ const Landing = () => {
                                 <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sync</h4>
                             </div>
                         </div>
-                        
+
                         {/* Video Section */}
                         <div className="max-w-4xl mx-auto mt-12">
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-200 dark:border-slate-700">
@@ -413,7 +421,7 @@ const Landing = () => {
                                         className="absolute top-0 left-0 w-full h-full"
                                         src="https://www.youtube.com/embed/dQw4w9WgXcQ"
                                         title="Bill Munshi Demo Video"
-                                       
+
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                     ></iframe>
@@ -520,7 +528,7 @@ const Landing = () => {
                         {/* Decorative elements */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
-                        
+
                         <div className="relative z-10">
                             <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full mb-6 shadow-lg">
                                 <Icon icon="heroicons:link" className="text-white text-lg" />
@@ -577,7 +585,7 @@ const Landing = () => {
                         {/* Decorative elements */}
                         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
                         <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
-                        
+
                         <div className="relative z-10 max-w-3xl mx-auto">
                             <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full mb-6 shadow-lg">
                                 <Icon icon="heroicons:rocket-launch" className="text-blue-400" />
@@ -641,16 +649,16 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What is Bill Munshi?</h3>
-                                <Icon 
-                                    icon={openFaq === 1 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 1 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 1 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        BM is a platform that helps automate bookkeeping tasks by capturing, processing and organising financial documents. 
-                                        It uses AI to extract data from receipts and bills, reducing the need for manual entry. 
+                                        BM is a platform that helps automate bookkeeping tasks by capturing, processing and organising financial documents.
+                                        It uses AI to extract data from receipts and bills, reducing the need for manual entry.
                                         BM integrates with widely used accounting software in India by both accountants and small businesses.
                                     </p>
                                 </div>
@@ -664,16 +672,16 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What kind of businesses uses Bill Munshi?</h3>
-                                <Icon 
-                                    icon={openFaq === 2 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 2 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 2 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Bill Munshi is designed for businesses of all sizes and industries. It's commonly used by retail, wholesale, hospitality, construction, 
-                                        and professional service businesses. Whether you handle a few transactions or thousands every month, 
+                                        Bill Munshi is designed for businesses of all sizes and industries. It's commonly used by retail, wholesale, hospitality, construction,
+                                        and professional service businesses. Whether you handle a few transactions or thousands every month,
                                         Bill Munshi grows with your business and adapts to your workload.
                                     </p>
                                 </div>
@@ -687,8 +695,8 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Which accounting software Bill Munshi can integrate with?</h3>
-                                <Icon 
-                                    icon={openFaq === 3 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 3 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
@@ -708,16 +716,16 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">What are the benefits of using Bill Munshi for accounting firms?</h3>
-                                <Icon 
-                                    icon={openFaq === 4 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 4 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 4 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Bill Munshi helps accountants save time and work more efficiently. By automating routine admin and reducing manual data entry, 
-                                        it frees up your time to serve more clients, focus on higher-value advisory work, 
+                                        Bill Munshi helps accountants save time and work more efficiently. By automating routine admin and reducing manual data entry,
+                                        it frees up your time to serve more clients, focus on higher-value advisory work,
                                         or simply enjoy better work-life balance—with fewer late nights.
                                     </p>
                                 </div>
@@ -731,15 +739,15 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">How secure is the financial data on Bill Munshi?</h3>
-                                <Icon 
-                                    icon={openFaq === 5 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 5 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 5 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Your financial data is safe with Bill Munshi. We use strong encryption to protect your information and follow industry best practices for data security. 
+                                        Your financial data is safe with Bill Munshi. We use strong encryption to protect your information and follow industry best practices for data security.
                                         All documents on Bill Munshi are handled in line with GDPR and ISO standards, so your data remains secure and compliant at all times.
                                     </p>
                                 </div>
@@ -753,8 +761,8 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">How do I get started?</h3>
-                                <Icon 
-                                    icon={openFaq === 6 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 6 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
@@ -774,15 +782,15 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Can I grant access of my Bill Munshi account to people outside my organization?</h3>
-                                <Icon 
-                                    icon={openFaq === 7 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 7 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 7 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Yes. You can securely invite people outside your organization such as your accountant, consultant, or business partner to your Bill Munshi account. 
+                                        Yes. You can securely invite people outside your organization such as your accountant, consultant, or business partner to your Bill Munshi account.
                                         You stay in control by choosing what they can see or edit through customizable access levels.
                                     </p>
                                 </div>
@@ -796,15 +804,15 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Can I manage my clients from my account?</h3>
-                                <Icon 
-                                    icon={openFaq === 8 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 8 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 8 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Yes. You can manage multiple clients from a single Bill Munshi account. 
+                                        Yes. You can manage multiple clients from a single Bill Munshi account.
                                         Easily keep each client's documents and data separate, control user access, and monitor activity—all from one dashboard.
                                     </p>
                                 </div>
@@ -818,15 +826,15 @@ const Landing = () => {
                                 className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-4">Is Bill Munshi suitable for multi-user environment?</h3>
-                                <Icon 
-                                    icon={openFaq === 9 ? "heroicons:chevron-up" : "heroicons:chevron-down"} 
+                                <Icon
+                                    icon={openFaq === 9 ? "heroicons:chevron-up" : "heroicons:chevron-down"}
                                     className="text-2xl text-slate-600 dark:text-slate-400 flex-shrink-0"
                                 />
                             </button>
                             {openFaq === 9 && (
                                 <div className="px-8 pb-8 pt-0">
                                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        Yes, Bill Munshi works well for teams. Multiple users can upload and manage documents at the same time. 
+                                        Yes, Bill Munshi works well for teams. Multiple users can upload and manage documents at the same time.
                                         You can easily control each user's access and keep track of who has submitted what.
                                     </p>
                                 </div>
@@ -855,7 +863,7 @@ const Landing = () => {
                                 </div>
                                 <span className="text-xl font-bold text-slate-900 dark:text-white">Bill Munshi</span>
                             </Link>
-                            
+
                             <div className="flex flex-wrap items-center justify-center gap-4">
                                 <Link to="/terms" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                                     Terms of Service
