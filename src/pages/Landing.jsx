@@ -416,14 +416,14 @@ const Landing = () => {
                         <div className="max-w-4xl mx-auto mt-12">
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-200 dark:border-slate-700">
                                 <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800" style={{ paddingBottom: '56.25%' }}>
-                                    <iframe
+                                    {/* <iframe
                                         className="absolute top-0 left-0 w-full h-full"
                                         src="https://www.youtube.com/embed/dQw4w9WgXcQ"
                                         title="Bill Munshi Demo Video"
 
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                    ></iframe>
+                                    ></iframe> */}
                                 </div>
                             </div>
                         </div>
