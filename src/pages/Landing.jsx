@@ -61,9 +61,10 @@ const Landing = () => {
     ];
 
     const stats = [
-        { value: '100+', label: 'Organizations', icon: 'heroicons:building-office', color: 'blue' },
-        { value: '10K+', label: 'Bills Processed', icon: 'heroicons:document-check', color: 'green' },
-        { value: '99.9%', label: 'Uptime', icon: 'heroicons:arrow-trending-up', color: 'purple' }
+        { value: '70%', label: 'Hours saved in bill processing', icon: 'heroicons:clock', color: 'blue' },
+        { value: '90%', label: 'Improved tax compliance', icon: 'heroicons:shield-check', color: 'green' },
+        { value: '99%', label: 'OCR accuracy', icon: 'heroicons:eye', color: 'purple' },
+        { value: '24/7', label: 'Support', icon: 'heroicons:chat-bubble-left-right', color: 'orange' }
     ];
 
     const testimonials = [
@@ -242,7 +243,7 @@ const Landing = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-fade-in max-w-4xl mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 animate-fade-in max-w-4xl mx-auto">
                         {stats.map((stat, index) => (
                             <div
                                 key={index}
