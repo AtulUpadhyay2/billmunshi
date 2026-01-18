@@ -20,9 +20,11 @@ const TallySetup = () => {
     igst_parents: [],
     cgst_parents: [],
     sgst_parents: [],
+    tds_parents: [],
     vendor_parents: [],
     chart_of_accounts_parents: [],
     chart_of_accounts_expense_parents: [],
+    payment_parents: [],
   });
 
   const {
@@ -58,10 +60,12 @@ const TallySetup = () => {
         igst_parents: config.igst_parents || [],
         cgst_parents: config.cgst_parents || [],
         sgst_parents: config.sgst_parents || [],
+        tds_parents: config.tds_parents || [],
         vendor_parents: config.vendor_parents || [],
         chart_of_accounts_parents: config.chart_of_accounts_parents || [],
         chart_of_accounts_expense_parents:
           config.chart_of_accounts_expense_parents || [],
+        payment_parents: config.payment_parents || [],
       });
       setCurrentConfigId(config.id);
     }
@@ -75,10 +79,12 @@ const TallySetup = () => {
         igst_parents: config.igst_parents || [],
         cgst_parents: config.cgst_parents || [],
         sgst_parents: config.sgst_parents || [],
+        tds_parents: config.tds_parents || [],
         vendor_parents: config.vendor_parents || [],
         chart_of_accounts_parents: config.chart_of_accounts_parents || [],
         chart_of_accounts_expense_parents:
           config.chart_of_accounts_expense_parents || [],
+        payment_parents: config.payment_parents || [],
       });
       setCurrentConfigId(config.id);
     } else {
@@ -88,9 +94,11 @@ const TallySetup = () => {
         igst_parents: [],
         cgst_parents: [],
         sgst_parents: [],
+        tds_parents: [],
         vendor_parents: [],
         chart_of_accounts_parents: [],
         chart_of_accounts_expense_parents: [],
+        payment_parents: [],
       });
     }
     setIsConfigModalOpen(true);
@@ -103,9 +111,11 @@ const TallySetup = () => {
       igst_parents: [],
       cgst_parents: [],
       sgst_parents: [],
+      tds_parents: [],
       vendor_parents: [],
       chart_of_accounts_parents: [],
       chart_of_accounts_expense_parents: [],
+      payment_parents: [],
     });
   };
 
@@ -679,7 +689,7 @@ const TallySetup = () => {
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
                       Tax Ledgers
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {renderParentNamesList(
                         config.igst_parent_names,
                         "IGST Parent Names",
@@ -701,6 +711,13 @@ const TallySetup = () => {
                         "text-yellow-900",
                         "border-yellow-200"
                       )}
+                      {renderParentNamesList(
+                        config.tds_parent_names,
+                        "TDS Parent Names",
+                        "bg-orange-50",
+                        "text-orange-900",
+                        "border-orange-200"
+                      )}
                     </div>
                   </div>
 
@@ -709,7 +726,7 @@ const TallySetup = () => {
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
                       Tally Ledgers Configuration
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {renderParentNamesList(
                         config.vendor_parent_names,
                         "Vendor Ledgers",
@@ -730,6 +747,13 @@ const TallySetup = () => {
                         "bg-teal-50",
                         "text-teal-900",
                         "border-teal-200"
+                      )}
+                      {renderParentNamesList(
+                        config.payment_parent_names,
+                        "Payment Ledgers",
+                        "bg-cyan-50",
+                        "text-cyan-900",
+                        "border-cyan-200"
                       )}
                     </div>
                   </div>
@@ -825,6 +849,11 @@ const TallySetup = () => {
                 "SGST Parent Ledgers",
                 configData.sgst_parents
               )}
+              {renderMultiSelect(
+                "tds_parents",
+                "TDS Parent Ledgers",
+                configData.tds_parents
+              )}
             </div>
           </div>
 
@@ -863,6 +892,11 @@ const TallySetup = () => {
                 "chart_of_accounts_expense_parents",
                 "Expense COA Parent Ledgers",
                 configData.chart_of_accounts_expense_parents
+              )}
+              {renderMultiSelect(
+                "payment_parents",
+                "Payment Parent Ledgers",
+                configData.payment_parents
               )}
             </div>
           </div>
