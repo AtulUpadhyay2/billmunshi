@@ -349,12 +349,19 @@ const TallyVendorBillDetail = () => {
   // Process Purchase and Expense ledgers data for discount dropdown - Memoized
   const discountLedgerOptions = useMemo(() => {
     const options = [];
+    const seenIds = new Set();
     
     // Add Purchase ledgers
     if (purchaseLedgersData?.grouped_ledgers) {
       Object.values(purchaseLedgersData.grouped_ledgers).forEach((group) => {
         if (group.ledgers && Array.isArray(group.ledgers)) {
           group.ledgers.forEach((ledger) => {
+            // Skip duplicates to avoid key conflicts
+            if (seenIds.has(ledger.id)) {
+              return;
+            }
+            seenIds.add(ledger.id);
+            
             options.push({
               id: ledger.id,
               name: ledger.name,
@@ -375,6 +382,12 @@ const TallyVendorBillDetail = () => {
       Object.values(expenseLedgersData.grouped_ledgers).forEach((group) => {
         if (group.ledgers && Array.isArray(group.ledgers)) {
           group.ledgers.forEach((ledger) => {
+            // Skip duplicates to avoid key conflicts
+            if (seenIds.has(ledger.id)) {
+              return;
+            }
+            seenIds.add(ledger.id);
+            
             options.push({
               id: ledger.id,
               name: ledger.name,
