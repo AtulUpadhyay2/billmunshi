@@ -20,6 +20,8 @@ import {
   useGetTallyIgstLedgers,
   useGetTallyMasters,
   useGetTallyConfig,
+  useGetTallyPurchaseLedgers,
+  useGetTallyExpenseChartOfAccountsLedgers,
 } from "@/hooks/api/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -147,6 +149,18 @@ const TallyVendorBillDetail = () => {
   // Fetch IGST ledgers for IGST dropdown
   const { data: igstLedgersData, isLoading: igstLedgersLoading } =
     useGetTallyIgstLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
+
+  // Fetch Purchase ledgers for discount dropdown
+  const { data: purchaseLedgersData, isLoading: purchaseLedgersLoading } =
+    useGetTallyPurchaseLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
+
+  // Fetch Expense ledgers for discount dropdown
+  const { data: expenseLedgersData, isLoading: expenseLedgersLoading } =
+    useGetTallyExpenseChartOfAccountsLedgers(selectedOrganization?.id, {
       enabled: !!selectedOrganization?.id,
     });
 
@@ -331,6 +345,53 @@ const TallyVendorBillDetail = () => {
     });
     return igstLedgers;
   }, [igstLedgersData]);
+
+  // Process Purchase and Expense ledgers data for discount dropdown - Memoized
+  const discountLedgerOptions = useMemo(() => {
+    const options = [];
+    
+    // Add Purchase ledgers
+    if (purchaseLedgersData?.grouped_ledgers) {
+      Object.values(purchaseLedgersData.grouped_ledgers).forEach((group) => {
+        if (group.ledgers && Array.isArray(group.ledgers)) {
+          group.ledgers.forEach((ledger) => {
+            options.push({
+              id: ledger.id,
+              name: ledger.name,
+              master_id: ledger.master_id,
+              alter_id: ledger.alter_id,
+              opening_balance: ledger.opening_balance,
+              company: ledger.company,
+              parent_name: group.parent_name,
+              type: 'Purchase',
+            });
+          });
+        }
+      });
+    }
+    
+    // Add Expense ledgers
+    if (expenseLedgersData?.grouped_ledgers) {
+      Object.values(expenseLedgersData.grouped_ledgers).forEach((group) => {
+        if (group.ledgers && Array.isArray(group.ledgers)) {
+          group.ledgers.forEach((ledger) => {
+            options.push({
+              id: ledger.id,
+              name: ledger.name,
+              master_id: ledger.master_id,
+              alter_id: ledger.alter_id,
+              opening_balance: ledger.opening_balance,
+              company: ledger.company,
+              parent_name: group.parent_name,
+              type: 'Expense',
+            });
+          });
+        }
+      });
+    }
+    
+    return options;
+  }, [purchaseLedgersData, expenseLedgersData]);
 
   // Process masters data for item name dropdown - Memoized
   const stockItemOptions = useMemo(() => {
@@ -845,9 +906,9 @@ const TallyVendorBillDetail = () => {
 
     const { discount_taxes } = tallyAnalysedData;
 
-    if (discount_taxes && taxLedgerOptions.length > 0 && !billSummaryForm.discountLedgerId) {
+    if (discount_taxes && discountLedgerOptions.length > 0 && !billSummaryForm.discountLedgerId) {
       // Check if discount_taxes is an ID
-      const matchedDiscountLedger = taxLedgerOptions.find(
+      const matchedDiscountLedger = discountLedgerOptions.find(
         (ledger) => ledger.id === discount_taxes
       );
       
@@ -861,7 +922,7 @@ const TallyVendorBillDetail = () => {
     }
   }, [
     tallyAnalysedData,
-    taxLedgerOptions,
+    discountLedgerOptions,
     billSummaryForm.discountLedgerId,
   ]);
 
@@ -1399,6 +1460,9 @@ const TallyVendorBillDetail = () => {
       const igstLedger = igstLedgerOptions.find(
         (ledger) => ledger.id === billSummaryForm.igstLedgerId
       );
+      const discountLedger = discountLedgerOptions.find(
+        (ledger) => ledger.id === billSummaryForm.discountLedgerId
+      );
 
       const verificationPayload = {
         bill_id: billId,
@@ -1436,9 +1500,12 @@ const TallyVendorBillDetail = () => {
               amount: parseFloat(billSummaryForm.sgst) || 0.0,
               ledger: sgstLedger?.name || "No Tax Ledger",
             },
+            discount: {
+              amount: parseFloat(billSummaryForm.discount) || 0.0,
+              ledger: discountLedger?.name || "No Tax Ledger",
+            }
           },
-          discount: parseFloat(billSummaryForm.discount) || 0.0,
-          discount_taxes: billSummaryForm.discountLedgerId,
+
           // Send products to the appropriate key based on consolidate status
           ...(isConsolidated
             ? {
@@ -3283,25 +3350,28 @@ const TallyVendorBillDetail = () => {
                             }`}
                           >
                             <SearchableDropdown
-                              options={taxLedgerOptions}
+                              options={discountLedgerOptions}
                               value={billSummaryForm.discountLedgerId || null}
                               onChange={handleDiscountLedgerSelect}
                               onClear={handleDiscountLedgerClear}
                               placeholder={
                                 parseFloat(billSummaryForm.discount || 0) > 0
-                                  ? "* Select Discount ledger... *"
-                                  : "Select Discount ledger..."
+                                  ? "* Select Discount ledger *"
+                                  : "Select Discount ledger"
                               }
-                              searchPlaceholder="Type to search discount ledgers..."
+                              searchPlaceholder="Type to search purchase or expense ledgers..."
                               optionLabelKey="name"
                               optionValueKey="id"
-                              loading={taxLedgersLoading}
+                              loading={purchaseLedgersLoading || expenseLedgersLoading}
                               disabled={isVerified}
                               renderOption={(ledger) => (
                                 <div className="flex flex-col py-1">
                                   <div className="font-medium text-gray-900">
                                     {ledger.name}
                                   </div>
+                                  {ledger.type && (
+                                    <div className="text-xs text-blue-600">{ledger.type} Ledger</div>
+                                  )}
                                 </div>
                               )}
                               className="text-xs"

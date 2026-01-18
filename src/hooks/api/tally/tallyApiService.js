@@ -163,6 +163,29 @@ export const useGetTallyExpenseChartOfAccountsLedgers = (organizationId, options
 };
 
 /**
+ * Get Tally purchase ledgers for an organization
+ */
+export const useGetTallyPurchaseLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallyPurchaseLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/configs/ledgers/?parent_type=chart_of_accounts_parents`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
+/**
  * Get Tally CGST ledgers for an organization
  */
 export const useGetTallyCgstLedgers = (organizationId, options = {}) => {
