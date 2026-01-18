@@ -73,6 +73,8 @@ const TallyVendorBillDetail = () => {
     cgstLedgerId: null,
     sgstLedgerId: null,
     igstLedgerId: null,
+    discount: "",
+    discountLedgerId: null,
   });
 
   // State for notes
@@ -202,6 +204,8 @@ const TallyVendorBillDetail = () => {
     parseFloat(billSummaryForm.sgst || 0) > 0 && !billSummaryForm.sgstLedgerId;
   const isIgstLedgerRequired = () =>
     parseFloat(billSummaryForm.igst || 0) > 0 && !billSummaryForm.igstLedgerId;
+  const isDiscountLedgerRequired = () =>
+    parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId;
   const hasValidationErrors = () =>
     isVendorRequired ||
     (productSync && getProductsWithoutItemName().length > 0) ||
@@ -209,7 +213,8 @@ const TallyVendorBillDetail = () => {
     getProductsWithoutGST().length > 0 ||
     isCgstLedgerRequired() ||
     isSgstLedgerRequired() ||
-    isIgstLedgerRequired();
+    isIgstLedgerRequired() ||
+    isDiscountLedgerRequired();
 
   // Process vendor ledgers data for dropdown - Memoized
   const vendorOptions = useMemo(() => {
@@ -381,6 +386,7 @@ const TallyVendorBillDetail = () => {
       const sgstAmount = data.sgst || tally?.sgst || "";
       const igstAmount = data.igst || tally?.igst || "";
       const totalAmount = data.total || tally?.total || "";
+      const discountAmount = tally?.discount || "";
 
       setBillSummaryForm({
         subtotal: (
@@ -396,6 +402,8 @@ const TallyVendorBillDetail = () => {
         cgstLedgerId: null,
         sgstLedgerId: null,
         igstLedgerId: null,
+        discount: discountAmount.toString(),
+        discountLedgerId: null,
       });
 
       // Initialize notes (if any notes field exists in the API)
@@ -831,6 +839,32 @@ const TallyVendorBillDetail = () => {
     igstLedgerOptions,
   ]);
 
+  // Handle discount ledger ID when returned from backend
+  useEffect(() => {
+    if (!tallyAnalysedData) return;
+
+    const { discount_taxes } = tallyAnalysedData;
+
+    if (discount_taxes && taxLedgerOptions.length > 0 && !billSummaryForm.discountLedgerId) {
+      // Check if discount_taxes is an ID
+      const matchedDiscountLedger = taxLedgerOptions.find(
+        (ledger) => ledger.id === discount_taxes
+      );
+      
+      if (matchedDiscountLedger) {
+        console.log("Matched Discount ledger by ID:", matchedDiscountLedger);
+        setBillSummaryForm((prev) => ({
+          ...prev,
+          discountLedgerId: matchedDiscountLedger.id,
+        }));
+      }
+    }
+  }, [
+    tallyAnalysedData,
+    taxLedgerOptions,
+    billSummaryForm.discountLedgerId,
+  ]);
+
   // Match product tax ledgers from API response
   useEffect(() => {
     // Check if we need to run matching logic
@@ -1194,6 +1228,20 @@ const TallyVendorBillDetail = () => {
     }));
   };
 
+  const handleDiscountLedgerSelect = (ledgerId) => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      discountLedgerId: ledgerId,
+    }));
+  };
+
+  const handleDiscountLedgerClear = () => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      discountLedgerId: null,
+    }));
+  };
+
   // Handle consolidate toggle
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
@@ -1389,6 +1437,8 @@ const TallyVendorBillDetail = () => {
               ledger: sgstLedger?.name || "No Tax Ledger",
             },
           },
+          discount: parseFloat(billSummaryForm.discount) || 0.0,
+          discount_taxes: billSummaryForm.discountLedgerId,
           // Send products to the appropriate key based on consolidate status
           ...(isConsolidated
             ? {
@@ -3190,6 +3240,68 @@ const TallyVendorBillDetail = () => {
                                                                     {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
                                                                         <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                                                                     )} */}
+                                </div>
+                              )}
+                              className="text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">
+                          Discount:
+                          {parseFloat(billSummaryForm.discount || 0) > 0 && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-600 mr-2">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              name="discount"
+                              value={billSummaryForm.discount}
+                              onChange={(e) =>
+                                handleBillSummaryChange("discount", e.target.value)
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "opacity-60 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            />
+                          </div>
+                          <div
+                            className={`relative flex-1 min-w-[200px] ${
+                              parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified
+                                ? "ring-2 ring-red-300 rounded-md"
+                                : ""
+                            }`}
+                          >
+                            <SearchableDropdown
+                              options={taxLedgerOptions}
+                              value={billSummaryForm.discountLedgerId || null}
+                              onChange={handleDiscountLedgerSelect}
+                              onClear={handleDiscountLedgerClear}
+                              placeholder={
+                                parseFloat(billSummaryForm.discount || 0) > 0
+                                  ? "* Select Discount ledger... *"
+                                  : "Select Discount ledger..."
+                              }
+                              searchPlaceholder="Type to search discount ledgers..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={taxLedgersLoading}
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {ledger.name}
+                                  </div>
                                 </div>
                               )}
                               className="text-xs"
