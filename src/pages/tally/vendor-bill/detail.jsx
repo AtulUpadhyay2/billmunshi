@@ -455,11 +455,11 @@ const TallyVendorBillDetail = () => {
         is_tax: "TDS", // Default to TDS
       });
 
-      // Initialize Bill Summary Form - use analysed_data as primary source
+      // Initialize Bill Summary Form - use analyzed_bill as primary source for total
       const cgstAmount = data.cgst || tally?.cgst || "";
       const sgstAmount = data.sgst || tally?.sgst || "";
       const igstAmount = data.igst || tally?.igst || "";
-      const totalAmount = data.total || tally?.total || "";
+      const totalAmount = tally?.total || data.total || "";
       const discountAmount = tally?.discount || "";
 
       setBillSummaryForm({
