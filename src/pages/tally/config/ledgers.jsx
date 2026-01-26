@@ -148,9 +148,6 @@ const Ledgers = () => {
                                 {ledger.alias !== "0" && (
                                   <div className="text-sm text-gray-500">Alias: {ledger.alias}</div>
                                 )}
-                                <div className="text-sm text-gray-600 mt-1">
-                                  Master ID: {ledger.master_id} | Alter ID: {ledger.alter_id}
-                                </div>
                                 {ledger.company && (
                                   <div className="text-xs text-gray-500 mt-1">
                                     {ledger.company.trim()}
@@ -162,9 +159,9 @@ const Ledgers = () => {
                                   ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </div>
                                 <div className="text-xs text-gray-500">Opening Balance</div>
-                                {ledger.gst_in !== "0" && (
+                                {ledger.gst_in !== "" && (
                                   <Badge 
-                                    label="GST"
+                                    label={`GST: ${ledger.gst_in}`}
                                     className="bg-yellow-100 text-yellow-800 text-xs mt-1"
                                   />
                                 )}
