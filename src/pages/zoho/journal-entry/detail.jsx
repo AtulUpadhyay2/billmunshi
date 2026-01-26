@@ -71,6 +71,12 @@ const ZohoJournalEntryDetail = () => {
   // State for notes
   const [notes, setNotes] = useState("");
 
+  // State for date validation errors
+  const [dateErrors, setDateErrors] = useState({
+    entryDate: "",
+    dueDate: "",
+  });
+
   // State for image zoom and viewing
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -153,6 +159,53 @@ const ZohoJournalEntryDetail = () => {
     isVendorRequired ||
     getLineItemsWithoutCOA().length > 0 ||
     journalLineItems.length === 0;
+
+  // Date validation helper function
+  const validateDateInput = (dateString) => {
+    if (!dateString) return true; // Allow empty dates
+    
+    // Check if the date string is in valid format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateString)) return false;
+    
+    const [year, month, day] = dateString.split('-').map(Number);
+    
+    // Validate year (between 1900 and 2100)
+    if (year < 1900 || year > 2100) return false;
+    
+    // Validate month (1-12)
+    if (month < 1 || month > 12) return false;
+    
+    // Validate day based on month
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) return false;
+    
+    return true;
+  };
+
+  // Handle date input changes with validation
+  const handleDateChange = (name, value) => {
+    // Clear error for this field first
+    setDateErrors(prev => ({ ...prev, [name]: "" }));
+
+    // For date inputs, validate before setting
+    if (value && !validateDateInput(value)) {
+      // Set inline error message
+      const [year] = value.split('-').map(Number);
+      let errorMessage = 'Invalid date';
+      
+      if (year < 1900 || year > 2100) {
+        errorMessage = 'Year must be between 1900 and 2100';
+      }
+      
+      setDateErrors(prev => ({ ...prev, [name]: errorMessage }));
+      
+      // Still show toast for user awareness
+      globalToast('error', errorMessage);
+      return; // Don't update the state with invalid date
+    }
+    handleFormChange(name, value);
+  };
 
   // Utility function to check if file is PDF
   const isPDF = (url) => url && url.toLowerCase().includes(".pdf");
@@ -1501,16 +1554,38 @@ const ZohoJournalEntryDetail = () => {
                         name="entryDate"
                         value={journalEntryForm.entryDate}
                         onChange={(e) =>
-                          handleFormChange("entryDate", e.target.value)
+                          handleDateChange("entryDate", e.target.value)
                         }
+                        min="1900-01-01"
+                        max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
-                          isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
-                            : ""
+                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                          dateErrors.entryDate
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : isVerified
+                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
+                      {dateErrors.entryDate && (
+                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {dateErrors.entryDate}
+                        </p>
+                      )}
                     </div>
 
                     {/* Due Date Field */}
@@ -1523,16 +1598,38 @@ const ZohoJournalEntryDetail = () => {
                         name="dueDate"
                         value={journalEntryForm.dueDate}
                         onChange={(e) =>
-                          handleFormChange("dueDate", e.target.value)
+                          handleDateChange("dueDate", e.target.value)
                         }
+                        min="1900-01-01"
+                        max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
-                          isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
-                            : ""
+                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                          dateErrors.dueDate
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : isVerified
+                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
+                      {dateErrors.dueDate && (
+                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {dateErrors.dueDate}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
