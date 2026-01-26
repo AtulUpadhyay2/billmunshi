@@ -42,6 +42,21 @@ const TallyExpenseBill = () => {
   } = useGetTallyExpenseBills(getQueryParams(), {
     enabled: !!selectedOrganization?.id,
   });
+  
+  // Fetch counts for all tabs
+  const { data: allBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id }, {
+    enabled: !!selectedOrganization?.id,
+  });
+  const { data: draftBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'draft' }, {
+    enabled: !!selectedOrganization?.id,
+  });
+  const { data: analysedBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'analysed' }, {
+    enabled: !!selectedOrganization?.id,
+  });
+  const { data: syncedBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'synced' }, {
+    enabled: !!selectedOrganization?.id,
+  });
+  
   const { mutateAsync: updateExpenseBill } = useUpdateTallyExpenseBill();
   const { mutateAsync: deleteExpenseBill } = useDeleteTallyExpenseBill();
   const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
@@ -65,6 +80,22 @@ const TallyExpenseBill = () => {
     { key: "analysed", label: "Analysed" },
     { key: "synced", label: "Synced" },
   ];
+
+  // Function to get count for each tab
+  const getTabCount = (tabKey) => {
+    switch(tabKey) {
+      case 'all':
+        return allBillsData?.count || 0;
+      case 'draft':
+        return draftBillsData?.count || 0;
+      case 'analysed':
+        return analysedBillsData?.count || 0;
+      case 'synced':
+        return syncedBillsData?.count || 0;
+      default:
+        return 0;
+    }
+  };
 
   const handleTabChange = (tabKey) => {
     setIsTabChanging(true);
@@ -561,48 +592,53 @@ const TallyExpenseBill = () => {
         {/* Tab Navigation */}
         <div className="border-b border-slate-200 dark:border-slate-700 mb-6">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => handleTabChange(tab.key)}
-                disabled={isLoading || isFetching || isTabChanging}
-                className={`group inline-flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-wait ${
-                  activeTab === tab.key
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300"
-                }`}
-              >
-                <span className="font-medium">{tab.label}</span>
-                {activeTab === tab.key && expenseBillsData?.count > 0 && (
-                  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-300">
-                    {expenseBillsData.count}
+            {tabs.map((tab) => {
+              const tabCount = getTabCount(tab.key);
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabChange(tab.key)}
+                  disabled={isLoading || isFetching || isTabChanging}
+                  className={`group inline-flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-wait ${
+                    activeTab === tab.key
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+                      : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300"
+                  }`}
+                >
+                  <span className="font-medium">{tab.label}</span>
+                  <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    activeTab === tab.key 
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-300'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                  }`}>
+                    {tabCount}
                   </span>
-                )}
-                {activeTab === tab.key &&
-                  (isLoading || isFetching || isTabChanging) && (
-                    <svg
-                      className="w-3.5 h-3.5 animate-spin text-blue-600"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                  )}
-              </button>
-            ))}
+                  {activeTab === tab.key &&
+                    (isLoading || isFetching || isTabChanging) && (
+                      <svg
+                        className="w-3.5 h-3.5 animate-spin text-blue-600"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
