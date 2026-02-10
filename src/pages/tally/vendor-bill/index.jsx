@@ -61,8 +61,10 @@ const TallyVendorBill = () => {
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isExternalBillModalOpen, setIsExternalBillModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
   const [selectedDuplicateBill, setSelectedDuplicateBill] = useState(null);
+  const [selectedExternalBill, setSelectedExternalBill] = useState(null);
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
@@ -247,6 +249,11 @@ const TallyVendorBill = () => {
   const handleViewDuplicates = (bill) => {
     setSelectedDuplicateBill(bill);
     setIsDuplicateModalOpen(true);
+  };
+
+  const handleViewExternalBill = (bill) => {
+    setSelectedExternalBill(bill);
+    setIsExternalBillModalOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -585,6 +592,18 @@ const TallyVendorBill = () => {
                                   Duplicate
                                 </button>
                               )}
+                              {bill.bill_belong_your_org === false && (
+                                <button
+                                  onClick={() => handleViewExternalBill(bill)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                  title="This bill was not issued by your organization - Click for details"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z" />
+                                  </svg>
+                                  External Bill
+                                </button>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -768,6 +787,61 @@ const TallyVendorBill = () => {
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setIsDuplicateModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* External Bill Details Modal */}
+      <Modal
+        activeModal={isExternalBillModalOpen}
+        onClose={() => setIsExternalBillModalOpen(false)}
+        title="External Bill Information"
+        className="max-w-lg"
+      >
+        {selectedExternalBill && (
+          <div className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5 text-red-600 dark:text-red-400"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  Bill Details - {selectedExternalBill.bill_munshi_name}
+                </h4>
+                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                  <p>
+                    <span className="font-medium">Description:</span>
+                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md border border-slate-200 dark:border-slate-700">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {selectedExternalBill.description || "No description available"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setIsExternalBillModalOpen(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
               >
                 Close

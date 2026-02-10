@@ -113,19 +113,18 @@ const TallyVendorBillDetail = () => {
     refetch,
   } = useGetTallyVendorBillDetails(
     { organizationId: selectedOrganization?.id, billId },
-    { enabled: !!selectedOrganization?.id && !!billId }
+    { enabled: !!selectedOrganization?.id && !!billId },
   );
 
   // Fetch Tally config to get product sync setting
-  const { data: configResponse } = useGetTallyConfig(
-    selectedOrganization?.id,
-    { enabled: !!selectedOrganization?.id }
-  );
+  const { data: configResponse } = useGetTallyConfig(selectedOrganization?.id, {
+    enabled: !!selectedOrganization?.id,
+  });
 
   // Fetch ledgers for dropdown (available for Tally)
   const { data: ledgersData, isLoading: ledgersLoading } = useGetTallyLedgers(
     selectedOrganization?.id,
-    { enabled: !!selectedOrganization?.id }
+    { enabled: !!selectedOrganization?.id },
   );
 
   // Fetch vendor ledgers for vendor selection dropdown
@@ -173,7 +172,7 @@ const TallyVendorBillDetail = () => {
   // Fetch masters data for item name dropdown
   const { data: mastersData, isLoading: mastersLoading } = useGetTallyMasters(
     selectedOrganization?.id,
-    { enabled: !!selectedOrganization?.id }
+    { enabled: !!selectedOrganization?.id },
   );
 
   // Update mutation
@@ -188,19 +187,19 @@ const TallyVendorBillDetail = () => {
   // Extract data from the API response - Memoized to prevent recreating objects on every render
   const billInfo = useMemo(
     () => vendorBillData?.bill || vendorBillData || {},
-    [vendorBillData]
+    [vendorBillData],
   );
   const analysedData = useMemo(
     () => vendorBillData?.analysed_data || billInfo?.analysed_data || {},
-    [vendorBillData, billInfo]
+    [vendorBillData, billInfo],
   );
   const tallyAnalysedData = useMemo(
     () => vendorBillData?.analyzed_bill || {},
-    [vendorBillData]
+    [vendorBillData],
   );
   const productSync = useMemo(
     () => configResponse?.data?.tally_product_allow_sync || false,
-    [configResponse]
+    [configResponse],
   );
 
   // Check if bill is synced or posted (disable inputs if any of these statuses)
@@ -225,7 +224,13 @@ const TallyVendorBillDetail = () => {
   const isIgstLedgerRequired = () =>
     parseFloat(billSummaryForm.igst || 0) > 0 && !billSummaryForm.igstLedgerId;
   const isDiscountLedgerRequired = () =>
-    parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId;
+    parseFloat(billSummaryForm.discount || 0) > 0 &&
+    !billSummaryForm.discountLedgerId;
+  const isSubtotalGreaterThanTotal = () => {
+    const subtotal = parseFloat(billSummaryForm.subtotal || 0);
+    const total = parseFloat(billSummaryForm.total || 0);
+    return subtotal > total && total > 0;
+  };
   const hasValidationErrors = () =>
     isVendorRequired ||
     (productSync && getProductsWithoutItemName().length > 0) ||
@@ -234,50 +239,86 @@ const TallyVendorBillDetail = () => {
     isCgstLedgerRequired() ||
     isSgstLedgerRequired() ||
     isIgstLedgerRequired() ||
-    isDiscountLedgerRequired();
+    isDiscountLedgerRequired() ||
+    isSubtotalGreaterThanTotal();
+
+  // Get specific validation error messages
+  const getValidationErrorMessages = () => {
+    const errors = [];
+    if (isVendorRequired) errors.push("Please select a vendor");
+    if (productSync && getProductsWithoutItemName().length > 0) {
+      errors.push(
+        `${getProductsWithoutItemName().length} product(s) are missing item names`,
+      );
+    }
+    if (getProductsWithoutTaxLedger().length > 0) {
+      errors.push(
+        `${getProductsWithoutTaxLedger().length} product(s) are missing tax ledgers`,
+      );
+    }
+    if (getProductsWithoutGST().length > 0) {
+      errors.push(
+        `${getProductsWithoutGST().length} product(s) are missing GST rates`,
+      );
+    }
+    if (isCgstLedgerRequired())
+      errors.push("CGST ledger is required when CGST amount > 0");
+    if (isSgstLedgerRequired())
+      errors.push("SGST ledger is required when SGST amount > 0");
+    if (isIgstLedgerRequired())
+      errors.push("IGST ledger is required when IGST amount > 0");
+    if (isDiscountLedgerRequired())
+      errors.push("Discount ledger is required when discount amount > 0");
+    if (isSubtotalGreaterThanTotal()) {
+      errors.push(
+        `Subtotal (₹${billSummaryForm.subtotal}) cannot be greater than total amount (₹${billSummaryForm.total})`,
+      );
+    }
+    return errors;
+  };
 
   // Date validation helper function
   const validateDateInput = (dateString) => {
     if (!dateString) return true; // Allow empty dates
-    
+
     // Check if the date string is in valid format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dateString)) return false;
-    
-    const [year, month, day] = dateString.split('-').map(Number);
-    
+
+    const [year, month, day] = dateString.split("-").map(Number);
+
     // Validate year (between 1900 and 2100)
     if (year < 1900 || year > 2100) return false;
-    
+
     // Validate month (1-12)
     if (month < 1 || month > 12) return false;
-    
+
     // Validate day based on month
     const daysInMonth = new Date(year, month, 0).getDate();
     if (day < 1 || day > daysInMonth) return false;
-    
+
     return true;
   };
 
   // Handle date input changes with validation
   const handleDateChange = (name, value) => {
     // Clear error for this field first
-    setDateErrors(prev => ({ ...prev, [name]: "" }));
+    setDateErrors((prev) => ({ ...prev, [name]: "" }));
 
     // For date inputs, validate before setting
     if (value && !validateDateInput(value)) {
       // Set inline error message
-      const [year] = value.split('-').map(Number);
-      let errorMessage = 'Invalid date';
-      
+      const [year] = value.split("-").map(Number);
+      let errorMessage = "Invalid date";
+
       if (year < 1900 || year > 2100) {
-        errorMessage = 'Year must be between 1900 and 2100';
+        errorMessage = "Year must be between 1900 and 2100";
       }
-      
-      setDateErrors(prev => ({ ...prev, [name]: errorMessage }));
-      
+
+      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
+
       // Still show toast for user awareness
-      globalToast('error', errorMessage);
+      globalToast("error", errorMessage);
       return; // Don't update the state with invalid date
     }
     handleFormChange(name, value);
@@ -403,7 +444,7 @@ const TallyVendorBillDetail = () => {
   const discountLedgerOptions = useMemo(() => {
     const options = [];
     const seenIds = new Set();
-    
+
     // Add Purchase ledgers
     if (purchaseLedgersData?.grouped_ledgers) {
       Object.values(purchaseLedgersData.grouped_ledgers).forEach((group) => {
@@ -414,7 +455,7 @@ const TallyVendorBillDetail = () => {
               return;
             }
             seenIds.add(ledger.id);
-            
+
             options.push({
               id: ledger.id,
               name: ledger.name,
@@ -423,13 +464,13 @@ const TallyVendorBillDetail = () => {
               opening_balance: ledger.opening_balance,
               company: ledger.company,
               parent_name: group.parent_name,
-              type: 'Purchase',
+              type: "Purchase",
             });
           });
         }
       });
     }
-    
+
     // Add Expense ledgers
     if (expenseLedgersData?.grouped_ledgers) {
       Object.values(expenseLedgersData.grouped_ledgers).forEach((group) => {
@@ -440,7 +481,7 @@ const TallyVendorBillDetail = () => {
               return;
             }
             seenIds.add(ledger.id);
-            
+
             options.push({
               id: ledger.id,
               name: ledger.name,
@@ -449,13 +490,13 @@ const TallyVendorBillDetail = () => {
               opening_balance: ledger.opening_balance,
               company: ledger.company,
               parent_name: group.parent_name,
-              type: 'Expense',
+              type: "Expense",
             });
           });
         }
       });
     }
-    
+
     return options;
   }, [purchaseLedgersData, expenseLedgersData]);
 
@@ -519,7 +560,7 @@ const TallyVendorBillDetail = () => {
         subtotal: (
           data.items?.reduce(
             (sum, item) => sum + (item.price * item.quantity || 0),
-            0
+            0,
           ) || ""
         ).toString(),
         cgst: cgstAmount.toString(),
@@ -577,7 +618,7 @@ const TallyVendorBillDetail = () => {
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
-          }))
+          })),
         );
       } else if (data.items && data.items.length > 0) {
         setProducts(
@@ -595,7 +636,7 @@ const TallyVendorBillDetail = () => {
             igst: 0.0,
             cgst: 0.0,
             sgst: 0.0,
-          }))
+          })),
         );
       } else {
         // Initialize with empty product if no products exist
@@ -641,7 +682,7 @@ const TallyVendorBillDetail = () => {
 
       if (tallyAnalysedData.vendor_name) {
         matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === tallyAnalysedData.vendor_name
+          (vendor) => vendor.name === tallyAnalysedData.vendor_name,
         );
       }
 
@@ -651,7 +692,7 @@ const TallyVendorBillDetail = () => {
           (vendor) =>
             vendor.name === tallyAnalysedData.vendor.name ||
             vendor.gst_in === tallyAnalysedData.vendor.gst_in ||
-            vendor.id === tallyAnalysedData.vendor.id
+            vendor.id === tallyAnalysedData.vendor.id,
         );
       }
 
@@ -686,7 +727,7 @@ const TallyVendorBillDetail = () => {
         // If product already has item_id and a matching stock item exists, don't override
         if (product.item_id) {
           const existingStockItem = stockItemOptions.find(
-            (item) => item.id === product.item_id
+            (item) => item.id === product.item_id,
           );
           if (existingStockItem) {
             return product;
@@ -698,7 +739,7 @@ const TallyVendorBillDetail = () => {
           (p) =>
             p.item_details === product.item_details ||
             (p.item_id && p.item_id === product.item_id) ||
-            (p.item_name && p.item_name === product.item_name)
+            (p.item_name && p.item_name === product.item_name),
         );
 
         if (analyzedProduct) {
@@ -707,7 +748,7 @@ const TallyVendorBillDetail = () => {
           // First try to match by item_id if available and valid
           if (analyzedProduct.item_id) {
             matchedStockItem = stockItemOptions.find(
-              (stockItem) => stockItem.id === analyzedProduct.item_id
+              (stockItem) => stockItem.id === analyzedProduct.item_id,
             );
           }
 
@@ -717,7 +758,7 @@ const TallyVendorBillDetail = () => {
               (stockItem) =>
                 stockItem.name &&
                 stockItem.name.toLowerCase().trim() ===
-                  analyzedProduct.item_name.toLowerCase().trim()
+                  analyzedProduct.item_name.toLowerCase().trim(),
             );
           }
 
@@ -746,7 +787,7 @@ const TallyVendorBillDetail = () => {
       if (hasChanges) {
         console.log(
           "Updating products with analyzed data matching:",
-          JSON.stringify(updatedProducts, null, 2)
+          JSON.stringify(updatedProducts, null, 2),
         );
         setProducts(updatedProducts);
       }
@@ -786,7 +827,7 @@ const TallyVendorBillDetail = () => {
           (ledger) =>
             ledger.name &&
             ledger.name.toLowerCase().trim() ===
-              taxes.cgst.ledger.toLowerCase().trim()
+              taxes.cgst.ledger.toLowerCase().trim(),
         );
 
         // Try partial match if exact match fails
@@ -796,13 +837,13 @@ const TallyVendorBillDetail = () => {
             (ledger) =>
               ledger.name &&
               (ledger.name.toLowerCase().includes(searchTerm) ||
-                searchTerm.includes(ledger.name.toLowerCase()))
+                searchTerm.includes(ledger.name.toLowerCase())),
           );
         }
 
         if (matchedCgstLedger) {
           console.log(
-            `Matched CGST ledger "${taxes.cgst.ledger}" to "${matchedCgstLedger.name}"`
+            `Matched CGST ledger "${taxes.cgst.ledger}" to "${matchedCgstLedger.name}"`,
           );
           updates.cgstLedgerId = matchedCgstLedger.id;
         }
@@ -819,7 +860,7 @@ const TallyVendorBillDetail = () => {
           (ledger) =>
             ledger.name &&
             ledger.name.toLowerCase().trim() ===
-              taxes.sgst.ledger.toLowerCase().trim()
+              taxes.sgst.ledger.toLowerCase().trim(),
         );
 
         // Try partial match if exact match fails
@@ -829,13 +870,13 @@ const TallyVendorBillDetail = () => {
             (ledger) =>
               ledger.name &&
               (ledger.name.toLowerCase().includes(searchTerm) ||
-                searchTerm.includes(ledger.name.toLowerCase()))
+                searchTerm.includes(ledger.name.toLowerCase())),
           );
         }
 
         if (matchedSgstLedger) {
           console.log(
-            `Matched SGST ledger "${taxes.sgst.ledger}" to "${matchedSgstLedger.name}"`
+            `Matched SGST ledger "${taxes.sgst.ledger}" to "${matchedSgstLedger.name}"`,
           );
           updates.sgstLedgerId = matchedSgstLedger.id;
         }
@@ -852,7 +893,7 @@ const TallyVendorBillDetail = () => {
           (ledger) =>
             ledger.name &&
             ledger.name.toLowerCase().trim() ===
-              taxes.igst.ledger.toLowerCase().trim()
+              taxes.igst.ledger.toLowerCase().trim(),
         );
 
         // Try partial match if exact match fails
@@ -862,13 +903,13 @@ const TallyVendorBillDetail = () => {
             (ledger) =>
               ledger.name &&
               (ledger.name.toLowerCase().includes(searchTerm) ||
-                searchTerm.includes(ledger.name.toLowerCase()))
+                searchTerm.includes(ledger.name.toLowerCase())),
           );
         }
 
         if (matchedIgstLedger) {
           console.log(
-            `Matched IGST ledger "${taxes.igst.ledger}" to "${matchedIgstLedger.name}"`
+            `Matched IGST ledger "${taxes.igst.ledger}" to "${matchedIgstLedger.name}"`,
           );
           updates.igstLedgerId = matchedIgstLedger.id;
         }
@@ -919,7 +960,7 @@ const TallyVendorBillDetail = () => {
       // Match CGST ledger by ID
       if (cgst_taxes && cgstLedgerOptions.length > 0) {
         const matchedCgstLedger = cgstLedgerOptions.find(
-          (ledger) => ledger.id === cgst_taxes
+          (ledger) => ledger.id === cgst_taxes,
         );
         if (matchedCgstLedger) {
           console.log("Matched CGST ledger by ID:", matchedCgstLedger);
@@ -930,7 +971,7 @@ const TallyVendorBillDetail = () => {
       // Match SGST ledger by ID
       if (sgst_taxes && sgstLedgerOptions.length > 0) {
         const matchedSgstLedger = sgstLedgerOptions.find(
-          (ledger) => ledger.id === sgst_taxes
+          (ledger) => ledger.id === sgst_taxes,
         );
         if (matchedSgstLedger) {
           console.log("Matched SGST ledger by ID:", matchedSgstLedger);
@@ -941,7 +982,7 @@ const TallyVendorBillDetail = () => {
       // Match IGST ledger by ID
       if (igst_taxes && igstLedgerOptions.length > 0) {
         const matchedIgstLedger = igstLedgerOptions.find(
-          (ledger) => ledger.id === igst_taxes
+          (ledger) => ledger.id === igst_taxes,
         );
         if (matchedIgstLedger) {
           console.log("Matched IGST ledger by ID:", matchedIgstLedger);
@@ -972,12 +1013,16 @@ const TallyVendorBillDetail = () => {
 
     const { discount_taxes } = tallyAnalysedData;
 
-    if (discount_taxes && discountLedgerOptions.length > 0 && !billSummaryForm.discountLedgerId) {
+    if (
+      discount_taxes &&
+      discountLedgerOptions.length > 0 &&
+      !billSummaryForm.discountLedgerId
+    ) {
       // Check if discount_taxes is an ID
       const matchedDiscountLedger = discountLedgerOptions.find(
-        (ledger) => ledger.id === discount_taxes
+        (ledger) => ledger.id === discount_taxes,
       );
-      
+
       if (matchedDiscountLedger) {
         console.log("Matched Discount ledger by ID:", matchedDiscountLedger);
         setBillSummaryForm((prev) => ({
@@ -1002,8 +1047,8 @@ const TallyVendorBillDetail = () => {
         (product) =>
           !product.tax_ledger_id ||
           !taxLedgerOptions.find(
-            (ledger) => ledger.id === product.tax_ledger_id
-          )
+            (ledger) => ledger.id === product.tax_ledger_id,
+          ),
       );
 
       if (!needsReMatching) {
@@ -1018,7 +1063,7 @@ const TallyVendorBillDetail = () => {
         // If product already has a valid tax_ledger_id, don't override
         if (product.tax_ledger_id) {
           const isValidId = taxLedgerOptions.find(
-            (ledger) => ledger.id === product.tax_ledger_id
+            (ledger) => ledger.id === product.tax_ledger_id,
           );
           if (isValidId) {
             return product;
@@ -1036,7 +1081,7 @@ const TallyVendorBillDetail = () => {
             tallyAnalysedData.products.find(
               (p) =>
                 p.item_details === product.item_details ||
-                p.item_name === product.item_name
+                p.item_name === product.item_name,
             );
 
           if (analyzedProduct) {
@@ -1057,7 +1102,7 @@ const TallyVendorBillDetail = () => {
         // First try: Match by ID if available
         if (taxLedgerIdToMatch && taxLedgerOptions.length > 0) {
           const matchedTaxLedgerById = taxLedgerOptions.find(
-            (taxLedger) => taxLedger.id === taxLedgerIdToMatch
+            (taxLedger) => taxLedger.id === taxLedgerIdToMatch,
           );
           if (
             matchedTaxLedgerById &&
@@ -1065,7 +1110,7 @@ const TallyVendorBillDetail = () => {
           ) {
             console.log(
               `Matched product tax ledger by ID for product ${index}:`,
-              matchedTaxLedgerById
+              matchedTaxLedgerById,
             );
             hasChanges = true;
             return {
@@ -1081,7 +1126,7 @@ const TallyVendorBillDetail = () => {
             (taxLedger) =>
               taxLedger.name &&
               taxLedger.name.toLowerCase().trim() ===
-                taxLedgerToMatch.toLowerCase().trim()
+                taxLedgerToMatch.toLowerCase().trim(),
           );
 
           // Second try: Partial match if exact match fails (for typos like PURCHAGE vs PURCHASE)
@@ -1091,7 +1136,7 @@ const TallyVendorBillDetail = () => {
               (taxLedger) =>
                 taxLedger.name &&
                 (taxLedger.name.toLowerCase().includes(searchTerm) ||
-                  searchTerm.includes(taxLedger.name.toLowerCase()))
+                  searchTerm.includes(taxLedger.name.toLowerCase())),
             );
           }
 
@@ -1101,7 +1146,7 @@ const TallyVendorBillDetail = () => {
           ) {
             hasChanges = true;
             console.log(
-              `Matching tax ledger "${taxLedgerToMatch}" to "${matchedTaxLedger.name}" with ID ${matchedTaxLedger.id}`
+              `Matching tax ledger "${taxLedgerToMatch}" to "${matchedTaxLedger.name}" with ID ${matchedTaxLedger.id}`,
             );
             return {
               ...product,
@@ -1117,7 +1162,7 @@ const TallyVendorBillDetail = () => {
       if (hasChanges) {
         console.log(
           "Updating products with tax ledger matching:",
-          updatedProducts
+          updatedProducts,
         );
         setProducts(updatedProducts);
         productTaxMatchedRef.current = true; // Mark as matched only after successful update
@@ -1139,7 +1184,7 @@ const TallyVendorBillDetail = () => {
         // Case 1: Product has item_id and it exists in stockItemOptions
         if (product.item_id) {
           const stockItemExists = stockItemOptions.find(
-            (item) => item.id === product.item_id
+            (item) => item.id === product.item_id,
           );
           if (stockItemExists) {
             // Ensure item_name is also set if it's missing
@@ -1160,7 +1205,7 @@ const TallyVendorBillDetail = () => {
             (item) =>
               item.name &&
               item.name.toLowerCase().trim() ===
-                product.item_name.toLowerCase().trim()
+                product.item_name.toLowerCase().trim(),
           );
           if (stockItemByName) {
             // Update both item_id and item_name to ensure consistency
@@ -1198,7 +1243,7 @@ const TallyVendorBillDetail = () => {
       if (needsUpdate) {
         console.log(
           "Updating products with stock item matching:",
-          JSON.stringify(updatedProducts, null, 2)
+          JSON.stringify(updatedProducts, null, 2),
         );
         setProducts(updatedProducts);
       }
@@ -1398,7 +1443,7 @@ const TallyVendorBillDetail = () => {
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
-          }))
+          })),
         );
       } else if (tally?.consolidated_product) {
         setProducts([
@@ -1437,7 +1482,7 @@ const TallyVendorBillDetail = () => {
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
-          }))
+          })),
         );
       }
     }
@@ -1507,7 +1552,12 @@ const TallyVendorBillDetail = () => {
   // Handle verification similar to Zoho
   const handleVerification = async () => {
     if (hasValidationErrors()) {
-      toast.error("Please fill all required fields before verification.");
+      const errorMessages = getValidationErrorMessages();
+      const errorText =
+        errorMessages.length > 1
+          ? `Please fix the following issues:\n${errorMessages.map((msg, idx) => `${idx + 1}. ${msg}`).join("\n")}`
+          : errorMessages[0];
+      toast.error(errorText);
       return;
     }
 
@@ -1518,16 +1568,16 @@ const TallyVendorBillDetail = () => {
 
       // Get tax ledger information for summary
       const cgstLedger = cgstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.cgstLedgerId
+        (ledger) => ledger.id === billSummaryForm.cgstLedgerId,
       );
       const sgstLedger = sgstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.sgstLedgerId
+        (ledger) => ledger.id === billSummaryForm.sgstLedgerId,
       );
       const igstLedger = igstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.igstLedgerId
+        (ledger) => ledger.id === billSummaryForm.igstLedgerId,
       );
       const discountLedger = discountLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.discountLedgerId
+        (ledger) => ledger.id === billSummaryForm.discountLedgerId,
       );
 
       const verificationPayload = {
@@ -1569,7 +1619,7 @@ const TallyVendorBillDetail = () => {
             discount: {
               amount: parseFloat(billSummaryForm.discount) || 0.0,
               ledger: discountLedger?.name || "No Tax Ledger",
-            }
+            },
           },
 
           // Send products to the appropriate key based on consolidate status
@@ -1577,7 +1627,7 @@ const TallyVendorBillDetail = () => {
             ? {
                 consolidate_prod: products.map((product) => {
                   const taxLedger = taxLedgerOptions.find(
-                    (ledger) => ledger.id === product.tax_ledger_id
+                    (ledger) => ledger.id === product.tax_ledger_id,
                   );
                   return {
                     item_id: product.id || null,
@@ -1599,7 +1649,7 @@ const TallyVendorBillDetail = () => {
             : {
                 products: products.map((product) => {
                   const taxLedger = taxLedgerOptions.find(
-                    (ledger) => ledger.id === product.tax_ledger_id
+                    (ledger) => ledger.id === product.tax_ledger_id,
                   );
                   return {
                     item_id: product.id || null,
@@ -1677,17 +1727,17 @@ const TallyVendorBillDetail = () => {
           const cgstLedger = cgstLedgerOptions.find(
             (ledger) =>
               ledger.name?.toLowerCase().trim() ===
-              responseData.taxes.cgst?.ledger?.toLowerCase().trim()
+              responseData.taxes.cgst?.ledger?.toLowerCase().trim(),
           );
           const sgstLedger = sgstLedgerOptions.find(
             (ledger) =>
               ledger.name?.toLowerCase().trim() ===
-              responseData.taxes.sgst?.ledger?.toLowerCase().trim()
+              responseData.taxes.sgst?.ledger?.toLowerCase().trim(),
           );
           const igstLedger = igstLedgerOptions.find(
             (ledger) =>
               ledger.name?.toLowerCase().trim() ===
-              responseData.taxes.igst?.ledger?.toLowerCase().trim()
+              responseData.taxes.igst?.ledger?.toLowerCase().trim(),
           );
 
           console.log("Found CGST ledger:", cgstLedger);
@@ -1713,17 +1763,17 @@ const TallyVendorBillDetail = () => {
                 const retryCgstLedger = cgstLedgerOptions.find(
                   (ledger) =>
                     ledger.name?.toLowerCase().trim() ===
-                    responseData.taxes.cgst?.ledger?.toLowerCase().trim()
+                    responseData.taxes.cgst?.ledger?.toLowerCase().trim(),
                 );
                 const retrySgstLedger = sgstLedgerOptions.find(
                   (ledger) =>
                     ledger.name?.toLowerCase().trim() ===
-                    responseData.taxes.sgst?.ledger?.toLowerCase().trim()
+                    responseData.taxes.sgst?.ledger?.toLowerCase().trim(),
                 );
                 const retryIgstLedger = igstLedgerOptions.find(
                   (ledger) =>
                     ledger.name?.toLowerCase().trim() ===
-                    responseData.taxes.igst?.ledger?.toLowerCase().trim()
+                    responseData.taxes.igst?.ledger?.toLowerCase().trim(),
                 );
 
                 console.log("Retry - Found CGST ledger:", retryCgstLedger);
@@ -1755,7 +1805,7 @@ const TallyVendorBillDetail = () => {
               const productTaxLedger = taxLedgerOptions.find(
                 (ledger) =>
                   ledger.name === product.tax_ledger ||
-                  ledger.id === product.taxes
+                  ledger.id === product.taxes,
               );
 
               return {
@@ -1773,7 +1823,7 @@ const TallyVendorBillDetail = () => {
                 cgst: product.cgst?.toString() || "0",
                 sgst: product.sgst?.toString() || "0",
               };
-            }
+            },
           );
           setProducts(updatedConsolidatedProducts);
         } else if (
@@ -1784,7 +1834,7 @@ const TallyVendorBillDetail = () => {
           const updatedProducts = responseData.products.map((product) => {
             // Find tax ledger ID from name
             const productTaxLedger = taxLedgerOptions.find(
-              (ledger) => ledger.name === product.tax_ledger
+              (ledger) => ledger.name === product.tax_ledger,
             );
 
             return {
@@ -1840,7 +1890,7 @@ const TallyVendorBillDetail = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync vendor bill"
+          "Failed to sync vendor bill",
       );
     } finally {
       setIsSyncing(false);
@@ -2101,17 +2151,17 @@ const TallyVendorBillDetail = () => {
                 isVerified
                   ? "bg-gray-400 hover:bg-gray-400"
                   : hasValidationErrors()
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : ""
+                    ? "bg-gray-400 hover:bg-gray-400"
+                    : ""
               }`}
               title={
                 isVerifying
                   ? "Verifying..."
                   : isVerified
-                  ? "Bill already synced/posted"
-                  : hasValidationErrors()
-                  ? "Please select a vendor"
-                  : "Verify"
+                    ? "Bill already synced/posted"
+                    : hasValidationErrors()
+                      ? "Please select a vendor"
+                      : "Verify"
               }
             >
               {isVerifying ? (
@@ -2162,8 +2212,8 @@ const TallyVendorBillDetail = () => {
               {isVerifying
                 ? "Verifying..."
                 : isVerified
-                ? "Verified"
-                : "Verify"}
+                  ? "Verified"
+                  : "Verify"}
             </button>
             {/* Sync Button - Always show but only enable when status is Verified */}
             <button
@@ -2180,10 +2230,10 @@ const TallyVendorBillDetail = () => {
                 isSyncing
                   ? "Syncing in progress..."
                   : isVerified
-                  ? "Bill already synced/posted"
-                  : billInfo?.status !== "Verified"
-                  ? "Bill must be verified before sync"
-                  : "Sync with Tally"
+                    ? "Bill already synced/posted"
+                    : billInfo?.status !== "Verified"
+                      ? "Bill must be verified before sync"
+                      : "Sync with Tally"
               }
             >
               {isSyncing ? (
@@ -2529,18 +2579,22 @@ const TallyVendorBillDetail = () => {
                             </li>
                           )}
                           {isCgstLedgerRequired() && (
-                            <li>
-                              • Select CGST ledger
-                            </li>
+                            <li>• Select CGST ledger</li>
                           )}
                           {isSgstLedgerRequired() && (
-                            <li>
-                              • Select SGST ledger
-                            </li>
+                            <li>• Select SGST ledger</li>
                           )}
                           {isIgstLedgerRequired() && (
+                            <li>• Select IGST ledger</li>
+                          )}
+                          {isDiscountLedgerRequired() && (
+                            <li>• Select Discount ledger</li>
+                          )}
+                          {isSubtotalGreaterThanTotal() && (
                             <li>
-                              • Select IGST ledger
+                              • Subtotal (₹{billSummaryForm.subtotal}) cannot be
+                              greater than total amount (₹
+                              {billSummaryForm.total})
                             </li>
                           )}
                         </ul>
@@ -2718,8 +2772,8 @@ const TallyVendorBillDetail = () => {
                           dateErrors.dateIssued
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dateIssued && (
@@ -2760,8 +2814,8 @@ const TallyVendorBillDetail = () => {
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -2951,7 +3005,7 @@ const TallyVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "item_details",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="Enter item details..."
@@ -3008,7 +3062,7 @@ const TallyVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "price",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="0.00"
@@ -3032,7 +3086,7 @@ const TallyVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "quantity",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="0"
@@ -3056,7 +3110,7 @@ const TallyVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "amount",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="0.00"
@@ -3086,7 +3140,7 @@ const TallyVendorBillDetail = () => {
                                       handleProductChange(
                                         index,
                                         "gst",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     disabled={isVerified}
@@ -3176,7 +3230,7 @@ const TallyVendorBillDetail = () => {
                             .reduce(
                               (sum, product) =>
                                 sum + parseFloat(product.amount || 0),
-                              0
+                              0,
                             )
                             .toLocaleString("en-IN", {
                               minimumFractionDigits: 2,
@@ -3441,7 +3495,10 @@ const TallyVendorBillDetail = () => {
                               name="discount"
                               value={billSummaryForm.discount}
                               onChange={(e) =>
-                                handleBillSummaryChange("discount", e.target.value)
+                                handleBillSummaryChange(
+                                  "discount",
+                                  e.target.value,
+                                )
                               }
                               placeholder="0.00"
                               disabled={isVerified}
@@ -3454,7 +3511,9 @@ const TallyVendorBillDetail = () => {
                           </div>
                           <div
                             className={`relative flex-1 min-w-[200px] ${
-                              parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified
+                              parseFloat(billSummaryForm.discount || 0) > 0 &&
+                              !billSummaryForm.discountLedgerId &&
+                              !isVerified
                                 ? "ring-2 ring-red-300 rounded-md"
                                 : ""
                             }`}
@@ -3472,7 +3531,9 @@ const TallyVendorBillDetail = () => {
                               searchPlaceholder="Type to search purchase or expense ledgers..."
                               optionLabelKey="name"
                               optionValueKey="id"
-                              loading={purchaseLedgersLoading || expenseLedgersLoading}
+                              loading={
+                                purchaseLedgersLoading || expenseLedgersLoading
+                              }
                               disabled={isVerified}
                               renderOption={(ledger) => (
                                 <div className="flex flex-col py-1">
@@ -3480,7 +3541,9 @@ const TallyVendorBillDetail = () => {
                                     {ledger.name}
                                   </div>
                                   {ledger.type && (
-                                    <div className="text-xs text-blue-600">{ledger.type} Ledger</div>
+                                    <div className="text-xs text-blue-600">
+                                      {ledger.type} Ledger
+                                    </div>
                                   )}
                                 </div>
                               )}

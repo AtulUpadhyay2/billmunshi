@@ -106,7 +106,7 @@ const TallyExpenseBillDetail = () => {
     refetch,
   } = useGetTallyExpenseBillDetails(
     { organizationId: selectedOrganization?.id, billId },
-    { enabled: !!selectedOrganization?.id && !!billId }
+    { enabled: !!selectedOrganization?.id && !!billId },
   );
 
   console.log("Expense Bill Data:", expenseBillData);
@@ -169,33 +169,44 @@ const TallyExpenseBillDetail = () => {
   const isVendorRequired = !billForm.selectedVendor;
   const getItemsWithoutCOA = () =>
     expenseItems.filter((item) => !item.chart_of_accounts_id);
-  
+
   // Tax ledger validation helpers
   const isCgstLedgerRequired = () => {
     const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
     return cgstAmount > 0 && !taxSummaryForm.cgstLedgerId;
   };
-  
+
   const isSgstLedgerRequired = () => {
     const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
     return sgstAmount > 0 && !taxSummaryForm.sgstLedgerId;
   };
-  
+
   const isIgstLedgerRequired = () => {
     const igstAmount = parseFloat(taxSummaryForm.igst || 0);
     return igstAmount > 0 && !taxSummaryForm.igstLedgerId;
   };
-  
+
   const isTdsLedgerRequired = () => {
     const tdsAmount = parseFloat(taxSummaryForm.tds || 0);
     return tdsAmount > 0 && !taxSummaryForm.tdsLedgerId;
   };
-  
+
   const isOtherAdjustmentLedgerRequired = () => {
-    const otherAdjustmentAmount = parseFloat(taxSummaryForm.other_adjustment || 0);
+    const otherAdjustmentAmount = parseFloat(
+      taxSummaryForm.other_adjustment || 0,
+    );
     return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
   };
-  
+
+  const isSubtotalGreaterThanTotal = () => {
+    const subtotal = expenseItems.reduce(
+      (sum, item) => sum + parseFloat(item.amount || 0),
+      0,
+    );
+    const total = parseFloat(billForm.totalAmount || 0);
+    return subtotal > total && total > 0;
+  };
+
   const hasValidationErrors = () =>
     isVendorRequired ||
     getItemsWithoutCOA().length > 0 ||
@@ -204,55 +215,90 @@ const TallyExpenseBillDetail = () => {
     isSgstLedgerRequired() ||
     isIgstLedgerRequired() ||
     isTdsLedgerRequired() ||
-    isOtherAdjustmentLedgerRequired();
+    isOtherAdjustmentLedgerRequired() ||
+    isSubtotalGreaterThanTotal();
+
+  // Get specific validation error messages
+  const getValidationErrorMessages = () => {
+    const errors = [];
+    if (isVendorRequired) errors.push("Please select a vendor");
+    if (getItemsWithoutCOA().length > 0) {
+      errors.push(
+        `${getItemsWithoutCOA().length} expense item(s) are missing Chart of Accounts`,
+      );
+    }
+    if (expenseItems.length === 0)
+      errors.push("At least one expense item is required");
+    if (isCgstLedgerRequired())
+      errors.push("CGST ledger is required when CGST amount > 0");
+    if (isSgstLedgerRequired())
+      errors.push("SGST ledger is required when SGST amount > 0");
+    if (isIgstLedgerRequired())
+      errors.push("IGST ledger is required when IGST amount > 0");
+    if (isTdsLedgerRequired())
+      errors.push("TDS ledger is required when TDS amount > 0");
+    if (isOtherAdjustmentLedgerRequired())
+      errors.push(
+        "Other adjustment ledger is required when adjustment amount > 0",
+      );
+    if (isSubtotalGreaterThanTotal()) {
+      const subtotal = expenseItems.reduce(
+        (sum, item) => sum + parseFloat(item.amount || 0),
+        0,
+      );
+      errors.push(
+        `Subtotal (₹${subtotal.toFixed(2)}) cannot be greater than total amount (₹${billForm.totalAmount})`,
+      );
+    }
+    return errors;
+  };
 
   // Date validation helper function
   const validateDateInput = (dateString) => {
     if (!dateString) return true; // Allow empty dates
-    
+
     // Check if the date string is in valid format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dateString)) return false;
-    
-    const [year, month, day] = dateString.split('-').map(Number);
-    
+
+    const [year, month, day] = dateString.split("-").map(Number);
+
     // Validate year (between 1900 and 2100)
     if (year < 1900 || year > 2100) return false;
-    
+
     // Validate month (1-12)
     if (month < 1 || month > 12) return false;
-    
+
     // Validate day based on month
     const daysInMonth = new Date(year, month, 0).getDate();
     if (day < 1 || day > daysInMonth) return false;
-    
+
     return true;
   };
 
   // Handle date input changes with validation
   const handleDateChange = (name, value) => {
     // Clear error for this field first
-    setDateErrors(prev => ({ ...prev, [name]: "" }));
+    setDateErrors((prev) => ({ ...prev, [name]: "" }));
 
     // For date inputs, validate before setting
     if (value && !validateDateInput(value)) {
       // Set inline error message
-      const [year] = value.split('-').map(Number);
-      let errorMessage = 'Invalid date';
-      
+      const [year] = value.split("-").map(Number);
+      let errorMessage = "Invalid date";
+
       if (year < 1900 || year > 2100) {
-        errorMessage = 'Year must be between 1900 and 2100';
+        errorMessage = "Year must be between 1900 and 2100";
       }
-      
-      setDateErrors(prev => ({ ...prev, [name]: errorMessage }));
-      
+
+      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
+
       // Still show toast for user awareness
-      globalToast('error', errorMessage);
+      globalToast("error", errorMessage);
       return; // Don't update the state with invalid date
     }
     handleFormChange(name, value);
   };
-
 
   // Process ledgers data for dropdown (Chart of Accounts)
   const processLedgers = () => {
@@ -421,17 +467,17 @@ const TallyExpenseBillDetail = () => {
         billDate: tally?.bill_date
           ? new Date(tally?.bill_date).toISOString().split("T")[0]
           : data?.dateIssued
-          ? new Date(data?.dateIssued).toISOString().split("T")[0]
-          : "",
+            ? new Date(data?.dateIssued).toISOString().split("T")[0]
+            : "",
         dueDate: tally?.due_date
           ? new Date(tally?.due_date).toISOString().split("T")[0]
           : data?.dueDate
-          ? new Date(data?.dueDate).toISOString().split("T")[0]
-          : tally?.bill_date
-          ? new Date(tally?.bill_date).toISOString().split("T")[0]
-          : data?.dateIssued
-          ? new Date(data?.dateIssued).toISOString().split("T")[0]
-          : "",
+            ? new Date(data?.dueDate).toISOString().split("T")[0]
+            : tally?.bill_date
+              ? new Date(tally?.bill_date).toISOString().split("T")[0]
+              : data?.dateIssued
+                ? new Date(data?.dateIssued).toISOString().split("T")[0]
+                : "",
         vendorName: tally?.vendor_name || data?.from?.name || "",
         companyId: tally?.company_id || "",
         totalAmount: tally?.total || data?.total || "",
@@ -456,7 +502,8 @@ const TallyExpenseBillDetail = () => {
         vendorDebitCredit: tally?.vendor_debit_or_credit || "credit", // Use actual vendor debit/credit
         vendorAmount: tally?.vendor_amount || tally?.total || data?.total || "",
         other_adjustment: tally?.other_adjustment || "0.00",
-        other_adjustment_debit_or_credit: tally?.other_adjustment_debit_or_credit || "debit",
+        other_adjustment_debit_or_credit:
+          tally?.other_adjustment_debit_or_credit || "debit",
         other_adjustment_taxes: null,
       });
 
@@ -582,14 +629,14 @@ const TallyExpenseBillDetail = () => {
 
       if (tallyAnalysedData?.vendor_name) {
         matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === tallyAnalysedData.vendor_name
+          (vendor) => vendor.name === tallyAnalysedData.vendor_name,
         );
       }
 
       // If not found by name, try matching from analysed_data.from
       if (!matchedVendor && analysedData?.from?.name) {
         matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === analysedData.from.name
+          (vendor) => vendor.name === analysedData.from.name,
         );
       }
 
@@ -621,7 +668,7 @@ const TallyExpenseBillDetail = () => {
       // Match CGST ledger by ID first, then by name
       if (tallyAnalysedData.cgst_taxes && !taxSummaryForm.cgstLedgerId) {
         const matchedCgstLedger = cgstLedgerOptions.find(
-          (ledger) => ledger.id === tallyAnalysedData.cgst_taxes
+          (ledger) => ledger.id === tallyAnalysedData.cgst_taxes,
         );
         if (matchedCgstLedger) {
           setTaxSummaryForm((prev) => ({
@@ -634,7 +681,7 @@ const TallyExpenseBillDetail = () => {
       // Match SGST ledger by ID first, then by name
       if (tallyAnalysedData.sgst_taxes && !taxSummaryForm.sgstLedgerId) {
         const matchedSgstLedger = sgstLedgerOptions.find(
-          (ledger) => ledger.id === tallyAnalysedData.sgst_taxes
+          (ledger) => ledger.id === tallyAnalysedData.sgst_taxes,
         );
         if (matchedSgstLedger) {
           setTaxSummaryForm((prev) => ({
@@ -647,7 +694,7 @@ const TallyExpenseBillDetail = () => {
       // Match IGST ledger by ID first, then by name
       if (tallyAnalysedData.igst_taxes && !taxSummaryForm.igstLedgerId) {
         const matchedIgstLedger = igstLedgerOptions.find(
-          (ledger) => ledger.id === tallyAnalysedData.igst_taxes
+          (ledger) => ledger.id === tallyAnalysedData.igst_taxes,
         );
         if (matchedIgstLedger) {
           setTaxSummaryForm((prev) => ({
@@ -660,7 +707,7 @@ const TallyExpenseBillDetail = () => {
       // Match TDS ledger by ID (if available in future)
       if (tallyAnalysedData.tds_taxes && !taxSummaryForm.tdsLedgerId) {
         const matchedTdsLedger = taxLedgerOptions.find(
-          (ledger) => ledger.id === tallyAnalysedData.tds_taxes
+          (ledger) => ledger.id === tallyAnalysedData.tds_taxes,
         );
         if (matchedTdsLedger) {
           setTaxSummaryForm((prev) => ({
@@ -671,9 +718,12 @@ const TallyExpenseBillDetail = () => {
       }
 
       // Match Other Adjustment ledger by ID
-      if (tallyAnalysedData.other_adjustment_taxes && !taxSummaryForm.other_adjustment_taxes) {
+      if (
+        tallyAnalysedData.other_adjustment_taxes &&
+        !taxSummaryForm.other_adjustment_taxes
+      ) {
         const matchedOtherAdjustmentLedger = ledgerOptions.find(
-          (ledger) => ledger.id === tallyAnalysedData.other_adjustment_taxes
+          (ledger) => ledger.id === tallyAnalysedData.other_adjustment_taxes,
         );
         if (matchedOtherAdjustmentLedger) {
           setTaxSummaryForm((prev) => ({
@@ -717,7 +767,7 @@ const TallyExpenseBillDetail = () => {
         ) {
           // But we might need to update the name if it's not set properly
           const matchedLedger = ledgerOptions.find(
-            (ledger) => ledger.id === item.chart_of_accounts_id
+            (ledger) => ledger.id === item.chart_of_accounts_id,
           );
           if (matchedLedger && item.chart_of_accounts === "No COA Ledger") {
             return {
@@ -740,13 +790,13 @@ const TallyExpenseBillDetail = () => {
           if (analyzedItem.chart_of_accounts !== "No COA Ledger") {
             // Check if it's a UUID by trying to match it as an ID first
             matchedLedger = ledgerOptions.find(
-              (ledger) => ledger.id === analyzedItem.chart_of_accounts
+              (ledger) => ledger.id === analyzedItem.chart_of_accounts,
             );
 
             // If not found by ID, try to match by name directly
             if (!matchedLedger) {
               matchedLedger = ledgerOptions.find(
-                (ledger) => ledger.name === analyzedItem.chart_of_accounts
+                (ledger) => ledger.name === analyzedItem.chart_of_accounts,
               );
             }
           }
@@ -766,7 +816,8 @@ const TallyExpenseBillDetail = () => {
       // Only update if there are actual changes
       const hasChanges = updatedItems.some(
         (item, index) =>
-          item.chart_of_accounts_id !== expenseItems[index].chart_of_accounts_id
+          item.chart_of_accounts_id !==
+          expenseItems[index].chart_of_accounts_id,
       );
 
       if (hasChanges) {
@@ -1105,7 +1156,10 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleOtherAdjustmentLedgerSelect = (ledgerId) => {
-    setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: ledgerId }));
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      other_adjustment_taxes: ledgerId,
+    }));
   };
 
   const handleOtherAdjustmentLedgerClear = () => {
@@ -1161,7 +1215,7 @@ const TallyExpenseBillDetail = () => {
             chart_of_accounts_id: null,
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
-          }))
+          })),
         );
       }
     } else {
@@ -1178,7 +1232,7 @@ const TallyExpenseBillDetail = () => {
             chart_of_accounts_id: null,
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
-          }))
+          })),
         );
       }
     }
@@ -1197,19 +1251,19 @@ const TallyExpenseBillDetail = () => {
 
     // Get tax ledger information for summary
     const cgstLedger = cgstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.cgstLedgerId
+      (ledger) => ledger.id === taxSummaryForm.cgstLedgerId,
     );
     const sgstLedger = sgstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.sgstLedgerId
+      (ledger) => ledger.id === taxSummaryForm.sgstLedgerId,
     );
     const igstLedger = igstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.igstLedgerId
+      (ledger) => ledger.id === taxSummaryForm.igstLedgerId,
     );
     const tdsLedger = taxLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.tdsLedgerId
+      (ledger) => ledger.id === taxSummaryForm.tdsLedgerId,
     );
     const otherAdjustmentLedger = ledgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes
+      (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes,
     );
 
     const transformedData = {
@@ -1249,12 +1303,13 @@ const TallyExpenseBillDetail = () => {
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
             ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
-            debit_or_credit: taxSummaryForm.other_adjustment_debit_or_credit || "debit",
+            debit_or_credit:
+              taxSummaryForm.other_adjustment_debit_or_credit || "debit",
           },
         },
         expense_items: expenseItems.map((item) => {
           const coaLedger = ledgerOptions.find(
-            (ledger) => ledger.id === item.chart_of_accounts_id
+            (ledger) => ledger.id === item.chart_of_accounts_id,
           );
           return {
             item_id: item.id,
@@ -1270,7 +1325,7 @@ const TallyExpenseBillDetail = () => {
           ? {
               consolidate_prod: expenseItems.map((item) => {
                 const coaLedger = ledgerOptions.find(
-                  (ledger) => ledger.id === item.chart_of_accounts_id
+                  (ledger) => ledger.id === item.chart_of_accounts_id,
                 );
                 return {
                   item_details: item.item_details || "",
@@ -1302,67 +1357,13 @@ const TallyExpenseBillDetail = () => {
   const handleSave = async () => {
     try {
       // Validation before verification
-      if (!billForm.selectedVendor) {
-        globalToast.error("Please select a vendor before verification");
-        return;
-      }
-
-      // Check if all expense items have chart of accounts selected
-      const itemsWithoutCOA = expenseItems.filter(
-        (item) => !item.chart_of_accounts_id
-      );
-      if (itemsWithoutCOA.length > 0) {
-        globalToast.error(
-          "Please select Chart of Accounts for all expense items before verification"
-        );
-        return;
-      }
-
-      // Check if there are any expense items
-      if (expenseItems.length === 0) {
-        globalToast.error(
-          "Please add at least one expense item before verification"
-        );
-        return;
-      }
-
-      // Check if CGST amount > 0 and ledger is not selected
-      if (isCgstLedgerRequired()) {
-        globalToast.error(
-          "Please select CGST Ledger Account as CGST amount is greater than 0"
-        );
-        return;
-      }
-
-      // Check if SGST amount > 0 and ledger is not selected
-      if (isSgstLedgerRequired()) {
-        globalToast.error(
-          "Please select SGST Ledger Account as SGST amount is greater than 0"
-        );
-        return;
-      }
-
-      // Check if IGST amount > 0 and ledger is not selected
-      if (isIgstLedgerRequired()) {
-        globalToast.error(
-          "Please select IGST Ledger Account as IGST amount is greater than 0"
-        );
-        return;
-      }
-
-      // Check if TDS amount > 0 and ledger is not selected
-      if (isTdsLedgerRequired()) {
-        globalToast.error(
-          "Please select TDS Ledger Account as TDS amount is greater than 0"
-        );
-        return;
-      }
-
-      // Check if Other Adjustment amount > 0 and ledger is not selected
-      if (isOtherAdjustmentLedgerRequired()) {
-        globalToast.error(
-          "Please select Other Adjustment Ledger Account as Other Adjustment amount is greater than 0"
-        );
+      if (hasValidationErrors()) {
+        const errorMessages = getValidationErrorMessages();
+        const errorText =
+          errorMessages.length > 1
+            ? `Please fix the following issues:\n${errorMessages.map((msg, idx) => `${idx + 1}. ${msg}`).join("\n")}`
+            : errorMessages[0];
+        globalToast.error(errorText);
         return;
       }
 
@@ -1455,7 +1456,7 @@ const TallyExpenseBillDetail = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync journal entry to Tally"
+          "Failed to sync journal entry to Tally",
       );
     } finally {
       setIsSyncing(false);
@@ -1709,17 +1710,17 @@ const TallyExpenseBillDetail = () => {
                 isVerified
                   ? "bg-gray-400 hover:bg-gray-400"
                   : hasValidationErrors()
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : ""
+                    ? "bg-gray-400 hover:bg-gray-400"
+                    : ""
               }`}
               title={
                 isVerifying
                   ? "Verifying..."
                   : isVerified
-                  ? "Bill already synced/posted"
-                  : hasValidationErrors()
-                  ? "Please select vendor and chart of accounts for all items"
-                  : "Verify"
+                    ? "Bill already synced/posted"
+                    : hasValidationErrors()
+                      ? "Please select vendor and chart of accounts for all items"
+                      : "Verify"
               }
             >
               {isVerifying ? (
@@ -1770,8 +1771,8 @@ const TallyExpenseBillDetail = () => {
               {isVerifying
                 ? "Verifying..."
                 : isVerified
-                ? "Verified"
-                : "Verify"}
+                  ? "Verified"
+                  : "Verify"}
             </button>
             {/* Sync Button - Always show but only enable when status is Verified */}
             <button
@@ -1788,10 +1789,10 @@ const TallyExpenseBillDetail = () => {
                 isSyncing
                   ? "Syncing in progress..."
                   : isVerified
-                  ? "Bill already synced/posted"
-                  : billInfo?.status !== "Verified"
-                  ? "Bill must be verified before sync"
-                  : "Sync with Tally"
+                    ? "Bill already synced/posted"
+                    : billInfo?.status !== "Verified"
+                      ? "Bill must be verified before sync"
+                      : "Sync with Tally"
               }
             >
               {isSyncing ? (
@@ -2179,6 +2180,23 @@ const TallyExpenseBillDetail = () => {
                           {isTdsLedgerRequired() && (
                             <li>• Select TDS Ledger Account</li>
                           )}
+                          {isOtherAdjustmentLedgerRequired() && (
+                            <li>• Select Other Adjustment Ledger Account</li>
+                          )}
+                          {isSubtotalGreaterThanTotal() && (
+                            <li>
+                              • Subtotal (₹
+                              {expenseItems
+                                .reduce(
+                                  (sum, item) =>
+                                    sum + parseFloat(item.amount || 0),
+                                  0,
+                                )
+                                .toFixed(2)}
+                              ) cannot be greater than total amount (₹
+                              {billForm.totalAmount})
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </div>
@@ -2353,8 +2371,8 @@ const TallyExpenseBillDetail = () => {
                           dateErrors.billDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.billDate && (
@@ -2397,8 +2415,8 @@ const TallyExpenseBillDetail = () => {
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -2540,7 +2558,7 @@ const TallyExpenseBillDetail = () => {
                                         handleExpenseItemChange(
                                           index,
                                           "item_details",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       placeholder="Enter item details..."
@@ -2569,7 +2587,7 @@ const TallyExpenseBillDetail = () => {
                                       onChange={(ledgerId) =>
                                         handleChartOfAccountsSelect(
                                           index,
-                                          ledgerId
+                                          ledgerId,
                                         )
                                       }
                                       onClear={() =>
@@ -2600,7 +2618,7 @@ const TallyExpenseBillDetail = () => {
                                       handleExpenseItemChange(
                                         index,
                                         "amount",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     placeholder="0.00"
@@ -2623,7 +2641,7 @@ const TallyExpenseBillDetail = () => {
                                       handleExpenseItemChange(
                                         index,
                                         "debit_or_credit",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     disabled={isVerified}
@@ -2697,7 +2715,7 @@ const TallyExpenseBillDetail = () => {
                               .reduce(
                                 (sum, item) =>
                                   sum + parseFloat(item.amount || 0),
-                                0
+                                0,
                               )
                               .toLocaleString("en-IN", {
                                 minimumFractionDigits: 2,
@@ -2799,7 +2817,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "cgstDebitCredit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -2888,7 +2906,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "sgstDebitCredit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -2977,7 +2995,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "igstDebitCredit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -3066,7 +3084,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "tdsDebitCredit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -3125,7 +3143,9 @@ const TallyExpenseBillDetail = () => {
                             >
                               <SearchableDropdown
                                 options={ledgerOptions}
-                                value={taxSummaryForm.other_adjustment_taxes || null}
+                                value={
+                                  taxSummaryForm.other_adjustment_taxes || null
+                                }
                                 onChange={handleOtherAdjustmentLedgerSelect}
                                 onClear={handleOtherAdjustmentLedgerClear}
                                 placeholder="Select Chart of Accounts..."
@@ -3143,19 +3163,23 @@ const TallyExpenseBillDetail = () => {
                                 )}
                               />
                             </div>
-                            {isOtherAdjustmentLedgerRequired() && !isVerified && (
-                              <span className="text-red-500 text-xs mt-1 block">
-                                This field is required
-                              </span>
-                            )}
+                            {isOtherAdjustmentLedgerRequired() &&
+                              !isVerified && (
+                                <span className="text-red-500 text-xs mt-1 block">
+                                  This field is required
+                                </span>
+                              )}
                           </td>
                           <td className="px-4 py-3">
                             <select
-                              value={taxSummaryForm.other_adjustment_debit_or_credit || "debit"}
+                              value={
+                                taxSummaryForm.other_adjustment_debit_or_credit ||
+                                "debit"
+                              }
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "other_adjustment_debit_or_credit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -3182,7 +3206,10 @@ const TallyExpenseBillDetail = () => {
                               name="other_adjustment"
                               value={taxSummaryForm.other_adjustment}
                               onChange={(e) =>
-                                handleTaxSummaryChange("other_adjustment", e.target.value)
+                                handleTaxSummaryChange(
+                                  "other_adjustment",
+                                  e.target.value,
+                                )
                               }
                               placeholder="0.00"
                               disabled={isVerified}
@@ -3225,7 +3252,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "vendorDebitCredit",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               disabled={isVerified}
@@ -3254,7 +3281,7 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "vendorAmount",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="0.00"
