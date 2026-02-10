@@ -567,9 +567,9 @@ const TallyVendorBillDetail = () => {
         sgst: sgstAmount.toString(),
         igst: igstAmount.toString(),
         total: totalAmount.toString(),
-        cgstLedgerId: null,
-        sgstLedgerId: null,
-        igstLedgerId: null,
+        cgstLedgerId: tally?.cgst_taxes || null,
+        sgstLedgerId: tally?.sgst_taxes || null,
+        igstLedgerId: tally?.igst_taxes || null,
         discount: discountAmount.toString(),
         discountLedgerId: null,
       });
@@ -785,10 +785,6 @@ const TallyVendorBillDetail = () => {
 
       // Only update if there are actual changes
       if (hasChanges) {
-        console.log(
-          "Updating products with analyzed data matching:",
-          JSON.stringify(updatedProducts, null, 2),
-        );
         setProducts(updatedProducts);
       }
       stockItemsMatchedRef.current = true; // Mark as matched
@@ -798,15 +794,7 @@ const TallyVendorBillDetail = () => {
 
   // Match tax ledgers from API response when both are available
   useEffect(() => {
-    // Check if we need to run matching logic
-    // Allow re-matching if any of the ledger IDs are still null
-    const needsMatching =
-      !billSummaryForm.cgstLedgerId ||
-      !billSummaryForm.sgstLedgerId ||
-      !billSummaryForm.igstLedgerId;
-
-    if (!needsMatching && taxLedgersMatchedRef.current) return; // Skip if already matched and all IDs are set
-
+    // Check if we have the required data for matching
     if (
       cgstLedgerOptions.length > 0 &&
       sgstLedgerOptions.length > 0 &&
@@ -816,7 +804,7 @@ const TallyVendorBillDetail = () => {
       const taxes = tallyAnalysedData.taxes;
       const updates = {};
 
-      // Match CGST ledger
+      // Match CGST ledger - Always try to match if ledger name exists and current ID is null
       if (
         taxes.cgst?.ledger &&
         taxes.cgst.ledger !== "No Tax Ledger" &&
@@ -842,14 +830,11 @@ const TallyVendorBillDetail = () => {
         }
 
         if (matchedCgstLedger) {
-          console.log(
-            `Matched CGST ledger "${taxes.cgst.ledger}" to "${matchedCgstLedger.name}"`,
-          );
           updates.cgstLedgerId = matchedCgstLedger.id;
         }
       }
 
-      // Match SGST ledger
+      // Match SGST ledger - Always try to match if ledger name exists and current ID is null
       if (
         taxes.sgst?.ledger &&
         taxes.sgst.ledger !== "No Tax Ledger" &&
@@ -875,14 +860,11 @@ const TallyVendorBillDetail = () => {
         }
 
         if (matchedSgstLedger) {
-          console.log(
-            `Matched SGST ledger "${taxes.sgst.ledger}" to "${matchedSgstLedger.name}"`,
-          );
           updates.sgstLedgerId = matchedSgstLedger.id;
         }
       }
 
-      // Match IGST ledger
+      // Match IGST ledger - Always try to match if ledger name exists and current ID is null
       if (
         taxes.igst?.ledger &&
         taxes.igst.ledger !== "No Tax Ledger" &&
@@ -908,16 +890,12 @@ const TallyVendorBillDetail = () => {
         }
 
         if (matchedIgstLedger) {
-          console.log(
-            `Matched IGST ledger "${taxes.igst.ledger}" to "${matchedIgstLedger.name}"`,
-          );
           updates.igstLedgerId = matchedIgstLedger.id;
         }
       }
 
       // Apply all updates in a single setState call
       if (Object.keys(updates).length > 0) {
-        console.log("Applying tax ledger updates:", updates);
         setBillSummaryForm((prev) => ({
           ...prev,
           ...updates,
@@ -949,12 +927,6 @@ const TallyVendorBillDetail = () => {
         sgstLedgerOptions.length > 0 ||
         igstLedgerOptions.length > 0)
     ) {
-      console.log("Found tax ledger IDs in backend response:", {
-        cgst_taxes,
-        sgst_taxes,
-        igst_taxes,
-      });
-
       const updates = {};
 
       // Match CGST ledger by ID
@@ -963,7 +935,6 @@ const TallyVendorBillDetail = () => {
           (ledger) => ledger.id === cgst_taxes,
         );
         if (matchedCgstLedger) {
-          console.log("Matched CGST ledger by ID:", matchedCgstLedger);
           updates.cgstLedgerId = matchedCgstLedger.id;
         }
       }
@@ -974,7 +945,6 @@ const TallyVendorBillDetail = () => {
           (ledger) => ledger.id === sgst_taxes,
         );
         if (matchedSgstLedger) {
-          console.log("Matched SGST ledger by ID:", matchedSgstLedger);
           updates.sgstLedgerId = matchedSgstLedger.id;
         }
       }
@@ -985,14 +955,12 @@ const TallyVendorBillDetail = () => {
           (ledger) => ledger.id === igst_taxes,
         );
         if (matchedIgstLedger) {
-          console.log("Matched IGST ledger by ID:", matchedIgstLedger);
           updates.igstLedgerId = matchedIgstLedger.id;
         }
       }
 
       // Apply updates if any were found
       if (Object.keys(updates).length > 0) {
-        console.log("Applying tax ledger ID updates:", updates);
         setBillSummaryForm((prev) => ({
           ...prev,
           ...updates,
@@ -1024,7 +992,6 @@ const TallyVendorBillDetail = () => {
       );
 
       if (matchedDiscountLedger) {
-        console.log("Matched Discount ledger by ID:", matchedDiscountLedger);
         setBillSummaryForm((prev) => ({
           ...prev,
           discountLedgerId: matchedDiscountLedger.id,
@@ -1108,10 +1075,6 @@ const TallyVendorBillDetail = () => {
             matchedTaxLedgerById &&
             product.tax_ledger_id !== matchedTaxLedgerById.id
           ) {
-            console.log(
-              `Matched product tax ledger by ID for product ${index}:`,
-              matchedTaxLedgerById,
-            );
             hasChanges = true;
             return {
               ...product,
@@ -1145,9 +1108,6 @@ const TallyVendorBillDetail = () => {
             product.tax_ledger_id !== matchedTaxLedger.id
           ) {
             hasChanges = true;
-            console.log(
-              `Matching tax ledger "${taxLedgerToMatch}" to "${matchedTaxLedger.name}" with ID ${matchedTaxLedger.id}`,
-            );
             return {
               ...product,
               tax_ledger: matchedTaxLedger.name,
@@ -1160,10 +1120,6 @@ const TallyVendorBillDetail = () => {
       });
 
       if (hasChanges) {
-        console.log(
-          "Updating products with tax ledger matching:",
-          updatedProducts,
-        );
         setProducts(updatedProducts);
         productTaxMatchedRef.current = true; // Mark as matched only after successful update
       } else {
@@ -1241,16 +1197,28 @@ const TallyVendorBillDetail = () => {
       });
 
       if (needsUpdate) {
-        console.log(
-          "Updating products with stock item matching:",
-          JSON.stringify(updatedProducts, null, 2),
-        );
         setProducts(updatedProducts);
       }
       stockItemsInitialMatchedRef.current = true; // Mark as matched
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockItemOptions, products]);
+
+  // Recalculate subtotal whenever products change
+  useEffect(() => {
+    const calculatedSubtotal = products.reduce((sum, product) => {
+      const amount = parseFloat(product.amount) || 0;
+      return sum + amount;
+    }, 0);
+
+    // Only update if different to avoid infinite loop
+    if (parseFloat(billSummaryForm.subtotal) !== calculatedSubtotal) {
+      setBillSummaryForm((prev) => ({
+        ...prev,
+        subtotal: calculatedSubtotal.toString(),
+      }));
+    }
+  }, [products, billSummaryForm.subtotal]);
 
   // Handle form input changes
   const handleFormChange = (name, value) => {
@@ -1669,14 +1637,10 @@ const TallyVendorBillDetail = () => {
         },
       };
 
-      console.log("Transformed verify data:", verificationPayload);
-
       const response = await verifyVendorBill({
         organizationId: selectedOrganization.id,
         ...verificationPayload,
       });
-
-      console.log("Verification response:", response);
 
       setVerificationStatus("success");
       setVerificationMessage("Bill verified successfully!");
@@ -1685,7 +1649,6 @@ const TallyVendorBillDetail = () => {
       // Process the response data if available
       if (response?.analyzed_data) {
         const responseData = response.analyzed_data;
-        console.log("Processing response data:", responseData);
 
         // Update form fields with verified data
         if (responseData.vendor?.vendor_name) {
@@ -1718,11 +1681,6 @@ const TallyVendorBillDetail = () => {
 
         // Update bill summary with tax amounts and ledger IDs
         if (responseData.taxes) {
-          console.log("Response taxes:", responseData.taxes);
-          console.log("Available CGST options:", cgstLedgerOptions);
-          console.log("Available SGST options:", sgstLedgerOptions);
-          console.log("Available IGST options:", igstLedgerOptions);
-
           // Find tax ledger IDs from names (case-insensitive and trimmed)
           const cgstLedger = cgstLedgerOptions.find(
             (ledger) =>
@@ -1740,10 +1698,6 @@ const TallyVendorBillDetail = () => {
               responseData.taxes.igst?.ledger?.toLowerCase().trim(),
           );
 
-          console.log("Found CGST ledger:", cgstLedger);
-          console.log("Found SGST ledger:", sgstLedger);
-          console.log("Found IGST ledger:", igstLedger);
-
           setBillSummaryForm((prev) => ({
             ...prev,
             cgst: responseData.taxes.cgst?.amount?.toString() || prev.cgst,
@@ -1758,7 +1712,6 @@ const TallyVendorBillDetail = () => {
           // If ledgers weren't found, try again after a short delay when options are loaded
           if (!cgstLedger || !sgstLedger || !igstLedger) {
             setTimeout(() => {
-              console.log("Retrying tax ledger matching after delay...");
               const retryFindLedgers = () => {
                 const retryCgstLedger = cgstLedgerOptions.find(
                   (ledger) =>
@@ -1775,10 +1728,6 @@ const TallyVendorBillDetail = () => {
                     ledger.name?.toLowerCase().trim() ===
                     responseData.taxes.igst?.ledger?.toLowerCase().trim(),
                 );
-
-                console.log("Retry - Found CGST ledger:", retryCgstLedger);
-                console.log("Retry - Found SGST ledger:", retrySgstLedger);
-                console.log("Retry - Found IGST ledger:", retryIgstLedger);
 
                 setBillSummaryForm((prev) => ({
                   ...prev,
