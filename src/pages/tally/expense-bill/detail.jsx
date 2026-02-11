@@ -109,8 +109,6 @@ const TallyExpenseBillDetail = () => {
     { enabled: !!selectedOrganization?.id && !!billId },
   );
 
-  console.log("Expense Bill Data:", expenseBillData);
-
   // Fetch expense chart of accounts ledgers for Chart of Accounts dropdown
   const { data: ledgersData, isLoading: ledgersLoading } =
     useGetTallyExpenseChartOfAccountsLedgers(selectedOrganization?.id, {
@@ -455,12 +453,6 @@ const TallyExpenseBillDetail = () => {
       const data = analysedData;
       const tally = tallyAnalysedData;
 
-      console.log("Form initialization data:", {
-        expenseBillData,
-        analysedData: data,
-        tallyAnalysedData: tally,
-      });
-
       setBillForm({
         billNumber:
           tally?.bill_no || data?.invoiceNumber || data?.billNumber || "",
@@ -491,20 +483,20 @@ const TallyExpenseBillDetail = () => {
         cgst: tally?.cgst || data?.cgst || "",
         sgst: tally?.sgst || data?.sgst || "",
         tds: tally?.tds || data?.tds || "",
-        igstLedgerId: null,
-        cgstLedgerId: null,
-        sgstLedgerId: null,
-        tdsLedgerId: null,
-        igstDebitCredit: "debit", // Input tax is typically debit for expenses
-        cgstDebitCredit: "debit", // Input tax is typically debit for expenses
-        sgstDebitCredit: "debit", // Input tax is typically debit for expenses
-        tdsDebitCredit: "debit", // TDS is typically debit
-        vendorDebitCredit: tally?.vendor_debit_or_credit || "credit", // Use actual vendor debit/credit
+        igstLedgerId: tally?.igst_taxes || null,
+        cgstLedgerId: tally?.cgst_taxes || null,
+        sgstLedgerId: tally?.sgst_taxes || null,
+        tdsLedgerId: tally?.tds_taxes || null,
+        igstDebitCredit: tally?.igst_debit_or_credit || "debit",
+        cgstDebitCredit: tally?.cgst_debit_or_credit || "debit",
+        sgstDebitCredit: tally?.sgst_debit_or_credit || "debit",
+        tdsDebitCredit: tally?.tds_debit_or_credit || "debit",
+        vendorDebitCredit: tally?.vendor_debit_or_credit || "credit",
         vendorAmount: tally?.vendor_amount || tally?.total || data?.total || "",
         other_adjustment: tally?.other_adjustment || "0.00",
         other_adjustment_debit_or_credit:
           tally?.other_adjustment_debit_or_credit || "debit",
-        other_adjustment_taxes: null,
+        other_adjustment_taxes: tally?.other_adjustment_taxes || null,
       });
 
       // Initialize notes
@@ -912,26 +904,6 @@ const TallyExpenseBillDetail = () => {
       ...prev,
       vendorAmount: vendorAmount.toFixed(2),
     }));
-
-    // Debug log for development
-    console.log("Vendor Amount Calculation:", {
-      totalExpenseDebit,
-      totalExpenseCredit,
-      totalTaxDebit,
-      totalTaxCredit,
-      grandTotalDebit,
-      grandTotalCredit,
-      vendorDebitCredit: taxSummaryForm.vendorDebitCredit,
-      calculatedVendorAmount: vendorAmount.toFixed(2),
-      finalBalance: {
-        totalDebit:
-          grandTotalDebit +
-          (taxSummaryForm.vendorDebitCredit === "debit" ? vendorAmount : 0),
-        totalCredit:
-          grandTotalCredit +
-          (taxSummaryForm.vendorDebitCredit === "credit" ? vendorAmount : 0),
-      },
-    });
   }, [
     expenseItems,
     taxSummaryForm.cgst,
@@ -1339,17 +1311,6 @@ const TallyExpenseBillDetail = () => {
       },
     };
 
-    // Debug log the transformed data
-    console.log("Transform data for verification:", transformedData);
-    console.log("Decimal values check:", {
-      total: transformedData.analyzed_data.total,
-      vendor_amount: transformedData.analyzed_data.vendor_amount,
-      cgst: transformedData.analyzed_data.taxes.cgst.amount,
-      sgst: transformedData.analyzed_data.taxes.sgst.amount,
-      igst: transformedData.analyzed_data.taxes.igst.amount,
-      tds: transformedData.analyzed_data.taxes.tds.amount,
-    });
-
     return transformedData;
   };
 
@@ -1372,8 +1333,6 @@ const TallyExpenseBillDetail = () => {
       // Transform data to the required API format
       const verifyData = transformToVerifyFormat();
 
-      console.log("Transformed verify data:", verifyData);
-
       // Call the verify API
       await verifyExpenseBill({
         organizationId: selectedOrganization?.id,
@@ -1393,7 +1352,6 @@ const TallyExpenseBillDetail = () => {
 
       // React Query + apiFetch error structure
       if (error?.data) {
-        console.log("Error data:", error.data);
         const errorData = error.data;
 
         // Extract message
