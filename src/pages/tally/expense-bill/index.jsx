@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Modal from "@/components/ui/Modal";
@@ -42,21 +42,33 @@ const TallyExpenseBill = () => {
   } = useGetTallyExpenseBills(getQueryParams(), {
     enabled: !!selectedOrganization?.id,
   });
-  
+
   // Fetch counts for all tabs
-  const { data: allBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id }, {
-    enabled: !!selectedOrganization?.id,
-  });
-  const { data: draftBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'draft' }, {
-    enabled: !!selectedOrganization?.id,
-  });
-  const { data: analysedBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'analysed' }, {
-    enabled: !!selectedOrganization?.id,
-  });
-  const { data: syncedBillsData } = useGetTallyExpenseBills({ organizationId: selectedOrganization?.id, status: 'synced' }, {
-    enabled: !!selectedOrganization?.id,
-  });
-  
+  const { data: allBillsData } = useGetTallyExpenseBills(
+    { organizationId: selectedOrganization?.id },
+    {
+      enabled: !!selectedOrganization?.id,
+    },
+  );
+  const { data: draftBillsData } = useGetTallyExpenseBills(
+    { organizationId: selectedOrganization?.id, status: "draft" },
+    {
+      enabled: !!selectedOrganization?.id,
+    },
+  );
+  const { data: analysedBillsData } = useGetTallyExpenseBills(
+    { organizationId: selectedOrganization?.id, status: "analysed" },
+    {
+      enabled: !!selectedOrganization?.id,
+    },
+  );
+  const { data: syncedBillsData } = useGetTallyExpenseBills(
+    { organizationId: selectedOrganization?.id, status: "synced" },
+    {
+      enabled: !!selectedOrganization?.id,
+    },
+  );
+
   const { mutateAsync: updateExpenseBill } = useUpdateTallyExpenseBill();
   const { mutateAsync: deleteExpenseBill } = useDeleteTallyExpenseBill();
   const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
@@ -73,6 +85,12 @@ const TallyExpenseBill = () => {
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
   const [selectedBills, setSelectedBills] = useState(new Set());
+  const [backgroundProcessingBills, setBackgroundProcessingBills] = useState(
+    new Set(),
+  );
+  const [pollingInterval, setPollingInterval] = useState(null);
+  const [isExternalBillModalOpen, setIsExternalBillModalOpen] = useState(false);
+  const [selectedExternalBill, setSelectedExternalBill] = useState(null);
 
   const tabs = [
     { key: "all", label: "All" },
@@ -83,17 +101,38 @@ const TallyExpenseBill = () => {
 
   // Function to get count for each tab
   const getTabCount = (tabKey) => {
-    switch(tabKey) {
-      case 'all':
+    switch (tabKey) {
+      case "all":
         return allBillsData?.count || 0;
-      case 'draft':
+      case "draft":
         return draftBillsData?.count || 0;
-      case 'analysed':
+      case "analysed":
         return analysedBillsData?.count || 0;
-      case 'synced':
+      case "synced":
         return syncedBillsData?.count || 0;
       default:
         return 0;
+    }
+  };
+
+  // Start polling when background processing is detected
+  const startPolling = () => {
+    if (pollingInterval) return; // Already polling
+
+    const interval = setInterval(() => {
+      console.log("🔄 Polling for background processing updates...");
+      refetch();
+    }, 10000); // Poll every 10 seconds
+
+    setPollingInterval(interval);
+  };
+
+  // Stop polling when no background processing
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+      console.log("⏹️ Stopped polling for background processing");
     }
   };
 
@@ -119,7 +158,7 @@ const TallyExpenseBill = () => {
 
   const handleSelectAll = () => {
     const selectableBills = expenseBills.filter(
-      (bill) => bill.status === "Draft" || bill.status === "Analysed"
+      (bill) => bill.status === "Draft" || bill.status === "Analysed",
     );
 
     if (
@@ -148,7 +187,7 @@ const TallyExpenseBill = () => {
         bill_ids: Array.from(selectedBills),
       });
       globalToast.success(
-        `${selectedBills.size} bill(s) moved to Vendor Bill successfully`
+        `${selectedBills.size} bill(s) moved to Vendor Bill successfully`,
       );
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
@@ -158,7 +197,7 @@ const TallyExpenseBill = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to move bills to Vendor Bill"
+          "Failed to move bills to Vendor Bill",
       );
     }
   };
@@ -167,6 +206,14 @@ const TallyExpenseBill = () => {
     try {
       switch (action) {
         case "analyse":
+          // Check if bill is already being processed in background
+          if (backgroundProcessingBills.has(billId)) {
+            globalToast.info(
+              "Bill analysis started! Please wait while processing...",
+            );
+            return;
+          }
+
           // Set loading state
           setAnalyzingBills((prev) => new Set([...prev, billId]));
           try {
@@ -256,7 +303,7 @@ const TallyExpenseBill = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          `Failed to ${action} bill`
+          `Failed to ${action} bill`,
       );
     }
   };
@@ -269,6 +316,11 @@ const TallyExpenseBill = () => {
   const handleViewDuplicates = (bill) => {
     setSelectedDuplicateBill(bill);
     setIsDuplicateModalOpen(true);
+  };
+
+  const handleViewExternalBill = (bill) => {
+    setSelectedExternalBill(bill);
+    setIsExternalBillModalOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -307,7 +359,7 @@ const TallyExpenseBill = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to upload bills"
+          "Failed to upload bills",
       );
     }
   };
@@ -513,6 +565,40 @@ const TallyExpenseBill = () => {
   }
 
   const expenseBills = expenseBillsData?.results || [];
+
+  // Check for background processing bills and start polling if needed
+  const checkBackgroundProcessing = () => {
+    const processingBills = new Set();
+    expenseBills.forEach((bill) => {
+      if (
+        bill.is_processing ||
+        (bill.status === "draft" && bill.file && !bill.analysed_data)
+      ) {
+        processingBills.add(bill.id);
+      }
+    });
+    setBackgroundProcessingBills(processingBills);
+    return processingBills.size > 0;
+  };
+
+  // Effect to manage polling based on background processing
+  useEffect(() => {
+    const hasBackgroundProcessing = checkBackgroundProcessing();
+
+    if (hasBackgroundProcessing) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling(); // Cleanup on unmount
+  }, [expenseBills]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
   return (
     <div className="space-y-5">
       <Card
@@ -523,8 +609,23 @@ const TallyExpenseBill = () => {
             {selectedBills.size > 0 && (
               <button
                 onClick={handleMoveSelected}
-                className="group relative inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95"
-                title="Move selected bills"
+                disabled={Array.from(selectedBills).some((id) =>
+                  backgroundProcessingBills.has(id),
+                )}
+                className={`group relative inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium border border-transparent rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
+                  Array.from(selectedBills).some((id) =>
+                    backgroundProcessingBills.has(id),
+                  )
+                    ? "text-gray-400 bg-gray-100 cursor-not-allowed opacity-50"
+                    : "text-white bg-green-600 hover:bg-green-700 hover:shadow-md focus:ring-green-500"
+                }`}
+                title={
+                  Array.from(selectedBills).some((id) =>
+                    backgroundProcessingBills.has(id),
+                  )
+                    ? "Cannot move bills that are being processed"
+                    : "Move selected bills"
+                }
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -546,8 +647,16 @@ const TallyExpenseBill = () => {
             <button
               onClick={() => refetch()}
               disabled={isLoading}
-              className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh journal entries"
+              className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                backgroundProcessingBills.size > 0
+                  ? "text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100 hover:border-orange-300"
+                  : "text-slate-600 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+              title={
+                backgroundProcessingBills.size > 0
+                  ? `Auto-refreshing every 10 seconds (${backgroundProcessingBills.size} processing)`
+                  : "Refresh journal entries"
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -555,7 +664,11 @@ const TallyExpenseBill = () => {
                 viewBox="0 0 24 24"
                 strokeWidth={1.8}
                 stroke="currentColor"
-                className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+                className={`w-3.5 h-3.5 ${
+                  isLoading || backgroundProcessingBills.size > 0
+                    ? "animate-spin"
+                    : ""
+                }`}
               >
                 <path
                   strokeLinecap="round"
@@ -563,7 +676,11 @@ const TallyExpenseBill = () => {
                   d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
                 />
               </svg>
-              {isLoading ? "Refreshing..." : "Refresh"}
+              {isLoading
+                ? "Refreshing..."
+                : backgroundProcessingBills.size > 0
+                  ? "Auto-refreshing..."
+                  : "Refresh"}
             </button>
             <button
               className="group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95"
@@ -606,11 +723,13 @@ const TallyExpenseBill = () => {
                   }`}
                 >
                   <span className="font-medium">{tab.label}</span>
-                  <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    activeTab === tab.key 
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-300'
-                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                  }`}>
+                  <span
+                    className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      activeTab === tab.key
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-300"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                    }`}
+                  >
                     {tabCount}
                   </span>
                   {activeTab === tab.key &&
@@ -642,6 +761,57 @@ const TallyExpenseBill = () => {
           </nav>
         </div>
 
+        {/* Background Processing Indicator */}
+        {backgroundProcessingBills.size > 0 && (
+          <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="animate-pulse text-yellow-500 text-lg">
+                  ⚡
+                </span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Background Processing Active
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    {backgroundProcessingBills.size} bill
+                    {backgroundProcessingBills.size > 1 ? "s are" : " is"} being
+                    processed in the background. The page will automatically
+                    refresh every 10 seconds until processing is complete.
+                  </p>
+                </div>
+              </div>
+              <div className="ml-auto flex-shrink-0">
+                <div className="flex items-center text-yellow-600">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span className="text-xs font-medium">Live Updates</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto -mx-6">
           <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden ">
@@ -651,7 +821,7 @@ const TallyExpenseBill = () => {
                     <th scope="col" className="table-th w-12">
                       {expenseBills.some(
                         (bill) =>
-                          bill.status === "Draft" || bill.status === "Analysed"
+                          bill.status === "Draft" || bill.status === "Analysed",
                       ) && (
                         <input
                           type="checkbox"
@@ -661,7 +831,7 @@ const TallyExpenseBill = () => {
                               expenseBills.filter(
                                 (bill) =>
                                   bill.status === "Draft" ||
-                                  bill.status === "Analysed"
+                                  bill.status === "Analysed",
                               ).length
                           }
                           onChange={handleSelectAll}
@@ -782,24 +952,41 @@ const TallyExpenseBill = () => {
                             <input
                               type="checkbox"
                               checked={selectedBills.has(bill.id)}
+                              disabled={backgroundProcessingBills.has(bill.id)}
                               onChange={() => handleSelectBill(bill.id)}
-                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                              className={`w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 ${
+                                backgroundProcessingBills.has(bill.id)
+                                  ? "cursor-not-allowed opacity-50"
+                                  : "cursor-pointer"
+                              }`}
                             />
                           )}
                         </td>
                         <td className="table-td">{index + 1}</td>
                         <td className="table-td">
                           <div className="flex flex-col">
-                            <span className="font-medium">
-                              {bill.bill_munshi_name}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {bill.bill_munshi_name}
+                              </span>
+                              {backgroundProcessingBills.has(bill.id) && (
+                                <div className="flex items-center">
+                                  <span className="animate-pulse text-yellow-500 text-xs">
+                                    ⚡
+                                  </span>
+                                  <span className="text-xs text-yellow-600 ml-1">
+                                    Processing...
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               {bill.file && (
                                 <button
                                   onClick={() =>
                                     handleViewFile(
                                       bill.file,
-                                      bill.bill_munshi_name || "Journal Entry"
+                                      bill.bill_munshi_name || "Journal Entry",
                                     )
                                   }
                                   className="text-xs text-blue-600 hover:underline cursor-pointer"
@@ -828,6 +1015,29 @@ const TallyExpenseBill = () => {
                                     />
                                   </svg>
                                   Duplicate
+                                </button>
+                              )}
+                              {bill.bill_belong_your_org === false && (
+                                <button
+                                  onClick={() => handleViewExternalBill(bill)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                  title="This bill was not issued by your organization - Click for details"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-3 h-3"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
+                                    />
+                                  </svg>
+                                  External Bill
                                 </button>
                               )}
                             </div>
@@ -1035,57 +1245,129 @@ const TallyExpenseBill = () => {
         title="Duplicate Detected"
         className="max-w-md"
       >
-        {selectedDuplicateBill && selectedDuplicateBill.duplicate_matched_bills && selectedDuplicateBill.duplicate_matched_bills.length > 0 && (
+        {selectedDuplicateBill &&
+          selectedDuplicateBill.duplicate_matched_bills &&
+          selectedDuplicateBill.duplicate_matched_bills.length > 0 && (
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-orange-600 dark:text-orange-400"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    This bill is already processed under Document ID{" "}
+                    {selectedDuplicateBill.duplicate_matched_bills.map(
+                      (matchedBill, index) => (
+                        <span key={index}>
+                          {index > 0 &&
+                            (index ===
+                            selectedDuplicateBill.duplicate_matched_bills
+                              .length -
+                              1
+                              ? " and "
+                              : ", ")}
+                          <button
+                            onClick={() => {
+                              if (matchedBill.bill_id) {
+                                navigate(
+                                  `/tally/expense-bill/${matchedBill.bill_id}`,
+                                );
+                                setIsDuplicateModalOpen(false);
+                              }
+                            }}
+                            className="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 hover:underline-offset-4 transition-all"
+                          >
+                            Bill {index + 1}
+                          </button>
+                        </span>
+                      ),
+                    )}{" "}
+                    created on{" "}
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {selectedDuplicateBill.duplicate_matched_bills[0].date
+                        ? formatDate(
+                            selectedDuplicateBill.duplicate_matched_bills[0]
+                              .date,
+                          )
+                        : "N/A"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setIsDuplicateModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+      </Modal>
+
+      {/* External Bill Details Modal */}
+      <Modal
+        activeModal={isExternalBillModalOpen}
+        onClose={() => setIsExternalBillModalOpen(false)}
+        title="External Bill Information"
+        className="max-w-md"
+      >
+        {selectedExternalBill && (
           <div className="p-6">
             <div className="flex items-start gap-3 mb-4">
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="w-5 h-5 text-orange-600 dark:text-orange-400"
+                  className="w-5 h-5 text-red-600 dark:text-red-400"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
                   />
                 </svg>
               </div>
               <div className="flex-1">
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  This bill is already processed under Document ID{" "}
-                  {selectedDuplicateBill.duplicate_matched_bills.map((matchedBill, index) => (
-                    <span key={index}>
-                      {index > 0 && (index === selectedDuplicateBill.duplicate_matched_bills.length - 1 ? " and " : ", ")}
-                      <button
-                        onClick={() => {
-                          if (matchedBill.bill_id) {
-                            navigate(`/tally/expense-bill/${matchedBill.bill_id}`);
-                            setIsDuplicateModalOpen(false);
-                          }
-                        }}
-                        className="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 hover:underline-offset-4 transition-all"
-                      >
-                        Bill {index + 1}
-                      </button>
-                    </span>
-                  ))}
-                  {" "}created on{" "}
-                  <span className="font-medium text-slate-900 dark:text-slate-100">
-                    {selectedDuplicateBill.duplicate_matched_bills[0].date 
-                      ? formatDate(selectedDuplicateBill.duplicate_matched_bills[0].date)
-                      : "N/A"}
+                  This expense bill was{" "}
+                  <span className="font-semibold text-red-700 dark:text-red-400">
+                    not issued by your organization
                   </span>
+                  . It appears to be an external expense claim or reimbursement
+                  document.
                 </p>
+                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    <span className="font-medium">Note:</span> External expenses
+                    should be verified for authenticity and proper authorization
+                    before processing.
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
-                onClick={() => setIsDuplicateModalOpen(false)}
+                onClick={() => setIsExternalBillModalOpen(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
               >
                 Close
