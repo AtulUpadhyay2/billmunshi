@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from "@/components/ui/Card";
 import Modal from "@/components/ui/Modal";
@@ -52,11 +52,19 @@ const ZohoExpenseBill = () => {
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
-  const [duplicateData, setDuplicateData] = useState(null);    const [selectedDuplicateBill, setSelectedDuplicateBill] = useState(null);  const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
+  const [isExternalBillModalOpen, setIsExternalBillModalOpen] = useState(false);
+  const [selectedDuplicateBill, setSelectedDuplicateBill] = useState(null);
+  const [selectedExternalBill, setSelectedExternalBill] = useState(null);
+  const [duplicateData, setDuplicateData] = useState(null);
+  const [selectedFile, setSelectedFile] = useState({ url: '', name: '' });
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
   const [selectedBills, setSelectedBills] = useState(new Set());
+  const [backgroundProcessingBills, setBackgroundProcessingBills] = useState(
+    new Set(),
+  );
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   const tabs = [
     { key: 'all', label: 'All' },
@@ -64,6 +72,27 @@ const ZohoExpenseBill = () => {
     { key: 'analysed', label: 'Analysed' },
     { key: 'synced', label: 'Synced' }
   ];
+
+  // Start polling when background processing is detected
+  const startPolling = useCallback(() => {
+    if (pollingInterval) return; // Already polling
+
+    const interval = setInterval(() => {
+      console.log("🔄 Polling for expense bill background processing updates...");
+      refetch();
+    }, 10000); // Poll every 10 seconds
+
+    setPollingInterval(interval);
+  }, [pollingInterval, refetch]);
+
+  // Stop polling when no background processing
+  const stopPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+      console.log("⏹️ Stopped polling for expense bill background processing");
+    }
+  }, [pollingInterval]);
 
   // Function to get count for each tab
   const getTabCount = (tabKey) => {
@@ -257,6 +286,11 @@ const ZohoExpenseBill = () => {
     setIsDuplicateModalOpen(true);
   };
 
+  const handleViewExternalBill = (bill) => {
+    setSelectedExternalBill(bill);
+    setIsExternalBillModalOpen(true);
+  };
+
   const getStatusBadge = (status) => {
     const statusClasses = {
       'Draft': 'text-yellow-700 bg-yellow-100 border-yellow-200',
@@ -318,8 +352,35 @@ const ZohoExpenseBill = () => {
 
     if (status === 'Draft') {
       const isAnalyzing = analyzingBills.has(bill.id);
+      const isBackgroundProcessing = backgroundProcessingBills.has(bill.id);
+      
       return (
         <div className="flex gap-2 flex-wrap items-center">
+          {isBackgroundProcessing ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+              <svg
+                className="w-3.5 h-3.5 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="font-medium">Background Processing...</span>
+            </div>
+          ) : (
           <button
             onClick={() => handleAction(bill.id, 'analyse')}
             disabled={isAnalyzing}
@@ -341,6 +402,7 @@ const ZohoExpenseBill = () => {
             )}
             <span className="font-medium">{isAnalyzing ? 'Analyzing...' : 'Analyse'}</span>
           </button>
+          )}
         </div>
       );
     }
@@ -417,6 +479,46 @@ const ZohoExpenseBill = () => {
   };
 
   const expenseBills = expenseBillsData?.results || [];
+
+  // Check for background processing bills
+  const checkBackgroundProcessing = useCallback(() => {
+    const processingBills = new Set();
+    expenseBills.forEach((bill) => {
+      // Check for bills being processed (is_processing flag or draft status with file but no analysis)
+      if (
+        bill.is_processing ||
+        (bill.status === "Draft" && bill.process === true)
+      ) {
+        processingBills.add(bill.id);
+      }
+    });
+    return processingBills;
+  }, [expenseBills]);
+
+  // Effect to update background processing bills
+  useEffect(() => {
+    const processingBills = checkBackgroundProcessing();
+    setBackgroundProcessingBills(processingBills);
+  }, [checkBackgroundProcessing]);
+
+  // Effect to manage polling based on background processing
+  useEffect(() => {
+    const hasBackgroundProcessing = backgroundProcessingBills.size > 0;
+
+    if (hasBackgroundProcessing) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling(); // Cleanup on unmount
+  }, [backgroundProcessingBills.size, startPolling, stopPolling]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
   return (
     <div className="space-y-5">
       <Card
@@ -896,6 +998,78 @@ const ZohoExpenseBill = () => {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
                 View File
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* External Bill Details Modal */}
+      <Modal
+        activeModal={isExternalBillModalOpen}
+        onClose={() => setIsExternalBillModalOpen(false)}
+        title="External Bill Information"
+        className="max-w-lg"
+      >
+        {selectedExternalBill && (
+          <div className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5 text-red-600 dark:text-red-400"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  Bill Details - {selectedExternalBill.billmunshiName}
+                </h4>
+                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-700">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                      {selectedExternalBill.bill_belong_your_org === false ? (
+                        <>
+                          ❌ Bill NOT issued by your organization.{" "}
+                          {selectedExternalBill.description ? (
+                            <span className="block mt-1 text-xs text-red-700 dark:text-red-300">
+                              {selectedExternalBill.description}
+                            </span>
+                          ) : (
+                            <span className="block mt-1 text-xs text-red-700 dark:text-red-300">
+                              External bill detection - please verify the bill
+                              belongs to your organization.
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          ✅{" "}
+                          {selectedExternalBill.description ||
+                            "Bill validation completed successfully."}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setIsExternalBillModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+              >
+                Close
               </button>
             </div>
           </div>

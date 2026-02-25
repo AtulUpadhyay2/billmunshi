@@ -137,11 +137,13 @@ const ZohoVendorBillDetail = () => {
   const analysedData = vendorBillData?.analysed_data || {};
   const zohoData = vendorBillData?.zoho_bill || {};
 
-  // Check if bill is synced, posted, or verified (disable inputs if any of these statuses)
-  const isVerified =
+  // Check if bill is synced or posted (disable inputs only for synced/posted, not verified)
+  const isSynced =
     vendorBillData?.status === "Synced" ||
-    vendorBillData?.status === "Posted" ||
-    vendorBillData?.status === "Verified";
+    vendorBillData?.status === "Posted";
+  
+  // Allow editing for verified bills (user can verify multiple times)
+  const isVerified = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
@@ -255,10 +257,10 @@ const ZohoVendorBillDetail = () => {
         vendorName: selectedVendorObj?.companyName || data.from?.name || "",
         invoiceNumber: data.invoiceNumber || zoho?.bill_no || "",
         vendorGST: selectedVendorObj?.gstNo || "",
-        dateIssued: parseDate(zoho.bill_date),
+        dateIssued: parseDate(zoho?.bill_date),
         dueDate:
-          parseDate(zoho.due_date) ||
-          parseDate(zoho.bill_date) ||
+          parseDate(zoho?.due_date) ||
+          parseDate(zoho?.bill_date) ||
           parseDate(data.dateIssued),
         selectedVendor: selectedVendorObj || zoho?.vendor || null,
         is_tax: zoho?.is_tax || "TDS", // Load from zoho_bill or default to TDS
@@ -295,7 +297,7 @@ const ZohoVendorBillDetail = () => {
       // Initialize products from zoho_bill.products or consolidate_prod based on consolidate status
       const sourceProducts =
         consolidateStatus && zoho?.consolidate_prod?.length > 0
-          ? zoho.consolidate_prod
+          ? zoho?.consolidate_prod
           : zoho?.products || [];
 
       if (sourceProducts.length > 0) {
@@ -503,7 +505,7 @@ const ZohoVendorBillDetail = () => {
 
     // When toggling to consolidated, use consolidate_prod if available
     if (newConsolidateStatus) {
-      if (zoho?.consolidate_prod && zoho.consolidate_prod.length > 0) {
+      if (zoho?.consolidate_prod && zoho?.consolidate_prod?.length > 0) {
         setProducts(
           zoho.consolidate_prod.map((product) => ({
             id: product.id,
@@ -520,7 +522,7 @@ const ZohoVendorBillDetail = () => {
       }
     } else {
       // When toggling to non-consolidated, use products if available
-      if (zoho?.products && zoho.products.length > 0) {
+      if (zoho?.products && zoho?.products?.length > 0) {
         setProducts(
           zoho.products.map((product) => ({
             id: product.id,
@@ -1029,22 +1031,24 @@ const ZohoVendorBillDetail = () => {
               onClick={handleVerification}
               disabled={
                 isVerifying ||
-                isVerified ||
+                isSynced ||
                 !selectedOrganization?.id ||
                 hasValidationErrors()
               }
               className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isVerified
+                isSynced
                   ? "bg-gray-400 hover:bg-gray-400"
                   : hasValidationErrors()
                   ? "bg-gray-400 hover:bg-gray-400"
                   : ""
               }`}
               title={
-                isVerified
-                  ? "Bill already synced/posted"
+                isSynced
+                  ? "Bill already synced/posted - cannot verify again"
                   : hasValidationErrors()
                   ? "Please select vendor and chart of accounts for all products"
+                  : vendorBillData?.status === "Verified"
+                  ? "Re-verify Bill (you can verify multiple times)"
                   : "Verify Bill"
               }
             >
@@ -1087,29 +1091,29 @@ const ZohoVendorBillDetail = () => {
                       d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  Verify
+                  {vendorBillData?.status === "Verified" ? "Re-verify" : "Verify"}
                 </>
               )}
             </button>
-            {/* Sync Button - Always show but only enable when status is Verified */}
+            {/* Sync Button - Only enable once when status is Verified, disable forever after synced */}
             <button
               onClick={handleSync}
               disabled={
-                isSyncing || isVerified || vendorBillData?.status !== "Verified"
+                isSyncing || isSynced || vendorBillData?.status !== "Verified"
               }
               className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
-                isSyncing || isVerified || vendorBillData?.status !== "Verified"
+                isSyncing || isSynced || vendorBillData?.status !== "Verified"
                   ? "text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75"
                   : "text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500"
               }`}
               title={
                 isSyncing
                   ? "Syncing in progress..."
-                  : isVerified
-                  ? "Bill already synced/posted"
+                  : isSynced
+                  ? "Bill already synced - cannot sync again"
                   : vendorBillData?.status !== "Verified"
                   ? "Bill must be verified before sync"
-                  : "Sync with Zoho"
+                  : "Sync with Zoho (can only sync once)"
               }
             >
               {isSyncing ? (

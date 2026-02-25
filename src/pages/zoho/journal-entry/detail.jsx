@@ -101,7 +101,7 @@ const ZohoJournalEntryDetail = () => {
     refetch,
   } = useGetZohoJournalBillDetails(
     { organizationId: selectedOrganization?.id, billId: journalEntryId },
-    { enabled: !!selectedOrganization?.id && !!journalEntryId }
+    { enabled: !!selectedOrganization?.id && !!journalEntryId },
   );
 
   console.log(`test Data: `, JSON.stringify(journalEntryData, null, 2));
@@ -114,7 +114,7 @@ const ZohoJournalEntryDetail = () => {
 
   // Fetch vendors list for dropdown
   const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
-    selectedOrganization?.id
+    selectedOrganization?.id,
   );
 
   // Fetch all chart of accounts for dropdown
@@ -123,7 +123,7 @@ const ZohoJournalEntryDetail = () => {
 
   // Fetch all taxes for dropdown
   const { data: taxesData, isLoading: taxesLoading } = useGetAllTaxes(
-    selectedOrganization?.id
+    selectedOrganization?.id,
   );
 
   // Fetch all TDS/TCS data based on selected tax type
@@ -134,7 +134,7 @@ const ZohoJournalEntryDetail = () => {
     },
     {
       enabled: !!selectedOrganization?.id && !!journalEntryForm.taxType,
-    }
+    },
   );
 
   // Extract data from the API response
@@ -142,14 +142,12 @@ const ZohoJournalEntryDetail = () => {
   const analysedData = journalEntryData?.analysed_data || {};
   const zohoJournalData = journalEntryData?.zoho_bill || {};
 
-  // Check if journal entry is synced, posted, or verified (disable inputs if any of these statuses)
-  const isVerified =
-    journalInfo?.status === "Synced" ||
-    journalInfo?.status === "Posted" ||
-    journalInfo?.status === "Verified" ||
-    zohoJournalData?.bill_status === "Synced" ||
-    zohoJournalData?.bill_status === "Posted" ||
-    zohoJournalData?.bill_status === "Verified";
+  // Check if journal entry is synced or posted (disable inputs only for synced/posted, not verified)
+  const isSynced =
+    journalInfo?.status === "Synced" || journalInfo?.status === "Posted";
+
+  // Allow editing for verified bills (user can verify multiple times)
+  const isVerified = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isVendorRequired = !journalEntryForm.selectedVendor;
@@ -163,45 +161,45 @@ const ZohoJournalEntryDetail = () => {
   // Date validation helper function
   const validateDateInput = (dateString) => {
     if (!dateString) return true; // Allow empty dates
-    
+
     // Check if the date string is in valid format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dateString)) return false;
-    
-    const [year, month, day] = dateString.split('-').map(Number);
-    
+
+    const [year, month, day] = dateString.split("-").map(Number);
+
     // Validate year (between 1900 and 2100)
     if (year < 1900 || year > 2100) return false;
-    
+
     // Validate month (1-12)
     if (month < 1 || month > 12) return false;
-    
+
     // Validate day based on month
     const daysInMonth = new Date(year, month, 0).getDate();
     if (day < 1 || day > daysInMonth) return false;
-    
+
     return true;
   };
 
   // Handle date input changes with validation
   const handleDateChange = (name, value) => {
     // Clear error for this field first
-    setDateErrors(prev => ({ ...prev, [name]: "" }));
+    setDateErrors((prev) => ({ ...prev, [name]: "" }));
 
     // For date inputs, validate before setting
     if (value && !validateDateInput(value)) {
       // Set inline error message
-      const [year] = value.split('-').map(Number);
-      let errorMessage = 'Invalid date';
-      
+      const [year] = value.split("-").map(Number);
+      let errorMessage = "Invalid date";
+
       if (year < 1900 || year > 2100) {
-        errorMessage = 'Year must be between 1900 and 2100';
+        errorMessage = "Year must be between 1900 and 2100";
       }
-      
-      setDateErrors(prev => ({ ...prev, [name]: errorMessage }));
-      
+
+      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
+
       // Still show toast for user awareness
-      globalToast('error', errorMessage);
+      globalToast("error", errorMessage);
       return; // Don't update the state with invalid date
     }
     handleFormChange(name, value);
@@ -357,7 +355,7 @@ const ZohoJournalEntryDetail = () => {
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
             created_at: item.created_at || null,
-          }))
+          })),
         );
       }
     } else {
@@ -378,7 +376,7 @@ const ZohoJournalEntryDetail = () => {
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
             created_at: item.created_at || null,
-          }))
+          })),
         );
       }
     }
@@ -527,7 +525,7 @@ const ZohoJournalEntryDetail = () => {
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
             created_at: item.created_at || null,
-          }))
+          })),
         );
       } else if (data?.items && data.items.length > 0) {
         // Fallback to analysed_data items if no zoho products
@@ -542,7 +540,7 @@ const ZohoJournalEntryDetail = () => {
             taxes: null,
             amount: item.price || "",
             debit_or_credit: "debit",
-          }))
+          })),
         );
       } else {
         // Initialize with empty journal entry line item if no items exist
@@ -576,14 +574,14 @@ const ZohoJournalEntryDetail = () => {
       // First priority: Match by zoho_bill.vendor ID if it exists
       if (zohoJournalData?.vendor) {
         matchedVendor = vendorsData.results.find(
-          (vendor) => vendor.id === zohoJournalData.vendor
+          (vendor) => vendor.id === zohoJournalData.vendor,
         );
       }
 
       // Fallback: Match by vendor name from analysed_data.from.name
       if (!matchedVendor && analysedData?.from?.name) {
         matchedVendor = vendorsData.results.find(
-          (vendor) => vendor.companyName === analysedData.from.name
+          (vendor) => vendor.companyName === analysedData.from.name,
         );
       }
 
@@ -617,7 +615,7 @@ const ZohoJournalEntryDetail = () => {
     // Prepare items for verification
     const validLineItems = journalLineItems.filter(
       (item) =>
-        item.chart_of_accounts_id && item.amount && parseFloat(item.amount) > 0
+        item.chart_of_accounts_id && item.amount && parseFloat(item.amount) > 0,
     );
 
     if (validLineItems.length === 0) {
@@ -727,11 +725,11 @@ const ZohoJournalEntryDetail = () => {
           // Add additional context for debit/credit errors
           if (error.response.data.difference !== undefined) {
             errorMessage += `\n\nBalance Details:\n• Debit Total: ₹${parseFloat(
-              error.response.data.debit_total
+              error.response.data.debit_total,
             ).toLocaleString()}\n• Credit Total: ₹${parseFloat(
-              error.response.data.credit_total
+              error.response.data.credit_total,
             ).toLocaleString()}\n• Difference: ₹${parseFloat(
-              error.response.data.difference
+              error.response.data.difference,
             ).toLocaleString()}`;
           }
         } else if (error.response.data.message) {
@@ -771,7 +769,7 @@ const ZohoJournalEntryDetail = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync journal entry"
+          "Failed to sync journal entry",
       );
     } finally {
       setIsSyncing(false);
@@ -933,17 +931,19 @@ const ZohoJournalEntryDetail = () => {
                 isVerified
                   ? "bg-gray-400 hover:bg-gray-400"
                   : hasValidationErrors()
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : ""
+                    ? "bg-gray-400 hover:bg-gray-400"
+                    : ""
               }`}
               title={
                 isVerifying
                   ? "Verifying..."
-                  : isVerified
-                  ? "Entry already synced/posted"
-                  : hasValidationErrors()
-                  ? "Please select vendor and chart of accounts for all items"
-                  : "Verify"
+                  : isSynced
+                    ? "Entry already synced/posted - cannot verify again"
+                    : hasValidationErrors()
+                      ? "Please select vendor and chart of accounts for all items"
+                      : journalInfo?.status === "Verified"
+                        ? "Re-verify Entry (you can verify multiple times)"
+                        : "Verify Entry"
               }
             >
               {isVerifying ? (
@@ -993,9 +993,9 @@ const ZohoJournalEntryDetail = () => {
               )}
               {isVerifying
                 ? "Verifying..."
-                : isVerified
-                ? "Verified"
-                : "Verify"}
+                : journalInfo?.status === "Verified"
+                  ? "Re-verify"
+                  : "Verify"}
             </button>
             {/* Sync Button - Always show but only enable when status is Verified */}
             <button
@@ -1012,10 +1012,10 @@ const ZohoJournalEntryDetail = () => {
                 isSyncing
                   ? "Syncing in progress..."
                   : isVerified
-                  ? "Entry already synced/posted"
-                  : journalInfo?.status !== "Verified"
-                  ? "Entry must be verified before sync"
-                  : "Sync with Zoho"
+                    ? "Entry already synced/posted"
+                    : journalInfo?.status !== "Verified"
+                      ? "Entry must be verified before sync"
+                      : "Sync with Zoho"
               }
             >
               {isSyncing ? (
@@ -1564,8 +1564,8 @@ const ZohoJournalEntryDetail = () => {
                           dateErrors.entryDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.entryDate && (
@@ -1608,8 +1608,8 @@ const ZohoJournalEntryDetail = () => {
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -1949,7 +1949,7 @@ const ZohoJournalEntryDetail = () => {
                           onChange={(e) =>
                             handleTaxAndOtherItemsChange(
                               "cgstDebitCredit",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           disabled={isVerified}
@@ -2020,7 +2020,7 @@ const ZohoJournalEntryDetail = () => {
                           onChange={(e) =>
                             handleTaxAndOtherItemsChange(
                               "sgstDebitCredit",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           disabled={isVerified}
@@ -2091,7 +2091,7 @@ const ZohoJournalEntryDetail = () => {
                           onChange={(e) =>
                             handleTaxAndOtherItemsChange(
                               "igstDebitCredit",
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           disabled={isVerified}
@@ -2182,7 +2182,7 @@ const ZohoJournalEntryDetail = () => {
                             onChange={(e) =>
                               handleTaxAndOtherItemsChange(
                                 "vendorDebitCredit",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             disabled={isVerified}
@@ -2204,7 +2204,7 @@ const ZohoJournalEntryDetail = () => {
                             <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
                               {journalEntryForm.totalAmount
                                 ? parseFloat(
-                                    journalEntryForm.totalAmount
+                                    journalEntryForm.totalAmount,
                                   ).toLocaleString("en-IN", {
                                     minimumFractionDigits: 2,
                                   })

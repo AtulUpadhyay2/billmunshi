@@ -129,14 +129,13 @@ const ZohoExpenseBillDetail = () => {
   const analysedData = expenseBillData?.analysed_data || {};
   const zohoBillData = expenseBillData?.zoho_bill || {};
 
-  // Check if bill is synced, posted, or verified (disable inputs if any of these statuses)
-  const isVerified =
+  // Check if bill is synced or posted (disable inputs only for synced/posted, not verified)
+  const isSynced =
     billInfo?.status === "Synced" ||
-    billInfo?.status === "Posted" ||
-    billInfo?.status === "Verified" ||
-    zohoBillData?.bill_status === "Synced" ||
-    zohoBillData?.bill_status === "Posted" ||
-    zohoBillData?.bill_status === "Verified";
+    billInfo?.status === "Posted";
+  
+  // Allow editing for verified bills (user can verify multiple times)
+  const isVerified = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
@@ -832,11 +831,13 @@ const ZohoExpenseBillDetail = () => {
               title={
                 isVerifying
                   ? "Verifying..."
-                  : isVerified
-                  ? "Bill already synced/posted"
+                  : isSynced
+                  ? "Bill already synced/posted - cannot verify again"
                   : hasValidationErrors()
                   ? "Please select vendor, chart of accounts, and taxes for all items"
-                  : "Verify"
+                  : billInfo?.status === "Verified"
+                  ? "Re-verify Bill (you can verify multiple times)"
+                  : "Verify Bill"
               }
             >
               {isVerifying ? (
@@ -886,8 +887,8 @@ const ZohoExpenseBillDetail = () => {
               )}
               {isVerifying
                 ? "Verifying..."
-                : isVerified
-                ? "Verified"
+                : billInfo?.status === "Verified"
+                ? "Re-verify"
                 : "Verify"}
             </button>
             {/* Sync Button - Always show but only enable when status is Verified */}
