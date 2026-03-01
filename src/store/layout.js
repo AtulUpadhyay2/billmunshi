@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 // theme config import
-import themeConfig from "@/configs/themeConfig";
+import themeConfig from "@/config/themeConfig";
 
 const initialDarkMode = () => {
   const item = window.localStorage.getItem("darkMode");

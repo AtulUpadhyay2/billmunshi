@@ -56,8 +56,6 @@ apiClient.interceptors.response.use(
             throw new Error("No refresh token available");
           }
 
-          console.log("Access token expired, attempting refresh...");
-
           // Attempt to refresh the token
           const response = await axios.post(
             `${API_CONFIG.BASE_URL}/auth/refresh/`,
@@ -82,8 +80,6 @@ apiClient.interceptors.response.use(
             if (user) {
               localStorage.setItem("user", JSON.stringify(user));
             }
-
-            console.log("Token refresh successful, retrying original request...");
 
             // Update the original request with new token
             originalRequest.headers.Authorization = `Bearer ${access}`;

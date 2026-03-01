@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import RegForm from "./common/reg-from";
-import { ToastContainer } from "react-toastify";
+import RegForm from "./common/RegisterForm";
 import useDarkMode from "@/hooks/useDarkMode";
 // image import
 import bgImage from "@/assets/images/all-img/login-bg.png";

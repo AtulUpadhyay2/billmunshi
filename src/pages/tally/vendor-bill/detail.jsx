@@ -10,7 +10,7 @@ import {
   useUpdateTallyVendorBill,
   useVerifyTallyVendorBill,
   useSyncTallyVendorBill,
-} from "@/hooks/api/tally/tallyVendorBillService";
+} from "@/services/tally/tallyVendorBillService";
 import {
   useGetTallyLedgers,
   useGetTallyVendorLedgers,
@@ -22,11 +22,11 @@ import {
   useGetTallyConfig,
   useGetTallyPurchaseLedgers,
   useGetTallyExpenseChartOfAccountsLedgers,
-} from "@/hooks/api/tally/tallyApiService";
+} from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const TallyVendorBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();

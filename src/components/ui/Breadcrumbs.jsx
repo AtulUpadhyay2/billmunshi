@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, NavLink } from "react-router-dom";
-import { menuItems } from "@/constant/data";
+import { menuItems } from "@/constants/data";
 import Icon from "@/components/ui/Icon";
 
 const Breadcrumbs = () => {

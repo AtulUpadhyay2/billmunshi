@@ -1,8 +1,8 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { toast } from 'react-toastify'
+import { toast } from 'sonner'
 import Card from "@/components/ui/Card";
-import { useGetVendors, useSyncVendors } from '@/hooks/api/zoho/zohoApiService'
+import { useGetVendors, useSyncVendors } from '@/services/zoho/zohoApiService'
 
 const Vendors = () => {
     const { selectedOrganization } = useSelector(state => state.auth)

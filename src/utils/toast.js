@@ -1,30 +1,14 @@
-import { toast } from 'react-toastify';
+import { toast } from "sonner";
 
 // Global toast utility
 export const globalToast = {
-  success: (message) => {
-    if (typeof toast !== 'undefined') {
-      toast.success(message);
-    }
-  },
-  error: (message) => {
-    if (typeof toast !== 'undefined') {
-      toast.error(message);
-    }
-  },
-  info: (message) => {
-    if (typeof toast !== 'undefined') {
-      toast.info(message);
-    }
-  },
-  warning: (message) => {
-    if (typeof toast !== 'undefined') {
-      toast.warning(message);
-    }
-  }
+  success: (message) => toast.success(message),
+  error: (message) => toast.error(message),
+  info: (message) => toast.info(message),
+  warning: (message) => toast.warning(message),
 };
 
 // Make it available globally for the API slice
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.globalToast = globalToast;
 }

@@ -11,11 +11,6 @@ const Profile = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
-  // Debug: Log user data to check if is_superuser is present
-  // console.log('User data in Profile component:', user);
-  // console.log('Is superuser:', user?.is_superuser);
-  // console.log('Is staff:', user?.is_staff);
-
   // Function to get user initials
   const getUserInitials = () => {
     if (!user || !user.first_name || !user.last_name) {
@@ -81,10 +76,6 @@ const Profile = () => {
     },
     hasDivider: true
   });
-
-  // Debug: Log the ProfileMenu to see what's included
-  console.log('ProfileMenu:', ProfileMenu);
-  console.log('ProfileMenu length:', ProfileMenu.length);
 
   return (
     <Dropdown label={profileLabel()} classMenuItems="w-[200px] top-[58px]">

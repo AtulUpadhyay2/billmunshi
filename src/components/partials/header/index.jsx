@@ -1,16 +1,16 @@
 import React from "react";
 import Icon from "@/components/ui/Icon";
-import SwitchDark from "./Tools/SwitchDark";
-import HorizentalMenu from "./Tools/HorizentalMenu";
+import SwitchDark from "./tools/SwitchDark";
+import HorizontalMenu from "./tools/HorizontalMenu";
 import useWidth from "@/hooks/useWidth";
 import useSidebar from "@/hooks/useSidebar";
 import useNavbarType from "@/hooks/useNavbarType";
-import useMenulayout from "@/hooks/useMenulayout";
+import useMenulayout from "@/hooks/useMenuLayout";
 import useSkin from "@/hooks/useSkin";
-import Logo from "./Tools/Logo";
-// import SearchModal from "./Tools/SearchModal";
-import Profile from "./Tools/Profile";
-import OrgSwitcher from "./Tools/OrgSwitcher";
+import Logo from "./tools/Logo";
+// import SearchModal from "./tools/SearchModal";
+import Profile from "./tools/Profile";
+import OrgSwitcher from "./tools/OrgSwitcher";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
 
@@ -110,7 +110,7 @@ const Header = ({ className = "custom-class" }) => {
           )}
           {/*  Horizontal  Main Menu */}
           {menuType === "horizontal" && width >= breakpoints.xl ? (
-            <HorizentalMenu />
+            <HorizontalMenu />
           ) : null}
           {/* Nav Tools  */}
           <div className="nav-tools flex items-center lg:space-x-6 space-x-3 rtl:space-x-reverse">

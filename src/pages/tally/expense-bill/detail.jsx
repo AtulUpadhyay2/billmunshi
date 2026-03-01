@@ -9,7 +9,7 @@ import {
   useGetTallyExpenseBillDetails,
   useVerifyTallyExpenseBill,
   useSyncTallyExpenseBill,
-} from "@/hooks/api/tally/tallyExpenseBillService";
+} from "@/services/tally/tallyExpenseBillService";
 import {
   useGetTallyVendorLedgers,
   useGetTallyTaxLedgers,
@@ -17,11 +17,10 @@ import {
   useGetTallyCgstLedgers,
   useGetTallySgstLedgers,
   useGetTallyIgstLedgers,
-} from "@/hooks/api/tally/tallyApiService";
+} from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { ta } from "date-fns/locale";
 
 const TallyExpenseBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();

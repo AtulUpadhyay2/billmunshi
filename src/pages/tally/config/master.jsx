@@ -1,7 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import Card from '@/components/ui/Card'
-import { useGetTallyMasters } from '@/hooks/api/tally/tallyApiService'
+import { useGetTallyMasters } from '@/services/tally/tallyApiService'
 
 const TallyMaster = () => {
     const { selectedOrganization } = useSelector((state) => state.auth)

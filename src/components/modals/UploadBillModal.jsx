@@ -78,12 +78,6 @@ const UploadBillModal = ({ isOpen, onClose, onUpload, title = "Upload Bills" }) 
             // Add file type
             formData.append('fileType', fileType);
             
-            // Debug: Log FormData contents
-            console.log('FormData contents:');
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
-            
             // Call the upload function passed from parent
             await onUpload(formData);
             

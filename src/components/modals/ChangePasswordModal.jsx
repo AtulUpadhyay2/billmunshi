@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import { useChangePasswordMutation } from "@/store/api/auth/authApiSlice";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import Icon from "@/components/ui/Icon";
 
 const ChangePasswordModal = ({ isOpen, onClose }) => {

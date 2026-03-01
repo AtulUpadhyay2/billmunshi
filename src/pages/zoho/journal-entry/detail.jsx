@@ -9,13 +9,13 @@ import {
   useGetZohoJournalBillDetails,
   useVerifyZohoJournalBill,
   useSyncZohoJournalBill,
-} from "@/hooks/api/zoho/zohoJournalEntryService";
+} from "@/services/zoho/zohoJournalEntryService";
 import {
   useGetVendors,
   useGetAllChartOfAccounts,
   useGetAllTaxes,
   useGetAllTdsTcs,
-} from "@/hooks/api/zoho/zohoApiService";
+} from "@/services/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
@@ -103,8 +103,6 @@ const ZohoJournalEntryDetail = () => {
     { organizationId: selectedOrganization?.id, billId: journalEntryId },
     { enabled: !!selectedOrganization?.id && !!journalEntryId },
   );
-
-  console.log(`test Data: `, JSON.stringify(journalEntryData, null, 2));
 
   // Verify journal entry mutation
   const { mutateAsync: verifyJournalEntry } = useVerifyZohoJournalBill();
@@ -692,8 +690,6 @@ const ZohoJournalEntryDetail = () => {
               }),
         },
       };
-
-      // console.log('Verification Payload:', verificationPayload);
 
       await verifyJournalEntry({
         organizationId: selectedOrganization?.id,

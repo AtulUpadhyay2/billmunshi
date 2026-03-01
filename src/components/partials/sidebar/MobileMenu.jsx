@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 
 import Navmenu from "./Navmenu";
-import { menuItems } from "@/constant/data";
+import { menuItems } from "@/constants/data";
 import SimpleBar from "simplebar-react";
 import useSemiDark from "@/hooks/useSemiDark";
 import useSkin from "@/hooks/useSkin";

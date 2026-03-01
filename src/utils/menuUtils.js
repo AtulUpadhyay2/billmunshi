@@ -1,4 +1,4 @@
-import { menuItems } from "@/constant/data";
+import { menuItems } from "@/constants/data";
 
 /**
  * Filters child menu items based on enabled modules
@@ -38,8 +38,6 @@ export const getFilteredMenuItems = (enabledModules = []) => {
   const enabledModuleNames = enabledModules
     .filter(module => module.is_enabled)
     .map(module => module.module.toLowerCase());
-
-  console.log('Enabled modules:', enabledModuleNames);
 
   return menuItems.filter(item => {
     // Always show main menu header

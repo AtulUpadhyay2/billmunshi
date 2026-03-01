@@ -42,7 +42,7 @@ const usePageTitle = () => {
         '/zoho/vendor-bill': 'Zoho Vendor Bills',
         '/zoho/expense-bill': 'Zoho Expense Bills',
         '/zoho/journal-entry': 'Zoho Journal Entries',
-        '/zoho/credentials': 'Zoho Credentials',
+        '/zoho/config/credentials': 'Zoho Credentials',
         '/zoho/chart-of-account': 'Zoho Chart of Accounts',
         '/zoho/taxes': 'Zoho Taxes',
         '/zoho/tds-tcs': 'Zoho TDS/TCS',

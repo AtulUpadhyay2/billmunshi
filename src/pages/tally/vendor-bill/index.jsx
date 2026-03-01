@@ -10,13 +10,13 @@ import {
   useAnalyzeTallyVendorBill,
   useSyncTallyVendorBill,
   useMoveTallyVendorBills,
-} from "@/hooks/api/tally/tallyVendorBillService";
+} from "@/services/tally/tallyVendorBillService";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import UploadBillModal from "@/components/modals/UploadBillModal";
 import FileViewerModal from "@/components/modals/FileViewerModal";
 import { useSelector } from "react-redux";
-import Swal from "sweetalert2";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
 
 const TallyVendorBill = () => {
   const navigate = useNavigate();
@@ -91,6 +91,7 @@ const TallyVendorBill = () => {
     new Set(),
   );
   const [pollingInterval, setPollingInterval] = useState(null);
+  const [deleteConfirmBillId, setDeleteConfirmBillId] = useState(null);
 
   const tabs = [
     { key: "all", label: "All" },
@@ -272,37 +273,8 @@ const TallyVendorBill = () => {
           globalToast.info("Edit functionality coming soon");
           break;
         case "delete":
-          const result = await Swal.fire({
-            title: "Are you sure?",
-            text: "You won't be able to revert this!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#3085d6",
-            confirmButtonText: "Yes, delete it!",
-            cancelButtonText: "Cancel",
-          });
-
-          if (result.isConfirmed) {
-            // Set loading state
-            setDeletingBills((prev) => new Set([...prev, billId]));
-            try {
-              await deleteVendorBill({
-                organizationId: selectedOrganization?.id,
-                id: billId,
-              });
-              globalToast.success("Bill deleted successfully");
-              Swal.fire("Deleted!", "Your bill has been deleted.", "success");
-            } finally {
-              // Remove loading state
-              setDeletingBills((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(billId);
-                return newSet;
-              });
-            }
-          }
-          break;
+          setDeleteConfirmBillId(billId);
+          return; // Don't continue — deletion handled by ConfirmDialog
         default:
           globalToast.error("Unknown action");
       }
@@ -313,6 +285,34 @@ const TallyVendorBill = () => {
           error?.message ||
           `Failed to ${action} bill`,
       );
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    const billId = deleteConfirmBillId;
+    setDeleteConfirmBillId(null);
+    if (!billId) return;
+
+    setDeletingBills((prev) => new Set([...prev, billId]));
+    try {
+      await deleteVendorBill({
+        organizationId: selectedOrganization?.id,
+        id: billId,
+      });
+      globalToast.success("Bill deleted successfully");
+      refetch();
+    } catch (error) {
+      globalToast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete bill",
+      );
+    } finally {
+      setDeletingBills((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(billId);
+        return newSet;
+      });
     }
   };
 
@@ -1405,6 +1405,16 @@ const TallyVendorBill = () => {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteConfirmBillId}
+        onClose={() => setDeleteConfirmBillId(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Are you sure?"
+        message="You won't be able to revert this!"
+        confirmText="Yes, delete it!"
+        variant="danger"
+      />
     </div>
   );
 };

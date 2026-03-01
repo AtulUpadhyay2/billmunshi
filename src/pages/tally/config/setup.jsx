@@ -9,7 +9,7 @@ import {
   useGetTallyConfig,
   useCreateOrUpdateTallyConfig,
   useGetParentLedgers,
-} from "@/hooks/api/tally/tallyApiService";
+} from "@/services/tally/tallyApiService";
 import { globalToast } from "@/utils/toast";
 
 const TallySetup = () => {

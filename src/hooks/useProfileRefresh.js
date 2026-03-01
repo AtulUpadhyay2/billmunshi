@@ -23,7 +23,6 @@ const useProfileRefresh = (intervalMinutes = 5) => {
           }));
         }
       } catch (error) {
-        console.log('Background profile refresh failed:', error);
         // Silent fail - don't disrupt user experience
       }
     };

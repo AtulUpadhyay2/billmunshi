@@ -5,10 +5,10 @@ import { MenuItem } from "@headlessui/react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedOrganization } from "@/store/api/auth/authSlice";
 import Modal from "@/components/ui/Modal";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import apiClient from "@/utils/apiClient";
 
 const OrgSwitcher = () => {

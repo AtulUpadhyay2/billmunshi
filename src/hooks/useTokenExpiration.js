@@ -27,7 +27,6 @@ export const useTokenExpiration = () => {
         ));
 
       if (isTokenExpired) {
-        console.log("Token expired, logging out user");
         dispatch(forceLogout());
         globalToast.error("Your session has expired. Please login again.");
         navigate('/');

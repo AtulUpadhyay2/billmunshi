@@ -1,27 +1,26 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// home pages  & dashboard
-//import Dashboard from "./pages/dashboard";
+// Dashboard
 const Dashboard = lazy(() => import("./pages/dashboard"));
 
 const Landing = lazy(() => import("./pages/Landing"));
 const BookDemo = lazy(() => import("./pages/BookDemo"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Login = lazy(() => import("./pages/auth/login"));
-const Register = lazy(() => import("./pages/auth/register"));
-const ForgotPass = lazy(() => import("./pages/auth/forgot-password"));
-const NoOrganization = lazy(() => import("./pages/auth/no-organization"));
-const SelectOrganization = lazy(() => import("./pages/auth/select-organization"));
-const Error = lazy(() => import("./pages/404"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPass = lazy(() => import("./pages/auth/ForgotPassword"));
+const NoOrganization = lazy(() => import("./pages/auth/NoOrganization"));
+const SelectOrganization = lazy(() => import("./pages/auth/SelectOrganization"));
+const Error = lazy(() => import("./pages/NotFound"));
 
-import Layout from "./layout/Layout";
-import AuthLayout from "./layout/AuthLayout";
+import Layout from "./layouts/Layout";
+import AuthLayout from "./layouts/AuthLayout";
 
 // utility pages
-const Profile = lazy(() => import("./pages/utility/profile"));
-const NotificationPage = lazy(() => import("./pages/utility/notifications"));
+const Profile = lazy(() => import("./pages/utility/Profile"));
+const NotificationPage = lazy(() => import("./pages/utility/Notifications"));
 
 // Zoho
 const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
@@ -31,12 +30,12 @@ const ZohoExpenseBill = lazy(() => import("./pages/zoho/expense-bill"));
 const ZohoExpenseBillDetail = lazy(() => import("./pages/zoho/expense-bill/detail"));
 const ZohoJournalEntry = lazy(() => import("./pages/zoho/journal-entry"));
 const ZohoJournalEntryDetail = lazy(() => import("./pages/zoho/journal-entry/detail"));
-const ZohoCredentials = lazy(() => import("./pages/zoho/config/credentials"));
-const ZohoChartOfAccounts = lazy(() => import("./pages/zoho/config/chart-of-account"));
-const ZohoTaxes = lazy(() => import("./pages/zoho/config/taxes"));
-const ZohoTdsTcs = lazy(() => import("./pages/zoho/config/tds-tcs"));
-const ZohoVendors = lazy(() => import("./pages/zoho/config/vendors"));
-const ZohoVendorsCredits = lazy(() => import("./pages/zoho/config/vendors-credits"));
+const ZohoCredentials = lazy(() => import("./pages/zoho/config/Credentials"));
+const ZohoChartOfAccounts = lazy(() => import("./pages/zoho/config/ChartOfAccount"));
+const ZohoTaxes = lazy(() => import("./pages/zoho/config/Taxes"));
+const ZohoTdsTcs = lazy(() => import("./pages/zoho/config/TdsTcs"));
+const ZohoVendors = lazy(() => import("./pages/zoho/config/Vendors"));
+const ZohoVendorsCredits = lazy(() => import("./pages/zoho/config/VendorsCredits"));
 
 // Tally
 const TallyVendorBill = lazy(() => import("./pages/tally/vendor-bill"));
@@ -44,14 +43,14 @@ const TallyVendorBillDetail = lazy(() => import("./pages/tally/vendor-bill/detai
 
 const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const TallyExpenseBillDetail = lazy(() => import("./pages/tally/expense-bill/detail"));
-const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
-const TallySetups = lazy(() => import("./pages/tally/config/setup"));
-const TallyMaster = lazy(() => import("./pages/tally/config/master"));
-const TallyHelp = lazy(() => import("./pages/settings/help"));
+const TallyLedgers = lazy(() => import("./pages/tally/config/Ledgers"));
+const TallySetups = lazy(() => import("./pages/tally/config/Setup"));
+const TallyMaster = lazy(() => import("./pages/tally/config/Master"));
+const TallyHelp = lazy(() => import("./pages/settings/Help"));
 
 // Settings
-const ApiKeys = lazy(() => import("./pages/settings/api-keys"));
-const Members = lazy(() => import("./pages/settings/members"));
+const ApiKeys = lazy(() => import("./pages/settings/ApiKeys"));
+const Members = lazy(() => import("./pages/settings/Members"));
 
 // Clients
 const Clients = lazy(() => import("./pages/client"));
@@ -103,7 +102,6 @@ function App() {
           <Route path="zoho/expense-bill/:id" element={<ZohoExpenseBillDetail />} />
           <Route path="zoho/journal-entry" element={<ZohoJournalEntry />} />
           <Route path="zoho/journal-entry/:id" element={<ZohoJournalEntryDetail />} />
-          <Route path="zoho/credentials" element={<ZohoCredentials />} />
           <Route path="zoho/config/credentials" element={<ZohoCredentials />} />
           <Route path="zoho/chart-of-account" element={<ZohoChartOfAccounts />} />
           <Route path="zoho/taxes" element={<ZohoTaxes />} />

@@ -1,7 +1,7 @@
 import React from "react";
 import Card from "@/components/ui/Card";
 import { useSelector } from "react-redux";
-import { useGetHelpData } from "@/hooks/api/tally/tallyApiService";
+import { useGetHelpData } from "@/services/tally/tallyApiService";
 
 const Help = () => {
     const { selectedOrganization } = useSelector((state) => state.auth);

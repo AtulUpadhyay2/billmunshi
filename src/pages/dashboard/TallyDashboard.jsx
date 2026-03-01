@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetTallyFunnel, useGetTallyOverview, useGetTallyUsage } from '@/hooks/api/tally/tallyDashboardService';
-import { useUploadTallyVendorBills } from '@/hooks/api/tally/tallyVendorBillService';
-import { useUploadTallyExpenseBills } from '@/hooks/api/tally/tallyExpenseBillService';
+import { useGetTallyFunnel, useGetTallyOverview, useGetTallyUsage } from '@/services/tally/tallyDashboardService';
+import { useUploadTallyVendorBills } from '@/services/tally/tallyVendorBillService';
+import { useUploadTallyExpenseBills } from '@/services/tally/tallyExpenseBillService';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import UploadBillModal from '@/components/modals/UploadBillModal';

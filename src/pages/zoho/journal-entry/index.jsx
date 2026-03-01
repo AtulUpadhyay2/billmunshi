@@ -14,9 +14,9 @@ import {
   useAnalyzeZohoJournalBill,
   useSyncZohoJournalBill,
   useMoveJournalBills,
-} from "@/hooks/api/zoho/zohoJournalEntryService";
+} from "@/services/zoho/zohoJournalEntryService";
 import Loading from "@/components/Loading";
-import Swal from "sweetalert2";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
 
 const ZohoJournalEntry = () => {
   const navigate = useNavigate();
@@ -81,6 +81,7 @@ const ZohoJournalEntry = () => {
     new Set(),
   );
   const [pollingInterval, setPollingInterval] = useState(null);
+  const [deleteConfirmBillId, setDeleteConfirmBillId] = useState(null);
 
   const tabs = [
     { key: "all", label: "All" },
@@ -94,9 +95,6 @@ const ZohoJournalEntry = () => {
     if (pollingInterval) return; // Already polling
 
     const interval = setInterval(() => {
-      console.log(
-        "🔄 Polling for journal entry background processing updates...",
-      );
       refetch();
     }, 10000); // Poll every 10 seconds
 
@@ -108,7 +106,6 @@ const ZohoJournalEntry = () => {
     if (pollingInterval) {
       clearInterval(pollingInterval);
       setPollingInterval(null);
-      console.log("⏹️ Stopped polling for journal entry background processing");
     }
   }, [pollingInterval]);
 
@@ -272,37 +269,8 @@ const ZohoJournalEntry = () => {
           globalToast.info("Edit functionality coming soon");
           break;
         case "delete":
-          const result = await Swal.fire({
-            title: "Are you sure?",
-            text: "You won't be able to revert this!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#3085d6",
-            confirmButtonText: "Yes, delete it!",
-            cancelButtonText: "Cancel",
-          });
-
-          if (result.isConfirmed) {
-            // Set loading state
-            setDeletingBills((prev) => new Set([...prev, billId]));
-            try {
-              await deleteExpenseBill({
-                organizationId: selectedOrganization?.id,
-                id: billId,
-              });
-              globalToast.success("Bill deleted successfully");
-              Swal.fire("Deleted!", "Your bill has been deleted.", "success");
-            } finally {
-              // Remove loading state
-              setDeletingBills((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(billId);
-                return newSet;
-              });
-            }
-          }
-          break;
+          setDeleteConfirmBillId(billId);
+          return; // Don't continue — deletion handled by ConfirmDialog
         default:
           globalToast.error("Unknown action");
       }
@@ -313,6 +281,34 @@ const ZohoJournalEntry = () => {
           error?.message ||
           `Failed to ${action} bill`,
       );
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    const billId = deleteConfirmBillId;
+    setDeleteConfirmBillId(null);
+    if (!billId) return;
+
+    setDeletingBills((prev) => new Set([...prev, billId]));
+    try {
+      await deleteExpenseBill({
+        organizationId: selectedOrganization?.id,
+        id: billId,
+      });
+      globalToast.success("Bill deleted successfully");
+      refetch();
+    } catch (error) {
+      globalToast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete bill",
+      );
+    } finally {
+      setDeletingBills((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(billId);
+        return newSet;
+      });
     }
   };
 
@@ -1459,6 +1455,16 @@ const ZohoJournalEntry = () => {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteConfirmBillId}
+        onClose={() => setDeleteConfirmBillId(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Are you sure?"
+        message="You won't be able to revert this!"
+        confirmText="Yes, delete it!"
+        variant="danger"
+      />
     </div>
   );
 };

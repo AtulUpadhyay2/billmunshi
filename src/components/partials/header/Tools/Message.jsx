@@ -3,7 +3,7 @@ import Dropdown from "@/components/ui/Dropdown";
 import Icon from "@/components/ui/Icon";
 import { Link } from "react-router-dom";
 import { MenuItem } from "@headlessui/react";
-import { message } from "@/constant/data";
+import { message } from "@/constants/data";
 
 const messagelabel = () => {
   return (

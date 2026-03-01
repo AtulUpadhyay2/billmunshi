@@ -3,9 +3,9 @@ import { useSelector } from "react-redux";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Loading from "@/components/Loading";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import Icon from "@/components/ui/Icon";
-import { useGetTallyLedgers } from '@/hooks/api/tally/tallyApiService';
+import { useGetTallyLedgers } from '@/services/tally/tallyApiService';
 import { globalToast } from "@/utils/toast";
 
 const Ledgers = () => {

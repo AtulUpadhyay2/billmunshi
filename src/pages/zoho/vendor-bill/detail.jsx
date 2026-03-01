@@ -9,13 +9,13 @@ import {
   useGetVendorBill,
   useVerifyVendorBill,
   useSyncVendorBill,
-} from "@/hooks/api/zoho/zohoVendorBillService";
+} from "@/services/zoho/zohoVendorBillService";
 import {
   useGetVendors,
   useGetAllChartOfAccounts,
   useGetAllTaxes,
   useGetAllTdsTcs,
-} from "@/hooks/api/zoho/zohoApiService";
+} from "@/services/zoho/zohoApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";

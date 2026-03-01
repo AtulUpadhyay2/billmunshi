@@ -5,8 +5,8 @@ import {
   useGetZohoCredentials,
   useInitiateZohoOAuth,
   useHandleOAuthCallback,
-} from "@/hooks/api/zoho/zohoApiService";
-import { toast } from "react-toastify";
+} from "@/services/zoho/zohoApiService";
+import { toast } from "sonner";
 import { useEffect } from "react";
 
 const ZohoCredentials = () => {

@@ -5,10 +5,10 @@ import Badge from "@/components/ui/Badge";
 import Icon from "@/components/ui/Icon";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import Select from "@/components/ui/Select";
 import Loading from "@/components/Loading";
-import { useGetMembers } from "@/hooks/api/memberService";
+import { useGetMembers } from "@/services/memberService";
 import { globalToast } from "@/utils/toast";
 import apiClient from "@/utils/apiClient";
 

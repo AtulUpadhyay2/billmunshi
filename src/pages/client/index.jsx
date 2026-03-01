@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import apiClient from "@/utils/apiClient";
 import Table from "@/components/skeleton/Table";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import Select from "@/components/ui/Select";
 
 const ClientList = () => {

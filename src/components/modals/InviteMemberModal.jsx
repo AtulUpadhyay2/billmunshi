@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/Textinput";
+import Textinput from "@/components/ui/TextInput";
 import Select from "@/components/ui/Select";
 import Icon from "@/components/ui/Icon";
-import { useInviteMember } from "@/hooks/api/memberService";
-import { toast } from "react-toastify";
+import { useInviteMember } from "@/services/memberService";
+import { toast } from "sonner";
 
 const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
   const [formData, setFormData] = useState({

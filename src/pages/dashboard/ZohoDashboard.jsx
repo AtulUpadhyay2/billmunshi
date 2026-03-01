@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/hooks/api/zoho/zohoDashboardService';
-import { useUploadVendorBills } from '@/hooks/api/zoho/zohoVendorBillService';
-import { useUploadZohoJournalBills } from '@/hooks/api/zoho/zohoJournalEntryService';
+import { useGetZohoFunnel, useGetZohoOverview, useGetZohoUsage } from '@/services/zoho/zohoDashboardService';
+import { useUploadVendorBills } from '@/services/zoho/zohoVendorBillService';
+import { useUploadZohoJournalBills } from '@/services/zoho/zohoJournalEntryService';
 import Card from '@/components/ui/Card';
 import Loading from '@/components/Loading';
 import UploadBillModal from '@/components/modals/UploadBillModal';

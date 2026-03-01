@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import Card from "@/components/ui/Card";
-import { useGetTaxes, useSyncTaxes } from '@/hooks/api/zoho/zohoApiService';
-import { toast } from "react-toastify";
+import { useGetTaxes, useSyncTaxes } from '@/services/zoho/zohoApiService';
+import { toast } from "sonner";
 
 const Taxes = () => {
     const { selectedOrganization } = useSelector((state) => state.auth);

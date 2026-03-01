@@ -2,7 +2,7 @@ import React, { Fragment } from "react";
 import Icon from "@/components/ui/Icon";
 import { Link } from "react-router-dom";
 import { MenuItem, Menu } from "@headlessui/react";
-import { notifications } from "@/constant/data";
+import { notifications } from "@/constants/data";
 import Card from "@/components/ui/Card";
 const NotificationPage = () => {
   return (
