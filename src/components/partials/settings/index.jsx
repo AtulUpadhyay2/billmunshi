@@ -4,16 +4,16 @@ import { useSelector, useDispatch } from "react-redux";
 import { Transition } from "@headlessui/react";
 import { handleCustomizer } from "@/store/layout";
 import SimpleBar from "simplebar-react";
-import Semidark from "./tools/Semidark";
-import RtlSwicth from "./tools/Rtl";
-import Skin from "./tools/Skin";
-import Theme from "./tools/Theme";
-import ContentWidth from "./tools/ContentWidth";
-import Menulayout from "./tools/MenuLayout";
-import MenuClose from "./tools/MenuClose";
-import MenuHidden from "./tools/MenuHidden";
-import NavbarType from "./tools/NavbarType";
-import FooType from "./tools/FooterType";
+import Semidark from "./Tools/Semidark";
+import RtlSwicth from "./Tools/Rtl";
+import Skin from "./Tools/Skin";
+import Theme from "./Tools/Theme";
+import ContentWidth from "./Tools/ContentWidth";
+import Menulayout from "./Tools/Menulayout";
+import MenuClose from "./Tools/MenuClose";
+import MenuHidden from "./Tools/MenuHidden";
+import NavbarType from "./Tools/NavbarType";
+import FooType from "./Tools/FooterType";
 import useWidth from "@/hooks/useWidth";
 
 const Setings = () => {
