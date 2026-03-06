@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/TextInput";
+import Textinput from "@/components/ui/Textinput";
 import Select from "@/components/ui/Select";
 import Icon from "@/components/ui/Icon";
 import { useInviteMember } from "@/services/memberService";
@@ -10,42 +10,42 @@ import { toast } from "sonner";
 const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
   const [formData, setFormData] = useState({
     user_email: "",
-    role: "MEMBER"
+    role: "MEMBER",
   });
-  
+
   const [errors, setErrors] = useState({});
   const { mutateAsync: inviteMember, isPending: isLoading } = useInviteMember();
 
   const roleOptions = [
     { value: "MEMBER", label: "Member" },
-    { value: "ADMIN", label: "Admin" }
+    { value: "ADMIN", label: "Admin" },
   ];
 
   const handleInputChange = (name, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear specific error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Validate email
     if (!formData.user_email) {
       newErrors.user_email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.user_email)) {
       newErrors.user_email = "Please enter a valid email address";
     }
-    
+
     // Validate role
     if (!formData.role) {
       newErrors.role = "Role is required";
@@ -57,7 +57,7 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -67,22 +67,24 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
         organizationId,
         organization: organizationId,
         user_email: formData.user_email,
-        role: formData.role
+        role: formData.role,
       };
 
       await inviteMember(payload);
-      
+
       toast.success("Member invitation sent successfully!");
       handleClose();
     } catch (error) {
       console.error("Invite member error:", error);
-      
+
       // Parse error message (axios error structure)
       const errorData = error.response?.data;
-      
+
       // Handle specific error messages from API
       if (errorData?.user_email) {
-        setErrors({ user_email: errorData.user_email[0] || errorData.user_email });
+        setErrors({
+          user_email: errorData.user_email[0] || errorData.user_email,
+        });
       } else if (errorData?.role) {
         setErrors({ role: errorData.role[0] || errorData.role });
       } else if (errorData?.non_field_errors) {
@@ -90,7 +92,9 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
       } else if (errorData?.detail) {
         toast.error(errorData.detail);
       } else {
-        toast.error(error.message || "Failed to send invitation. Please try again.");
+        toast.error(
+          error.message || "Failed to send invitation. Please try again.",
+        );
       }
     }
   };
@@ -98,7 +102,7 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
   const handleClose = () => {
     setFormData({
       user_email: "",
-      role: "MEMBER"
+      role: "MEMBER",
     });
     setErrors({});
     onClose();
@@ -155,20 +159,31 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
           </label>
           <Select
             options={roleOptions}
-            value={roleOptions.find(option => option.value === formData.role)}
-            onChange={(selectedOption) => handleInputChange("role", selectedOption.value)}
+            value={roleOptions.find((option) => option.value === formData.role)}
+            onChange={(selectedOption) =>
+              handleInputChange("role", selectedOption.value)
+            }
             placeholder="Select role"
             error={errors.role}
             disabled={isLoading}
           />
           <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="flex items-start gap-2">
-              <Icon icon="heroicons:information-circle" className="w-4 h-4 text-blue-600 mt-0.5" />
+              <Icon
+                icon="heroicons:information-circle"
+                className="w-4 h-4 text-blue-600 mt-0.5"
+              />
               <div className="text-xs text-blue-700 dark:text-blue-300">
                 <div className="font-medium mb-1">Role Permissions:</div>
                 <ul className="space-y-1">
-                  <li><strong>Member:</strong> Can view and manage bills, access reports</li>
-                  <li><strong>Admin:</strong> Full access including member management and settings</li>
+                  <li>
+                    <strong>Member:</strong> Can view and manage bills, access
+                    reports
+                  </li>
+                  <li>
+                    <strong>Admin:</strong> Full access including member
+                    management and settings
+                  </li>
                 </ul>
               </div>
             </div>
@@ -178,7 +193,10 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
         {/* Organization Info */}
         <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Icon icon="heroicons:building-office-2" className="w-4 h-4 text-slate-600" />
+            <Icon
+              icon="heroicons:building-office-2"
+              className="w-4 h-4 text-slate-600"
+            />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Organization
             </span>

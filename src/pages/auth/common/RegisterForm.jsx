@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import Textinput from "@/components/ui/TextInput";
+import Textinput from "@/components/ui/Textinput";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
 import { useForm } from "react-hook-form";
@@ -17,14 +17,19 @@ const schema = yup
     name: yup.string().required("Full Name is Required"),
     organizationName: yup.string().required("Organization Name is Required"),
     designation: yup.string().required("Designation is Required"),
-    accountingSoftware: yup.string().required("Accounting Software is Required"),
-    email: yup.string().email("Invalid email").required("Work Email is Required"),
+    accountingSoftware: yup
+      .string()
+      .required("Accounting Software is Required"),
+    email: yup
+      .string()
+      .email("Invalid email")
+      .required("Work Email is Required"),
     password: yup
       .string()
       .min(8, "Password must be at least 8 characters")
       .matches(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
       )
       .required("Please enter password"),
     phone: yup
@@ -127,54 +132,83 @@ const RegForm = () => {
 
   const TermsContent = () => (
     <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 space-y-4 text-sm">
-      <p className="text-xs text-slate-500">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-xs text-slate-500">
+        Last updated: {new Date().toLocaleDateString()}
+      </p>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">1. Introduction</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          1. Introduction
+        </h3>
         <p>
-          Welcome to Bill Munshi. By accessing our website and using our services, you agree to be bound by these Terms and Conditions. Please read them carefully.
+          Welcome to Bill Munshi. By accessing our website and using our
+          services, you agree to be bound by these Terms and Conditions. Please
+          read them carefully.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">2. Use of Service</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          2. Use of Service
+        </h3>
         <p>
-          You agree to use our service only for lawful purposes and in a way that does not infringe the rights of, restrict or inhibit anyone else's use and enjoyment of the website.
+          You agree to use our service only for lawful purposes and in a way
+          that does not infringe the rights of, restrict or inhibit anyone
+          else's use and enjoyment of the website.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">3. Account Registration</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          3. Account Registration
+        </h3>
         <p>
-          To access certain features of the service, you may be required to register for an account. You agree to provide accurate, current, and complete information during the registration process.
+          To access certain features of the service, you may be required to
+          register for an account. You agree to provide accurate, current, and
+          complete information during the registration process.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">4. Intellectual Property</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          4. Intellectual Property
+        </h3>
         <p>
-          The content, organization, graphics, design, compilation, and other matters related to the Site are protected under applicable copyrights, trademarks, and other proprietary rights.
+          The content, organization, graphics, design, compilation, and other
+          matters related to the Site are protected under applicable copyrights,
+          trademarks, and other proprietary rights.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">5. Termination</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          5. Termination
+        </h3>
         <p>
-          We reserve the right to terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason whatsoever.
+          We reserve the right to terminate or suspend your account and access
+          to the Service immediately, without prior notice or liability, for any
+          reason whatsoever.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">6. Changes to Terms</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          6. Changes to Terms
+        </h3>
         <p>
-          We reserve the right, at our sole discretion, to modify or replace these Terms at any time. What constitutes a material change will be determined at our sole discretion.
+          We reserve the right, at our sole discretion, to modify or replace
+          these Terms at any time. What constitutes a material change will be
+          determined at our sole discretion.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">7. Contact Us</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          7. Contact Us
+        </h3>
         <p>
-          If you have any questions about these Terms, please contact us at support@billmunshi.com.
+          If you have any questions about these Terms, please contact us at
+          support@billmunshi.com.
         </p>
       </section>
     </div>
@@ -182,65 +216,110 @@ const RegForm = () => {
 
   const PrivacyContent = () => (
     <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 space-y-4 text-sm">
-      <p className="text-xs text-slate-500">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-xs text-slate-500">
+        Last updated: {new Date().toLocaleDateString()}
+      </p>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">1. Information We Collect</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          1. Information We Collect
+        </h3>
         <p>
-          We collect information you provide directly to us, such as when you create or modify your account, request on-demand services, contact customer support, or otherwise communicate with us. This information may include: name, email, phone number, postal address, profile picture, payment method, items requested (for delivery services), delivery notes, and other information you choose to provide.
+          We collect information you provide directly to us, such as when you
+          create or modify your account, request on-demand services, contact
+          customer support, or otherwise communicate with us. This information
+          may include: name, email, phone number, postal address, profile
+          picture, payment method, items requested (for delivery services),
+          delivery notes, and other information you choose to provide.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">2. How We Use Your Information</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          2. How We Use Your Information
+        </h3>
         <p>
-          We use the information we collect to provide, maintain, and improve our services, such as to:
+          We use the information we collect to provide, maintain, and improve
+          our services, such as to:
         </p>
         <ul className="list-disc pl-5 space-y-2 mt-2">
           <li>Process payments and facilitate your transactions</li>
-          <li>Send you technical notices, updates, security alerts, and support messages</li>
+          <li>
+            Send you technical notices, updates, security alerts, and support
+            messages
+          </li>
           <li>Respond to your comments, questions, and requests</li>
-          <li>Communicate with you about products, services, offers, promotions, and events</li>
+          <li>
+            Communicate with you about products, services, offers, promotions,
+            and events
+          </li>
         </ul>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">3. Information Sharing</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          3. Information Sharing
+        </h3>
         <p>
-          We may share the information we collect about you as described in this Statement or as described at the time of collection or sharing, including as follows:
+          We may share the information we collect about you as described in this
+          Statement or as described at the time of collection or sharing,
+          including as follows:
         </p>
         <ul className="list-disc pl-5 space-y-2 mt-2">
-          <li>With third party service providers to enable them to provide the Services we request</li>
-          <li>With the general public if you submit content in a public forum</li>
-          <li>With third parties with whom you choose to let us share information</li>
+          <li>
+            With third party service providers to enable them to provide the
+            Services we request
+          </li>
+          <li>
+            With the general public if you submit content in a public forum
+          </li>
+          <li>
+            With third parties with whom you choose to let us share information
+          </li>
         </ul>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">4. Data Security</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          4. Data Security
+        </h3>
         <p>
-          We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access, disclosure, alteration and destruction.
+          We take reasonable measures to help protect information about you from
+          loss, theft, misuse and unauthorized access, disclosure, alteration
+          and destruction.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">5. Cookies</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          5. Cookies
+        </h3>
         <p>
-          We use cookies and similar tracking technologies to track the activity on our Service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
+          We use cookies and similar tracking technologies to track the activity
+          on our Service and hold certain information. You can instruct your
+          browser to refuse all cookies or to indicate when a cookie is being
+          sent.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">6. Changes to This Policy</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          6. Changes to This Policy
+        </h3>
         <p>
-          We may update this privacy policy from time to time. If we make significant changes, we will notify you of the changes through the Services or through others means, such as email.
+          We may update this privacy policy from time to time. If we make
+          significant changes, we will notify you of the changes through the
+          Services or through others means, such as email.
         </p>
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">7. Contact Us</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          7. Contact Us
+        </h3>
         <p>
-          If you have any questions about this Privacy Policy, please contact us at privacy@billmunshi.com.
+          If you have any questions about this Privacy Policy, please contact us
+          at privacy@billmunshi.com.
         </p>
       </section>
     </div>
@@ -308,8 +387,8 @@ const RegForm = () => {
                 passwordStrength === "Weak"
                   ? "text-red-500"
                   : passwordStrength === "Medium"
-                  ? "text-yellow-500"
-                  : "text-green-500"
+                    ? "text-yellow-500"
+                    : "text-green-500"
               }`}
             >
               Password Strength: {passwordStrength}

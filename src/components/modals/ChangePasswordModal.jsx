@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/TextInput";
+import Textinput from "@/components/ui/Textinput";
 import { useChangePasswordMutation } from "@/store/api/auth/authApiSlice";
 import { toast } from "sonner";
 import Icon from "@/components/ui/Icon";
@@ -10,37 +10,37 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     old_password: "",
     new_password: "",
-    confirm_password: ""
+    confirm_password: "",
   });
-  
+
   const [errors, setErrors] = useState({});
   const [showPasswords, setShowPasswords] = useState({
     old_password: false,
     new_password: false,
-    confirm_password: false
+    confirm_password: false,
   });
 
   const [changePassword, { isLoading }] = useChangePasswordMutation();
 
   const handleInputChange = (name, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear specific error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -63,8 +63,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
       newErrors.confirm_password = "Passwords do not match";
     }
 
-    if (formData.old_password && formData.new_password && formData.old_password === formData.new_password) {
-      newErrors.new_password = "New password must be different from current password";
+    if (
+      formData.old_password &&
+      formData.new_password &&
+      formData.old_password === formData.new_password
+    ) {
+      newErrors.new_password =
+        "New password must be different from current password";
     }
 
     setErrors(newErrors);
@@ -73,41 +78,48 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
       const result = await changePassword(formData).unwrap();
-      
+
       toast.success(result.detail || "Password changed successfully!");
-      
+
       // Reset form and close modal
       setFormData({
         old_password: "",
         new_password: "",
-        confirm_password: ""
+        confirm_password: "",
       });
       setErrors({});
       setShowPasswords({
         old_password: false,
         new_password: false,
-        confirm_password: false
+        confirm_password: false,
       });
       onClose();
-      
     } catch (error) {
       console.error("Password change error:", error);
-      
+
       if (error?.data?.old_password) {
-        setErrors(prev => ({ ...prev, old_password: error.data.old_password[0] }));
+        setErrors((prev) => ({
+          ...prev,
+          old_password: error.data.old_password[0],
+        }));
       } else if (error?.data?.new_password) {
-        setErrors(prev => ({ ...prev, new_password: error.data.new_password[0] }));
+        setErrors((prev) => ({
+          ...prev,
+          new_password: error.data.new_password[0],
+        }));
       } else if (error?.data?.non_field_errors) {
         toast.error(error.data.non_field_errors[0]);
       } else {
-        toast.error(error?.data?.detail || "Failed to change password. Please try again.");
+        toast.error(
+          error?.data?.detail || "Failed to change password. Please try again.",
+        );
       }
     }
   };
@@ -116,13 +128,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
     setFormData({
       old_password: "",
       new_password: "",
-      confirm_password: ""
+      confirm_password: "",
     });
     setErrors({});
     setShowPasswords({
       old_password: false,
       new_password: false,
-      confirm_password: false
+      confirm_password: false,
     });
     onClose();
   };
@@ -162,8 +174,12 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               type={showPasswords.old_password ? "text" : "password"}
               placeholder="Enter your current password"
               value={formData.old_password}
-              onChange={(e) => handleInputChange("old_password", e.target.value)}
-              error={errors.old_password ? { message: errors.old_password } : null}
+              onChange={(e) =>
+                handleInputChange("old_password", e.target.value)
+              }
+              error={
+                errors.old_password ? { message: errors.old_password } : null
+              }
               className="pr-12"
             />
             <button
@@ -171,9 +187,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               onClick={() => togglePasswordVisibility("old_password")}
             >
-              <Icon 
-                icon={showPasswords.old_password ? "heroicons:eye-slash" : "heroicons:eye"} 
-                className="w-5 h-5" 
+              <Icon
+                icon={
+                  showPasswords.old_password
+                    ? "heroicons:eye-slash"
+                    : "heroicons:eye"
+                }
+                className="w-5 h-5"
               />
             </button>
           </div>
@@ -189,8 +209,12 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               type={showPasswords.new_password ? "text" : "password"}
               placeholder="Enter your new password"
               value={formData.new_password}
-              onChange={(e) => handleInputChange("new_password", e.target.value)}
-              error={errors.new_password ? { message: errors.new_password } : null}
+              onChange={(e) =>
+                handleInputChange("new_password", e.target.value)
+              }
+              error={
+                errors.new_password ? { message: errors.new_password } : null
+              }
               className="pr-12"
             />
             <button
@@ -198,9 +222,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               onClick={() => togglePasswordVisibility("new_password")}
             >
-              <Icon 
-                icon={showPasswords.new_password ? "heroicons:eye-slash" : "heroicons:eye"} 
-                className="w-5 h-5" 
+              <Icon
+                icon={
+                  showPasswords.new_password
+                    ? "heroicons:eye-slash"
+                    : "heroicons:eye"
+                }
+                className="w-5 h-5"
               />
             </button>
           </div>
@@ -219,8 +247,14 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               type={showPasswords.confirm_password ? "text" : "password"}
               placeholder="Confirm your new password"
               value={formData.confirm_password}
-              onChange={(e) => handleInputChange("confirm_password", e.target.value)}
-              error={errors.confirm_password ? { message: errors.confirm_password } : null}
+              onChange={(e) =>
+                handleInputChange("confirm_password", e.target.value)
+              }
+              error={
+                errors.confirm_password
+                  ? { message: errors.confirm_password }
+                  : null
+              }
               className="pr-12"
             />
             <button
@@ -228,9 +262,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               onClick={() => togglePasswordVisibility("confirm_password")}
             >
-              <Icon 
-                icon={showPasswords.confirm_password ? "heroicons:eye-slash" : "heroicons:eye"} 
-                className="w-5 h-5" 
+              <Icon
+                icon={
+                  showPasswords.confirm_password
+                    ? "heroicons:eye-slash"
+                    : "heroicons:eye"
+                }
+                className="w-5 h-5"
               />
             </button>
           </div>
@@ -238,7 +276,9 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
 
         {/* Password Requirements */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">Password Requirements:</h4>
+          <h4 className="text-sm font-medium text-blue-900 mb-2">
+            Password Requirements:
+          </h4>
           <ul className="text-xs text-blue-700 space-y-1">
             <li>• At least 8 characters long</li>
             <li>• Different from your current password</li>
