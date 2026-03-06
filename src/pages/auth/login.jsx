@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import LoginForm from "./common/LoginForm";
-import Social from "./common/Social";
+import Social from "./common/social";
 import useDarkMode from "@/hooks/useDarkMode";
 // image import
 import LogoWhite from "@/assets/images/logo/logo-white.svg";
