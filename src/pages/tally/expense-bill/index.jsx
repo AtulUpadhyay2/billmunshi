@@ -1202,7 +1202,7 @@ const TallyExpenseBill = () => {
               Move {selectedBills.size} Bill{selectedBills.size > 1 ? "s" : ""}
             </h3>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Selected bills will be moved to Vendor Bill
+              Select where you want to move the selected bills
             </p>
           </div>
 
@@ -1370,41 +1370,12 @@ const TallyExpenseBill = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                    {selectedExternalBill.bill_belong_your_org === false ? (
-                      <>❌ Bill NOT issued by your organization.</>
-                    ) : (
-                      <>
-                        ✅{" "}
-                        {selectedExternalBill.description ||
-                          "Bill validation completed successfully."}
-                      </>
-                    )}
+                    This invoice doesn't belong to your organization, Issued to{" "}
+                    <span className="font-semibold">
+                      {selectedExternalBill.analysed_data?.to?.name ||
+                        "Unknown"}
+                    </span>
                   </p>
-                  {selectedExternalBill.bill_belong_your_org === false &&
-                    selectedExternalBill.analysed_data?.to && (
-                      <p className="text-sm text-red-700 dark:text-red-300 mt-2">
-                        This bill is issued to{" "}
-                        <span className="font-semibold">
-                          {selectedExternalBill.analysed_data.to.name}
-                        </span>
-                        {selectedExternalBill.analysed_data.to.gst_number && (
-                          <span>
-                            {" "}
-                            (GST:{" "}
-                            {selectedExternalBill.analysed_data.to.gst_number})
-                          </span>
-                        )}
-                        , it doesn't match with your organization name or GST
-                        no. Please select Proceed or Delete to process this
-                        bill.
-                      </p>
-                    )}
-                  {selectedExternalBill.bill_belong_your_org === false &&
-                    selectedExternalBill.description && (
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                        {selectedExternalBill.description}
-                      </p>
-                    )}
                 </div>
               </div>
             </div>
@@ -1415,7 +1386,9 @@ const TallyExpenseBill = () => {
                   <button
                     onClick={() => {
                       setIsExternalBillModalOpen(false);
-                      navigate(`/tally/expense-bill/${selectedExternalBill.id}`);
+                      navigate(
+                        `/tally/expense-bill/${selectedExternalBill.id}`,
+                      );
                     }}
                     className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                   >

@@ -2248,10 +2248,21 @@ const ZohoJournalEntryDetail = () => {
 
       {/* Fullscreen Modal */}
       {isFullscreen && journalInfo?.file && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          onClick={(e) => {
+            // Close fullscreen when clicking on the background overlay
+            if (e.target === e.currentTarget) {
+              setIsFullscreen(false);
+            }
+          }}
+        >
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header - Fixed */}
-            <div className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10">
+            <div
+              className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-4">
                 <h3 className="text-white text-lg font-medium">
                   Journal Entry Document -{" "}
@@ -2327,9 +2338,9 @@ const ZohoJournalEntryDetail = () => {
                 )}
               </div>
               <button
-                onClick={toggleFullscreen}
-                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-                title="Close Fullscreen (Esc)"
+                onClick={() => setIsFullscreen(false)}
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Close Fullscreen (click outside to close)"
               >
                 <svg
                   className="w-5 h-5"
@@ -2349,7 +2360,10 @@ const ZohoJournalEntryDetail = () => {
             </div>
 
             {/* Fullscreen Content - Scrollable */}
-            <div className="flex-1 overflow-auto">
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               {isPDF(journalInfo.file) ? (
                 <iframe
                   src={journalInfo.file}

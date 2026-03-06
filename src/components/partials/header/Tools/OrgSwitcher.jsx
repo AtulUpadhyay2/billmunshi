@@ -19,6 +19,7 @@ const OrgSwitcher = () => {
   const [formData, setFormData] = useState({
     name: "",
     module: "tally",
+    gst_number: "",
   });
 
   const moduleOptions = [
@@ -26,7 +27,10 @@ const OrgSwitcher = () => {
     { value: "zoho", label: "Zoho" },
   ];
 
-  const orgs = useMemo(() => Array.isArray(user?.organizations) ? user.organizations : [], [user]);
+  const orgs = useMemo(
+    () => (Array.isArray(user?.organizations) ? user.organizations : []),
+    [user],
+  );
   if (!orgs || orgs.length === 0) return null;
 
   const current = selectedOrganization || orgs[0];
@@ -43,12 +47,14 @@ const OrgSwitcher = () => {
       setCreateLoading(true);
       const response = await apiClient.post(
         "/org/create-with-module/",
-        formData
+        formData,
       );
 
-      toast.success(response.data.data.message || "Organization created successfully");
+      toast.success(
+        response.data.data.message || "Organization created successfully",
+      );
       setShowCreateModal(false);
-      setFormData({ name: "", module: "tally" });
+      setFormData({ name: "", module: "tally", gst_number: "" });
 
       // Optionally reload user data to get updated organizations list
       window.location.reload();
@@ -106,7 +112,9 @@ const OrgSwitcher = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="block text-sm font-medium truncate">{o.name}</span>
+                      <span className="block text-sm font-medium truncate">
+                        {o.name}
+                      </span>
                       {current?.id === o.id && (
                         <span className="text-success-500 text-lg ml-2">
                           <Icon icon="bi:check-lg" />
@@ -119,19 +127,33 @@ const OrgSwitcher = () => {
                       )}
                       <div className="flex items-center space-x-2">
                         {o.role && (
-                          <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
-                            o.role === 'ADMIN' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                            o.role === 'MANAGER' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                            'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
-                          }`}>
+                          <span
+                            className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                              o.role === "ADMIN"
+                                ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                : o.role === "MANAGER"
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                            }`}
+                          >
                             {o.role}
                           </span>
                         )}
                         {o.status && (
-                          <span className={`text-xs ${
-                            o.status === 'ACTIVE' ? 'text-green-600' : 'text-yellow-600'
-                          }`}>
-                            <Icon icon={o.status === 'ACTIVE' ? 'heroicons:check-circle' : 'heroicons:clock'} />
+                          <span
+                            className={`text-xs ${
+                              o.status === "ACTIVE"
+                                ? "text-green-600"
+                                : "text-yellow-600"
+                            }`}
+                          >
+                            <Icon
+                              icon={
+                                o.status === "ACTIVE"
+                                  ? "heroicons:check-circle"
+                                  : "heroicons:clock"
+                              }
+                            />
                           </span>
                         )}
                       </div>
@@ -142,7 +164,7 @@ const OrgSwitcher = () => {
             )}
           </MenuItem>
         ))}
-        
+
         {/* Add Organization Button */}
         <MenuItem>
           {({ isActive }) => (
@@ -172,7 +194,7 @@ const OrgSwitcher = () => {
         activeModal={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
-          setFormData({ name: "", module: "tally" });
+          setFormData({ name: "", module: "tally", gst_number: "" });
         }}
       >
         <form onSubmit={handleCreateOrganization} className="space-y-4">
@@ -183,6 +205,14 @@ const OrgSwitcher = () => {
             value={formData.name}
             onChange={(e) => handleInputChange("name", e.target.value)}
             required
+          />
+
+          <Textinput
+            label="GSTIN"
+            type="text"
+            placeholder="Enter GSTIN (optional)"
+            value={formData.gst_number}
+            onChange={(e) => handleInputChange("gst_number", e.target.value)}
           />
 
           <Select
@@ -206,7 +236,7 @@ const OrgSwitcher = () => {
               type="button"
               onClick={() => {
                 setShowCreateModal(false);
-                setFormData({ name: "", module: "tally" });
+                setFormData({ name: "", module: "tally", gst_number: "" });
               }}
             />
             <Button

@@ -221,7 +221,7 @@ const TallyExpenseBillDetail = () => {
     if (isVendorRequired) errors.push("Please select a vendor");
     if (getItemsWithoutCOA().length > 0) {
       errors.push(
-        `${getItemsWithoutCOA().length} expense item(s) are missing Chart of Accounts`,
+        `${getItemsWithoutCOA().length} expense item(s) are missing Expense Ledger`,
       );
     }
     if (expenseItems.length === 0)
@@ -1449,7 +1449,14 @@ const TallyExpenseBillDetail = () => {
   // Keyboard shortcuts for zoom and fullscreen
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (!billInfo?.file || isPDF(billInfo.file)) return;
+      if (!billInfo?.file || isPDF(billInfo.file)) {
+        // For PDF, only handle Escape key for fullscreen
+        if (e.key === "Escape" && isFullscreen) {
+          e.preventDefault();
+          setIsFullscreen(false);
+        }
+        return;
+      }
 
       switch (e.key) {
         case "f":
@@ -1480,7 +1487,8 @@ const TallyExpenseBillDetail = () => {
           break;
         case "Escape":
           if (isFullscreen) {
-            toggleFullscreen();
+            e.preventDefault();
+            setIsFullscreen(false);
           }
           break;
       }
@@ -1676,7 +1684,7 @@ const TallyExpenseBillDetail = () => {
                   : isVerified
                     ? "Bill already synced/posted"
                     : hasValidationErrors()
-                      ? "Please select vendor and chart of accounts for all items"
+                      ? "Please select vendor and expense Ledger for all items"
                       : "Verify"
               }
             >
@@ -2117,7 +2125,7 @@ const TallyExpenseBillDetail = () => {
                           )}
                           {getItemsWithoutCOA().length > 0 && (
                             <li>
-                              • Select Chart of Accounts for{" "}
+                              • Select Expense Ledger for{" "}
                               {getItemsWithoutCOA().length} expense item
                               {getItemsWithoutCOA().length > 1 ? "s" : ""}
                             </li>
@@ -2477,7 +2485,7 @@ const TallyExpenseBillDetail = () => {
                                 <span className="text-red-500">*</span>
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
-                                Chart of Accounts{" "}
+                                Expense Ledger{" "}
                                 <span className="text-red-500">*</span>
                               </th>
                               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
@@ -2547,8 +2555,8 @@ const TallyExpenseBillDetail = () => {
                                       onClear={() =>
                                         handleChartOfAccountsClear(index)
                                       }
-                                      placeholder="Select chart of accounts..."
-                                      searchPlaceholder="Type to search ledgers..."
+                                      placeholder="Select expense ledger..."
+                                      searchPlaceholder="Type to search expense ledgers..."
                                       optionLabelKey="name"
                                       optionValueKey="id"
                                       loading={ledgersLoading}
@@ -3102,8 +3110,8 @@ const TallyExpenseBillDetail = () => {
                                 }
                                 onChange={handleOtherAdjustmentLedgerSelect}
                                 onClear={handleOtherAdjustmentLedgerClear}
-                                placeholder="Select Chart of Accounts..."
-                                searchPlaceholder="Type to search Chart of Accounts..."
+                                placeholder="Select Expense Ledger..."
+                                searchPlaceholder="Type to search Expense Ledgers..."
                                 optionLabelKey="name"
                                 optionValueKey="id"
                                 loading={ledgersLoading}
@@ -3322,10 +3330,21 @@ const TallyExpenseBillDetail = () => {
 
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center"
+          onClick={(e) => {
+            // Close fullscreen when clicking on the background overlay
+            if (e.target === e.currentTarget) {
+              toggleFullscreen();
+            }
+          }}
+        >
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-md border-b border-white/10 flex-shrink-0">
+            <div
+              className="flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-md border-b border-white/10 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-4">
                 <h3 className="text-white text-lg font-semibold drop-shadow-lg">
                   Bill Document -{" "}
@@ -3402,8 +3421,8 @@ const TallyExpenseBillDetail = () => {
               </div>
               <button
                 onClick={toggleFullscreen}
-                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-                title="Close Fullscreen (Esc)"
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Close Fullscreen (Esc or click outside)"
               >
                 <svg
                   className="w-5 h-5"
@@ -3423,7 +3442,10 @@ const TallyExpenseBillDetail = () => {
             </div>
 
             {/* Fullscreen Content */}
-            <div className="flex-1 overflow-auto">
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               {isPDF(billInfo.file) ? (
                 <div className="w-full h-full p-4">
                   <iframe

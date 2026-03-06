@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import Card from "@/components/ui/Card";
 import { toast } from "sonner";
 import apiClient from "@/utils/apiClient";
@@ -8,8 +10,11 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Textinput from "@/components/ui/Textinput";
 import Select from "@/components/ui/Select";
+import { setSelectedOrganization } from "@/store/api/auth/authSlice";
 
 const ClientList = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -17,6 +22,7 @@ const ClientList = () => {
   const [formData, setFormData] = useState({
     name: "",
     module: "tally",
+    gst_number: "",
   });
 
   const moduleOptions = [
@@ -65,12 +71,12 @@ const ClientList = () => {
       setCreateLoading(true);
       const response = await apiClient.post(
         "/org/create-with-module/",
-        formData
+        formData,
       );
 
       toast.success(response.data.data.message);
       setShowCreateModal(false);
-      setFormData({ name: "", module: "tally" });
+      setFormData({ name: "", module: "tally", gst_number: "" });
 
       // Refresh the clients list
       fetchClients();
@@ -92,6 +98,14 @@ const ClientList = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleOrganizationClick = (organization) => {
+    // Set the selected organization in Redux
+    dispatch(setSelectedOrganization(organization));
+    // Navigate to dashboard
+    navigate("/dashboard");
+    toast.success(`Switched to ${organization.name}`);
   };
 
   if (loading) {
@@ -121,6 +135,9 @@ const ClientList = () => {
                   Unique Name
                 </th>
                 <th scope="col" className="table-th">
+                  GSTIN
+                </th>
+                <th scope="col" className="table-th">
                   Owner
                 </th>
                 <th scope="col" className="table-th">
@@ -137,7 +154,7 @@ const ClientList = () => {
             <tbody className="bg-white divide-y divide-slate-100 dark:bg-slate-800 dark:divide-slate-700">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-slate-500">
+                  <td colSpan="7" className="text-center py-4 text-slate-500">
                     No clients found
                   </td>
                 </tr>
@@ -145,18 +162,25 @@ const ClientList = () => {
                 clients.map((client) => (
                   <tr key={client.id}>
                     <td className="table-td">
-                      <div>
-                        <div className="font-medium text-slate-600 dark:text-slate-300">
-                          {client.name}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {client.slug}
-                        </div>
-                      </div>
+                      <button
+                        onClick={() => handleOrganizationClick(client)}
+                        className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-left transition-colors duration-200"
+                      >
+                        {client.name}
+                      </button>
                     </td>
                     <td className="table-td">
                       <span className="font-mono text-sm">
                         {client.unique_name}
+                      </span>
+                    </td>
+                    <td className="table-td">
+                      <span className="text-sm">
+                        {client.gst_number || (
+                          <span className="text-slate-400 italic">
+                            Not provided
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="table-td">
@@ -205,7 +229,7 @@ const ClientList = () => {
         activeModal={showCreateModal}
         onClose={() => {
           setShowCreateModal(false);
-          setFormData({ name: "", module: "tally" });
+          setFormData({ name: "", module: "tally", gst_number: "" });
         }}
       >
         <form onSubmit={handleCreateClient} className="space-y-4">
@@ -216,6 +240,14 @@ const ClientList = () => {
             value={formData.name}
             onChange={(e) => handleInputChange("name", e.target.value)}
             required
+          />
+
+          <Textinput
+            label="GSTIN"
+            type="text"
+            placeholder="Enter GSTIN (optional)"
+            value={formData.gst_number}
+            onChange={(e) => handleInputChange("gst_number", e.target.value)}
           />
 
           <Select
@@ -240,7 +272,7 @@ const ClientList = () => {
               type="button"
               onClick={() => {
                 setShowCreateModal(false);
-                setFormData({ name: "", module: "tally" });
+                setFormData({ name: "", module: "tally", gst_number: "" });
               }}
             />
             <Button

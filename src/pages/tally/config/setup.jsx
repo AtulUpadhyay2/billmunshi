@@ -137,7 +137,7 @@ const TallySetup = () => {
       });
 
       globalToast.success(
-        `Configuration ${config ? "updated" : "created"} successfully!`
+        `Configuration ${config ? "updated" : "created"} successfully!`,
       );
       handleCloseModal();
       refetch();
@@ -157,7 +157,7 @@ const TallySetup = () => {
     title,
     bgColor = "bg-slate-50",
     textColor = "text-slate-900",
-    borderColor = "border-slate-200"
+    borderColor = "border-slate-200",
   ) => {
     if (!parentNames || parentNames.length === 0) {
       return (
@@ -212,20 +212,25 @@ const TallySetup = () => {
         ...provided,
         minHeight: "44px",
         border: state.isFocused ? "2px solid #3b82f6" : "1px solid #e5e7eb",
-        boxShadow: state.isFocused ? "0 0 0 3px rgba(59, 130, 246, 0.1)" : "none",
+        boxShadow: state.isFocused
+          ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
+          : "none",
         backgroundColor: "#ffffff",
         borderRadius: "8px",
         transition: "all 0.2s ease",
         "&:hover": {
           border: state.isFocused ? "2px solid #3b82f6" : "1px solid #9ca3af",
-          boxShadow: state.isFocused ? "0 0 0 3px rgba(59, 130, 246, 0.1)" : "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+          boxShadow: state.isFocused
+            ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
+            : "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
         },
       }),
       menu: (provided) => ({
         ...provided,
         backgroundColor: "#ffffff",
         borderRadius: "8px",
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        boxShadow:
+          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         border: "1px solid #e5e7eb",
         overflow: "hidden",
       }),
@@ -238,8 +243,8 @@ const TallySetup = () => {
         backgroundColor: state.isSelected
           ? "#3b82f6"
           : state.isFocused
-          ? "#eff6ff"
-          : "transparent",
+            ? "#eff6ff"
+            : "transparent",
         color: state.isSelected ? "#ffffff" : "#1f2937",
         borderRadius: "6px",
         margin: "2px 0",
@@ -379,7 +384,7 @@ const TallySetup = () => {
           isMulti
           options={parentLedgerOptions}
           value={parentLedgerOptions.filter(
-            (option) => value && value.includes(option.value)
+            (option) => value && value.includes(option.value),
           )}
           onChange={(selectedOptions) => {
             const selectedValues =
@@ -468,8 +473,8 @@ const TallySetup = () => {
                   isSelected
                     ? "bg-blue-600 text-white font-medium"
                     : isFocused
-                    ? "bg-blue-50 text-gray-900"
-                    : "text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-50 text-gray-900"
+                      : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <div
@@ -502,8 +507,18 @@ const TallySetup = () => {
         />
         <div className="flex items-center gap-2 text-xs">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-medium">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             {value ? value.length : 0} selected
           </span>
@@ -670,8 +685,15 @@ const TallySetup = () => {
                           </h3>
                           <Tooltip
                             content={
-                              <div style={{ maxWidth: '300px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                                Please enable Inventory Accounting if you want to capture inventory details in Tally
+                              <div
+                                style={{
+                                  maxWidth: "300px",
+                                  whiteSpace: "normal",
+                                  wordWrap: "break-word",
+                                }}
+                              >
+                                Please enable Inventory Accounting if you want
+                                to capture inventory details in Tally
                               </div>
                             }
                             placement="top"
@@ -721,8 +743,15 @@ const TallySetup = () => {
                       </h2>
                       <Tooltip
                         content={
-                          <div style={{ maxWidth: '350px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                            Select relevant GST (CGST / SGST / IGST) Input ledgers or TDS Payable ledgers created in Tally.
+                          <div
+                            style={{
+                              maxWidth: "350px",
+                              whiteSpace: "normal",
+                              wordWrap: "break-word",
+                            }}
+                          >
+                            Select relevant GST (CGST / SGST / IGST) Input
+                            ledgers or TDS Payable ledgers created in Tally.
                           </div>
                         }
                         placement="top"
@@ -752,28 +781,28 @@ const TallySetup = () => {
                         "IGST Input Ledgers",
                         "bg-red-50",
                         "text-red-900",
-                        "border-red-200"
+                        "border-red-200",
                       )}
                       {renderParentNamesList(
                         config.cgst_parent_names,
                         "CGST Input Ledgers",
                         "bg-green-50",
                         "text-green-900",
-                        "border-green-200"
+                        "border-green-200",
                       )}
                       {renderParentNamesList(
                         config.sgst_parent_names,
                         "SGST Input Ledgers",
                         "bg-yellow-50",
                         "text-yellow-900",
-                        "border-yellow-200"
+                        "border-yellow-200",
                       )}
                       {renderParentNamesList(
                         config.tds_parent_names,
-                        "TDS Input Ledgers",
+                        "TDS Payable",
                         "bg-orange-50",
                         "text-orange-900",
-                        "border-orange-200"
+                        "border-orange-200",
                       )}
                     </div>
                   </div>
@@ -786,8 +815,15 @@ const TallySetup = () => {
                       </h2>
                       <Tooltip
                         content={
-                          <div style={{ maxWidth: '350px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                            Select relevant ledgers for Vendors, Purchase accounts and all type of Expenses
+                          <div
+                            style={{
+                              maxWidth: "350px",
+                              whiteSpace: "normal",
+                              wordWrap: "break-word",
+                            }}
+                          >
+                            Select relevant ledgers for Vendors, Purchase
+                            accounts and all type of Expenses
                           </div>
                         }
                         placement="top"
@@ -817,28 +853,28 @@ const TallySetup = () => {
                         "Vendor Ledgers",
                         "bg-purple-50",
                         "text-purple-900",
-                        "border-purple-200"
+                        "border-purple-200",
                       )}
                       {renderParentNamesList(
                         config.coa_parent_names,
-                        "Purchase Ledger",
+                        "Purchase Parent Ledger",
                         "bg-indigo-50",
                         "text-indigo-900",
-                        "border-indigo-200"
+                        "border-indigo-200",
                       )}
                       {renderParentNamesList(
                         config.expense_coa_parent_names,
-                        "Expense Ledger",
+                        "Expense Parent Ledger",
                         "bg-teal-50",
                         "text-teal-900",
-                        "border-teal-200"
+                        "border-teal-200",
                       )}
                       {renderParentNamesList(
                         config.payment_parent_names,
                         "Payment Ledgers",
                         "bg-cyan-50",
                         "text-cyan-900",
-                        "border-cyan-200"
+                        "border-cyan-200",
                       )}
                     </div>
                   </div>
@@ -883,8 +919,15 @@ const TallySetup = () => {
                   </h3>
                   <Tooltip
                     content={
-                      <div style={{ maxWidth: '300px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                        Please enable Inventory Accounting if you want to capture inventory details in Tally
+                      <div
+                        style={{
+                          maxWidth: "300px",
+                          whiteSpace: "normal",
+                          wordWrap: "break-word",
+                        }}
+                      >
+                        Please enable Inventory Accounting if you want to
+                        capture inventory details in Tally
                       </div>
                     }
                     placement="top"
@@ -918,7 +961,10 @@ const TallySetup = () => {
                 type="checkbox"
                 checked={configData.tally_product_allow_sync}
                 onChange={(e) =>
-                  handleInputChange("tally_product_allow_sync", e.target.checked)
+                  handleInputChange(
+                    "tally_product_allow_sync",
+                    e.target.checked,
+                  )
                 }
                 className="sr-only peer"
               />
@@ -947,8 +993,15 @@ const TallySetup = () => {
               </h3>
               <Tooltip
                 content={
-                  <div style={{ maxWidth: '350px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                    Select relevant GST (CGST / SGST / IGST) Input ledgers or TDS Payable ledgers created in Tally.
+                  <div
+                    style={{
+                      maxWidth: "350px",
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
+                    }}
+                  >
+                    Select relevant GST (CGST / SGST / IGST) Input ledgers or
+                    TDS Payable ledgers created in Tally.
                   </div>
                 }
                 placement="top"
@@ -976,22 +1029,22 @@ const TallySetup = () => {
               {renderMultiSelect(
                 "igst_parents",
                 "IGST Parent Ledgers",
-                configData.igst_parents
+                configData.igst_parents,
               )}
               {renderMultiSelect(
                 "cgst_parents",
                 "CGST Parent Ledgers",
-                configData.cgst_parents
+                configData.cgst_parents,
               )}
               {renderMultiSelect(
                 "sgst_parents",
                 "SGST Parent Ledgers",
-                configData.sgst_parents
+                configData.sgst_parents,
               )}
               {renderMultiSelect(
                 "tds_parents",
-                "TDS Parent Ledgers",
-                configData.tds_parents
+                "TDS Payable",
+                configData.tds_parents,
               )}
             </div>
           </div>
@@ -1017,8 +1070,15 @@ const TallySetup = () => {
               </h3>
               <Tooltip
                 content={
-                  <div style={{ maxWidth: '350px', whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                    Select relevant ledgers for Vendors, Purchase accounts and all type of Expenses
+                  <div
+                    style={{
+                      maxWidth: "350px",
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
+                    }}
+                  >
+                    Select relevant ledgers for Vendors, Purchase accounts and
+                    all type of Expenses
                   </div>
                 }
                 placement="top"
@@ -1046,22 +1106,22 @@ const TallySetup = () => {
               {renderMultiSelect(
                 "vendor_parents",
                 "Vendor Parent Ledgers",
-                configData.vendor_parents
+                configData.vendor_parents,
               )}
               {renderMultiSelect(
                 "chart_of_accounts_parents",
-                "Chart of Accounts Parent Ledgers",
-                configData.chart_of_accounts_parents
+                "Purchase Parent Ledger",
+                configData.chart_of_accounts_parents,
               )}
               {renderMultiSelect(
                 "chart_of_accounts_expense_parents",
-                "Expense COA Parent Ledgers",
-                configData.chart_of_accounts_expense_parents
+                "Expense Parent Ledger",
+                configData.chart_of_accounts_expense_parents,
               )}
               {renderMultiSelect(
                 "payment_parents",
                 "Payment Parent Ledgers",
-                configData.payment_parents
+                configData.payment_parents,
               )}
             </div>
           </div>
@@ -1087,8 +1147,8 @@ const TallySetup = () => {
                   ? "Updating..."
                   : "Creating..."
                 : config
-                ? "Update Configuration"
-                : "Create Configuration"}
+                  ? "Update Configuration"
+                  : "Create Configuration"}
             </button>
           </div>
         </form>

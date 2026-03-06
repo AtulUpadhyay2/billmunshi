@@ -605,7 +605,14 @@ const ZohoVendorBillDetail = () => {
   // Keyboard shortcuts for zoom and fullscreen
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (!vendorBillData?.file || isPDF(vendorBillData.file)) return;
+      if (!vendorBillData?.file || isPDF(vendorBillData.file)) {
+        // For PDF, only handle Escape key for fullscreen
+        if (e.key === "Escape" && isFullscreen) {
+          e.preventDefault();
+          setIsFullscreen(false);
+        }
+        return;
+      }
 
       switch (e.key) {
         case "f":
@@ -636,7 +643,8 @@ const ZohoVendorBillDetail = () => {
           break;
         case "Escape":
           if (isFullscreen) {
-            toggleFullscreen();
+            e.preventDefault();
+            setIsFullscreen(false);
           }
           break;
       }
@@ -2662,10 +2670,21 @@ const ZohoVendorBillDetail = () => {
 
       {/* Fullscreen Modal */}
       {isFullscreen && vendorBillData?.file && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          onClick={(e) => {
+            // Close fullscreen when clicking on the background overlay
+            if (e.target === e.currentTarget) {
+              toggleFullscreen();
+            }
+          }}
+        >
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header - Fixed */}
-            <div className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10">
+            <div
+              className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-4">
                 <h3 className="text-white text-lg font-medium">
                   Bill Document -{" "}
@@ -2740,8 +2759,8 @@ const ZohoVendorBillDetail = () => {
               </div>
               <button
                 onClick={toggleFullscreen}
-                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-                title="Close Fullscreen (Esc)"
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Close Fullscreen (Esc or click outside)"
               >
                 <svg
                   className="w-5 h-5"
@@ -2761,7 +2780,10 @@ const ZohoVendorBillDetail = () => {
             </div>
 
             {/* Fullscreen Content - Scrollable */}
-            <div className="flex-1 overflow-auto">
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               {isPDF(vendorBillData.file) ? (
                 <iframe
                   src={vendorBillData.file}

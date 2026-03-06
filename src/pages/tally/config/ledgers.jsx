@@ -156,49 +156,51 @@ const Ledgers = () => {
                     <div className="border-t border-gray-200">
                       {parentData.ledgers.length > 0 ? (
                         <div className="max-h-96 overflow-y-auto">
-                          {parentData.ledgers.map((ledger) => (
-                            <div
-                              key={ledger.id}
-                              className="p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {ledger.alias !== "0" && (
-                                    <div className="text-sm text-gray-500">
-                                      Alias: {ledger.alias}
+                          {parentData.ledgers
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((ledger) => (
+                              <div
+                                key={ledger.id}
+                                className="p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">
+                                      {ledger.name}
                                     </div>
-                                  )}
-                                  {ledger.company && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {ledger.company.trim()}
+                                    {ledger.alias !== "0" && (
+                                      <div className="text-sm text-gray-500">
+                                        Alias: {ledger.alias}
+                                      </div>
+                                    )}
+                                    {ledger.company && (
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        {ledger.company.trim()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-right ml-4">
+                                    <div className="font-medium text-gray-900">
+                                      ₹
+                                      {parseFloat(
+                                        ledger.opening_balance,
+                                      ).toLocaleString("en-IN", {
+                                        minimumFractionDigits: 2,
+                                      })}
                                     </div>
-                                  )}
-                                </div>
-                                <div className="text-right ml-4">
-                                  <div className="font-medium text-gray-900">
-                                    ₹
-                                    {parseFloat(
-                                      ledger.opening_balance,
-                                    ).toLocaleString("en-IN", {
-                                      minimumFractionDigits: 2,
-                                    })}
+                                    <div className="text-xs text-gray-500">
+                                      Opening Balance
+                                    </div>
+                                    {ledger.gst_in !== "" && (
+                                      <Badge
+                                        label={`GST: ${ledger.gst_in}`}
+                                        className="bg-yellow-100 text-yellow-800 text-xs mt-1"
+                                      />
+                                    )}
                                   </div>
-                                  <div className="text-xs text-gray-500">
-                                    Opening Balance
-                                  </div>
-                                  {ledger.gst_in !== "" && (
-                                    <Badge
-                                      label={`GST: ${ledger.gst_in}`}
-                                      className="bg-yellow-100 text-yellow-800 text-xs mt-1"
-                                    />
-                                  )}
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       ) : (
                         <div className="p-4 text-center text-gray-500">

@@ -253,7 +253,7 @@ const TallyVendorBillDetail = () => {
     }
     if (getProductsWithoutTaxLedger().length > 0) {
       errors.push(
-        `${getProductsWithoutTaxLedger().length} product(s) are missing tax ledgers`,
+        `${getProductsWithoutTaxLedger().length} product(s) are missing purchase ledgers`,
       );
     }
     if (getProductsWithoutGST().length > 0) {
@@ -609,7 +609,7 @@ const TallyVendorBillDetail = () => {
             item_id: item.item_id || item.id || null,
             item_name: item.item_name || null,
             item_details: item.item_details || "",
-            tax_ledger: item.tax_ledger || "No Tax Ledger",
+            tax_ledger: item.tax_ledger || "No Purchase Ledger",
             tax_ledger_id: item.tax_ledger_id || item.taxes || null,
             price: item.price || item.rate || "",
             quantity: item.quantity || "",
@@ -627,7 +627,7 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: item.description || "",
-            tax_ledger: "No Tax Ledger",
+            tax_ledger: "No Purchase Ledger",
             tax_ledger_id: null,
             price: item.price || "",
             quantity: item.quantity || "",
@@ -646,7 +646,7 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: "",
-            tax_ledger: "No Tax Ledger",
+            tax_ledger: "No Purchase Ledger",
             tax_ledger_id: null,
             price: "",
             quantity: "",
@@ -1884,7 +1884,14 @@ const TallyVendorBillDetail = () => {
   // Keyboard shortcuts for zoom and fullscreen
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (!billInfo?.file || isPDF(billInfo.file)) return;
+      if (!billInfo?.file || isPDF(billInfo.file)) {
+        // For PDF, only handle Escape key for fullscreen
+        if (e.key === "Escape" && isFullscreen) {
+          e.preventDefault();
+          setIsFullscreen(false);
+        }
+        return;
+      }
 
       switch (e.key) {
         case "f":
@@ -1915,7 +1922,8 @@ const TallyVendorBillDetail = () => {
           break;
         case "Escape":
           if (isFullscreen) {
-            toggleFullscreen();
+            e.preventDefault();
+            setIsFullscreen(false);
           }
           break;
       }
@@ -2875,7 +2883,8 @@ const TallyVendorBillDetail = () => {
                               Item Details
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
-                              Tax Ledger <span className="text-red-500">*</span>
+                              Purchase Ledger{" "}
+                              <span className="text-red-500">*</span>
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
                               Price
@@ -2981,8 +2990,8 @@ const TallyVendorBillDetail = () => {
                                       handleTaxLedgerSelect(index, taxLedgerId)
                                     }
                                     onClear={() => handleTaxLedgerClear(index)}
-                                    placeholder="Select tax ledger..."
-                                    searchPlaceholder="Type to search tax ledgers..."
+                                    placeholder="Select purchase ledger..."
+                                    searchPlaceholder="Type to search purchase ledgers..."
                                     optionLabelKey="name"
                                     optionValueKey="id"
                                     loading={taxLedgersLoading}
@@ -3574,10 +3583,21 @@ const TallyVendorBillDetail = () => {
 
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          onClick={(e) => {
+            // Close fullscreen when clicking on the background overlay
+            if (e.target === e.currentTarget) {
+              toggleFullscreen();
+            }
+          }}
+        >
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header - Fixed */}
-            <div className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10">
+            <div
+              className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-4">
                 <h3 className="text-white text-lg font-medium">
                   Bill Document -{" "}
@@ -3654,8 +3674,8 @@ const TallyVendorBillDetail = () => {
               </div>
               <button
                 onClick={toggleFullscreen}
-                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
-                title="Close Fullscreen (Esc)"
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Close Fullscreen (Esc or click outside)"
               >
                 <svg
                   className="w-5 h-5"
@@ -3675,7 +3695,10 @@ const TallyVendorBillDetail = () => {
             </div>
 
             {/* Fullscreen Content - Scrollable */}
-            <div className="flex-1 overflow-auto">
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               {isPDF(billInfo.file) ? (
                 <iframe
                   src={billInfo.file}
