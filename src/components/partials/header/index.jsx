@@ -1,16 +1,16 @@
 import React from "react";
 import Icon from "@/components/ui/Icon";
-import SwitchDark from "./tools/SwitchDark";
-import HorizontalMenu from "./tools/HorizontalMenu";
+import SwitchDark from "./Tools/SwitchDark";
+import HorizontalMenu from "./Tools/HorizontalMenu";
 import useWidth from "@/hooks/useWidth";
 import useSidebar from "@/hooks/useSidebar";
 import useNavbarType from "@/hooks/useNavbarType";
 import useMenulayout from "@/hooks/useMenulayout";
 import useSkin from "@/hooks/useSkin";
-import Logo from "./tools/Logo";
-// import SearchModal from "./tools/SearchModal";
-import Profile from "./tools/Profile";
-import OrgSwitcher from "./tools/OrgSwitcher";
+import Logo from "./Tools/Logo";
+// import SearchModal from "./Tools/SearchModal";
+import Profile from "./Tools/Profile";
+import OrgSwitcher from "./Tools/OrgSwitcher";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
 
