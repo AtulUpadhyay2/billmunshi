@@ -356,25 +356,21 @@ const ZohoJournalEntry = () => {
         formData,
       });
 
-      // Check if there are any duplicates detected
-      const hasDuplicates = response?.auto_analysis_results?.some(
-        (result) => result.duplicate_detected === true,
+      // Close modal immediately
+      setIsUploadModalOpen(false);
+
+      globalToast.success(
+        `${response.bills_created} bill(s) uploaded! Processing in background...`,
       );
 
-      if (hasDuplicates) {
-        // Find the first duplicate result and show modal
-        const duplicateResult = response.auto_analysis_results.find(
-          (result) => result.duplicate_detected === true,
-        );
-        setDuplicateData(duplicateResult);
-        setIsDuplicateModalOpen(true);
-        globalToast.warning("Bills uploaded, but duplicates were detected!");
-      } else {
-        globalToast.success("Bills uploaded successfully");
-      }
+      // Immediate refresh to show newly created bills with "Processing" status
+      refetch();
 
-      refetch(); // Refresh the list
-      setIsUploadModalOpen(false); // Close the upload modal
+      // Auto-refresh after 10 seconds to show processed results
+      setTimeout(() => {
+        refetch();
+        globalToast.info("Bills list refreshed");
+      }, 10000);
     } catch (error) {
       console.error("Upload failed:", error);
       globalToast.error(
@@ -415,10 +411,36 @@ const ZohoJournalEntry = () => {
     if (status === "Draft") {
       const isAnalyzing = analyzingBills.has(bill.id);
       const isBackgroundProcessing = backgroundProcessingBills.has(bill.id);
+      const hasProcessingError = bill.processing_error;
 
       return (
         <div className="flex gap-2 flex-wrap items-center">
-          {isBackgroundProcessing ? (
+          {hasProcessingError ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-3.5 h-3.5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+              <span className="font-medium">Processing Failed</span>
+              <button
+                onClick={() => handleAction(bill.id, "analyse")}
+                className="ml-2 px-2 py-0.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                title="Retry analysis"
+              >
+                Retry
+              </button>
+            </div>
+          ) : isBackgroundProcessing ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
               <svg
                 className="w-3.5 h-3.5 animate-spin"
@@ -622,9 +644,11 @@ const ZohoJournalEntry = () => {
     const processingBills = new Set();
     expenseBills.forEach((bill) => {
       // Check for bills being processed (is_processing flag or draft status with file but no analysis)
+      // Exclude bills with processing errors
       if (
-        bill.is_processing ||
-        (bill.status === "Draft" && bill.process === true)
+        !bill.processing_error &&
+        (bill.is_processing ||
+          (bill.status === "Draft" && bill.process === true))
       ) {
         processingBills.add(bill.id);
       }
@@ -939,29 +963,78 @@ const ZohoJournalEntry = () => {
                               <span className="font-medium">
                                 {bill.billmunshiName}
                               </span>
+                              {backgroundProcessingBills.has(bill.id) && (
+                                <div className="flex items-center">
+                                  <span className="animate-pulse text-yellow-500 text-xs">
+                                    ⚡
+                                  </span>
+                                  <span className="text-xs text-yellow-600 ml-1">
+                                    Processing...
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {bill.file && (
+                                <button
+                                  onClick={() =>
+                                    handleViewFile(
+                                      bill.file,
+                                      bill.billmunshiName || "Journal Entry",
+                                    )
+                                  }
+                                  className="text-xs text-blue-600 hover:underline cursor-pointer"
+                                >
+                                  View File
+                                </button>
+                              )}
                               {bill.is_duplicate && (
                                 <button
                                   onClick={() => handleViewDuplicates(bill)}
-                                  className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 hover:bg-orange-200 cursor-pointer transition-colors"
-                                  title="View duplicate analysis"
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-md hover:bg-orange-200 transition-colors duration-200"
+                                  title={`Duplicate detected (${bill.duplicate_score}% similarity)`}
                                 >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-3 h-3"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                                    />
+                                  </svg>
                                   Duplicate
                                 </button>
                               )}
+                              {bill.bill_belong_your_org === false && (
+                                <button
+                                  onClick={() => handleViewExternalBill(bill)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                  title="This bill was not issued by your organization - Click for details"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-3 h-3"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
+                                    />
+                                  </svg>
+                                  External Bill
+                                </button>
+                              )}
                             </div>
-                            {bill.file && (
-                              <button
-                                onClick={() =>
-                                  handleViewFile(
-                                    bill.file,
-                                    bill.billmunshiName || "Journal Entry",
-                                  )
-                                }
-                                className="text-xs text-blue-600 hover:underline cursor-pointer"
-                              >
-                                View File
-                              </button>
-                            )}
                           </div>
                         </td>
                         <td className="table-td">
@@ -1188,196 +1261,100 @@ const ZohoJournalEntry = () => {
           setSelectedDuplicateBill(null);
         }}
         title="Duplicate Analysis"
-        className="max-w-4xl"
+        className="max-w-2xl"
       >
         {selectedDuplicateBill && (
-          <div className="space-y-6">
-            {/* Current Bill Details */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="text-lg font-semibold text-blue-800 mb-3">
-                Current Journal Entry
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">
-                    Document ID:
-                  </span>
-                  <p className="text-gray-800">
-                    {selectedDuplicateBill.billmunshiName}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Status:</span>
-                  <p className="text-gray-800">
-                    {selectedDuplicateBill.status}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">
-                    Created Date:
-                  </span>
-                  <p className="text-gray-800">
-                    {formatDate(selectedDuplicateBill.created_at)}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Created By:</span>
-                  <p className="text-gray-800">
-                    {selectedDuplicateBill.uploaded_by_name}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Duplicate Detection Results */}
-            {selectedDuplicateBill.duplicate_details && (
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                <h3 className="text-lg font-semibold text-orange-800 mb-3">
-                  Duplicate Analysis Results
-                  <span className="ml-2 text-sm font-normal text-orange-600">
-                    (Similarity Score:{" "}
-                    {selectedDuplicateBill.duplicate_details.max_similarity?.toFixed(
-                      2,
-                    ) || "N/A"}
-                    %)
-                  </span>
-                </h3>
-
-                {selectedDuplicateBill.duplicate_details.duplicate_bills &&
-                selectedDuplicateBill.duplicate_details.duplicate_bills.length >
-                  0 ? (
-                  <div className="space-y-4">
-                    {selectedDuplicateBill.duplicate_details.duplicate_bills.map(
-                      (duplicate, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg p-4 border border-orange-200"
+          <div className="space-y-6 p-6">
+            {/* Duplicate Warning */}
+            {selectedDuplicateBill.duplicate_matched_bills &&
+              selectedDuplicateBill.duplicate_matched_bills.length > 0 && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/50 flex-shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-5 h-5 text-orange-600 dark:text-orange-400"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                        ⚠️ Duplicate Bill Detected
+                      </p>
+                      <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+                        Bill number{" "}
+                        <span className="font-semibold">
+                          {selectedDuplicateBill.duplicate_matched_bills[0]
+                            ?.invoice_number || "N/A"}
+                        </span>{" "}
+                        from{" "}
+                        <button
+                          onClick={() => {
+                            if (selectedDuplicateBill?.id) {
+                              navigate(
+                                `/zoho/journal-entry/${selectedDuplicateBill.id}`,
+                              );
+                              setIsDuplicateModalOpen(false);
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-mono font-semibold hover:underline"
                         >
-                          <h4 className="font-semibold text-gray-800 mb-3">
-                            Similar Journal Entry #{index + 1}
-                            {duplicate.similarity_score && (
-                              <span className="ml-2 text-sm font-normal text-orange-600">
-                                ({duplicate.similarity_score.toFixed(2)}% match)
-                              </span>
-                            )}
-                          </h4>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium text-gray-600">
-                                Document ID:
-                              </span>
-                              <p className="text-gray-800">
-                                {duplicate.billmunshiName}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-600">
-                                Status:
-                              </span>
-                              <p className="text-gray-800">
-                                {duplicate.status}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-600">
-                                Created Date:
-                              </span>
-                              <p className="text-gray-800">
-                                {formatDate(duplicate.created_at)}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-600">
-                                Created By:
-                              </span>
-                              <p className="text-gray-800">
-                                {duplicate.uploaded_by_name}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Matching Factors */}
-                          {duplicate.matching_factors && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <span className="font-medium text-gray-600 block mb-2">
-                                Matching Factors:
-                              </span>
-                              <div className="flex flex-wrap gap-2">
-                                {Object.entries(duplicate.matching_factors).map(
-                                  ([factor, isMatch]) =>
-                                    isMatch && (
-                                      <span
-                                        key={factor}
-                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                                      >
-                                        {factor
-                                          .replace("_", " ")
-                                          .replace(/\b\w/g, (l) =>
-                                            l.toUpperCase(),
-                                          )}
-                                      </span>
-                                    ),
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ),
-                    )}
+                          {selectedDuplicateBill.billmunshiName}
+                        </button>{" "}
+                        matches{" "}
+                        <button
+                          onClick={() => {
+                            const matchedBill =
+                              selectedDuplicateBill.duplicate_matched_bills[0];
+                            if (matchedBill?.bill_id) {
+                              navigate(
+                                `/zoho/journal-entry/${matchedBill.bill_id}`,
+                              );
+                              setIsDuplicateModalOpen(false);
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-mono font-semibold hover:underline"
+                        >
+                          {selectedDuplicateBill.duplicate_matched_bills[0]
+                            ?.bill_name || "with this bill"}
+                        </button>
+                        .
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-orange-600">
-                    No detailed duplicate information available.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Recommendations */}
-            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-3">
-                Recommendations
-              </h3>
-              <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                <li>
-                  Review the similar journal entries above to confirm if this is
-                  a true duplicate
-                </li>
-                <li>
-                  If this is a duplicate, consider merging or removing one of
-                  the entries
-                </li>
-                <li>
-                  If this is not a duplicate, you may want to add more
-                  distinguishing information
-                </li>
-                <li>
-                  Check with the original creator if you're unsure about the
-                  entry's validity
-                </li>
-              </ul>
-            </div>
+                </div>
+              )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => {
                   setIsDuplicateModalOpen(false);
                   setSelectedDuplicateBill(null);
+                  navigate(`/zoho/journal-entry/${selectedDuplicateBill.id}`);
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
               >
-                Close
+                Proceed
               </button>
               <button
                 onClick={() => {
-                  // You can add additional actions here like marking as reviewed
                   setIsDuplicateModalOpen(false);
                   setSelectedDuplicateBill(null);
+                  setDeleteConfirmBillId(selectedDuplicateBill.id);
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
               >
-                Mark as Reviewed
+                Delete this bill
               </button>
             </div>
           </div>
@@ -1389,68 +1366,101 @@ const ZohoJournalEntry = () => {
         activeModal={isExternalBillModalOpen}
         onClose={() => setIsExternalBillModalOpen(false)}
         title="External Bill Information"
-        className="max-w-lg"
+        className="max-w-2xl"
       >
         {selectedExternalBill && (
-          <div className="p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  Bill Details - {selectedExternalBill.billmunshiName}
-                </h4>
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
-                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-700">
-                    <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                      {selectedExternalBill.bill_belong_your_org === false ? (
-                        <>
-                          ❌ Bill NOT issued by your organization.{" "}
-                          {selectedExternalBill.description ? (
-                            <span className="block mt-1 text-xs text-red-700 dark:text-red-300">
-                              {selectedExternalBill.description}
-                            </span>
-                          ) : (
-                            <span className="block mt-1 text-xs text-red-700 dark:text-red-300">
-                              External bill detection - please verify the bill
-                              belongs to your organization.
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          ✅{" "}
-                          {selectedExternalBill.description ||
-                            "Bill validation completed successfully."}
-                        </>
-                      )}
-                    </p>
-                  </div>
+          <div className="space-y-6 p-6">
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-700">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 flex-shrink-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-red-600 dark:text-red-400"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                    {selectedExternalBill.bill_belong_your_org === false ? (
+                      <>❌ Bill NOT issued by your organization.</>
+                    ) : (
+                      <>
+                        ✅{" "}
+                        {selectedExternalBill.description ||
+                          "Bill validation completed successfully."}
+                      </>
+                    )}
+                  </p>
+                  {selectedExternalBill.bill_belong_your_org === false &&
+                    selectedExternalBill.analysed_data?.to && (
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+                        This bill is issued to{" "}
+                        <span className="font-semibold">
+                          {selectedExternalBill.analysed_data.to.name}
+                        </span>
+                        {selectedExternalBill.analysed_data.to.gst_number && (
+                          <span>
+                            {" "}
+                            (GST:{" "}
+                            {selectedExternalBill.analysed_data.to.gst_number})
+                          </span>
+                        )}
+                        , it doesn't match with your organization name or GST
+                        no. Please select Proceed or Delete to process this
+                        bill.
+                      </p>
+                    )}
+                  {selectedExternalBill.bill_belong_your_org === false &&
+                    selectedExternalBill.description && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                        {selectedExternalBill.description}
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setIsExternalBillModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
-              >
-                Close
-              </button>
+              {selectedExternalBill.bill_belong_your_org === false ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsExternalBillModalOpen(false);
+                      navigate(
+                        `/zoho/journal-entry/${selectedExternalBill.id}`,
+                      );
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                  >
+                    Proceed
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsExternalBillModalOpen(false);
+                      setDeleteConfirmBillId(selectedExternalBill.id);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                  >
+                    Delete this bill
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsExternalBillModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+                >
+                  Close
+                </button>
+              )}
             </div>
           </div>
         )}

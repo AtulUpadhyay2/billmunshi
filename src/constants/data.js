@@ -8,7 +8,7 @@ export const menuItems = [
     title: "Dashboard",
     icon: "heroicons-outline:home",
     isHide: true,
-    link: "dashboard",
+    link: "/dashboard",
   },
   {
     isHeadr: true,
@@ -19,19 +19,19 @@ export const menuItems = [
     title: "Vendor Bill",
     isHide: true,
     icon: "heroicons-outline:document-text",
-    link: "zoho/vendor-bill",
+    link: "/zoho/vendor-bill",
   },
   {
     title: "Journal Entry",
     isHide: true,
     icon: "heroicons-outline:document",
-    link: "zoho/journal-entry",
+    link: "/zoho/journal-entry",
   },
   {
     title: "Expense Bill",
     isHide: true,
     icon: "heroicons-outline:clipboard",
-    link: "zoho/expense-bill",
+    link: "/zoho/expense-bill",
   },
   {
     title: "Config",
@@ -41,23 +41,23 @@ export const menuItems = [
     child: [
       {
         childtitle: "Credentials",
-        childlink: "zoho/config/credentials",
+        childlink: "/zoho/config/credentials",
       },
       {
         childtitle: "Chart of account",
-        childlink: "zoho/chart-of-account",
+        childlink: "/zoho/chart-of-account",
       },
       {
         childtitle: "GST ledgers",
-        childlink: "zoho/taxes",
+        childlink: "/zoho/taxes",
       },
       {
         childtitle: "TDS / TCS",
-        childlink: "zoho/tds-tcs",
+        childlink: "/zoho/tds-tcs",
       },
       {
         childtitle: "Vendor List",
-        childlink: "zoho/vendors",
+        childlink: "/zoho/vendors",
       },
       // {
       //   childtitle: "Vendors Credits",
@@ -75,14 +75,14 @@ export const menuItems = [
     title: "Vendor Bill",
     isHide: true,
     icon: "heroicons-outline:document-text",
-    link: "tally/vendor-bill",
+    link: "/tally/vendor-bill",
   },
 
   {
     title: "Journal Entry",
     isHide: true,
     icon: "heroicons-outline:clipboard",
-    link: "tally/expense-bill",
+    link: "/tally/expense-bill",
   },
 
   {
@@ -93,23 +93,19 @@ export const menuItems = [
     child: [
       {
         childtitle: "Account Info",
-        childlink: "api-keys",
+        childlink: "/tally/account-info",
       },
       {
         childtitle: "Tally Integration",
-        childlink: "tally/setup",
+        childlink: "/tally/setup",
       },
       {
         childtitle: "Chart of Accounts",
-        childlink: "tally/ledgers",
+        childlink: "/tally/ledgers",
       },
       {
         childtitle: "Inventory Items",
-        childlink: "tally/masters",
-      },
-      {
-        childtitle: "API Key",
-        childlink: "tally/help",
+        childlink: "/tally/masters",
       },
     ],
   },
@@ -118,7 +114,7 @@ export const menuItems = [
   //   title: "Help",
   //   isHide: true,
   //   icon: "heroicons-outline:question-mark-circle",
-  //   link: "tally/help",
+  //   link: "/tally/help",
   // },
 
   {
@@ -129,13 +125,13 @@ export const menuItems = [
     title: "Members",
     isHide: true,
     icon: "heroicons-outline:users",
-    link: "members",
+    link: "/members",
   },
   {
     title: "Clients",
     isHide: true,
     icon: "heroicons-outline:user-group",
-    link: "clients",
+    link: "/clients",
   },
 ];
 
@@ -143,7 +139,7 @@ export const topMenu = [
   {
     title: "Dashboard",
     icon: "heroicons-outline:home",
-    link: "dashboard",
+    link: "/dashboard",
   },
   {
     title: "Zoho",
@@ -152,42 +148,42 @@ export const topMenu = [
     child: [
       {
         childtitle: "Vendor Bill",
-        childlink: "zoho/vendor-bill",
+        childlink: "/zoho/vendor-bill",
         childicon: "heroicons-outline:document-text",
       },
       {
         childtitle: "Journal Entry",
-        childlink: "zoho/journal-entry",
+        childlink: "/zoho/journal-entry",
         childicon: "heroicons-outline:document",
       },
       {
         childtitle: "Expense Bill",
-        childlink: "zoho/expense-bill",
+        childlink: "/zoho/expense-bill",
         childicon: "heroicons-outline:clipboard",
       },
       {
         childtitle: "Credentials",
-        childlink: "zoho/config/credentials",
+        childlink: "/zoho/config/credentials",
         childicon: "heroicons-outline:key",
       },
       {
         childtitle: "Chart of account",
-        childlink: "zoho/chart-of-account",
+        childlink: "/zoho/chart-of-account",
         childicon: "heroicons-outline:chart-bar",
       },
       {
         childtitle: "GST ledgers",
-        childlink: "zoho/taxes",
+        childlink: "/zoho/taxes",
         childicon: "heroicons-outline:calculator",
       },
       {
         childtitle: "TDS / TCS",
-        childlink: "zoho/tds-tcs",
+        childlink: "/zoho/tds-tcs",
         childicon: "heroicons-outline:receipt-tax",
       },
       {
         childtitle: "Vendor List",
-        childlink: "zoho/vendors",
+        childlink: "/zoho/vendors",
         childicon: "heroicons-outline:user-group",
       },
     ],
@@ -199,32 +195,32 @@ export const topMenu = [
     child: [
       {
         childtitle: "Vendor Bill",
-        childlink: "tally/vendor-bill",
+        childlink: "/tally/vendor-bill",
         childicon: "heroicons-outline:document-text",
       },
       {
         childtitle: "Expense Bill",
-        childlink: "tally/expense-bill",
+        childlink: "/tally/expense-bill",
         childicon: "heroicons-outline:clipboard",
       },
       {
         childtitle: "Account Info",
-        childlink: "api-keys",
+        childlink: "/tally/account-info",
         childicon: "heroicons-outline:key",
       },
       {
         childtitle: "Tally Integration",
-        childlink: "tally/setup",
+        childlink: "/tally/setup",
         childicon: "heroicons-outline:cog",
       },
       {
         childtitle: "Chart of Accounts",
-        childlink: "tally/ledgers",
+        childlink: "/tally/ledgers",
         childicon: "heroicons-outline:book-open",
       },
       {
         childtitle: "Inventory Items",
-        childlink: "tally/masters",
+        childlink: "/tally/masters",
         childicon: "heroicons-outline:academic-cap",
       },
     ],
@@ -236,12 +232,12 @@ export const topMenu = [
     child: [
       {
         childtitle: "Members",
-        childlink: "members",
+        childlink: "/members",
         childicon: "heroicons-outline:users",
       },
       {
         childtitle: "Clients",
-        childlink: "clients",
+        childlink: "/clients",
         childicon: "heroicons-outline:user-group",
       },
     ],

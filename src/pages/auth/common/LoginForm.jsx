@@ -8,7 +8,10 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useLoginMutation, useLazyGetProfileQuery } from "@/store/api/auth/authApiSlice";
+import {
+  useLoginMutation,
+  useLazyGetProfileQuery,
+} from "@/store/api/auth/authApiSlice";
 import { setUser } from "@/store/api/auth/authSlice";
 import { toast } from "sonner";
 import { handleApiError } from "@/utils/apiErrorHandler";
@@ -22,7 +25,8 @@ const schema = yup
 
 const LoginForm = () => {
   const [login, { isLoading, isError, error, isSuccess }] = useLoginMutation();
-  const [triggerGetProfile, { isLoading: isProfileLoading }] = useLazyGetProfileQuery();
+  const [triggerGetProfile, { isLoading: isProfileLoading }] =
+    useLazyGetProfileQuery();
 
   const dispatch = useDispatch();
 
@@ -34,7 +38,7 @@ const LoginForm = () => {
     resolver: yupResolver(schema),
     mode: "all",
   });
-  
+
   const navigate = useNavigate();
   const [checked, setChecked] = useState(false);
 
@@ -43,8 +47,13 @@ const LoginForm = () => {
       const response = await login(data);
 
       if (response.error) {
-        console.error('Response error:', response.error);
-        throw new Error(response.error.data?.message || response.error.data?.detail || "Login failed");
+        console.error("Response error:", response.error);
+        // Use centralized error handler for mutation errors
+        handleApiError(
+          response.error,
+          "Login failed. Please check your credentials.",
+        );
+        return;
       }
 
       if (response.data?.error) {
@@ -53,23 +62,23 @@ const LoginForm = () => {
 
       // Check if we have the expected response structure
       if (!response.data?.access || !response.data?.user) {
-        console.error('Invalid response structure:', response.data);
+        console.error("Invalid response structure:", response.data);
         throw new Error("Invalid response from server");
       }
 
       // Store initial login tokens
       const loginTokens = {
         access: response.data.access,
-        refresh: response.data.refresh
+        refresh: response.data.refresh,
       };
 
       toast.success("Login Successful");
 
       // Fetch fresh profile data from /me endpoint
       const profileResult = await triggerGetProfile();
-      
+
       if (profileResult.error) {
-        console.error('Profile fetch error:', profileResult.error);
+        console.error("Profile fetch error:", profileResult.error);
         // Fall back to login response data if profile fetch fails
         var userData = response.data.user;
       } else {
@@ -83,18 +92,15 @@ const LoginForm = () => {
           loginData: {
             user: userData,
             access: loginTokens.access,
-            refresh: loginTokens.refresh
-          }
-        }
+            refresh: loginTokens.refresh,
+          },
+        },
       });
     } catch (error) {
       console.error("Login error:", error);
-      
+
       // Use centralized error handler
-      const isTokenExpired = handleApiError(error, "Login failed. Please try again.");
-      
-      // If it's not a token expiration error, the handleApiError already showed the toast
-      // Token expiration errors are handled automatically by the error handler
+      handleApiError(error, "Login failed. Please try again.");
     }
   };
 

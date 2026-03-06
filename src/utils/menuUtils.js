@@ -6,23 +6,21 @@ import { menuItems } from "@/constants/data";
  * @param {Array} enabledModuleNames - Array of enabled module names
  * @returns {Array} Filtered child menu items
  */
-export const getFilteredChildItems = (children = [], enabledModuleNames = []) => {
-  return children.filter(child => {
+export const getFilteredChildItems = (
+  children = [],
+  enabledModuleNames = [],
+) => {
+  return children.filter((child) => {
     // Filter out Zoho children if Zoho is not enabled
-    if (child.childlink && child.childlink.startsWith("zoho/")) {
+    if (child.childlink && child.childlink.startsWith("/zoho/")) {
       return enabledModuleNames.includes("zoho");
     }
-    
+
     // Filter out Tally children if Tally is not enabled
-    if (child.childlink && child.childlink.startsWith("tally/")) {
+    if (child.childlink && child.childlink.startsWith("/tally/")) {
       return enabledModuleNames.includes("tally");
     }
-    
-    // Filter out api-keys if Tally is not enabled
-    if (child.childlink === "api-keys") {
-      return enabledModuleNames.includes("tally");
-    }
-    
+
     // Default: show other children
     return true;
   });
@@ -36,102 +34,128 @@ export const getFilteredChildItems = (children = [], enabledModuleNames = []) =>
 export const getFilteredMenuItems = (enabledModules = []) => {
   // Extract enabled module names
   const enabledModuleNames = enabledModules
-    .filter(module => module.is_enabled)
-    .map(module => module.module.toLowerCase());
+    .filter((module) => module.is_enabled)
+    .map((module) => module.module.toLowerCase());
 
-  return menuItems.filter(item => {
-    // Always show main menu header
-    if (item.isHeadr && item.title === "menu") {
+  return menuItems
+    .filter((item) => {
+      // Always show main menu header
+      if (item.isHeadr && item.title === "menu") {
+        return true;
+      }
+
+      // Always show Dashboard
+      if (item.title === "Dashboard") {
+        return true;
+      }
+
+      // Handle Zoho section header - only show if Zoho is enabled
+      if (item.isHeadr && item.title === "Zoho") {
+        return enabledModuleNames.includes("zoho");
+      }
+
+      // Handle any item with direct Zoho link - only show if Zoho is enabled
+      if (item.link && item.link.startsWith("/zoho/")) {
+        return enabledModuleNames.includes("zoho");
+      }
+
+      // Handle Zoho Journal Entry specifically
+      if (
+        item.title === "Journal Entry" &&
+        item.link === "/zoho/journal-entry"
+      ) {
+        return enabledModuleNames.includes("zoho");
+      }
+
+      // Handle Zoho Expense Bill with children (Journal Entry, Expense)
+      if (
+        item.title === "Expense Bill" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/zoho/"),
+        )
+      ) {
+        return enabledModuleNames.includes("zoho");
+      }
+
+      // Handle Zoho Config with children (Credentials, Chart of account, etc.)
+      if (
+        item.title === "Config" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/zoho/"),
+        )
+      ) {
+        return enabledModuleNames.includes("zoho");
+      }
+
+      // Handle Tally section header - only show if Tally is enabled
+      if (item.isHeadr && item.title === "Tally") {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Tally Vendor Bill
+      if (item.title === "Vendor Bill" && item.link === "/tally/vendor-bill") {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Tally Journal Entry (which has link tally/expense-bill)
+      if (
+        item.title === "Journal Entry" &&
+        item.link === "/tally/expense-bill"
+      ) {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Tally Config with children (Account Info, Config, Ledgers, Masters)
+      if (
+        item.title === "Config" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/tally/"),
+        )
+      ) {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Tally Settings with children (Account Info, Config, Ledgers, Masters)
+      if (
+        item.title === "Settings" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/tally/"),
+        )
+      ) {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Settings section header - always show
+      if (item.isHeadr && item.title === "Settings") {
+        return true;
+      }
+
+      // Handle individual Settings items (Members, Clients, Subscriptions)
+      if (
+        item.title === "Members" ||
+        item.title === "Clients" ||
+        item.title === "Subscriptions"
+      ) {
+        return true;
+      }
+
+      // Default: show items that don't match any specific module filtering
       return true;
-    }
-    
-    // Always show Dashboard
-    if (item.title === "Dashboard") {
-      return true;
-    }
-
-    // Handle Zoho section header - only show if Zoho is enabled
-    if (item.isHeadr && item.title === "Zoho") {
-      return enabledModuleNames.includes("zoho");
-    }
-    
-    // Handle any item with direct Zoho link - only show if Zoho is enabled
-    if (item.link && item.link.startsWith("zoho/")) {
-      return enabledModuleNames.includes("zoho");
-    }
-
-    // Handle Zoho Journal Entry specifically
-    if (item.title === "Journal Entry" && item.link === "zoho/journal-entry") {
-      return enabledModuleNames.includes("zoho");
-    }
-
-    // Handle Zoho Expense Bill with children (Journal Entry, Expense)
-    if (item.title === "Expense Bill" && item.child && 
-        item.child.some(child => child.childlink && child.childlink.startsWith("zoho/"))) {
-      return enabledModuleNames.includes("zoho");
-    }
-
-    // Handle Zoho Config with children (Credentials, Chart of account, etc.)
-    if (item.title === "Config" && item.child && 
-        item.child.some(child => child.childlink && child.childlink.startsWith("zoho/"))) {
-      return enabledModuleNames.includes("zoho");
-    }
-
-    // Handle Tally section header - only show if Tally is enabled
-    if (item.isHeadr && item.title === "Tally") {
-      return enabledModuleNames.includes("tally");
-    }
-    
-    // Handle Tally Vendor Bill
-    if (item.title === "Vendor Bill" && item.link === "tally/vendor-bill") {
-      return enabledModuleNames.includes("tally");
-    }
-
-    // Handle Tally Journal Entry (which has link tally/expense-bill)
-    if (item.title === "Journal Entry" && item.link === "tally/expense-bill") {
-      return enabledModuleNames.includes("tally");
-    }
-
-    // Handle Tally Config with children (Api Key, Config, Ledgers, Masters, Help)
-    if (item.title === "Config" && item.child && 
-        item.child.some(child => 
-          child.childlink === "api-keys" || 
-          (child.childlink && child.childlink.startsWith("tally/"))
-        )) {
-      return enabledModuleNames.includes("tally");
-    }
-
-    // Handle Tally Settings with children (Api Key, Config, Ledgers, Masters)
-    if (item.title === "Settings" && item.child && 
-        item.child.some(child => 
-          child.childlink === "api-keys" || 
-          (child.childlink && child.childlink.startsWith("tally/"))
-        )) {
-      return enabledModuleNames.includes("tally");
-    }
-
-    // Handle Settings section header - always show
-    if (item.isHeadr && item.title === "Settings") {
-      return true;
-    }
-
-    // Handle individual Settings items (Members, Subscriptions)
-    if (item.title === "Members" || item.title === "Subscriptions") {
-      return true;
-    }
-
-    // Default: show items that don't match any specific module filtering
-    return true;
-  }).map(item => {
-    // Filter children if the item has children
-    if (item.child) {
-      return {
-        ...item,
-        child: getFilteredChildItems(item.child, enabledModuleNames)
-      };
-    }
-    return item;
-  });
+    })
+    .map((item) => {
+      // Filter children if the item has children
+      if (item.child) {
+        return {
+          ...item,
+          child: getFilteredChildItems(item.child, enabledModuleNames),
+        };
+      }
+      return item;
+    });
 };
 
 /**

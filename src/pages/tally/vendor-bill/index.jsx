@@ -1359,38 +1359,15 @@ const TallyVendorBill = () => {
       >
         {selectedExternalBill && (
           <div className="p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  Bill Details - {selectedExternalBill.bill_munshi_name}
-                </h4>
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
-                  <p>
-                    <span className="font-medium">Description:</span>
-                  </p>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md border border-slate-200 dark:border-slate-700">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {selectedExternalBill.description ||
-                        "No description available"}
-                    </p>
-                  </div>
-                </div>
+            <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-700">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  ❌ Bill NOT issued by your organization.
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+                  {selectedExternalBill.description ||
+                    "External bill detection - please verify the bill belongs to your organization."}
+                </p>
               </div>
             </div>
 

@@ -35,7 +35,7 @@ const Layout = () => {
       navigate("/");
     } else if (user && (!user.organizations || user.organizations.length === 0)) {
       // If user is authenticated but has no organizations, redirect to no-organization page
-      navigate("/no-organization");
+      navigate("/auth/no-organization");
     }
   }, [isAuth, user, navigate]);
   const switchHeaderClass = () => {

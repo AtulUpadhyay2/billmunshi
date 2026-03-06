@@ -1,6 +1,6 @@
-import { globalToast } from './toast';
-import store from '../store';
-import { forceLogout } from '../store/api/auth/authSlice';
+import { globalToast } from "./toast";
+import store from "../store";
+import { forceLogout } from "../store/api/auth/authSlice";
 
 /**
  * Centralized API error handler
@@ -9,19 +9,20 @@ import { forceLogout } from '../store/api/auth/authSlice';
  * @returns {boolean} - Returns true if token expiration was handled
  */
 export const handleApiError = (error, defaultMessage = "An error occurred") => {
-  console.error('API Error:', error);
+  console.error("API Error:", error);
 
   // Handle token expiration errors
   if (error?.status === 401) {
     const data = error.data;
-    
-    const isTokenExpired = 
+
+    const isTokenExpired =
       data?.code === "token_not_valid" ||
       data?.detail === "Given token not valid for any token type" ||
-      (data?.messages && data.messages.some(msg => 
-        msg.message === "Token is expired" || 
-        msg.token_type === "access"
-      ));
+      (data?.messages &&
+        data.messages.some(
+          (msg) =>
+            msg.message === "Token is expired" || msg.token_type === "access",
+        ));
 
     if (isTokenExpired) {
       // Note: Token refresh is handled automatically by apiSlice.js baseQueryWithReauth
@@ -34,10 +35,16 @@ export const handleApiError = (error, defaultMessage = "An error occurred") => {
 
   // Handle other common error cases
   let errorMessage = defaultMessage;
-  
+
   if (error?.data) {
-    if (typeof error.data === 'string') {
+    if (typeof error.data === "string") {
       errorMessage = error.data;
+    } else if (
+      error.data.non_field_errors &&
+      Array.isArray(error.data.non_field_errors)
+    ) {
+      // Handle Django REST Framework non_field_errors
+      errorMessage = error.data.non_field_errors[0];
     } else if (error.data.message) {
       errorMessage = error.data.message;
     } else if (error.data.detail) {
@@ -51,7 +58,7 @@ export const handleApiError = (error, defaultMessage = "An error occurred") => {
 
   // Show error toast
   globalToast.error(errorMessage);
-  
+
   return false; // Token expiration not handled
 };
 
@@ -61,10 +68,19 @@ export const handleApiError = (error, defaultMessage = "An error occurred") => {
  * @param {string} defaultMessage - Default error message if none found
  * @returns {string} - Extracted error message
  */
-export const extractErrorMessage = (error, defaultMessage = "An error occurred") => {
+export const extractErrorMessage = (
+  error,
+  defaultMessage = "An error occurred",
+) => {
   if (error?.data) {
-    if (typeof error.data === 'string') {
+    if (typeof error.data === "string") {
       return error.data;
+    } else if (
+      error.data.non_field_errors &&
+      Array.isArray(error.data.non_field_errors)
+    ) {
+      // Handle Django REST Framework non_field_errors
+      return error.data.non_field_errors[0];
     } else if (error.data.message) {
       return error.data.message;
     } else if (error.data.detail) {
@@ -75,7 +91,7 @@ export const extractErrorMessage = (error, defaultMessage = "An error occurred")
   } else if (error?.message) {
     return error.message;
   }
-  
+
   return defaultMessage;
 };
 
@@ -87,17 +103,18 @@ export const extractErrorMessage = (error, defaultMessage = "An error occurred")
 export const isTokenExpiredError = (error) => {
   if (error?.status === 401 && error?.data) {
     const data = error.data;
-    
+
     return (
       data?.code === "token_not_valid" ||
       data?.detail === "Given token not valid for any token type" ||
-      (data?.messages && data.messages.some(msg => 
-        msg.message === "Token is expired" || 
-        msg.token_type === "access"
-      ))
+      (data?.messages &&
+        data.messages.some(
+          (msg) =>
+            msg.message === "Token is expired" || msg.token_type === "access",
+        ))
     );
   }
-  
+
   return false;
 };
 

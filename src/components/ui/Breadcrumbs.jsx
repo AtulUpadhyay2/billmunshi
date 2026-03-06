@@ -5,18 +5,18 @@ import Icon from "@/components/ui/Icon";
 
 const Breadcrumbs = () => {
   const location = useLocation();
-  const locationName = location.pathname.replace("/", "");
+  const locationName = location.pathname;
 
   const [isHide, setIsHide] = useState(null);
   const [groupTitle, setGroupTitle] = useState("");
 
   useEffect(() => {
     const currentMenuItem = menuItems.find(
-      (item) => item.link === locationName
+      (item) => item.link === locationName,
     );
 
     const currentChild = menuItems.find((item) =>
-      item.child?.find((child) => child.childlink === locationName)
+      item.child?.find((child) => child.childlink === locationName),
     );
 
     if (currentMenuItem) {

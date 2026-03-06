@@ -10,6 +10,23 @@ const apiClient = axios.create({
   },
 });
 
+// Mutex to prevent concurrent refresh attempts
+let isRefreshing = false;
+let refreshPromise = null;
+let failedQueue = [];
+
+// Process queued requests after refresh completes
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
@@ -47,7 +64,20 @@ apiClient.interceptors.response.use(
           ));
 
       if (isTokenExpired) {
+        // If already refreshing, queue this request
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return apiClient(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
         originalRequest._retry = true;
+        isRefreshing = true;
 
         try {
           const refreshToken = localStorage.getItem("refresh_token");
@@ -56,13 +86,15 @@ apiClient.interceptors.response.use(
             throw new Error("No refresh token available");
           }
 
-          // Attempt to refresh the token
+          // Attempt to refresh the token using axios directly (not apiClient)
+          // This ensures we don't send the expired Authorization header
           const response = await axios.post(
             `${API_CONFIG.BASE_URL}/auth/refresh/`,
             { refresh: refreshToken },
             {
               headers: {
                 "Content-Type": "application/json",
+                // Explicitly NOT sending Authorization header
               },
             }
           );
@@ -81,6 +113,9 @@ apiClient.interceptors.response.use(
               localStorage.setItem("user", JSON.stringify(user));
             }
 
+            // Process queued requests with new token
+            processQueue(null, access);
+
             // Update the original request with new token
             originalRequest.headers.Authorization = `Bearer ${access}`;
 
@@ -91,6 +126,9 @@ apiClient.interceptors.response.use(
           }
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
+
+          // Process queued requests with error
+          processQueue(refreshError, null);
 
           // Clear auth data
           localStorage.removeItem("user");
@@ -113,6 +151,8 @@ apiClient.interceptors.response.use(
           }
 
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
       }
     }

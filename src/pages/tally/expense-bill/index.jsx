@@ -1329,39 +1329,33 @@ const TallyExpenseBill = () => {
       >
         {selectedExternalBill && (
           <div className="p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3.75 21h16.5M4.5 3h15l2.25 18h-19.5L4.5 3Z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  This expense bill was{" "}
-                  <span className="font-semibold text-red-700 dark:text-red-400">
-                    not issued by your organization
-                  </span>
-                  . It appears to be an external expense claim or reimbursement
-                  document.
+            <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-700">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  ❌ Bill NOT issued by your organization.
                 </p>
-                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-xs text-amber-800 dark:text-amber-200">
-                    <span className="font-medium">Note:</span> External expenses
-                    should be verified for authenticity and proper authorization
-                    before processing.
+                {selectedExternalBill.analysed_data?.to && (
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+                    This bill is issued to{" "}
+                    <span className="font-semibold">
+                      {selectedExternalBill.analysed_data.to.name}
+                    </span>
+                    {selectedExternalBill.analysed_data.to.gst_number && (
+                      <span>
+                        {" "}
+                        (GST: {selectedExternalBill.analysed_data.to.gst_number}
+                        )
+                      </span>
+                    )}
+                    , it doesn't match with your organization name or GST no.
+                    Please select Proceed or Delete to process this bill.
                   </p>
-                </div>
+                )}
+                {selectedExternalBill.description && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    {selectedExternalBill.description}
+                  </p>
+                )}
               </div>
             </div>
 

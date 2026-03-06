@@ -110,7 +110,7 @@ const ZohoVendorBillDetail = () => {
 
   // Fetch vendors list for dropdown
   const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
-    selectedOrganization?.id
+    selectedOrganization?.id,
   );
 
   // Fetch all chart of accounts for dropdown
@@ -119,7 +119,7 @@ const ZohoVendorBillDetail = () => {
 
   // Fetch all taxes for dropdown
   const { data: taxesData, isLoading: taxesLoading } = useGetAllTaxes(
-    selectedOrganization?.id
+    selectedOrganization?.id,
   );
 
   // Fetch all TDS/TCS data based on selected tax type
@@ -130,7 +130,7 @@ const ZohoVendorBillDetail = () => {
     },
     {
       enabled: !!selectedOrganization?.id && !!vendorForm.is_tax,
-    }
+    },
   );
 
   // Extract analysed_data from the API response
@@ -139,9 +139,8 @@ const ZohoVendorBillDetail = () => {
 
   // Check if bill is synced or posted (disable inputs only for synced/posted, not verified)
   const isSynced =
-    vendorBillData?.status === "Synced" ||
-    vendorBillData?.status === "Posted";
-  
+    vendorBillData?.status === "Synced" || vendorBillData?.status === "Posted";
+
   // Allow editing for verified bills (user can verify multiple times)
   const isVerified = isSynced; // Only truly locked after sync
 
@@ -169,48 +168,88 @@ const ZohoVendorBillDetail = () => {
   // Date validation helper function
   const validateDateInput = (dateString) => {
     if (!dateString) return true; // Allow empty dates
-    
+
     // Check if the date string is in valid format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dateString)) return false;
-    
-    const [year, month, day] = dateString.split('-').map(Number);
-    
+
+    const [year, month, day] = dateString.split("-").map(Number);
+
     // Validate year (between 1900 and 2100)
     if (year < 1900 || year > 2100) return false;
-    
+
     // Validate month (1-12)
     if (month < 1 || month > 12) return false;
-    
+
     // Validate day based on month
     const daysInMonth = new Date(year, month, 0).getDate();
     if (day < 1 || day > daysInMonth) return false;
-    
+
     return true;
   };
 
   // Handle date input changes with validation
   const handleDateChange = (name, value) => {
     // Clear error for this field first
-    setDateErrors(prev => ({ ...prev, [name]: "" }));
+    setDateErrors((prev) => ({ ...prev, [name]: "" }));
 
     // For date inputs, validate before setting
     if (value && !validateDateInput(value)) {
       // Set inline error message
-      const [year] = value.split('-').map(Number);
-      let errorMessage = 'Invalid date';
-      
+      const [year] = value.split("-").map(Number);
+      let errorMessage = "Invalid date";
+
       if (year < 1900 || year > 2100) {
-        errorMessage = 'Year must be between 1900 and 2100';
+        errorMessage = "Year must be between 1900 and 2100";
       }
-      
-      setDateErrors(prev => ({ ...prev, [name]: errorMessage }));
-      
+
+      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
+
       // Still show toast for user awareness
-      globalToast('error', errorMessage);
+      globalToast("error", errorMessage);
       return; // Don't update the state with invalid date
     }
     handleFormChange(name, value);
+  };
+
+  // Calculate total amount automatically
+  const calculateTotal = (billSummaryOverride = null) => {
+    const currentBillSummary = billSummaryOverride || billSummaryForm;
+
+    // Calculate subtotal from all products
+    const subtotal = products.reduce((sum, product) => {
+      return sum + (parseFloat(product.amount) || 0);
+    }, 0);
+
+    // Get tax amounts
+    const cgst = parseFloat(currentBillSummary.cgst) || 0;
+    const sgst = parseFloat(currentBillSummary.sgst) || 0;
+    const igst = parseFloat(currentBillSummary.igst) || 0;
+    const adjustment = parseFloat(currentBillSummary.adjustment_amount) || 0;
+
+    // Calculate total
+    const total = subtotal + cgst + sgst + igst + adjustment;
+
+    return {
+      subtotal: subtotal.toFixed(2),
+      total: total.toFixed(2),
+    };
+  };
+
+  // Handle Bill Summary form changes
+  const handleBillSummaryChange = (name, value) => {
+    setBillSummaryForm((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      // Recalculate total when taxes or adjustment change
+      if (["cgst", "sgst", "igst", "adjustment_amount"].includes(name)) {
+        const calculated = calculateTotal(updated);
+        updated.subtotal = calculated.subtotal;
+        updated.total = calculated.total;
+      }
+
+      return updated;
+    });
   };
 
   // Update form when data is loaded
@@ -223,7 +262,7 @@ const ZohoVendorBillDetail = () => {
       let selectedVendorObj = null;
       if (zoho?.vendor && vendorsData?.results) {
         selectedVendorObj = vendorsData.results.find(
-          (v) => v.id === zoho.vendor
+          (v) => v.id === zoho.vendor,
         );
       }
       // Helper function to parse date - handles both DD-MM-YYYY and YYYY-MM-DD formats
@@ -266,17 +305,19 @@ const ZohoVendorBillDetail = () => {
         is_tax: zoho?.is_tax || "TDS", // Load from zoho_bill or default to TDS
       });
 
-      // Initialize Bill Summary Form
+      // Initialize Bill Summary Form - use zoho_bill data first (updated values), then fallback to analysed_data
       setBillSummaryForm({
-        subtotal: (
-          data.items?.reduce((sum, item) => sum + (item.price || 0), 0) || ""
-        ).toString(),
-        cgst: data.cgst || zoho?.cgst || "",
-        sgst: data.sgst || zoho?.sgst || "",
-        igst: data.igst || zoho?.igst || "",
+        subtotal:
+          zoho?.subtotal ||
+          (
+            data.items?.reduce((sum, item) => sum + (item.price || 0), 0) || ""
+          ).toString(),
+        cgst: zoho?.cgst || data.cgst || "",
+        sgst: zoho?.sgst || data.sgst || "",
+        igst: zoho?.igst || data.igst || "",
         adjustment_amount: zoho?.adjustment_amount || "",
         adjustment_description: zoho?.adjustment_description || "",
-        total: data.total || zoho?.total || "",
+        total: zoho?.total || data.total || "",
       });
 
       // Initialize notes from zoho_bill.note
@@ -312,7 +353,7 @@ const ZohoVendorBillDetail = () => {
             rate: product.rate || "",
             quantity: product.quantity || "",
             amount: product.amount || "",
-          }))
+          })),
         );
       } else {
         // Initialize with empty product if no products exist
@@ -335,6 +376,16 @@ const ZohoVendorBillDetail = () => {
       if (data.items && data.items.length > 0) {
         setItemQuantities(data.items.map((item) => item.quantity || 0));
       }
+
+      // Calculate totals after data is loaded (use setTimeout to ensure state updates are complete)
+      setTimeout(() => {
+        const calculated = calculateTotal();
+        setBillSummaryForm((prev) => ({
+          ...prev,
+          subtotal: calculated.subtotal,
+          total: calculated.total,
+        }));
+      }, 0);
     }
   }, [vendorBillData, vendorsData]);
 
@@ -377,13 +428,17 @@ const ZohoVendorBillDetail = () => {
     }));
   };
 
-  // Handle Bill Summary form changes
-  const handleBillSummaryChange = (name, value) => {
-    setBillSummaryForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Auto-calculate totals when products change (not when taxes change - that's handled in handleBillSummaryChange)
+  useEffect(() => {
+    if (products.length > 0) {
+      const calculated = calculateTotal();
+      setBillSummaryForm((prev) => ({
+        ...prev,
+        subtotal: calculated.subtotal,
+        total: calculated.total,
+      }));
+    }
+  }, [products]);
 
   // Handle Discount form changes
   const handleDiscountChange = (name, value) => {
@@ -395,13 +450,13 @@ const ZohoVendorBillDetail = () => {
         const discount = name === "discount" ? value : prev.discount;
         const discountType =
           name === "discount_type" ? value : prev.discount_type;
-        const total = parseFloat(billSummaryForm.total) || 0;
+        const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
 
-        if (discount && total > 0) {
+        if (discount && subtotal > 0) {
           if (discountType === "INR") {
             updated.discount_amount = parseFloat(discount).toFixed(2);
           } else if (discountType === "Percentage") {
-            const discountAmount = (total * parseFloat(discount)) / 100;
+            const discountAmount = (subtotal * parseFloat(discount)) / 100;
             updated.discount_amount = discountAmount.toFixed(2);
           }
         } else {
@@ -517,7 +572,7 @@ const ZohoVendorBillDetail = () => {
             rate: product.rate || "",
             quantity: product.quantity || "",
             amount: product.amount || "",
-          }))
+          })),
         );
       }
     } else {
@@ -534,7 +589,7 @@ const ZohoVendorBillDetail = () => {
             rate: product.rate || "",
             quantity: product.quantity || "",
             amount: product.amount || "",
-          }))
+          })),
         );
       }
     }
@@ -546,19 +601,6 @@ const ZohoVendorBillDetail = () => {
     { value: "ineligible_section17", label: "Ineligible Section 17" },
     { value: "ineligible_others", label: "Ineligible Others" },
   ];
-
-  // Debug logging - check what we actually get from the API
-  useEffect(() => {
-    if (vendorBillData) {
-      console.log("Full API Response:", vendorBillData);
-      console.log("Analysed Data:", analysedData);
-      console.log("Zoho Bill Data:", zohoData);
-    }
-    if (vendorsData) {
-      console.log("Vendors Data:", vendorsData);
-      console.log("First Vendor Structure:", vendorsData.results?.[0]);
-    }
-  }, [vendorBillData, analysedData, zohoData, vendorsData]);
 
   // Keyboard shortcuts for zoom and fullscreen
   useEffect(() => {
@@ -672,28 +714,28 @@ const ZohoVendorBillDetail = () => {
 
       // Check if at least one product exists with valid data
       const validProducts = products.filter(
-        (p) => p.item_details.trim() && p.rate && p.quantity
+        (p) => p.item_details.trim() && p.rate && p.quantity,
       );
       if (validProducts.length === 0) {
         globalToast.error(
-          "At least one product with valid details, rate, and quantity is required"
+          "At least one product with valid details, rate, and quantity is required",
         );
         setVerificationStatus("error");
         setVerificationMessage(
-          "At least one product with valid details, rate, and quantity is required"
+          "At least one product with valid details, rate, and quantity is required",
         );
         return;
       }
 
       // Check if all products have chart of accounts
       const productsWithoutCOA = validProducts.filter(
-        (p) => !p.chart_of_accounts
+        (p) => !p.chart_of_accounts,
       );
       if (productsWithoutCOA.length > 0) {
         globalToast.error("Please select Chart of Accounts for all products");
         setVerificationStatus("error");
         setVerificationMessage(
-          "Please select Chart of Accounts for all products"
+          "Please select Chart of Accounts for all products",
         );
         return;
       }
@@ -714,11 +756,11 @@ const ZohoVendorBillDetail = () => {
         !discountForm.discount_account
       ) {
         globalToast.error(
-          "Please select Discount Account when discount is provided"
+          "Please select Discount Account when discount is provided",
         );
         setVerificationStatus("error");
         setVerificationMessage(
-          "Please select Discount Account when discount is provided"
+          "Please select Discount Account when discount is provided",
         );
         return;
       }
@@ -751,6 +793,7 @@ const ZohoVendorBillDetail = () => {
           ...(isConsolidated
             ? {
                 consolidate_prod: validProducts.map((product) => ({
+                  id: product.id, // Include product ID for proper backend updates
                   item_name: product.item_details.substring(0, 100),
                   item_details: product.item_details,
                   chart_of_accounts: product.chart_of_accounts,
@@ -764,6 +807,7 @@ const ZohoVendorBillDetail = () => {
               }
             : {
                 products: validProducts.map((product) => ({
+                  id: product.id, // Include product ID for proper backend updates
                   item_name: product.item_details.substring(0, 100),
                   item_details: product.item_details,
                   chart_of_accounts: product.chart_of_accounts,
@@ -826,7 +870,7 @@ const ZohoVendorBillDetail = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync vendor bill"
+          "Failed to sync vendor bill",
       );
     } finally {
       setIsSyncing(false);
@@ -1039,17 +1083,17 @@ const ZohoVendorBillDetail = () => {
                 isSynced
                   ? "bg-gray-400 hover:bg-gray-400"
                   : hasValidationErrors()
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : ""
+                    ? "bg-gray-400 hover:bg-gray-400"
+                    : ""
               }`}
               title={
                 isSynced
                   ? "Bill already synced/posted - cannot verify again"
                   : hasValidationErrors()
-                  ? "Please select vendor and chart of accounts for all products"
-                  : vendorBillData?.status === "Verified"
-                  ? "Re-verify Bill (you can verify multiple times)"
-                  : "Verify Bill"
+                    ? "Please select vendor and chart of accounts for all products"
+                    : vendorBillData?.status === "Verified"
+                      ? "Re-verify Bill (you can verify multiple times)"
+                      : "Verify Bill"
               }
             >
               {isVerifying ? (
@@ -1091,7 +1135,9 @@ const ZohoVendorBillDetail = () => {
                       d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  {vendorBillData?.status === "Verified" ? "Re-verify" : "Verify"}
+                  {vendorBillData?.status === "Verified"
+                    ? "Re-verify"
+                    : "Verify"}
                 </>
               )}
             </button>
@@ -1110,10 +1156,10 @@ const ZohoVendorBillDetail = () => {
                 isSyncing
                   ? "Syncing in progress..."
                   : isSynced
-                  ? "Bill already synced - cannot sync again"
-                  : vendorBillData?.status !== "Verified"
-                  ? "Bill must be verified before sync"
-                  : "Sync with Zoho (can only sync once)"
+                    ? "Bill already synced - cannot sync again"
+                    : vendorBillData?.status !== "Verified"
+                      ? "Bill must be verified before sync"
+                      : "Sync with Zoho (can only sync once)"
               }
             >
               {isSyncing ? (
@@ -1302,9 +1348,6 @@ const ZohoVendorBillDetail = () => {
                         src={vendorBillData.file}
                         className="w-full h-full border-0"
                         title="Bill PDF Document"
-                        onError={(e) => {
-                          console.error("PDF failed to load:", e);
-                        }}
                       />
                     ) : (
                       // Image Viewer with Zoom and Scroll
@@ -1487,7 +1530,7 @@ const ZohoVendorBillDetail = () => {
                               } else {
                                 const selectedVendor =
                                   vendorsData?.results?.find(
-                                    (v) => v.id === value
+                                    (v) => v.id === value,
                                   );
                                 if (selectedVendor) {
                                   handleVendorSelect(selectedVendor);
@@ -1818,7 +1861,7 @@ const ZohoVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "item_details",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="Enter item details..."
@@ -1843,7 +1886,7 @@ const ZohoVendorBillDetail = () => {
                                         (account) => ({
                                           value: account.id,
                                           label: account.accountName,
-                                        })
+                                        }),
                                       ) || []
                                     }
                                     value={product.chart_of_accounts || ""}
@@ -1851,14 +1894,14 @@ const ZohoVendorBillDetail = () => {
                                       handleProductChange(
                                         index,
                                         "chart_of_accounts",
-                                        value || null
+                                        value || null,
                                       )
                                     }
                                     onClear={() =>
                                       handleProductChange(
                                         index,
                                         "chart_of_accounts",
-                                        null
+                                        null,
                                       )
                                     }
                                     placeholder="Select Account..."
@@ -1892,7 +1935,7 @@ const ZohoVendorBillDetail = () => {
                                       handleProductChange(
                                         index,
                                         "taxes",
-                                        value || null
+                                        value || null,
                                       )
                                     }
                                     onClear={() =>
@@ -1917,7 +1960,7 @@ const ZohoVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "reverse_charge_tax_id",
-                                      e.target.checked
+                                      e.target.checked,
                                     )
                                   }
                                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
@@ -1934,14 +1977,14 @@ const ZohoVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "itc_eligibility",
-                                      value
+                                      value,
                                     )
                                   }
                                   onClear={() =>
                                     handleProductChange(
                                       index,
                                       "itc_eligibility",
-                                      null
+                                      null,
                                     )
                                   }
                                   placeholder="Select ITC Eligibility..."
@@ -1961,7 +2004,7 @@ const ZohoVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "rate",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="0.00"
@@ -1981,7 +2024,7 @@ const ZohoVendorBillDetail = () => {
                                     handleProductChange(
                                       index,
                                       "quantity",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="0"
@@ -1997,7 +2040,7 @@ const ZohoVendorBillDetail = () => {
                                 <div className="text-sm font-semibold text-gray-900 text-right">
                                   ₹
                                   {parseFloat(
-                                    product.amount || 0
+                                    product.amount || 0,
                                   ).toLocaleString("en-IN", {
                                     minimumFractionDigits: 2,
                                   })}
@@ -2047,7 +2090,7 @@ const ZohoVendorBillDetail = () => {
                             .reduce(
                               (sum, product) =>
                                 sum + parseFloat(product.amount || 0),
-                              0
+                              0,
                             )
                             .toLocaleString("en-IN", {
                               minimumFractionDigits: 2,
@@ -2287,7 +2330,7 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleDiscountChange(
                                 "discount_type",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
@@ -2317,7 +2360,7 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleDiscountChange(
                                 "discount_type",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
@@ -2409,7 +2452,7 @@ const ZohoVendorBillDetail = () => {
                           onChange={(value) =>
                             handleDiscountChange(
                               "discount_account",
-                              value || null
+                              value || null,
                             )
                           }
                           onClear={() =>
@@ -2527,7 +2570,7 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleBillSummaryChange(
                                 "adjustment_amount",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             placeholder="0.00"
@@ -2574,7 +2617,7 @@ const ZohoVendorBillDetail = () => {
                         onChange={(e) =>
                           handleBillSummaryChange(
                             "adjustment_description",
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         placeholder="Enter adjustment description..."
@@ -2697,11 +2740,11 @@ const ZohoVendorBillDetail = () => {
               </div>
               <button
                 onClick={toggleFullscreen}
-                className="p-2 rounded-lg text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                title="Exit Fullscreen (Esc)"
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                title="Close Fullscreen (Esc)"
               >
                 <svg
-                  className="w-6 h-6"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2713,6 +2756,7 @@ const ZohoVendorBillDetail = () => {
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
+                <span className="text-sm font-medium">Close</span>
               </button>
             </div>
 

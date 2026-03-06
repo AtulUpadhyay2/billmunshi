@@ -1247,9 +1247,6 @@ const ZohoJournalEntryDetail = () => {
                         src={journalInfo.file}
                         className="w-full h-full border-0"
                         title="Bill PDF Document"
-                        onError={(e) => {
-                          console.error("PDF failed to load:", e);
-                        }}
                       />
                     ) : (
                       // Image Viewer with Zoom and Scroll
@@ -2331,11 +2328,11 @@ const ZohoJournalEntryDetail = () => {
               </div>
               <button
                 onClick={toggleFullscreen}
-                className="p-2 rounded-lg text-white hover:bg-white hover:bg-opacity-20 transition-colors"
-                title="Exit Fullscreen (Esc)"
+                className="p-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                title="Close Fullscreen (Esc)"
               >
                 <svg
-                  className="w-6 h-6"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2347,6 +2344,7 @@ const ZohoJournalEntryDetail = () => {
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
+                <span className="text-sm font-medium">Close</span>
               </button>
             </div>
 
