@@ -5,7 +5,7 @@ import HorizontalMenu from "./tools/HorizontalMenu";
 import useWidth from "@/hooks/useWidth";
 import useSidebar from "@/hooks/useSidebar";
 import useNavbarType from "@/hooks/useNavbarType";
-import useMenulayout from "@/hooks/useMenuLayout";
+import useMenulayout from "@/hooks/useMenulayout";
 import useSkin from "@/hooks/useSkin";
 import Logo from "./tools/Logo";
 // import SearchModal from "./tools/SearchModal";
