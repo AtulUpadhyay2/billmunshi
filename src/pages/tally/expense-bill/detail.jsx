@@ -3194,17 +3194,30 @@ const TallyExpenseBillDetail = () => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm">
-                              {billForm.selectedVendor ? (
-                                <div className="font-medium text-gray-900">
-                                  {billForm.selectedVendor.name}
+                            <SearchableDropdown
+                              options={vendorOptions}
+                              value={billForm.selectedVendor?.id || null}
+                              onChange={handleVendorSelect}
+                              onClear={handleVendorClear}
+                              placeholder="Search and select vendor..."
+                              searchPlaceholder="Type to search vendors..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={vendorLedgersLoading}
+                              disabled={isVerified}
+                              renderOption={(vendor) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {vendor.name}
+                                  </div>
+                                  {vendor.gst_in && (
+                                    <div className="text-xs text-gray-500">
+                                      GST: {vendor.gst_in}
+                                    </div>
+                                  )}
                                 </div>
-                              ) : (
-                                <span className="text-gray-500 italic">
-                                  No vendor selected
-                                </span>
                               )}
-                            </div>
+                            />
                           </td>
                           <td className="px-4 py-3">
                             <select
