@@ -77,6 +77,10 @@ const TallyVendorBillDetail = () => {
     igstLedgerId: null,
     discount: "",
     discountLedgerId: null,
+    cess: "",
+    cessLedgerId: null,
+    freight: "",
+    freightLedgerId: null,
   });
 
   // State for notes
@@ -226,6 +230,12 @@ const TallyVendorBillDetail = () => {
   const isDiscountLedgerRequired = () =>
     parseFloat(billSummaryForm.discount || 0) > 0 &&
     !billSummaryForm.discountLedgerId;
+  const isCessLedgerRequired = () =>
+    parseFloat(billSummaryForm.cess || 0) > 0 &&
+    !billSummaryForm.cessLedgerId;
+  const isFreightLedgerRequired = () =>
+    parseFloat(billSummaryForm.freight || 0) > 0 &&
+    !billSummaryForm.freightLedgerId;
   const isSubtotalGreaterThanTotal = () => {
     const subtotal = parseFloat(billSummaryForm.subtotal || 0);
     const total = parseFloat(billSummaryForm.total || 0);
@@ -240,6 +250,8 @@ const TallyVendorBillDetail = () => {
     isSgstLedgerRequired() ||
     isIgstLedgerRequired() ||
     isDiscountLedgerRequired() ||
+    isCessLedgerRequired() ||
+    isFreightLedgerRequired() ||
     isSubtotalGreaterThanTotal();
 
   // Get specific validation error messages
@@ -269,6 +281,10 @@ const TallyVendorBillDetail = () => {
       errors.push("IGST ledger is required when IGST amount > 0");
     if (isDiscountLedgerRequired())
       errors.push("Discount ledger is required when discount amount > 0");
+    if (isCessLedgerRequired())
+      errors.push("Cess ledger is required when cess amount > 0");
+    if (isFreightLedgerRequired())
+      errors.push("Freight ledger is required when freight amount > 0");
     if (isSubtotalGreaterThanTotal()) {
       errors.push(
         `Subtotal (₹${billSummaryForm.subtotal}) cannot be greater than total amount (₹${billSummaryForm.total})`,
@@ -555,6 +571,8 @@ const TallyVendorBillDetail = () => {
       const igstAmount = data.igst || tally?.igst || "";
       const totalAmount = tally?.total || data.total || "";
       const discountAmount = tally?.discount || "";
+      const cessAmount = tally?.cess || "";
+      const freightAmount = tally?.freight || "";
 
       setBillSummaryForm({
         subtotal: (
@@ -572,6 +590,10 @@ const TallyVendorBillDetail = () => {
         igstLedgerId: tally?.igst_taxes || null,
         discount: discountAmount.toString(),
         discountLedgerId: null,
+        cess: cessAmount.toString(),
+        cessLedgerId: null,
+        freight: freightAmount.toString(),
+        freightLedgerId: null,
       });
 
       // Initialize notes (if any notes field exists in the API)
@@ -979,22 +1001,51 @@ const TallyVendorBillDetail = () => {
   useEffect(() => {
     if (!tallyAnalysedData) return;
 
-    const { discount_taxes } = tallyAnalysedData;
+    const { discount_taxes, cess_taxes, freight_taxes } = tallyAnalysedData;
 
-    if (
-      discount_taxes &&
-      discountLedgerOptions.length > 0 &&
-      !billSummaryForm.discountLedgerId
-    ) {
-      // Check if discount_taxes is an ID
-      const matchedDiscountLedger = discountLedgerOptions.find(
-        (ledger) => ledger.id === discount_taxes,
-      );
+    if (discountLedgerOptions.length > 0) {
+      const updates = {};
 
-      if (matchedDiscountLedger) {
+      if (
+        discount_taxes &&
+        !billSummaryForm.discountLedgerId
+      ) {
+        const matchedDiscountLedger = discountLedgerOptions.find(
+          (ledger) => ledger.id === discount_taxes,
+        );
+        if (matchedDiscountLedger) {
+          updates.discountLedgerId = matchedDiscountLedger.id;
+        }
+      }
+
+      if (
+        cess_taxes &&
+        !billSummaryForm.cessLedgerId
+      ) {
+        const matchedCessLedger = discountLedgerOptions.find(
+          (ledger) => ledger.id === cess_taxes,
+        );
+        if (matchedCessLedger) {
+          updates.cessLedgerId = matchedCessLedger.id;
+        }
+      }
+
+      if (
+        freight_taxes &&
+        !billSummaryForm.freightLedgerId
+      ) {
+        const matchedFreightLedger = discountLedgerOptions.find(
+          (ledger) => ledger.id === freight_taxes,
+        );
+        if (matchedFreightLedger) {
+          updates.freightLedgerId = matchedFreightLedger.id;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
         setBillSummaryForm((prev) => ({
           ...prev,
-          discountLedgerId: matchedDiscountLedger.id,
+          ...updates,
         }));
       }
     }
@@ -1002,6 +1053,33 @@ const TallyVendorBillDetail = () => {
     tallyAnalysedData,
     discountLedgerOptions,
     billSummaryForm.discountLedgerId,
+    billSummaryForm.cessLedgerId,
+    billSummaryForm.freightLedgerId,
+  ]);
+
+  // Auto-select freight ledger when discount amount > 0 and no freight ledger selected
+  useEffect(() => {
+    if (
+      parseFloat(billSummaryForm.discount || 0) > 0 &&
+      !billSummaryForm.freightLedgerId &&
+      discountLedgerOptions.length > 0
+    ) {
+      const freightLedger = discountLedgerOptions.find(
+        (ledger) =>
+          ledger.name?.toLowerCase() === "delivery charges" ||
+          ledger.name?.toLowerCase() === "freight inward",
+      );
+      if (freightLedger) {
+        setBillSummaryForm((prev) => ({
+          ...prev,
+          freightLedgerId: freightLedger.id,
+        }));
+      }
+    }
+  }, [
+    billSummaryForm.discount,
+    billSummaryForm.freightLedgerId,
+    discountLedgerOptions,
   ]);
 
   // Match product tax ledgers from API response
@@ -1382,6 +1460,34 @@ const TallyVendorBillDetail = () => {
     }));
   };
 
+  const handleCessLedgerSelect = (ledgerId) => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      cessLedgerId: ledgerId,
+    }));
+  };
+
+  const handleCessLedgerClear = () => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      cessLedgerId: null,
+    }));
+  };
+
+  const handleFreightLedgerSelect = (ledgerId) => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      freightLedgerId: ledgerId,
+    }));
+  };
+
+  const handleFreightLedgerClear = () => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      freightLedgerId: null,
+    }));
+  };
+
   // Handle consolidate toggle
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
@@ -1547,6 +1653,12 @@ const TallyVendorBillDetail = () => {
       const discountLedger = discountLedgerOptions.find(
         (ledger) => ledger.id === billSummaryForm.discountLedgerId,
       );
+      const cessLedger = discountLedgerOptions.find(
+        (ledger) => ledger.id === billSummaryForm.cessLedgerId,
+      );
+      const freightLedger = discountLedgerOptions.find(
+        (ledger) => ledger.id === billSummaryForm.freightLedgerId,
+      );
 
       const verificationPayload = {
         bill_id: billId,
@@ -1587,6 +1699,14 @@ const TallyVendorBillDetail = () => {
             discount: {
               amount: parseFloat(billSummaryForm.discount) || 0.0,
               ledger: discountLedger?.name || "No Tax Ledger",
+            },
+            cess: {
+              amount: parseFloat(billSummaryForm.cess) || 0.0,
+              ledger: cessLedger?.name || "No Tax Ledger",
+            },
+            freight: {
+              amount: parseFloat(billSummaryForm.freight) || 0.0,
+              ledger: freightLedger?.name || "No Tax Ledger",
             },
           },
 
@@ -2544,6 +2664,12 @@ const TallyVendorBillDetail = () => {
                           {isDiscountLedgerRequired() && (
                             <li>• Select Discount ledger</li>
                           )}
+                          {isCessLedgerRequired() && (
+                            <li>• Select Cess ledger</li>
+                          )}
+                          {isFreightLedgerRequired() && (
+                            <li>• Select Freight ledger</li>
+                          )}
                           {isSubtotalGreaterThanTotal() && (
                             <li>
                               • Subtotal (₹{billSummaryForm.subtotal}) cannot be
@@ -3437,6 +3563,75 @@ const TallyVendorBillDetail = () => {
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-200">
                         <span className="text-sm font-medium text-gray-700">
+                          Cess:
+                          {parseFloat(billSummaryForm.cess || 0) > 0 && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-600 mr-2">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              name="cess"
+                              value={billSummaryForm.cess}
+                              onChange={(e) =>
+                                handleBillSummaryChange("cess", e.target.value)
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "opacity-60 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            />
+                          </div>
+                          <div
+                            className={`relative flex-1 min-w-[200px] ${
+                              isCessLedgerRequired() && !isVerified
+                                ? "ring-2 ring-red-300 rounded-md"
+                                : ""
+                            }`}
+                          >
+                            <SearchableDropdown
+                              options={discountLedgerOptions}
+                              value={billSummaryForm.cessLedgerId || null}
+                              onChange={handleCessLedgerSelect}
+                              onClear={handleCessLedgerClear}
+                              placeholder={
+                                parseFloat(billSummaryForm.cess || 0) > 0
+                                  ? "* Select Cess ledger... *"
+                                  : "Select Cess ledger..."
+                              }
+                              searchPlaceholder="Type to search expense ledgers..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={
+                                purchaseLedgersLoading || expenseLedgersLoading
+                              }
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {ledger.name}
+                                  </div>
+                                  {ledger.type && (
+                                    <div className="text-xs text-blue-600">
+                                      {ledger.type} Ledger
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              className="text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">
                           Discount:
                           {parseFloat(billSummaryForm.discount || 0) > 0 && (
                             <span className="text-red-500 ml-1">*</span>
@@ -3486,6 +3681,75 @@ const TallyVendorBillDetail = () => {
                                   : "Select Discount ledger"
                               }
                               searchPlaceholder="Type to search purchase or expense ledgers..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={
+                                purchaseLedgersLoading || expenseLedgersLoading
+                              }
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {ledger.name}
+                                  </div>
+                                  {ledger.type && (
+                                    <div className="text-xs text-blue-600">
+                                      {ledger.type} Ledger
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              className="text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">
+                          Freight / Delivery:
+                          {parseFloat(billSummaryForm.freight || 0) > 0 && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-600 mr-2">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              name="freight"
+                              value={billSummaryForm.freight}
+                              onChange={(e) =>
+                                handleBillSummaryChange("freight", e.target.value)
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "opacity-60 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            />
+                          </div>
+                          <div
+                            className={`relative flex-1 min-w-[200px] ${
+                              isFreightLedgerRequired() && !isVerified
+                                ? "ring-2 ring-red-300 rounded-md"
+                                : ""
+                            }`}
+                          >
+                            <SearchableDropdown
+                              options={discountLedgerOptions}
+                              value={billSummaryForm.freightLedgerId || null}
+                              onChange={handleFreightLedgerSelect}
+                              onClear={handleFreightLedgerClear}
+                              placeholder={
+                                parseFloat(billSummaryForm.freight || 0) > 0
+                                  ? "* Select Freight ledger... *"
+                                  : "Select Freight ledger..."
+                              }
+                              searchPlaceholder="Type to search expense ledgers..."
                               optionLabelKey="name"
                               optionValueKey="id"
                               loading={
