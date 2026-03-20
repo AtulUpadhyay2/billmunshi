@@ -26,26 +26,56 @@ const Tooltip = ({
     return () => clearTimeout(timeoutRef.current);
   }, []);
 
-  const bgClass = theme
-    ? `bg-${theme}-500`
-    : "bg-slate-900 dark:bg-slate-700";
+  const bgClass = theme ? `bg-${theme}-500` : "bg-slate-900 dark:bg-slate-700";
 
   const arrowClass = theme
     ? `fill-current text-${theme}-500`
     : "fill-slate-900 dark:fill-slate-700";
 
   const placementStyles = {
-    top: { bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: "8px" },
-    bottom: { top: "100%", left: "50%", transform: "translateX(-50%)", marginTop: "8px" },
-    left: { right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "8px" },
-    right: { left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: "8px" },
+    top: {
+      bottom: "100%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      marginBottom: "8px",
+    },
+    bottom: {
+      top: "100%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      marginTop: "8px",
+    },
+    left: {
+      right: "100%",
+      top: "50%",
+      transform: "translateY(-50%)",
+      marginRight: "8px",
+    },
+    right: {
+      left: "100%",
+      top: "50%",
+      transform: "translateY(-50%)",
+      marginLeft: "8px",
+    },
   };
 
   const arrowStyles = {
     top: { top: "100%", left: "50%", transform: "translateX(-50%)" },
-    bottom: { bottom: "100%", left: "50%", transform: "translateX(-50%) rotate(180deg)" },
-    left: { left: "100%", top: "50%", transform: "translateY(-50%) rotate(-90deg)" },
-    right: { right: "100%", top: "50%", transform: "translateY(-50%) rotate(90deg)" },
+    bottom: {
+      bottom: "100%",
+      left: "50%",
+      transform: "translateX(-50%) rotate(180deg)",
+    },
+    left: {
+      left: "100%",
+      top: "50%",
+      transform: "translateY(-50%) rotate(-90deg)",
+    },
+    right: {
+      right: "100%",
+      top: "50%",
+      transform: "translateY(-50%) rotate(90deg)",
+    },
   };
 
   return (
@@ -61,7 +91,13 @@ const Tooltip = ({
         <div
           role="tooltip"
           className={`absolute z-50 text-slate-50 dark:text-slate-200 rounded-md px-2 py-1.5 text-sm font-medium shadow-md ${bgClass} pointer-events-none`}
-          style={placementStyles[placement] || placementStyles.top}
+          style={{
+            ...(placementStyles[placement] || placementStyles.top),
+            maxWidth: "320px",
+            width: "max-content",
+            whiteSpace: "normal",
+            wordWrap: "break-word",
+          }}
           {...props}
         >
           {content}

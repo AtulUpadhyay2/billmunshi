@@ -684,19 +684,8 @@ const TallySetup = () => {
                             Inventory Accounting Setting
                           </h3>
                           <Tooltip
-                            content={
-                              <div
-                                style={{
-                                  maxWidth: "300px",
-                                  whiteSpace: "normal",
-                                  wordWrap: "break-word",
-                                }}
-                              >
-                                Please enable Inventory Accounting if you want
-                                to capture inventory details in Tally
-                              </div>
-                            }
-                            placement="top"
+                            content="Please enable Inventory Accounting if you want to capture inventory details in Tally"
+                            placement="right"
                             arrow
                           >
                             <button
@@ -915,7 +904,7 @@ const TallySetup = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                    Product Sync
+                    Inventory Accounting
                   </h3>
                   <Tooltip
                     content={
@@ -952,7 +941,7 @@ const TallySetup = () => {
                   </Tooltip>
                 </div>
                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                  Allow Tally product synchronization
+                  Enable / Disable inventory accounting in Tally
                 </p>
               </div>
             </div>
