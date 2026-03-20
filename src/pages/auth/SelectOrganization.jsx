@@ -6,8 +6,12 @@ import { useLazyGetOrganizationsQuery } from "@/store/api/auth/authApiSlice";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
+import Modal from "@/components/ui/Modal";
+import Textinput from "@/components/ui/Textinput";
+import Select from "@/components/ui/Select";
 import { toast } from "sonner";
 import Loading from "@/components/Loading";
+import apiClient from "@/utils/apiClient";
 
 const SelectOrganization = () => {
   const navigate = useNavigate();
@@ -19,6 +23,18 @@ const SelectOrganization = () => {
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    module: "tally",
+    gst_number: "",
+  });
+
+  const moduleOptions = [
+    { value: "tally", label: "Tally" },
+    { value: "zoho", label: "Zoho" },
+  ];
 
   // Get login data from navigation state
   const loginData = location.state?.loginData;
@@ -77,9 +93,7 @@ const SelectOrganization = () => {
 
         toast.success(`Selected ${selectedOrg.name}`);
         // Redirect to dashboard
-        // navigate("/dashboard");
-        // Open dashboard in new tab
-        window.open("/dashboard", "_blank");
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Error selecting client:", error);
@@ -87,6 +101,48 @@ const SelectOrganization = () => {
     } finally {
       setIsSelecting(false);
     }
+  };
+
+  const handleCreateOrganization = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast.error("Organization name is required");
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      const response = await apiClient.post(
+        "/org/create-with-module/",
+        formData,
+      );
+
+      toast.success(
+        response.data.data.message || "Organization created successfully",
+      );
+      setShowCreateModal(false);
+      setFormData({ name: "", module: "tally", gst_number: "" });
+
+      // Refresh the organizations list
+      fetchOrganizations();
+    } catch (error) {
+      console.error("Error creating organization:", error);
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        "Failed to create organization";
+      toast.error(errorMessage);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const getStatusBadge = (status) => {
@@ -149,13 +205,24 @@ const SelectOrganization = () => {
                 No Clients Found
               </h3>
               <p className="text-slate-500 dark:text-slate-400 mb-6">
-                You don't have access to any clients yet.
+                You don't have any clients yet. Create your first organization
+                to get started.
               </p>
-              <Button
-                text="Go to Login"
-                onClick={() => navigate("/login")}
-                className="btn-primary"
-              />
+              <div className="flex items-center justify-center space-x-3">
+                <Button
+                  text="Create Organization"
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn-primary"
+                  icon="heroicons-outline:plus"
+                />
+                <Button
+                  text="Refresh"
+                  onClick={fetchOrganizations}
+                  className="btn-outline-primary"
+                  icon="heroicons-outline:refresh"
+                  isLoading={isLoading}
+                />
+              </div>
             </div>
           ) : (
             <>
@@ -267,9 +334,10 @@ const SelectOrganization = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button
-                    text="Cancel"
-                    className="btn-outline-secondary"
-                    onClick={() => navigate("/login")}
+                    text="Add New Client"
+                    className="btn-outline-primary"
+                    icon="heroicons-outline:plus"
+                    onClick={() => setShowCreateModal(true)}
                   />
                   <Button
                     text="Continue to Dashboard"
@@ -284,6 +352,69 @@ const SelectOrganization = () => {
             </>
           )}
         </Card>
+
+        {/* Create Organization Modal */}
+        <Modal
+          title="Create New Organization"
+          labelclassName="btn-outline-dark"
+          activeModal={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setFormData({ name: "", module: "tally", gst_number: "" });
+          }}
+        >
+          <form onSubmit={handleCreateOrganization} className="space-y-4">
+            <Textinput
+              label="Organization Name"
+              type="text"
+              placeholder="Enter organization name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              required
+            />
+
+            <Textinput
+              label="GSTIN"
+              type="text"
+              placeholder="Enter GSTIN (optional)"
+              value={formData.gst_number}
+              onChange={(e) => handleInputChange("gst_number", e.target.value)}
+            />
+
+            <Select
+              label="Select Module"
+              placeholder="Choose module to enable"
+              options={moduleOptions}
+              value={formData.module}
+              onChange={(e) => {
+                const selectedValue = e.target ? e.target.value : e;
+                setFormData((prev) => ({
+                  ...prev,
+                  module: selectedValue,
+                }));
+              }}
+            />
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                text="Cancel"
+                className="btn-outline-dark"
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setFormData({ name: "", module: "tally", gst_number: "" });
+                }}
+              />
+              <Button
+                text={createLoading ? "Creating..." : "Create Organization"}
+                type="submit"
+                className="btn-primary"
+                disabled={createLoading}
+                isLoading={createLoading}
+              />
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

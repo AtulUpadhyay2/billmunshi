@@ -72,6 +72,10 @@ const LoginForm = () => {
         refresh: response.data.refresh,
       };
 
+      // Store tokens in localStorage immediately so subsequent API calls are authenticated
+      localStorage.setItem("access_token", loginTokens.access);
+      localStorage.setItem("refresh_token", loginTokens.refresh);
+
       toast.success("Login Successful");
 
       // Fetch fresh profile data from /me endpoint
