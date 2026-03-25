@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_CONFIG } from "../config/api";
+import { refreshAccessToken, isTokenExpiredError } from "./tokenRefresh";
 
 // Create axios instance
 const apiClient = axios.create({
@@ -10,12 +11,9 @@ const apiClient = axios.create({
   },
 });
 
-// Mutex to prevent concurrent refresh attempts
-let isRefreshing = false;
-let refreshPromise = null;
+// Queue for requests waiting on a token refresh
 let failedQueue = [];
 
-// Process queued requests after refresh completes
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -38,7 +36,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for token refresh
@@ -49,116 +47,32 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Check if error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const errorData = error.response?.data;
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      isTokenExpiredError(error.response?.data)
+    ) {
+      originalRequest._retry = true;
 
-      // Check if it's a token expiration error
-      const isTokenExpired =
-        errorData?.code === "token_not_valid" ||
-        errorData?.detail === "Given token not valid for any token type" ||
-        (errorData?.messages &&
-          errorData.messages.some(
-            (msg) =>
-              msg.message === "Token is expired" || msg.token_type === "access"
-          ));
+      try {
+        // Use the shared refresh — if another refresh is already in flight,
+        // this will wait for it instead of starting a second one.
+        const data = await refreshAccessToken();
 
-      if (isTokenExpired) {
-        // If already refreshing, queue this request
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return apiClient(originalRequest);
-            })
-            .catch((err) => Promise.reject(err));
-        }
+        // Process any queued requests
+        processQueue(null, data.access);
 
-        originalRequest._retry = true;
-        isRefreshing = true;
-
-        try {
-          const refreshToken = localStorage.getItem("refresh_token");
-
-          if (!refreshToken || !refreshToken.trim()) {
-            throw new Error("No refresh token available");
-          }
-
-          // Attempt to refresh the token using axios directly (not apiClient)
-          // This ensures we don't send the expired Authorization header
-          const response = await axios.post(
-            `${API_CONFIG.BASE_URL}/auth/refresh/`,
-            { refresh: refreshToken },
-            {
-              headers: {
-                "Content-Type": "application/json",
-                // Explicitly NOT sending Authorization header
-              },
-            }
-          );
-
-          if (response.data?.access) {
-            const { access, refresh: newRefreshToken, user } = response.data;
-
-            // Update tokens in localStorage
-            localStorage.setItem("access_token", access);
-
-            if (newRefreshToken) {
-              localStorage.setItem("refresh_token", newRefreshToken);
-            }
-
-            if (user) {
-              localStorage.setItem("user", JSON.stringify(user));
-            }
-
-            // Process queued requests with new token
-            processQueue(null, access);
-
-            // Update the original request with new token
-            originalRequest.headers.Authorization = `Bearer ${access}`;
-
-            // Retry the original request
-            return apiClient(originalRequest);
-          } else {
-            throw new Error("Invalid refresh response");
-          }
-        } catch (refreshError) {
-          console.error("Token refresh failed:", refreshError);
-
-          // Process queued requests with error
-          processQueue(refreshError, null);
-
-          // Clear auth data
-          localStorage.removeItem("user");
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          localStorage.removeItem("selected_org");
-
-          // Show toast notification if available
-          if (typeof window !== "undefined" && window.globalToast) {
-            window.globalToast.error(
-              "Your session has expired. Please login again."
-            );
-          }
-
-          // Redirect to login
-          if (typeof window !== "undefined" && window.location) {
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 100);
-          }
-
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
+        // Retry the original request with the new token
+        originalRequest.headers.Authorization = `Bearer ${data.access}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        return Promise.reject(refreshError);
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // Generic API fetch function using axios

@@ -1,37 +1,17 @@
 import { globalToast } from "./toast";
-import store from "../store";
-import { forceLogout } from "../store/api/auth/authSlice";
 
 /**
  * Centralized API error handler
+ * NOTE: 401 token-expiration errors are handled automatically by the shared
+ * tokenRefresh module (used by both apiClient and apiSlice). This handler
+ * only processes errors that have already passed through that layer.
+ *
  * @param {Object} error - The error object from API response
  * @param {string} defaultMessage - Default error message if none found
- * @returns {boolean} - Returns true if token expiration was handled
+ * @returns {boolean} - Returns false (token expiration is handled elsewhere)
  */
 export const handleApiError = (error, defaultMessage = "An error occurred") => {
   console.error("API Error:", error);
-
-  // Handle token expiration errors
-  if (error?.status === 401) {
-    const data = error.data;
-
-    const isTokenExpired =
-      data?.code === "token_not_valid" ||
-      data?.detail === "Given token not valid for any token type" ||
-      (data?.messages &&
-        data.messages.some(
-          (msg) =>
-            msg.message === "Token is expired" || msg.token_type === "access",
-        ));
-
-    if (isTokenExpired) {
-      // Note: Token refresh is handled automatically by apiSlice.js baseQueryWithReauth
-      // This error handler should only be called for errors that weren't handled by the automatic refresh
-      store.dispatch(forceLogout());
-      globalToast.error("Your session has expired. Please login again.");
-      return true; // Token expiration handled
-    }
-  }
 
   // Handle other common error cases
   let errorMessage = defaultMessage;
