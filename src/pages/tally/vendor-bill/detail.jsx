@@ -1298,6 +1298,39 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
+  // Invoice math: subtotal + taxes + cess + freight - discount = total
+  // If current total differs from calculated by < Rs.1, absorb the rounding
+  // into the total amount itself (no separate rounding off field).
+  useEffect(() => {
+    const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
+    const cgst = parseFloat(billSummaryForm.cgst) || 0;
+    const sgst = parseFloat(billSummaryForm.sgst) || 0;
+    const igst = parseFloat(billSummaryForm.igst) || 0;
+    const cess = parseFloat(billSummaryForm.cess) || 0;
+    const freight = parseFloat(billSummaryForm.freight) || 0;
+    const discount = parseFloat(billSummaryForm.discount) || 0;
+    const total = parseFloat(billSummaryForm.total) || 0;
+
+    const calculated = +(
+      subtotal + cgst + sgst + igst + cess + freight - discount
+    ).toFixed(2);
+    const diff = Math.abs(total - calculated);
+    if (calculated > 0 && diff > 0 && diff < 1) {
+      setBillSummaryForm((prev) => ({
+        ...prev,
+        total: calculated.toFixed(2),
+      }));
+    }
+  }, [
+    billSummaryForm.subtotal,
+    billSummaryForm.cgst,
+    billSummaryForm.sgst,
+    billSummaryForm.igst,
+    billSummaryForm.cess,
+    billSummaryForm.freight,
+    billSummaryForm.discount,
+  ]);
+
   // Handle form input changes
   const handleFormChange = (name, value) => {
     setVendorForm((prev) => ({
@@ -2355,6 +2388,85 @@ const TallyVendorBillDetail = () => {
           </div>
         }
       >
+        {billInfo?.tally_sync_message && (
+          <div
+            className={`mb-4 rounded-lg border p-4 ${
+              billInfo?.status === "Synced" || billInfo?.status === "Posted"
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`flex items-center justify-center h-8 w-8 rounded-full flex-shrink-0 ${
+                  billInfo?.status === "Synced" ||
+                  billInfo?.status === "Posted"
+                    ? "bg-green-100"
+                    : "bg-red-100"
+                }`}
+              >
+                {billInfo?.status === "Synced" ||
+                billInfo?.status === "Posted" ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-green-600"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-red-600"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-semibold ${
+                    billInfo?.status === "Synced" ||
+                    billInfo?.status === "Posted"
+                      ? "text-green-800"
+                      : "text-red-800"
+                  }`}
+                >
+                  {billInfo?.status === "Synced" ||
+                  billInfo?.status === "Posted"
+                    ? "Successfully synced to Tally"
+                    : "Tally sync failed — reason for rejection"}
+                </p>
+                <p
+                  className={`text-xs mt-1 whitespace-pre-wrap ${
+                    billInfo?.status === "Synced" ||
+                    billInfo?.status === "Posted"
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {billInfo.tally_sync_message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">

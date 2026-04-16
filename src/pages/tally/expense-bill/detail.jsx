@@ -916,6 +916,20 @@ const TallyExpenseBillDetail = () => {
     taxSummaryForm.vendorDebitCredit,
   ]); // Re-calculate whenever expense items, tax amounts, or vendor debit/credit type changes
 
+  // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
+  // the total absorbs the rounding so that all debits = all credits.
+  useEffect(() => {
+    const computed = parseFloat(taxSummaryForm.vendorAmount) || 0;
+    const current = parseFloat(billForm.totalAmount) || 0;
+    const diff = Math.abs(computed - current);
+    if (diff > 0 && diff < 1) {
+      setBillForm((prev) => ({
+        ...prev,
+        totalAmount: computed.toFixed(2),
+      }));
+    }
+  }, [taxSummaryForm.vendorAmount]);
+
   // Handle form input changes
   const handleFormChange = (name, value) => {
     setBillForm((prev) => ({
@@ -1853,6 +1867,85 @@ const TallyExpenseBillDetail = () => {
                   />
                 </svg>
               </button>
+            </div>
+          </div>
+        )}
+
+        {billInfo?.tally_sync_message && (
+          <div
+            className={`mb-4 rounded-lg border p-4 ${
+              billInfo?.status === "Synced" || billInfo?.status === "Posted"
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`flex items-center justify-center h-8 w-8 rounded-full flex-shrink-0 ${
+                  billInfo?.status === "Synced" ||
+                  billInfo?.status === "Posted"
+                    ? "bg-green-100"
+                    : "bg-red-100"
+                }`}
+              >
+                {billInfo?.status === "Synced" ||
+                billInfo?.status === "Posted" ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-green-600"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-red-600"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-semibold ${
+                    billInfo?.status === "Synced" ||
+                    billInfo?.status === "Posted"
+                      ? "text-green-800"
+                      : "text-red-800"
+                  }`}
+                >
+                  {billInfo?.status === "Synced" ||
+                  billInfo?.status === "Posted"
+                    ? "Successfully synced to Tally"
+                    : "Tally sync failed — reason for rejection"}
+                </p>
+                <p
+                  className={`text-xs mt-1 whitespace-pre-wrap ${
+                    billInfo?.status === "Synced" ||
+                    billInfo?.status === "Posted"
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {billInfo.tally_sync_message}
+                </p>
+              </div>
             </div>
           </div>
         )}

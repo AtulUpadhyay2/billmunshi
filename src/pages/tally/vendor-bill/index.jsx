@@ -80,9 +80,11 @@ const TallyVendorBill = () => {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [isExternalBillModalOpen, setIsExternalBillModalOpen] = useState(false);
+  const [isSyncStatusModalOpen, setIsSyncStatusModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState({ url: "", name: "" });
   const [selectedDuplicateBill, setSelectedDuplicateBill] = useState(null);
   const [selectedExternalBill, setSelectedExternalBill] = useState(null);
+  const [selectedSyncBill, setSelectedSyncBill] = useState(null);
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
@@ -331,22 +333,41 @@ const TallyVendorBill = () => {
     setIsExternalBillModalOpen(true);
   };
 
+  const handleViewSyncStatus = (bill) => {
+    setSelectedSyncBill(bill);
+    setIsSyncStatusModalOpen(true);
+  };
+
+  // Returns the Tally sync state of a bill: "success" | "failed" | null
+  const getTallySyncState = (bill) => {
+    if (bill.status === "Synced" || bill.status === "Posted") return "success";
+    if (bill.tally_sync_message) return "failed";
+    return null;
+  };
+
   const getStatusBadge = (status) => {
     const statusClasses = {
       Draft: "text-yellow-700 bg-yellow-100 border-yellow-200",
       Analysed: "text-blue-700 bg-blue-100 border-blue-200",
-      Verified: "text-green-700 bg-green-100 border-green-200",
-      Synced: "text-purple-700 bg-purple-100 border-purple-200",
+      Verified: "text-amber-700 bg-amber-100 border-amber-300",
+      Synced: "text-green-700 bg-green-100 border-green-200",
     };
+
+    const label = status === "Verified" ? "Verified · Pending Sync" : status;
+    const isPending = status === "Verified";
 
     return (
       <span
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border rounded-full shadow-sm ${statusClasses[status] || statusClasses["Draft"]}`}
+        title={isPending ? "Verified - awaiting sync to Tally" : status}
       >
-        <svg className="w-2 h-2 fill-current" viewBox="0 0 8 8">
+        <svg
+          className={`w-2 h-2 fill-current ${isPending ? "animate-pulse" : ""}`}
+          viewBox="0 0 8 8"
+        >
           <circle cx="4" cy="4" r="3" />
         </svg>
-        {status}
+        {label}
       </span>
     );
   };
@@ -1070,6 +1091,52 @@ const TallyVendorBill = () => {
                                   External Bill
                                 </button>
                               )}
+                              {getTallySyncState(bill) === "success" && (
+                                <button
+                                  onClick={() => handleViewSyncStatus(bill)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-200 rounded-md hover:bg-green-200 transition-colors duration-200"
+                                  title="Synced to Tally - Click for details"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={2}
+                                    stroke="currentColor"
+                                    className="w-3 h-3"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M4.5 12.75l6 6 9-13.5"
+                                    />
+                                  </svg>
+                                  Tally
+                                </button>
+                              )}
+                              {getTallySyncState(bill) === "failed" && (
+                                <button
+                                  onClick={() => handleViewSyncStatus(bill)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors duration-200"
+                                  title="Tally sync failed - Click for details"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={2}
+                                    stroke="currentColor"
+                                    className="w-3 h-3"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                  Tally
+                                </button>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1440,6 +1507,99 @@ const TallyVendorBill = () => {
                   Close
                 </button>
               )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Tally Sync Status Modal */}
+      <Modal
+        activeModal={isSyncStatusModalOpen}
+        onClose={() => setIsSyncStatusModalOpen(false)}
+        title="Tally Sync Status"
+        className="max-w-xl"
+      >
+        {selectedSyncBill && (
+          <div className="space-y-4 p-6">
+            {getTallySyncState(selectedSyncBill) === "success" ? (
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/50 flex-shrink-0">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-green-600 dark:text-green-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.5 12.75l6 6 9-13.5"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                      Successfully synced to Tally
+                    </p>
+                    {selectedSyncBill.tally_sync_message && (
+                      <p className="text-xs text-green-700 dark:text-green-400 mt-1 whitespace-pre-wrap">
+                        {selectedSyncBill.tally_sync_message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-700">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/50 flex-shrink-0">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-red-600 dark:text-red-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                      Tally sync failed
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-400 mt-1 whitespace-pre-wrap">
+                      {selectedSyncBill.tally_sync_message ||
+                        "No error message provided by Tally."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => {
+                  setIsSyncStatusModalOpen(false);
+                  navigate(`/tally/vendor-bill/${selectedSyncBill.id}`);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Open Bill
+              </button>
+              <button
+                onClick={() => setIsSyncStatusModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
