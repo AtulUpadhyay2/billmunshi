@@ -206,12 +206,8 @@ const TallyVendorBillDetail = () => {
     [configResponse],
   );
 
-  // Check if bill is synced or posted (disable inputs if any of these statuses)
-  const isVerified =
-    billInfo?.status === "Synced" ||
-    billInfo?.bill_status === "Synced" ||
-    billInfo?.status === "Posted" ||
-    billInfo?.bill_status === "Posted";
+  // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
+  const isVerified = billInfo?.tally_synced === true;
 
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
@@ -2391,7 +2387,7 @@ const TallyVendorBillDetail = () => {
         {billInfo?.tally_sync_message && (
           <div
             className={`mb-4 rounded-lg border p-4 ${
-              billInfo?.status === "Synced" || billInfo?.status === "Posted"
+              billInfo?.tally_synced
                 ? "bg-green-50 border-green-200"
                 : "bg-red-50 border-red-200"
             }`}
@@ -2399,14 +2395,12 @@ const TallyVendorBillDetail = () => {
             <div className="flex items-start gap-3">
               <div
                 className={`flex items-center justify-center h-8 w-8 rounded-full flex-shrink-0 ${
-                  billInfo?.status === "Synced" ||
-                  billInfo?.status === "Posted"
+                  billInfo?.tally_synced
                     ? "bg-green-100"
                     : "bg-red-100"
                 }`}
               >
-                {billInfo?.status === "Synced" ||
-                billInfo?.status === "Posted" ? (
+                {billInfo?.tally_synced ? (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -2441,21 +2435,18 @@ const TallyVendorBillDetail = () => {
               <div className="flex-1">
                 <p
                   className={`text-sm font-semibold ${
-                    billInfo?.status === "Synced" ||
-                    billInfo?.status === "Posted"
+                    billInfo?.tally_synced
                       ? "text-green-800"
                       : "text-red-800"
                   }`}
                 >
-                  {billInfo?.status === "Synced" ||
-                  billInfo?.status === "Posted"
+                  {billInfo?.tally_synced
                     ? "Successfully synced to Tally"
                     : "Tally sync failed — reason for rejection"}
                 </p>
                 <p
                   className={`text-xs mt-1 whitespace-pre-wrap ${
-                    billInfo?.status === "Synced" ||
-                    billInfo?.status === "Posted"
+                    billInfo?.tally_synced
                       ? "text-green-700"
                       : "text-red-700"
                   }`}

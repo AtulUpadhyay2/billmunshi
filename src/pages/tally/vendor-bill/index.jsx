@@ -340,8 +340,8 @@ const TallyVendorBill = () => {
 
   // Returns the Tally sync state of a bill: "success" | "failed" | null
   const getTallySyncState = (bill) => {
-    if (bill.status === "Synced" || bill.status === "Posted") return "success";
-    if (bill.tally_sync_message) return "failed";
+    if (bill.tally_synced) return "success";
+    if (bill.tally_sync_message && !bill.tally_synced) return "failed";
     return null;
   };
 
