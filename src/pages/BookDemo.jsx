@@ -9,131 +9,69 @@ const BookDemo = () => {
         organization: '',
         software: '',
         email: '',
-        phone: ''
+        phone: '',
     });
 
     const handleInputChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Handle form submission logic here
-        console.log('Demo booking:', formData);
-        
-        // Show success message (you can integrate with your toast system)
         alert('Thank you! We will contact you shortly to schedule your demo.');
-        
-        // Reset form
-        setFormData({
-            fullName: '',
-            organization: '',
-            software: '',
-            email: '',
-            phone: ''
-        });
-        
-        // Navigate back to home or another page
+        setFormData({ fullName: '', organization: '', software: '', email: '', phone: '' });
         navigate('/');
     };
 
+    const inputBase =
+        'w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600';
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-            {/* Header */}
-            <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <Link to="/" className="flex items-center space-x-3 group">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-                                <Icon icon="heroicons:document-text" className="text-xl text-white" />
-                            </div>
-                            <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                                Bill Munshi
-                            </span>
-                        </Link>
-
-                        <Link
-                            to="/"
-                            className="inline-flex items-center space-x-2 px-6 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
-                        >
-                            <Icon icon="heroicons:arrow-left" className="text-lg" />
-                            <span>Back to Home</span>
-                        </Link>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Main Content */}
-            <div className="container mx-auto px-6 py-12">
-                <div className="max-w-4xl mx-auto">
-                    {/* Header Section */}
-                    <div className="text-center mb-12">
-                        <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-700 rounded-full mb-6 backdrop-blur-sm shadow-lg">
-                            <Icon icon="heroicons:calendar-days" className="text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Schedule Your Demo</span>
+        <div className="h-screen flex bg-white dark:bg-slate-950 antialiased text-slate-800 dark:text-slate-200 overflow-hidden">
+            {/* Left: form */}
+            <div className="flex-1 flex flex-col px-6 sm:px-10 lg:px-12 py-5 overflow-y-auto">
+                {/* Top brand */}
+                <div className="flex items-center justify-between">
+                    <Link to="/" className="flex items-center gap-2.5 group">
+                        <div className="w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all">
+                            <Icon icon="heroicons:document-text" className="text-lg text-white" />
                         </div>
+                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            Bill Munshi
+                        </span>
+                    </Link>
+                    <Link
+                        to="/"
+                        className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                        <Icon icon="heroicons:arrow-left" className="text-base" />
+                        Back to home
+                    </Link>
+                </div>
 
-                        <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-                            <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                                Book a Live Demo
-                            </span>
+                {/* Form */}
+                <div className="flex-1 flex items-center justify-center py-6">
+                    <div className="w-full max-w-xl">
+                        <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 rounded-full text-[11px] font-semibold text-blue-700 dark:text-blue-400 mb-3">
+                            <Icon icon="heroicons:calendar-days" className="text-xs" />
+                            Schedule your demo
+                        </span>
+
+                        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                            Book a live demo
                         </h1>
-
-                        <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-8">
-                            See Bill Munshi in action! Our team will walk you through all features and answer your questions.
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 mb-5">
+                            See Bill Munshi in action. Our team will walk you through every feature and answer your questions.
                         </p>
 
-                        {/* Special Offer Banner */}
-                        <div className="max-w-3xl mx-auto mb-8">
-                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-700 rounded-2xl p-6 shadow-lg">
-                                <div className="flex items-start gap-3">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                            <Icon icon="heroicons:gift" className="text-xl text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <div className="inline-flex items-center gap-2 mb-2">
-                                            <Icon icon="heroicons:sparkles" className="text-amber-600 dark:text-amber-400 animate-pulse" />
-                                            <span className="text-sm font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide">Limited Time Offer</span>
-                                        </div>
-                                        <p className="text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
-                                            Process upto <span className="font-bold text-amber-700 dark:text-amber-400">50 bills/receipts per month</span> for free and get total storage of <span className="font-bold text-amber-700 dark:text-amber-400">1GB</span>. Offer available for first <span className="font-bold text-amber-700 dark:text-amber-400">100 users</span>.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Form Section */}
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-8 py-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                                    <Icon icon="heroicons:document-text" className="text-2xl text-white" />
-                                </div>
+                        <form onSubmit={handleSubmit} className="space-y-3.5">
+                            <div className="grid sm:grid-cols-2 gap-3.5">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">Request a Demo</h2>
-                                    <p className="text-blue-100 text-sm">Fill out the form below and we'll get back to you shortly</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {/* Full Name */}
-                                <div>
-                                    <label htmlFor="fullName" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                        Full Name <span className="text-red-500">*</span>
+                                    <label htmlFor="fullName" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Full name <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                            <Icon icon="heroicons:user" className="text-slate-400 text-xl" />
-                                        </div>
+                                        <Icon icon="heroicons:user" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
                                         <input
                                             type="text"
                                             id="fullName"
@@ -141,21 +79,19 @@ const BookDemo = () => {
                                             value={formData.fullName}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white placeholder-slate-400 transition-all text-base"
-                                            placeholder="Enter your full name"
+                                            autoComplete="name"
+                                            className={inputBase}
+                                            placeholder="Your full name"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Organization */}
                                 <div>
-                                    <label htmlFor="organization" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                        Name of Organization <span className="text-red-500">*</span>
+                                    <label htmlFor="organization" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Organization <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                            <Icon icon="heroicons:building-office" className="text-slate-400 text-xl" />
-                                        </div>
+                                        <Icon icon="heroicons:building-office" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
                                         <input
                                             type="text"
                                             id="organization"
@@ -163,52 +99,45 @@ const BookDemo = () => {
                                             value={formData.organization}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white placeholder-slate-400 transition-all text-base"
-                                            placeholder="Enter your organization name"
+                                            autoComplete="organization"
+                                            className={inputBase}
+                                            placeholder="Your organization"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Accounting Software */}
                             <div>
-                                <label htmlFor="software" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                    Accounting Software <span className="text-red-500">*</span>
+                                <label htmlFor="software" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Accounting software <span className="text-rose-500">*</span>
                                 </label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                        <Icon icon="heroicons:calculator" className="text-slate-400 text-xl" />
-                                    </div>
+                                    <Icon icon="heroicons:calculator" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
                                     <select
                                         id="software"
                                         name="software"
                                         value={formData.software}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white transition-all appearance-none cursor-pointer text-base"
+                                        className={`${inputBase} pr-10 cursor-pointer appearance-none`}
                                     >
                                         <option value="">Select your accounting software</option>
                                         <option value="zoho">Zoho Books</option>
                                         <option value="tally">Tally</option>
-                                        <option value="both">Both (Zoho Books & Tally)</option>
-                                        <option value="other">Other / Not Sure</option>
+                                        <option value="both">Both (Zoho Books &amp; Tally)</option>
+                                        <option value="other">Other / Not sure</option>
                                     </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                                        <Icon icon="heroicons:chevron-down" className="text-slate-400 text-xl" />
-                                    </div>
+                                    <Icon icon="heroicons:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
                                 </div>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {/* Work Email */}
+                            <div className="grid sm:grid-cols-2 gap-3.5">
                                 <div>
-                                    <label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                        Work Email <span className="text-red-500">*</span>
+                                    <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Work email <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                            <Icon icon="heroicons:envelope" className="text-slate-400 text-xl" />
-                                        </div>
+                                        <Icon icon="heroicons:envelope" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
                                         <input
                                             type="email"
                                             id="email"
@@ -216,21 +145,19 @@ const BookDemo = () => {
                                             value={formData.email}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white placeholder-slate-400 transition-all text-base"
+                                            autoComplete="email"
+                                            className={inputBase}
                                             placeholder="you@company.com"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Phone */}
                                 <div>
-                                    <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                        Phone <span className="text-red-500">*</span>
+                                    <label htmlFor="phone" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Phone <span className="text-rose-500">*</span>
                                     </label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                            <Icon icon="heroicons:phone" className="text-slate-400 text-xl" />
-                                        </div>
+                                        <Icon icon="heroicons:phone" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
                                         <input
                                             type="tel"
                                             id="phone"
@@ -238,91 +165,103 @@ const BookDemo = () => {
                                             value={formData.phone}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 dark:text-white placeholder-slate-400 transition-all text-base"
+                                            autoComplete="tel"
+                                            className={inputBase}
                                             placeholder="+91 98765 43210"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Benefits List */}
-                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <Icon icon="heroicons:check-badge" className="text-blue-600 dark:text-blue-400 text-2xl" />
-                                    What You'll Get:
-                                </h3>
-                                <ul className="space-y-3">
-                                    <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                                        <Icon icon="heroicons:check-circle" className="text-green-500 text-xl flex-shrink-0 mt-0.5" />
-                                        <span>Personalized 30-minute product walkthrough</span>
-                                    </li>
-                                    <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                                        <Icon icon="heroicons:check-circle" className="text-green-500 text-xl flex-shrink-0 mt-0.5" />
-                                        <span>Live Q&A with our product experts</span>
-                                    </li>
-                                    <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                                        <Icon icon="heroicons:check-circle" className="text-green-500 text-xl flex-shrink-0 mt-0.5" />
-                                        <span>Custom setup recommendations for your business</span>
-                                    </li>
-                                    <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                                        <Icon icon="heroicons:check-circle" className="text-green-500 text-xl flex-shrink-0 mt-0.5" />
-                                        <span>Free trial access after the demo</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            {/* Submit Button */}
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
                                 <Link
                                     to="/"
-                                    className="flex-1 px-8 py-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-base hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-200 text-center"
+                                    className="sm:flex-1 inline-flex items-center justify-center px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                                 >
                                     Cancel
                                 </Link>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-base hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-2"
+                                    className="group sm:flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer"
                                 >
-                                    <Icon icon="heroicons:paper-airplane" className="text-xl" />
-                                    <span>Schedule My Demo</span>
+                                    <Icon icon="heroicons:paper-airplane" className="text-base" />
+                                    <span>Schedule my demo</span>
+                                    <Icon icon="heroicons:arrow-right" className="text-base group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             </div>
 
-                            {/* Privacy Note */}
-                            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                                <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                    <Icon icon="heroicons:information-circle" className="text-blue-500 text-lg flex-shrink-0 mt-0.5" />
-                                    <p>
-                                        We respect your privacy. Your information will only be used to contact you about the demo and provide you with relevant product information.
-                                    </p>
-                                </div>
+                            <div className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                                <Icon icon="heroicons:lock-closed" className="text-blue-500 text-sm shrink-0 mt-0.5" />
+                                <p>
+                                    We respect your privacy. Your information is only used to contact you about the demo.
+                                </p>
                             </div>
                         </form>
                     </div>
+                </div>
 
-                    {/* Additional Info Section */}
-                    <div className="mt-12 grid md:grid-cols-3 gap-6">
-                        <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 mx-auto shadow-lg">
-                                <Icon icon="heroicons:clock" className="text-2xl text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Quick Response</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">We'll get back to you within 24 hours</p>
-                        </div>
-                        <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 mx-auto shadow-lg">
-                                <Icon icon="heroicons:users" className="text-2xl text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Expert Guidance</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">Learn from our product specialists</p>
-                        </div>
-                        <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
-                            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 mx-auto shadow-lg">
-                                <Icon icon="heroicons:shield-check" className="text-2xl text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Commitment</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">Free demo with no obligations</p>
-                        </div>
+                {/* Footer */}
+                <div className="text-center text-[11px] text-slate-500 dark:text-slate-500">
+                    © {new Date().getFullYear()} BillMunshi · All rights reserved
+                </div>
+            </div>
+
+            {/* Right: brand showcase */}
+            <div className="hidden lg:flex lg:w-[44%] xl:w-[48%] relative overflow-hidden bg-slate-950">
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-0 opacity-[0.08]"
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(to right, rgb(255 255 255 / 1) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 1) 1px, transparent 1px)',
+                        backgroundSize: '48px 48px',
+                    }}
+                />
+                <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl" />
+                <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
+
+                <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white overflow-y-auto py-10">
+                    <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
+                        <Icon icon="heroicons:gift" className="text-sm text-orange-300" />
+                        Limited time offer
+                    </span>
+
+                    <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1]">
+                        See it for yourself in{" "}
+                        <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
+                            30 minutes.
+                        </span>
+                    </h2>
+                    <p className="mt-5 text-lg text-slate-300 max-w-md leading-relaxed">
+                        Process up to <span className="font-semibold text-orange-300">50 bills/month</span> for free with <span className="font-semibold text-orange-300">1GB</span> storage — for the first 100 users.
+                    </p>
+
+                    <ul className="mt-8 space-y-3.5 max-w-md">
+                        {[
+                            { icon: 'heroicons:user-group', t: 'Personalized walkthrough', d: '30-minute live demo with a product expert.' },
+                            { icon: 'heroicons:chat-bubble-left-right', t: 'Live Q&A', d: 'Get every question answered in real time.' },
+                            { icon: 'heroicons:cog-6-tooth', t: 'Custom setup advice', d: 'Recommendations tailored to your business.' },
+                            { icon: 'heroicons:gift', t: 'Free trial after demo', d: 'Try BillMunshi end-to-end with no commitment.' },
+                        ].map((b, i) => (
+                            <li key={i} className="flex gap-3.5 items-start">
+                                <span className="shrink-0 w-9 h-9 rounded-lg bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center">
+                                    <Icon icon={b.icon} className="text-base text-blue-300" />
+                                </span>
+                                <div>
+                                    <div className="text-sm font-semibold text-white">{b.t}</div>
+                                    <div className="text-xs text-slate-400">{b.d}</div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <div className="mt-8 flex items-center gap-x-5 gap-y-2 flex-wrap text-xs text-slate-400">
+                        <span className="inline-flex items-center gap-1.5">
+                            <Icon icon="heroicons:clock" className="text-emerald-400 text-sm" /> Reply within 24h
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <Icon icon="heroicons:shield-check" className="text-emerald-400 text-sm" /> No commitment
+                        </span>
                     </div>
                 </div>
             </div>

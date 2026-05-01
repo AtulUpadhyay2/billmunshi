@@ -1,13 +1,10 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import Textinput from "@/components/ui/Textinput";
-import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
+import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
-import Checkbox from "@/components/ui/Checkbox";
 import { useDispatch, useSelector } from "react-redux";
 import { useRegisterUserMutation } from "@/store/api/auth/authApiSlice";
 import Modal from "@/components/ui/Modal";
@@ -39,11 +36,16 @@ const schema = yup
   })
   .required();
 
-const RegForm = () => {
-  const [registerUser, { isLoading, isError, error, isSuccess }] =
-    useRegisterUserMutation();
+const inputBase =
+  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
 
+const inputError =
+  "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800";
+
+const RegForm = () => {
+  const [registerUser, { isLoading }] = useRegisterUserMutation();
   const [checked, setChecked] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState("");
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -75,29 +77,23 @@ const RegForm = () => {
 
   const password = watch("password", "");
 
-  // Calculate password strength
   React.useEffect(() => {
     if (!password) {
       setPasswordStrength("");
       return;
     }
-
     let strength = 0;
     if (password.length >= 8) strength++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
     if (/\d/.test(password)) strength++;
     if (/[@$!%*?&]/.test(password)) strength++;
-
-    if (strength <= 2) {
-      setPasswordStrength("Weak");
-    } else if (strength === 3) {
-      setPasswordStrength("Medium");
-    } else {
-      setPasswordStrength("Strong");
-    }
+    if (strength <= 2) setPasswordStrength("Weak");
+    else if (strength === 3) setPasswordStrength("Medium");
+    else setPasswordStrength("Strong");
   }, [password]);
 
   const navigate = useNavigate();
+
   const onSubmit = async (data) => {
     if (!checked) {
       toast.error("Please accept the Terms and Conditions and Privacy Policy");
@@ -105,9 +101,7 @@ const RegForm = () => {
     }
     try {
       const response = await registerUser(data);
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
+      if (response.error) throw new Error(response.error.message);
       reset();
       navigate("/");
       toast.success("Add Successfully");
@@ -115,12 +109,8 @@ const RegForm = () => {
       const errorMessage =
         error.response?.data?.message ||
         "An error occurred. Please try again later.";
-
-      if (errorMessage === "Email is already registered") {
-        toast.error(errorMessage);
-      } else {
-        toast.warning(errorMessage);
-      }
+      if (errorMessage === "Email is already registered") toast.error(errorMessage);
+      else toast.warning(errorMessage);
     }
   };
 
@@ -130,319 +120,248 @@ const RegForm = () => {
     setShowPrivacyModal(false);
   };
 
-  const TermsContent = () => (
-    <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 space-y-4 text-sm">
-      <p className="text-xs text-slate-500">
-        Last updated: {new Date().toLocaleDateString()}
-      </p>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          1. Introduction
-        </h3>
-        <p>
-          Welcome to Bill Munshi. By accessing our website and using our
-          services, you agree to be bound by these Terms and Conditions. Please
-          read them carefully.
+  const Field = ({ label, required, error, icon, children }) => (
+    <div>
+      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        {label} {required && <span className="text-rose-500">*</span>}
+      </label>
+      <div className="relative">
+        {icon && (
+          <Icon
+            icon={icon}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+          />
+        )}
+        {children}
+      </div>
+      {error && (
+        <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+          {error.message}
         </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          2. Use of Service
-        </h3>
-        <p>
-          You agree to use our service only for lawful purposes and in a way
-          that does not infringe the rights of, restrict or inhibit anyone
-          else's use and enjoyment of the website.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          3. Account Registration
-        </h3>
-        <p>
-          To access certain features of the service, you may be required to
-          register for an account. You agree to provide accurate, current, and
-          complete information during the registration process.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          4. Intellectual Property
-        </h3>
-        <p>
-          The content, organization, graphics, design, compilation, and other
-          matters related to the Site are protected under applicable copyrights,
-          trademarks, and other proprietary rights.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          5. Termination
-        </h3>
-        <p>
-          We reserve the right to terminate or suspend your account and access
-          to the Service immediately, without prior notice or liability, for any
-          reason whatsoever.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          6. Changes to Terms
-        </h3>
-        <p>
-          We reserve the right, at our sole discretion, to modify or replace
-          these Terms at any time. What constitutes a material change will be
-          determined at our sole discretion.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          7. Contact Us
-        </h3>
-        <p>
-          If you have any questions about these Terms, please contact us at
-          support@billmunshi.com.
-        </p>
-      </section>
+      )}
     </div>
   );
 
-  const PrivacyContent = () => (
-    <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 space-y-4 text-sm">
-      <p className="text-xs text-slate-500">
-        Last updated: {new Date().toLocaleDateString()}
-      </p>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          1. Information We Collect
-        </h3>
-        <p>
-          We collect information you provide directly to us, such as when you
-          create or modify your account, request on-demand services, contact
-          customer support, or otherwise communicate with us. This information
-          may include: name, email, phone number, postal address, profile
-          picture, payment method, items requested (for delivery services),
-          delivery notes, and other information you choose to provide.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          2. How We Use Your Information
-        </h3>
-        <p>
-          We use the information we collect to provide, maintain, and improve
-          our services, such as to:
-        </p>
-        <ul className="list-disc pl-5 space-y-2 mt-2">
-          <li>Process payments and facilitate your transactions</li>
-          <li>
-            Send you technical notices, updates, security alerts, and support
-            messages
-          </li>
-          <li>Respond to your comments, questions, and requests</li>
-          <li>
-            Communicate with you about products, services, offers, promotions,
-            and events
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          3. Information Sharing
-        </h3>
-        <p>
-          We may share the information we collect about you as described in this
-          Statement or as described at the time of collection or sharing,
-          including as follows:
-        </p>
-        <ul className="list-disc pl-5 space-y-2 mt-2">
-          <li>
-            With third party service providers to enable them to provide the
-            Services we request
-          </li>
-          <li>
-            With the general public if you submit content in a public forum
-          </li>
-          <li>
-            With third parties with whom you choose to let us share information
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          4. Data Security
-        </h3>
-        <p>
-          We take reasonable measures to help protect information about you from
-          loss, theft, misuse and unauthorized access, disclosure, alteration
-          and destruction.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          5. Cookies
-        </h3>
-        <p>
-          We use cookies and similar tracking technologies to track the activity
-          on our Service and hold certain information. You can instruct your
-          browser to refuse all cookies or to indicate when a cookie is being
-          sent.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          6. Changes to This Policy
-        </h3>
-        <p>
-          We may update this privacy policy from time to time. If we make
-          significant changes, we will notify you of the changes through the
-          Services or through others means, such as email.
-        </p>
-      </section>
-
-      <section>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-          7. Contact Us
-        </h3>
-        <p>
-          If you have any questions about this Privacy Policy, please contact us
-          at privacy@billmunshi.com.
-        </p>
-      </section>
-    </div>
-  );
+  const strengthColor =
+    passwordStrength === "Weak"
+      ? "bg-rose-500"
+      : passwordStrength === "Medium"
+      ? "bg-amber-500"
+      : "bg-emerald-500";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 ">
-      <Textinput
-        name="name"
-        label="Full Name"
-        type="text"
-        placeholder="Enter your full name"
-        register={register}
-        error={errors.name}
-        className="h-[48px]"
-      />
-      <Textinput
-        name="organizationName"
-        label="Name of Organization"
-        type="text"
-        placeholder="Enter your organization name"
-        register={register}
-        error={errors.organizationName}
-        className="h-[48px]"
-      />
-      <Select
-        name="designation"
-        label="Designation"
-        register={register}
-        options={designationOptions}
-        error={errors.designation}
-        className="h-[48px]"
-      />
-      <Select
-        name="accountingSoftware"
-        label="Accounting Software"
-        register={register}
-        options={accountingSoftwareOptions}
-        error={errors.accountingSoftware}
-        className="h-[48px]"
-      />
-      <Textinput
-        name="email"
-        label="Work Email"
-        type="email"
-        placeholder="Enter your work email"
-        register={register}
-        error={errors.email}
-        className="h-[48px]"
-      />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+      <div className="grid sm:grid-cols-2 gap-3.5">
+        <Field label="Full name" required error={errors.name} icon="heroicons:user">
+          <input
+            type="text"
+            placeholder="Your full name"
+            autoComplete="name"
+            {...register("name")}
+            className={`${inputBase} ${errors.name ? inputError : ""}`}
+          />
+        </Field>
+
+        <Field
+          label="Organization"
+          required
+          error={errors.organizationName}
+          icon="heroicons:building-office"
+        >
+          <input
+            type="text"
+            placeholder="Your organization"
+            autoComplete="organization"
+            {...register("organizationName")}
+            className={`${inputBase} ${errors.organizationName ? inputError : ""}`}
+          />
+        </Field>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3.5">
+        <Field
+          label="Designation"
+          required
+          error={errors.designation}
+          icon="heroicons:briefcase"
+        >
+          <select
+            {...register("designation")}
+            className={`${inputBase} pr-10 cursor-pointer appearance-none ${
+              errors.designation ? inputError : ""
+            }`}
+          >
+            {designationOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <Icon
+            icon="heroicons:chevron-down"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none"
+          />
+        </Field>
+
+        <Field
+          label="Accounting software"
+          required
+          error={errors.accountingSoftware}
+          icon="heroicons:calculator"
+        >
+          <select
+            {...register("accountingSoftware")}
+            className={`${inputBase} pr-10 cursor-pointer appearance-none ${
+              errors.accountingSoftware ? inputError : ""
+            }`}
+          >
+            {accountingSoftwareOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <Icon
+            icon="heroicons:chevron-down"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none"
+          />
+        </Field>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3.5">
+        <Field label="Work email" required error={errors.email} icon="heroicons:envelope">
+          <input
+            type="email"
+            placeholder="you@company.com"
+            autoComplete="email"
+            {...register("email")}
+            className={`${inputBase} ${errors.email ? inputError : ""}`}
+          />
+        </Field>
+
+        <Field label="Phone" required error={errors.phone} icon="heroicons:phone">
+          <input
+            type="tel"
+            placeholder="10-digit phone number"
+            autoComplete="tel"
+            {...register("phone")}
+            className={`${inputBase} ${errors.phone ? inputError : ""}`}
+          />
+        </Field>
+      </div>
+
       <div>
-        <Textinput
-          name="password"
-          label="Set Password"
-          type="password"
-          placeholder="Enter your password"
-          register={register}
-          error={errors.password}
-          className="h-[48px]"
-        />
-        {password && (
-          <div className="mt-2">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          Password <span className="text-rose-500">*</span>
+        </label>
+        <div className="relative">
+          <Icon
+            icon="heroicons:lock-closed"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+          />
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Min 8 chars · 1 upper · 1 number · 1 symbol"
+            autoComplete="new-password"
+            {...register("password")}
+            className={`${inputBase} pr-10 ${errors.password ? inputError : ""}`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            <Icon icon={showPassword ? "heroicons:eye-slash" : "heroicons:eye"} className="text-lg" />
+          </button>
+        </div>
+        {errors.password && (
+          <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+            {errors.password.message}
+          </p>
+        )}
+        {password && !errors.password && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex-1 h-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div
+                className={`h-full ${strengthColor} transition-all duration-300`}
+                style={{
+                  width:
+                    passwordStrength === "Weak"
+                      ? "33%"
+                      : passwordStrength === "Medium"
+                      ? "66%"
+                      : "100%",
+                }}
+              />
+            </div>
             <span
-              className={`text-sm font-medium ${
+              className={`text-[11px] font-semibold ${
                 passwordStrength === "Weak"
-                  ? "text-red-500"
+                  ? "text-rose-600 dark:text-rose-400"
                   : passwordStrength === "Medium"
-                    ? "text-yellow-500"
-                    : "text-green-500"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              Password Strength: {passwordStrength}
+              {passwordStrength}
             </span>
           </div>
         )}
       </div>
-      <Textinput
-        name="phone"
-        label="Phone"
-        type="text"
-        placeholder="Enter your phone number"
-        register={register}
-        error={errors.phone}
-        className="h-[48px]"
-      />
-      <Checkbox
-        label={
-          <span>
-            You accept our{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowTermsModal(true);
-              }}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-            >
-              Terms and Conditions
-            </button>{" "}
-            and{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowPrivacyModal(true);
-              }}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-            >
-              Privacy Policy
-            </button>
-          </span>
-        }
-        value={checked}
-        onChange={() => setChecked(!checked)}
-      />
-      <Button
-        type="submit"
-        text="Create an account"
-        className="btn btn-dark block w-full text-center"
-        isLoading={isLoading}
-      />
 
-      {/* Terms and Conditions Modal */}
+      <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => setChecked(!checked)}
+          className="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+        />
+        <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+          I accept the{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowTermsModal(true);
+            }}
+            className="text-blue-700 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+          >
+            Terms and Conditions
+          </button>{" "}
+          and{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowPrivacyModal(true);
+            }}
+            className="text-blue-700 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+          >
+            Privacy Policy
+          </button>
+        </span>
+      </label>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="group w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer"
+      >
+        {isLoading ? (
+          <>
+            <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+            Creating account…
+          </>
+        ) : (
+          <>
+            Create account
+            <Icon icon="heroicons:arrow-right" className="text-base group-hover:translate-x-0.5 transition-transform" />
+          </>
+        )}
+      </button>
+
+      {/* Modals */}
       <Modal
         activeModal={showTermsModal}
         onClose={() => setShowTermsModal(false)}
@@ -452,23 +371,26 @@ const RegForm = () => {
         centered={true}
         footerContent={
           <>
-            <Button
-              text="Close"
-              className="btn btn-secondary"
+            <button
+              type="button"
               onClick={() => setShowTermsModal(false)}
-            />
-            <Button
-              text="Accept"
-              className="btn btn-primary"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              type="button"
               onClick={handleAcceptTerms}
-            />
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 cursor-pointer"
+            >
+              Accept
+            </button>
           </>
         }
       >
-        <TermsContent />
+        <LegalContent kind="terms" />
       </Modal>
 
-      {/* Privacy Policy Modal */}
       <Modal
         activeModal={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
@@ -478,22 +400,61 @@ const RegForm = () => {
         centered={true}
         footerContent={
           <>
-            <Button
-              text="Close"
-              className="btn btn-secondary"
+            <button
+              type="button"
               onClick={() => setShowPrivacyModal(false)}
-            />
-            <Button
-              text="Accept"
-              className="btn btn-primary"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              type="button"
               onClick={handleAcceptTerms}
-            />
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 cursor-pointer"
+            >
+              Accept
+            </button>
           </>
         }
       >
-        <PrivacyContent />
+        <LegalContent kind="privacy" />
       </Modal>
     </form>
+  );
+};
+
+const LegalContent = ({ kind }) => {
+  const isTerms = kind === "terms";
+  const sections = isTerms
+    ? [
+        { t: "1. Introduction", c: "Welcome to Bill Munshi. By accessing our website and using our services, you agree to be bound by these Terms and Conditions. Please read them carefully." },
+        { t: "2. Use of Service", c: "You agree to use our service only for lawful purposes and in a way that does not infringe the rights of, restrict or inhibit anyone else's use and enjoyment of the website." },
+        { t: "3. Account Registration", c: "To access certain features of the service, you may be required to register for an account. You agree to provide accurate, current, and complete information during the registration process." },
+        { t: "4. Intellectual Property", c: "The content, organization, graphics, design, compilation, and other matters related to the Site are protected under applicable copyrights, trademarks, and other proprietary rights." },
+        { t: "5. Termination", c: "We reserve the right to terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason whatsoever." },
+        { t: "6. Changes to Terms", c: "We reserve the right, at our sole discretion, to modify or replace these Terms at any time. What constitutes a material change will be determined at our sole discretion." },
+        { t: "7. Contact Us", c: "If you have any questions about these Terms, please contact us at support@billmunshi.com." },
+      ]
+    : [
+        { t: "1. Information We Collect", c: "We collect information you provide directly to us, such as when you create or modify your account, request on-demand services, contact customer support, or otherwise communicate with us." },
+        { t: "2. How We Use Your Information", c: "We use the information to provide, maintain, and improve our services — including processing payments, sending technical notices, responding to your requests, and communicating about products and offers." },
+        { t: "3. Information Sharing", c: "We may share information with third party service providers, with the general public if you submit content in a public forum, and with third parties with whom you choose to let us share information." },
+        { t: "4. Data Security", c: "We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access, disclosure, alteration and destruction." },
+        { t: "5. Cookies", c: "We use cookies and similar tracking technologies to track activity on our Service. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent." },
+        { t: "6. Changes to This Policy", c: "We may update this privacy policy from time to time. If we make significant changes, we will notify you through the Services or other means, such as email." },
+        { t: "7. Contact Us", c: "If you have any questions about this Privacy Policy, please contact us at privacy@billmunshi.com." },
+      ];
+
+  return (
+    <div className="text-slate-600 dark:text-slate-300 space-y-5 text-sm">
+      <p className="text-xs text-slate-500">Last updated: {new Date().toLocaleDateString()}</p>
+      {sections.map((s, i) => (
+        <section key={i}>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1.5">{s.t}</h3>
+          <p className="leading-relaxed">{s.c}</p>
+        </section>
+      ))}
+    </div>
   );
 };
 
