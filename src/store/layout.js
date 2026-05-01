@@ -47,8 +47,8 @@ const initialState = {
   contentWidth: themeConfig.layout.contentWidth,
   type: initialType(),
   menuHidden: themeConfig.layout.menu.isHidden,
-  navBarType: themeConfig.layout.navBarType,
-  footerType: themeConfig.layout.footerType,
+  navBarType: "sticky",
+  footerType: "sticky",
   mobileMenu: themeConfig.layout.mobileMenu,
   isMonochrome: initialMonochrome(),
 };
@@ -99,13 +99,13 @@ export const layoutSlice = createSlice({
     handleMenuHidden: (state, action) => {
       state.menuHidden = action.payload;
     },
-    // handle navbar type
-    handleNavBarType: (state, action) => {
-      state.navBarType = action.payload;
+    // handle navbar type — forced to sticky
+    handleNavBarType: (state) => {
+      state.navBarType = "sticky";
     },
-    // handle footer type
-    handleFooterType: (state, action) => {
-      state.footerType = action.payload;
+    // handle footer type — forced to sticky
+    handleFooterType: (state) => {
+      state.footerType = "sticky";
     },
     handleMobileMenu: (state, action) => {
       state.mobileMenu = action.payload;

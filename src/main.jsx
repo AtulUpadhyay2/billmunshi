@@ -11,8 +11,27 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
 
-// Create a QueryClient instance
-const queryClient = new QueryClient();
+// Create a QueryClient instance with conservative defaults — avoids
+// hammering the backend when the user switches tabs / refocuses the window.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Treat data as fresh for 5 minutes — switching tabs and coming back
+      // within this window won't trigger a refetch.
+      staleTime: 5 * 60 * 1000,
+      // Keep cached data for 30 minutes after queries unmount.
+      gcTime: 30 * 60 * 1000,
+      // Don't refetch the moment a component remounts if data is still fresh.
+      refetchOnMount: false,
+      // Don't refetch when the user switches back to this tab.
+      refetchOnWindowFocus: false,
+      // Don't refetch on every network reconnect either.
+      refetchOnReconnect: false,
+      // One retry on failure is enough; the original default was 3.
+      retry: 1,
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <>

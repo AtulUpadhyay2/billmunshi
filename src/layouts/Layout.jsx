@@ -2,7 +2,6 @@ import React, { useEffect, Suspense, Fragment, useRef } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Header from "@/components/partials/header";
 import Sidebar from "@/components/partials/sidebar";
-import Settings from "@/components/partials/settings";
 import useWidth from "@/hooks/useWidth";
 import useSidebar from "@/hooks/useSidebar";
 import useContentWidth from "@/hooks/useContentWidth";
@@ -44,7 +43,7 @@ const Layout = () => {
     } else if (collapsed) {
       return "ltr:ml-[72px] rtl:mr-[72px]";
     } else {
-      return "ltr:ml-[248px] rtl:mr-[248px]";
+      return "ltr:ml-[260px] rtl:mr-[260px]";
     }
   };
   // content width
@@ -76,17 +75,15 @@ const Layout = () => {
           onClick={() => setMobileMenu(false)}
         ></div>
       )}
-      <Settings />
       <div
-        className={`content-wrapper transition-all duration-150 ${
+        className={`content-wrapper transition-all duration-150 bg-slate-50 dark:bg-slate-950 min-h-screen ${
           width > 1280 ? switchHeaderClass() : ""
         }`}
       >
-        {/* md:min-h-screen will h-full*/}
-        <div className="page-content   page-min-height  ">
+        <div className="page-min-height px-4 md:px-6 pt-4 md:pt-6 pb-4 md:pb-6">
           <div
             className={
-              contentWidth === "boxed" ? "container mx-auto" : "container-fluid"
+              contentWidth === "boxed" ? "container mx-auto" : "max-w-400 mx-auto"
             }
           >
             <Suspense fallback={<Loading />}>

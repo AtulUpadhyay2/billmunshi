@@ -1,66 +1,24 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import Icon from "@/components/ui/Icon";
-import useDarkMode from "@/hooks/useDarkMode";
+import { Icon } from "@iconify/react";
 import useSidebar from "@/hooks/useSidebar";
-import useSemiDark from "@/hooks/useSemiDark";
-import useSkin from "@/hooks/useSkin";
-
-// import images
-import MobileLogo from "@/assets/images/logo/logo-c.svg";
-import MobileLogoWhite from "@/assets/images/logo/logo-c-white.svg";
 
 const SidebarLogo = ({ menuHover }) => {
-  const [isDark] = useDarkMode();
-  const [collapsed, setMenuCollapsed] = useSidebar();
-  // semi dark
-  const [isSemiDark] = useSemiDark();
-  // skin
-  const [skin] = useSkin();
+  const [collapsed] = useSidebar();
+  const expanded = !collapsed || menuHover;
+
   return (
-    <div
-      className={` logo-segment flex justify-between items-center bg-white dark:bg-slate-800 z-9 py-6  px-4 
-      ${menuHover ? "logo-hovered" : ""}
-      ${
-        skin === "bordered"
-          ? " border-b border-r-0 border-slate-200 dark:border-slate-700"
-          : " border-none"
-      }
-      
-      `}
-    >
-      <Link to="/dashboard">
-        <div className="flex items-center space-x-4">
-          <div className="logo-icon">
-            {!isDark && !isSemiDark ? (
-              <img src={MobileLogo} alt="" />
-            ) : (
-              <img src={MobileLogoWhite} alt="" />
-            )}
-          </div>
-
-          {(!collapsed || menuHover) && (
-            <div>
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                Bill Munshi
-              </h1>
-            </div>
-          )}
+    <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
+      <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group">
+        <div className="shrink-0 w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all">
+          <Icon icon="heroicons:document-text" className="text-lg text-white" />
         </div>
+        {expanded && (
+          <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+            Bill Munshi
+          </span>
+        )}
       </Link>
-
-      {(!collapsed || menuHover) && (
-        <div
-          onClick={() => setMenuCollapsed(!collapsed)}
-          className={`h-4 w-4 border-[1.5px] border-slate-900 dark:border-slate-700 rounded-full transition-all duration-150
-          ${
-            collapsed
-              ? ""
-              : "ring-2 ring-inset ring-offset-4 ring-black-900 dark:ring-slate-400 bg-slate-900 dark:bg-slate-400 dark:ring-offset-slate-700"
-          }
-          `}
-        ></div>
-      )}
     </div>
   );
 };

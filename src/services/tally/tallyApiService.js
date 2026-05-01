@@ -291,3 +291,21 @@ export const useGetHelpData = (organizationId, options = {}) => {
     ...options,
   });
 };
+
+/**
+ * Get the admin-managed Tally setup guide steps.
+ * Returns: { steps: [{ id, step_number, title, description, image_url, image_alt, order }] }
+ */
+export const useGetTallySetupGuide = (options = {}) => {
+  return useQuery({
+    queryKey: ['tallySetupGuide'],
+    queryFn: async () => {
+      const response = await apiFetch(`tally/setup-guide/`, {
+        method: 'GET',
+      });
+      return response;
+    },
+    staleTime: 10 * 60 * 1000,
+    ...options,
+  });
+};

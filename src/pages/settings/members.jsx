@@ -1,16 +1,38 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
-import Icon from "@/components/ui/Icon";
-import Button from "@/components/ui/Button";
+import { Icon } from "@iconify/react";
 import Modal from "@/components/ui/Modal";
-import Textinput from "@/components/ui/Textinput";
-import Select from "@/components/ui/Select";
-import Loading from "@/components/Loading";
+import TablePagination from "@/components/ui/TablePagination";
 import { useGetMembers } from "@/services/memberService";
 import { globalToast } from "@/utils/toast";
 import apiClient from "@/utils/apiClient";
+
+const inputBase =
+  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+const ROLE_OPTIONS = [
+  { value: "ADMIN", label: "Admin" },
+  { value: "MANAGER", label: "Manager" },
+  { value: "ACCOUNTANT", label: "Accountant" },
+  { value: "CONSULTANT", label: "Consultant" },
+];
+
+const roleStyle = (role) => {
+  switch ((role || "").toUpperCase()) {
+    case "ADMIN":
+      return "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-blue-100 dark:ring-blue-900/60";
+    default:
+      return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700";
+  }
+};
+
+const initials = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() || "")
+    .join("") || "U";
 
 const Members = () => {
   const { selectedOrganization } = useSelector((state) => state.auth);
@@ -26,64 +48,80 @@ const Members = () => {
   const [deletingMember, setDeletingMember] = useState(null);
   const [deleteUserAccount, setDeleteUserAccount] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const roleOptions = [
-    { value: "ADMIN", label: "Admin" },
-    { value: "MANAGER", label: "Manager" },
-    { value: "ACCOUNTANT", label: "Accountant" },
-    { value: "CONSULTANT", label: "Consultant" },
-  ];
+  const { data: membersData, isLoading, isError, refetch } = useGetMembers(
+    selectedOrganization?.id
+  );
 
-  const {
-    data: membersData,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useGetMembers(selectedOrganization?.id);
-
-  // Show error toast if API fails
-  React.useEffect(() => {
-    if (isError) {
-      globalToast.error("Failed to load members data");
-    }
+  useEffect(() => {
+    if (isError) globalToast.error("Failed to load members data");
   }, [isError]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, roleFilter, pageSize]);
+
+  const members = membersData?.data?.members || [];
+  const orgInfo = membersData?.data?.organization;
+
+  const filtered = useMemo(() => {
+    return members.filter((m) => {
+      if (roleFilter !== "ALL" && (m.role || "").toUpperCase() !== roleFilter) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        m.user?.full_name?.toLowerCase().includes(q) ||
+        m.user?.email?.toLowerCase().includes(q) ||
+        m.role?.toLowerCase().includes(q)
+      );
+    });
+  }, [members, searchQuery, roleFilter]);
+
+  const stats = useMemo(() => {
+    const total = members.length;
+    const active = members.filter((m) => m.is_active).length;
+    const admins = members.filter((m) => (m.role || "").toUpperCase() === "ADMIN").length;
+    return {
+      total,
+      active,
+      admins,
+      inactive: total - active,
+    };
+  }, [members]);
+
+  const paged = useMemo(() => {
+    const startIdx = (page - 1) * pageSize;
+    return filtered.slice(startIdx, startIdx + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const handleInputChange = (field, value) => {
+    setInviteData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleInviteMember = async (e) => {
     e.preventDefault();
-
     if (!inviteData.email.trim()) {
       globalToast.error("Email is required");
       return;
     }
-
     try {
       setInviteLoading(true);
       const response = await apiClient.post(
         `/org/${selectedOrganization.id}/members/invite/`,
-        inviteData,
+        inviteData
       );
-
       globalToast.success(response.data.message);
-
-      // Show default password info if user was created
       if (response.data.user_created && response.data.default_password) {
         globalToast.info(`Default password: ${response.data.default_password}`);
       }
-
-      // Close modal and reset form
       setIsInviteModalOpen(false);
-      setInviteData({
-        email: "",
-        first_name: "",
-        last_name: "",
-        role: "MANAGER",
-      });
-
-      // Refresh members list
+      setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
       refetch();
     } catch (error) {
-      console.error("Error inviting member:", error);
       const errorMessage =
         error.response?.data?.detail ||
         error.response?.data?.message ||
@@ -94,34 +132,20 @@ const Members = () => {
     }
   };
 
-  const handleInputChange = (field, value) => {
-    setInviteData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const handleDeleteMember = async () => {
     if (!deletingMember) return;
-
     try {
       setDeleteLoading(true);
       const deleteParams = deleteUserAccount ? "?delete_user=true" : "";
       const response = await apiClient.delete(
-        `/org/${selectedOrganization.id}/members/${deletingMember.id}/delete/${deleteParams}`,
+        `/org/${selectedOrganization.id}/members/${deletingMember.id}/delete/${deleteParams}`
       );
-
       globalToast.success(response.data.message);
-
-      // Close modal and reset state
       setDeleteModalOpen(false);
       setDeletingMember(null);
       setDeleteUserAccount(false);
-
-      // Refresh members list
       refetch();
     } catch (error) {
-      console.error("Error deleting member:", error);
       const errorMessage =
         error.response?.data?.detail ||
         error.response?.data?.message ||
@@ -132,394 +156,430 @@ const Members = () => {
     }
   };
 
-  const openDeleteModal = (member) => {
-    setDeletingMember(member);
-    setDeleteModalOpen(true);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (d) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
 
-  const getRoleBadge = (role) => {
-    switch (role) {
-      case "ADMIN":
-        return (
-          <Badge
-            label="Admin"
-            className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-          />
-        );
-      case "MANAGER":
-        return (
-          <Badge
-            label="Manager"
-            className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-          />
-        );
-      case "ACCOUNTANT":
-        return (
-          <Badge
-            label="Accountant"
-            className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-          />
-        );
-      case "CONSULTANT":
-        return (
-          <Badge
-            label="Consultant"
-            className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-          />
-        );
-      default:
-        return (
-          <Badge
-            label="Member"
-            className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-          />
-        );
-    }
-  };
-
-  const getStatusBadge = (isActive) => {
-    if (isActive) {
-      return (
-        <Badge
-          label="Active"
-          className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-        />
-      );
-    }
-    return (
-      <Badge
-        label="Inactive"
-        className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full"
-      />
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h4 className="card-title">Organization Members</h4>
-          <Button
-            text="Invite Member"
-            className="btn-primary"
-            icon="heroicons:plus"
-            disabled={true}
-          />
-        </div>
-        <Loading />
-      </div>
-    );
-  }
+  const StatusBadge = ({ active }) => (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${
+        active
+          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
+          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-slate-200 dark:ring-slate-700"
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-slate-400"}`} />
+      {active ? "Active" : "Inactive"}
+    </span>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h4 className="card-title">Organization Members</h4>
-        <Button
-          text="Invite Member"
-          className="btn-primary"
-          icon="heroicons:plus"
-          onClick={() => setIsInviteModalOpen(true)}
-        />
+    <div className="h-[calc(100vh-7rem)] flex flex-col gap-4">
+      {/* Page header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Members
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+            {orgInfo?.name ? (
+              <>
+                Manage who has access to{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {orgInfo.name}
+                </span>
+                .
+              </>
+            ) : (
+              "Manage who has access to this workspace."
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+          >
+            <Icon icon="heroicons:arrow-path" className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsInviteModalOpen(true)}
+            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+          >
+            <Icon icon="heroicons:plus" className="text-base" />
+            Invite member
+          </button>
+        </div>
       </div>
 
-      {/* Organization Summary */}
-      {membersData?.data?.organization && (
-        <Card>
-          <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Icon
-                  icon="heroicons:building-office-2"
-                  className="w-6 h-6 text-blue-600"
-                />
+      {/* Compact stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        {[
+          { label: "Total members", value: stats.total, icon: "heroicons:users" },
+          { label: "Active", value: stats.active, icon: "heroicons:check-badge" },
+          { label: "Administrators", value: stats.admins, icon: "heroicons:shield-check" },
+          { label: "Inactive", value: stats.inactive, icon: "heroicons:no-symbol" },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2.5 flex items-center gap-3"
+          >
+            <span className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+              <Icon icon={s.icon} className="text-sm" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+                {s.label}
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {membersData.data.organization.name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Organization ID: {membersData.data.organization.unique_name}
-                </p>
+              <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
+                {isLoading ? "—" : s.value}
               </div>
             </div>
-
-            {membersData?.data?.meta && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {membersData.data.meta.total_members}
-                  </div>
-                  <div className="text-sm text-gray-600">Total Members</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="text-2xl font-bold text-green-600">
-                    {membersData.data.meta.active_members}
-                  </div>
-                  <div className="text-sm text-gray-600">Active Members</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {membersData.data.meta.roles_breakdown?.admins || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Administrators</div>
-                </div>
-              </div>
-            )}
           </div>
-        </Card>
-      )}
+        ))}
+      </div>
 
-      {/* Members Table */}
-      <Card title="Members List">
-        {isError ? (
-          <div className="text-center py-8">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <Icon
-                icon="heroicons:exclamation-triangle"
-                className="w-12 h-12 text-red-500 mx-auto mb-4"
-              />
-              <h3 className="text-lg font-semibold text-red-800 mb-2">
-                Failed to Load Members
-              </h3>
-              <p className="text-red-600 mb-4">
+      {/* Members card — fills remaining viewport */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        {/* Toolbar */}
+        <div className="px-5 md:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+          <div className="relative w-full md:max-w-sm">
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, or role…"
+              className={inputBase}
+            />
+          </div>
+
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
+            {[
+              { value: "ALL", label: "All" },
+              ...ROLE_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+            ].map((tab) => {
+              const isActive = roleFilter === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setRoleFilter(tab.value)}
+                  className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 min-h-0 overflow-auto">
+          {isLoading ? (
+            <div className="px-5 md:px-6 py-4 space-y-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-16 px-6">
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+                <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+              </div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load members</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
                 There was an error loading the members data.
               </p>
               <button
-                onClick={refetch}
-                className="btn btn-sm bg-red-100 hover:bg-red-200 text-red-700 border-red-200 hover:border-red-300"
+                type="button"
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               >
-                Try Again
+                <Icon icon="heroicons:arrow-path" className="text-base" />
+                Try again
               </button>
             </div>
-          </div>
-        ) : membersData?.data?.members?.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">
-              <Icon
-                icon="heroicons:users"
-                className="w-12 h-12 text-slate-400 mx-auto mb-4"
-              />
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                No Members Found
-              </h3>
-              <p className="text-slate-600">
-                There are no members in this organization yet.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-              <thead className="bg-slate-50 dark:bg-slate-800">
+          ) : (
+            <table className="min-w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Member
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Joined Date
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Last Updated
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Role</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Status</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Joined</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Last updated</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 w-20">Action</th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                {membersData?.data?.members?.map((member) => (
-                  <tr
-                    key={member.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">
-                              {member.user.full_name
-                                ?.charAt(0)
-                                ?.toUpperCase() || "U"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {member.user.full_name}
-                          </div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400">
-                            {member.user.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getRoleBadge(member.role)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(member.is_active)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                      {formatDate(member.created_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                      {formatDate(member.updated_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {member.user.email !==
-                        selectedOrganization?.owner?.email && (
-                        <Button
-                          text="Delete"
-                          className="btn-outline-danger btn-sm"
-                          icon="heroicons:trash"
-                          onClick={() => openDeleteModal(member)}
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {paged.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-16 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-3">
+                        <Icon
+                          icon={searchQuery || roleFilter !== "ALL" ? "heroicons:magnifying-glass" : "heroicons:user-plus"}
+                          className="text-2xl"
                         />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {searchQuery || roleFilter !== "ALL" ? "No members match your filters" : "No members yet"}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {searchQuery || roleFilter !== "ALL"
+                          ? "Try a different keyword or role."
+                          : "Invite your first teammate to get started."}
+                      </p>
+                      {!searchQuery && roleFilter === "ALL" && (
+                        <button
+                          type="button"
+                          onClick={() => setIsInviteModalOpen(true)}
+                          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                        >
+                          <Icon icon="heroicons:plus" className="text-base" />
+                          Invite member
+                        </button>
                       )}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paged.map((member) => {
+                    const isOwner = member.user?.email === selectedOrganization?.owner?.email;
+                    return (
+                      <tr
+                        key={member.id}
+                        className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="shrink-0 h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center">
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                {initials(member.user?.full_name)}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                  {member.user?.full_name || "—"}
+                                </span>
+                                {isOwner && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold">
+                                    <Icon icon="heroicons:star" className="text-[10px]" />
+                                    Owner
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {member.user?.email || ""}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${roleStyle(
+                              member.role
+                            )}`}
+                          >
+                            {(member.role || "Member").charAt(0) +
+                              (member.role || "Member").slice(1).toLowerCase()}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge active={member.is_active} />
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <div className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+                            <Icon icon="heroicons:calendar" className="text-base text-slate-400" />
+                            {formatDate(member.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-slate-600 dark:text-slate-400">
+                          {formatDate(member.updated_at)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {!isOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeletingMember(member);
+                                setDeleteModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all cursor-pointer"
+                            >
+                              <Icon icon="heroicons:trash" className="text-xs" />
+                              Remove
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">Owner</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
-          </div>
-        )}
-      </Card>
+          )}
+        </div>
 
-      {/* Invite Member Modal */}
+        {/* Pagination */}
+        {!isLoading && !isError && filtered.length > 0 && (
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
+      </div>
+
+      {/* Invite Modal */}
       <Modal
-        title="Invite New Member"
+        title="Invite a new member"
         labelclassName="btn-outline-dark"
         activeModal={isInviteModalOpen}
         onClose={() => {
           setIsInviteModalOpen(false);
-          setInviteData({
-            email: "",
-            first_name: "",
-            last_name: "",
-            role: "MANAGER",
-          });
+          setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
         }}
       >
         <form onSubmit={handleInviteMember} className="space-y-4">
-          <Textinput
-            label="Email Address"
-            type="email"
-            placeholder="Enter member's email"
-            value={inviteData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
-            required
-          />
-
-          <Textinput
-            label="First Name"
-            type="text"
-            placeholder="Enter member's first name"
-            value={inviteData.first_name}
-            onChange={(e) => handleInputChange("first_name", e.target.value)}
-          />
-
-          <Textinput
-            label="Last Name"
-            type="text"
-            placeholder="Enter member's last name (optional)"
-            value={inviteData.last_name}
-            onChange={(e) => handleInputChange("last_name", e.target.value)}
-          />
-
-          <Select
-            label="Role"
-            placeholder="Select member role"
-            options={roleOptions}
-            value={inviteData.role}
-            onChange={(e) => {
-              const selectedValue = e.target ? e.target.value : e;
-              handleInputChange("role", selectedValue);
-            }}
-          />
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <Icon
-                icon="heroicons:information-circle"
-                className="w-5 h-5 text-blue-500 mt-0.5 mr-2"
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Email address <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Icon icon="heroicons:envelope" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+              <input
+                type="email"
+                required
+                value={inviteData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="member@company.com"
+                className={inputBase}
               />
-              <div className="text-sm">
-                <p className="text-blue-800 font-medium mb-1">
-                  Default Password Info
-                </p>
-                <p className="text-blue-600">
-                  New users will be created with password:{" "}
-                  <code className="bg-blue-100 px-1 rounded">Bill@2025</code>
-                </p>
-                <p className="text-blue-600 text-xs mt-1">
-                  Users can change this password after their first login.
-                </p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                First name
+              </label>
+              <div className="relative">
+                <Icon icon="heroicons:user" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+                <input
+                  type="text"
+                  value={inviteData.first_name}
+                  onChange={(e) => handleInputChange("first_name", e.target.value)}
+                  placeholder="First name"
+                  className={inputBase}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Last name
+              </label>
+              <div className="relative">
+                <Icon icon="heroicons:user" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+                <input
+                  type="text"
+                  value={inviteData.last_name}
+                  onChange={(e) => handleInputChange("last_name", e.target.value)}
+                  placeholder="Last name (optional)"
+                  className={inputBase}
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              text="Cancel"
-              className="btn-outline-dark"
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Role
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {ROLE_OPTIONS.map((opt) => {
+                const isActive = inviteData.role === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleInputChange("role", opt.value)}
+                    className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-3 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <Icon icon="heroicons:information-circle" className="text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              New users are created with default password{" "}
+              <code className="px-1.5 py-0.5 rounded font-mono text-[11px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                Bill@2025
+              </code>
+              . They can change it after their first sign-in.
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-4">
+            <button
               type="button"
               onClick={() => {
                 setIsInviteModalOpen(false);
-                setInviteData({
-                  email: "",
-                  first_name: "",
-                  last_name: "",
-                  role: "MANAGER",
-                });
+                setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
               }}
-            />
-            <Button
-              text={inviteLoading ? "Inviting..." : "Invite Member"}
+              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
               type="submit"
-              className="btn-primary"
               disabled={inviteLoading}
-              isLoading={inviteLoading}
-            />
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            >
+              {inviteLoading ? (
+                <>
+                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  Inviting…
+                </>
+              ) : (
+                <>
+                  <Icon icon="heroicons:paper-airplane" className="text-base" />
+                  Send invite
+                </>
+              )}
+            </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Member Modal */}
+      {/* Delete Modal */}
       <Modal
-        title="Delete Member"
+        title="Remove member"
         labelclassName="btn-outline-danger"
         activeModal={deleteModalOpen}
         onClose={() => {
@@ -529,77 +589,68 @@ const Members = () => {
         }}
       >
         <div className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <Icon
-                icon="heroicons:exclamation-triangle"
-                className="w-5 h-5 text-red-500 mt-0.5 mr-2"
-              />
-              <div className="text-sm">
-                <p className="text-red-800 font-medium mb-1">
-                  Warning: This action cannot be undone
-                </p>
-                <p className="text-red-600">
-                  Are you sure you want to delete{" "}
-                  <strong>{deletingMember?.user?.full_name}</strong> (
-                  {deletingMember?.user?.email})?
-                </p>
-              </div>
+          <div className="flex gap-3 p-4 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/60">
+            <Icon
+              icon="heroicons:exclamation-triangle"
+              className="text-rose-600 dark:text-rose-400 text-xl shrink-0 mt-0.5"
+            />
+            <div className="text-sm">
+              <p className="font-semibold text-rose-800 dark:text-rose-300">This action cannot be undone</p>
+              <p className="text-rose-700/80 dark:text-rose-400/80 mt-1">
+                Are you sure you want to remove{" "}
+                <span className="font-semibold">{deletingMember?.user?.full_name}</span> (
+                {deletingMember?.user?.email}) from this workspace?
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60">
             <input
               type="checkbox"
-              id="deleteUserAccount"
               checked={deleteUserAccount}
               onChange={(e) => setDeleteUserAccount(e.target.checked)}
-              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 focus:ring-offset-0 cursor-pointer"
             />
-            <label
-              htmlFor="deleteUserAccount"
-              className="text-sm text-gray-700"
-            >
-              Also delete user account permanently
-            </label>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <Icon
-                icon="heroicons:information-circle"
-                className="w-5 h-5 text-yellow-500 mt-0.5 mr-2"
-              />
-              <div className="text-sm">
-                <p className="text-yellow-800 font-medium mb-1">Note</p>
-                <p className="text-yellow-600">
-                  If "delete user account" is checked, the user account will
-                  only be deleted if they have no other active organization
-                  memberships.
-                </p>
+            <div className="text-sm">
+              <div className="font-semibold text-slate-900 dark:text-white">
+                Also delete user account permanently
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                The account will only be deleted if the user has no other active workspace memberships.
               </div>
             </div>
-          </div>
+          </label>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              text="Cancel"
-              className="btn-outline-dark"
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-4">
+            <button
               type="button"
               onClick={() => {
                 setDeleteModalOpen(false);
                 setDeletingMember(null);
                 setDeleteUserAccount(false);
               }}
-            />
-            <Button
-              text={deleteLoading ? "Deleting..." : "Delete Member"}
+              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
               type="button"
-              className="btn-danger"
-              disabled={deleteLoading}
-              isLoading={deleteLoading}
               onClick={handleDeleteMember}
-            />
+              disabled={deleteLoading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-lg shadow-sm cursor-pointer"
+            >
+              {deleteLoading ? (
+                <>
+                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  Removing…
+                </>
+              ) : (
+                <>
+                  <Icon icon="heroicons:trash" className="text-base" />
+                  Remove member
+                </>
+              )}
+            </button>
           </div>
         </div>
       </Modal>
