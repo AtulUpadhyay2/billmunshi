@@ -81,6 +81,8 @@ const TallyVendorBillDetail = () => {
     cessLedgerId: null,
     freight: "",
     freightLedgerId: null,
+    round_off: "",
+    roundOffLedgerId: null,
   });
 
   // State for notes
@@ -227,8 +229,7 @@ const TallyVendorBillDetail = () => {
     parseFloat(billSummaryForm.discount || 0) > 0 &&
     !billSummaryForm.discountLedgerId;
   const isCessLedgerRequired = () =>
-    parseFloat(billSummaryForm.cess || 0) > 0 &&
-    !billSummaryForm.cessLedgerId;
+    parseFloat(billSummaryForm.cess || 0) > 0 && !billSummaryForm.cessLedgerId;
   const isFreightLedgerRequired = () =>
     parseFloat(billSummaryForm.freight || 0) > 0 &&
     !billSummaryForm.freightLedgerId;
@@ -569,6 +570,7 @@ const TallyVendorBillDetail = () => {
       const discountAmount = tally?.discount || "";
       const cessAmount = tally?.cess || "";
       const freightAmount = tally?.freight || "";
+      const roundOffAmount = tally?.round_off || "";
 
       setBillSummaryForm({
         subtotal: (
@@ -590,6 +592,8 @@ const TallyVendorBillDetail = () => {
         cessLedgerId: null,
         freight: freightAmount.toString(),
         freightLedgerId: null,
+        round_off: roundOffAmount.toString(),
+        roundOffLedgerId: tally?.round_off_taxes || null,
       });
 
       // Initialize notes (if any notes field exists in the API)
@@ -997,15 +1001,13 @@ const TallyVendorBillDetail = () => {
   useEffect(() => {
     if (!tallyAnalysedData) return;
 
-    const { discount_taxes, cess_taxes, freight_taxes } = tallyAnalysedData;
+    const { discount_taxes, cess_taxes, freight_taxes, round_off_taxes } =
+      tallyAnalysedData;
 
     if (discountLedgerOptions.length > 0) {
       const updates = {};
 
-      if (
-        discount_taxes &&
-        !billSummaryForm.discountLedgerId
-      ) {
+      if (discount_taxes && !billSummaryForm.discountLedgerId) {
         const matchedDiscountLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === discount_taxes,
         );
@@ -1014,10 +1016,7 @@ const TallyVendorBillDetail = () => {
         }
       }
 
-      if (
-        cess_taxes &&
-        !billSummaryForm.cessLedgerId
-      ) {
+      if (cess_taxes && !billSummaryForm.cessLedgerId) {
         const matchedCessLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === cess_taxes,
         );
@@ -1026,15 +1025,21 @@ const TallyVendorBillDetail = () => {
         }
       }
 
-      if (
-        freight_taxes &&
-        !billSummaryForm.freightLedgerId
-      ) {
+      if (freight_taxes && !billSummaryForm.freightLedgerId) {
         const matchedFreightLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === freight_taxes,
         );
         if (matchedFreightLedger) {
           updates.freightLedgerId = matchedFreightLedger.id;
+        }
+      }
+
+      if (round_off_taxes && !billSummaryForm.roundOffLedgerId) {
+        const matchedRoundOffLedger = discountLedgerOptions.find(
+          (ledger) => ledger.id === round_off_taxes,
+        );
+        if (matchedRoundOffLedger) {
+          updates.roundOffLedgerId = matchedRoundOffLedger.id;
         }
       }
 
@@ -1051,6 +1056,7 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.discountLedgerId,
     billSummaryForm.cessLedgerId,
     billSummaryForm.freightLedgerId,
+    billSummaryForm.roundOffLedgerId,
   ]);
 
   // Auto-select freight ledger when discount amount > 0 and no freight ledger selected
@@ -1294,9 +1300,9 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
-  // Invoice math: subtotal + taxes + cess + freight - discount = total
-  // If current total differs from calculated by < Rs.1, absorb the rounding
-  // into the total amount itself (no separate rounding off field).
+  // Invoice math: subtotal + taxes + cess + freight - discount + round_off = total
+  // Live preview only: surface a rounding-off entry when the residual is < ₹1.
+  // Backend authoritatively recomputes round_off on verify (compute_round_off).
   useEffect(() => {
     const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
     const cgst = parseFloat(billSummaryForm.cgst) || 0;
@@ -1307,16 +1313,25 @@ const TallyVendorBillDetail = () => {
     const discount = parseFloat(billSummaryForm.discount) || 0;
     const total = parseFloat(billSummaryForm.total) || 0;
 
-    const calculated = +(
-      subtotal + cgst + sgst + igst + cess + freight - discount
+    const expected = +(
+      subtotal +
+      cgst +
+      sgst +
+      igst +
+      cess +
+      freight -
+      discount
     ).toFixed(2);
-    const diff = Math.abs(total - calculated);
-    if (calculated > 0 && diff > 0 && diff < 1) {
-      setBillSummaryForm((prev) => ({
-        ...prev,
-        total: calculated.toFixed(2),
-      }));
-    }
+    const residual = +(total - expected).toFixed(2);
+    const nextRoundOff =
+      Math.abs(residual) > 0 && Math.abs(residual) < 1
+        ? residual.toFixed(2)
+        : "";
+    setBillSummaryForm((prev) =>
+      prev.round_off === nextRoundOff
+        ? prev
+        : { ...prev, round_off: nextRoundOff },
+    );
   }, [
     billSummaryForm.subtotal,
     billSummaryForm.cgst,
@@ -1325,6 +1340,7 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.cess,
     billSummaryForm.freight,
     billSummaryForm.discount,
+    billSummaryForm.total,
   ]);
 
   // Handle form input changes
@@ -1517,6 +1533,20 @@ const TallyVendorBillDetail = () => {
     }));
   };
 
+  const handleRoundOffLedgerSelect = (ledgerId) => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      roundOffLedgerId: ledgerId,
+    }));
+  };
+
+  const handleRoundOffLedgerClear = () => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      roundOffLedgerId: null,
+    }));
+  };
+
   // Handle consolidate toggle
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
@@ -1688,6 +1718,9 @@ const TallyVendorBillDetail = () => {
       const freightLedger = discountLedgerOptions.find(
         (ledger) => ledger.id === billSummaryForm.freightLedgerId,
       );
+      const roundOffLedger = discountLedgerOptions.find(
+        (ledger) => ledger.id === billSummaryForm.roundOffLedgerId,
+      );
 
       const verificationPayload = {
         bill_id: billId,
@@ -1736,6 +1769,10 @@ const TallyVendorBillDetail = () => {
             freight: {
               amount: parseFloat(billSummaryForm.freight) || 0.0,
               ledger: freightLedger?.name || "No Tax Ledger",
+            },
+            round_off: {
+              amount: parseFloat(billSummaryForm.round_off) || 0.0,
+              ledger: roundOffLedger?.name || "No Tax Ledger",
             },
           },
 
@@ -2395,9 +2432,7 @@ const TallyVendorBillDetail = () => {
             <div className="flex items-start gap-3">
               <div
                 className={`flex items-center justify-center h-8 w-8 rounded-full flex-shrink-0 ${
-                  billInfo?.tally_synced
-                    ? "bg-green-100"
-                    : "bg-red-100"
+                  billInfo?.tally_synced ? "bg-green-100" : "bg-red-100"
                 }`}
               >
                 {billInfo?.tally_synced ? (
@@ -2435,9 +2470,7 @@ const TallyVendorBillDetail = () => {
               <div className="flex-1">
                 <p
                   className={`text-sm font-semibold ${
-                    billInfo?.tally_synced
-                      ? "text-green-800"
-                      : "text-red-800"
+                    billInfo?.tally_synced ? "text-green-800" : "text-red-800"
                   }`}
                 >
                   {billInfo?.tally_synced
@@ -2446,9 +2479,7 @@ const TallyVendorBillDetail = () => {
                 </p>
                 <p
                   className={`text-xs mt-1 whitespace-pre-wrap ${
-                    billInfo?.tally_synced
-                      ? "text-green-700"
-                      : "text-red-700"
+                    billInfo?.tally_synced ? "text-green-700" : "text-red-700"
                   }`}
                 >
                   {billInfo.tally_sync_message}
@@ -3824,7 +3855,10 @@ const TallyVendorBillDetail = () => {
                               name="freight"
                               value={billSummaryForm.freight}
                               onChange={(e) =>
-                                handleBillSummaryChange("freight", e.target.value)
+                                handleBillSummaryChange(
+                                  "freight",
+                                  e.target.value,
+                                )
                               }
                               placeholder="0.00"
                               disabled={isVerified}
@@ -3852,6 +3886,71 @@ const TallyVendorBillDetail = () => {
                                   ? "* Select Freight ledger... *"
                                   : "Select Freight ledger..."
                               }
+                              searchPlaceholder="Type to search expense ledgers..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={
+                                purchaseLedgersLoading || expenseLedgersLoading
+                              }
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {ledger.name}
+                                  </div>
+                                  {ledger.type && (
+                                    <div className="text-xs text-blue-600">
+                                      {ledger.type} Ledger
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              className="text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">
+                          Round Off:
+                          {/* <span
+                            className="ml-1 text-xs text-gray-500"
+                            title="Auto-computed at verify when |total − (subtotal + GST + cess + freight − discount)| < ₹1"
+                          >
+                            (auto)
+                          </span> */}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-600 mr-2">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              name="round_off"
+                              value={billSummaryForm.round_off}
+                              onChange={(e) =>
+                                handleBillSummaryChange(
+                                  "round_off",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "opacity-60 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            />
+                          </div>
+                          <div className="relative flex-1 min-w-[200px]">
+                            <SearchableDropdown
+                              options={discountLedgerOptions}
+                              value={billSummaryForm.roundOffLedgerId || null}
+                              onChange={handleRoundOffLedgerSelect}
+                              onClear={handleRoundOffLedgerClear}
+                              placeholder="Select Round Off ledger..."
                               searchPlaceholder="Type to search expense ledgers..."
                               optionLabelKey="name"
                               optionValueKey="id"

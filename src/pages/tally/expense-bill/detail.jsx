@@ -66,6 +66,9 @@ const TallyExpenseBillDetail = () => {
     other_adjustment: "0.00",
     other_adjustment_debit_or_credit: "debit",
     other_adjustment_taxes: null,
+    round_off: "0.00",
+    round_off_debit_or_credit: "debit",
+    round_off_taxes: null,
   });
 
   // State for notes
@@ -492,6 +495,10 @@ const TallyExpenseBillDetail = () => {
         other_adjustment_debit_or_credit:
           tally?.other_adjustment_debit_or_credit || "debit",
         other_adjustment_taxes: tally?.other_adjustment_taxes || null,
+        round_off: tally?.round_off || "0.00",
+        round_off_debit_or_credit:
+          tally?.round_off_debit_or_credit || "debit",
+        round_off_taxes: tally?.round_off_taxes || null,
       });
 
       // Initialize notes
@@ -719,6 +726,22 @@ const TallyExpenseBillDetail = () => {
           }));
         }
       }
+
+      // Match Round Off ledger by ID
+      if (
+        tallyAnalysedData.round_off_taxes &&
+        !taxSummaryForm.round_off_taxes
+      ) {
+        const matchedRoundOffLedger = ledgerOptions.find(
+          (ledger) => ledger.id === tallyAnalysedData.round_off_taxes,
+        );
+        if (matchedRoundOffLedger) {
+          setTaxSummaryForm((prev) => ({
+            ...prev,
+            round_off_taxes: matchedRoundOffLedger.id,
+          }));
+        }
+      }
     }
   }, [
     cgstLedgerOptions,
@@ -732,6 +755,7 @@ const TallyExpenseBillDetail = () => {
     taxSummaryForm.igstLedgerId,
     taxSummaryForm.tdsLedgerId,
     taxSummaryForm.other_adjustment_taxes,
+    taxSummaryForm.round_off_taxes,
   ]);
 
   // Match chart of accounts ledgers from API response
@@ -1147,6 +1171,17 @@ const TallyExpenseBillDetail = () => {
     setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: null }));
   };
 
+  const handleRoundOffLedgerSelect = (ledgerId) => {
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      round_off_taxes: ledgerId,
+    }));
+  };
+
+  const handleRoundOffLedgerClear = () => {
+    setTaxSummaryForm((prev) => ({ ...prev, round_off_taxes: null }));
+  };
+
   // Expense item manipulation functions
   const handleExpenseItemChange = (index, field, value) => {
     setExpenseItems((prev) => {
@@ -1246,6 +1281,9 @@ const TallyExpenseBillDetail = () => {
     const otherAdjustmentLedger = ledgerOptions.find(
       (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes,
     );
+    const roundOffLedger = ledgerOptions.find(
+      (ledger) => ledger.id === taxSummaryForm.round_off_taxes,
+    );
 
     const transformedData = {
       bill_id: billId,
@@ -1286,6 +1324,12 @@ const TallyExpenseBillDetail = () => {
             ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
             debit_or_credit:
               taxSummaryForm.other_adjustment_debit_or_credit || "debit",
+          },
+          round_off: {
+            amount: formatDecimal(taxSummaryForm.round_off),
+            ledger: roundOffLedger?.name || "No Tax Ledger",
+            debit_or_credit:
+              taxSummaryForm.round_off_debit_or_credit || "debit",
           },
         },
         expense_items: expenseItems.map((item) => {
@@ -3254,6 +3298,94 @@ const TallyExpenseBillDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(
                                   "other_adjustment",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="0.00"
+                              disabled={isVerified}
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                isVerified
+                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  : ""
+                              }`}
+                              min="0"
+                              step="0.01"
+                            />
+                          </td>
+                        </tr>
+
+                        {/* Round Off Row */}
+                        <tr className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-4 py-3">
+                            <span className="text-sm font-medium text-gray-900">
+                              Round Off
+                              <span
+                                className="ml-1 text-xs text-gray-500"
+                                title="Auto-computed at verify when |DR − CR| < ₹1; side is set automatically to balance the journal."
+                              >
+                                (auto)
+                              </span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <SearchableDropdown
+                              options={ledgerOptions}
+                              value={taxSummaryForm.round_off_taxes || null}
+                              onChange={handleRoundOffLedgerSelect}
+                              onClear={handleRoundOffLedgerClear}
+                              placeholder="Select Round Off Ledger..."
+                              searchPlaceholder="Type to search Expense Ledgers..."
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={ledgersLoading}
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-gray-900">
+                                    {ledger.name}
+                                  </div>
+                                </div>
+                              )}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={
+                                taxSummaryForm.round_off_debit_or_credit ||
+                                "debit"
+                              }
+                              onChange={(e) =>
+                                handleTaxSummaryChange(
+                                  "round_off_debit_or_credit",
+                                  e.target.value,
+                                )
+                              }
+                              disabled={isVerified}
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                                isVerified
+                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  : ""
+                              }`}
+                              style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                backgroundPosition: "right 0.5rem center",
+                                backgroundRepeat: "no-repeat",
+                                backgroundSize: "1.25rem 1.25rem",
+                                paddingRight: "2.5rem",
+                              }}
+                            >
+                              <option value="debit">Debit</option>
+                              <option value="credit">Credit</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              name="round_off"
+                              value={taxSummaryForm.round_off}
+                              onChange={(e) =>
+                                handleTaxSummaryChange(
+                                  "round_off",
                                   e.target.value,
                                 )
                               }
