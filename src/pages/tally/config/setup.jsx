@@ -8,8 +8,15 @@ import {
   useGetTallyConfig,
   useCreateOrUpdateTallyConfig,
   useGetParentLedgers,
+  useGetGstRateLedgerMappings,
+  useUpsertGstRateLedgerMappings,
+  useGetTallyCgstLedgers,
+  useGetTallySgstLedgers,
+  useGetTallyIgstLedgers,
 } from "@/services/tally/tallyApiService";
 import { globalToast } from "@/utils/toast";
+
+const GST_RATES = ["0.00", "5.00", "12.00", "18.00", "28.00"];
 
 /* ------------------------------------------------------------------ */
 /*  Calm react-select styling that matches the rest of the design     */
@@ -120,6 +127,101 @@ const TallySetup = () => {
 
   const createOrUpdateConfigMutation = useCreateOrUpdateTallyConfig();
   const config = configResponse?.data;
+
+  // ---------- GST rate → ledger mapping ----------
+  const {
+    data: gstRateMappingsResponse,
+    isLoading: isLoadingGstRateMappings,
+    refetch: refetchGstRateMappings,
+  } = useGetGstRateLedgerMappings(selectedOrganization?.id, {
+    enabled: !!selectedOrganization?.id,
+  });
+  const upsertGstRateMappingsMutation = useUpsertGstRateLedgerMappings();
+
+  const { data: cgstLedgersData } = useGetTallyCgstLedgers(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id }
+  );
+  const { data: sgstLedgersData } = useGetTallySgstLedgers(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id }
+  );
+  const { data: igstLedgersData } = useGetTallyIgstLedgers(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id }
+  );
+
+  const flattenLedgers = (resp) => {
+    const grouped = resp?.grouped_ledgers || {};
+    const out = [];
+    Object.values(grouped).forEach((g) => {
+      (g.ledgers || []).forEach((l) =>
+        out.push({ value: l.id, label: l.name })
+      );
+    });
+    return out;
+  };
+  const cgstLedgerOptions = useMemo(() => flattenLedgers(cgstLedgersData), [cgstLedgersData]);
+  const sgstLedgerOptions = useMemo(() => flattenLedgers(sgstLedgersData), [sgstLedgersData]);
+  const igstLedgerOptions = useMemo(() => flattenLedgers(igstLedgersData), [igstLedgersData]);
+
+  const [rateMapState, setRateMapState] = useState({});
+  useEffect(() => {
+    const list = gstRateMappingsResponse?.data || [];
+    const map = {};
+    GST_RATES.forEach((r) => {
+      const existing = list.find((m) => Number(m.rate) === Number(r));
+      map[r] = {
+        cgst_ledger: existing?.cgst_ledger || null,
+        sgst_ledger: existing?.sgst_ledger || null,
+        igst_ledger: existing?.igst_ledger || null,
+      };
+    });
+    setRateMapState(map);
+  }, [gstRateMappingsResponse]);
+
+  const handleRateLedgerChange = (rate, key, ledgerId) => {
+    setRateMapState((prev) => ({
+      ...prev,
+      [rate]: { ...(prev[rate] || {}), [key]: ledgerId || null },
+    }));
+  };
+
+  const handleSaveRateMappings = async () => {
+    try {
+      const mappings = GST_RATES.map((r) => ({
+        rate: r,
+        cgst_ledger: rateMapState[r]?.cgst_ledger || null,
+        sgst_ledger: rateMapState[r]?.sgst_ledger || null,
+        igst_ledger: rateMapState[r]?.igst_ledger || null,
+      }));
+      await upsertGstRateMappingsMutation.mutateAsync({
+        organizationId: selectedOrganization.id,
+        mappings,
+      });
+      globalToast.success("GST rate ledger mappings saved");
+      refetchGstRateMappings();
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        "Failed to save GST rate mappings";
+      globalToast.error(errorMessage);
+    }
+  };
+
+  const rateMappingsConfigured = useMemo(() => {
+    return GST_RATES.reduce((count, r) => {
+      const m = rateMapState[r];
+      if (!m) return count;
+      return (
+        count +
+        (m.cgst_ledger ? 1 : 0) +
+        (m.sgst_ledger ? 1 : 0) +
+        (m.igst_ledger ? 1 : 0)
+      );
+    }, 0);
+  }, [rateMapState]);
 
   const parentLedgerOptions = useMemo(
     () =>
@@ -546,6 +648,129 @@ const TallySetup = () => {
                   {renderLedgerList(config[f.display] || [], f.label, f.icon)}
                 </React.Fragment>
               ))}
+            </div>
+          </section>
+
+          {/* GST rate ledger mapping section */}
+          <section>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                  GST rate ledger mapping
+                </h2>
+                <Tooltip
+                  content="For mixed-rate bills, map each GST slab (5/12/18/28) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."
+                  placement="right"
+                  arrow
+                >
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
+                    <Icon icon="heroicons:question-mark-circle" className="text-xs" />
+                  </span>
+                </Tooltip>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {rateMappingsConfigured} mapped
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveRateMappings}
+                  disabled={
+                    upsertGstRateMappingsMutation.isPending || isLoadingGstRateMappings
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-md shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+                >
+                  {upsertGstRateMappingsMutation.isPending ? (
+                    <>
+                      <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="heroicons:check" className="text-sm" />
+                      Save mappings
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              <div className="hidden md:grid grid-cols-[100px_1fr_1fr_1fr] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Rate
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  CGST ledger
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  SGST ledger
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  IGST ledger
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {GST_RATES.map((rate) => (
+                  <div
+                    key={rate}
+                    className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr_1fr] gap-3 px-4 py-3 items-center"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-9 h-7 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[12px] font-bold">
+                        {Number(rate)}%
+                      </span>
+                    </div>
+                    <ReactSelect
+                      options={cgstLedgerOptions}
+                      value={
+                        cgstLedgerOptions.find(
+                          (o) => o.value === rateMapState[rate]?.cgst_ledger
+                        ) || null
+                      }
+                      onChange={(opt) =>
+                        handleRateLedgerChange(rate, "cgst_ledger", opt?.value || null)
+                      }
+                      isClearable
+                      placeholder="Select CGST ledger…"
+                      styles={reactSelectStyles}
+                      menuPlacement="auto"
+                      menuPosition="fixed"
+                    />
+                    <ReactSelect
+                      options={sgstLedgerOptions}
+                      value={
+                        sgstLedgerOptions.find(
+                          (o) => o.value === rateMapState[rate]?.sgst_ledger
+                        ) || null
+                      }
+                      onChange={(opt) =>
+                        handleRateLedgerChange(rate, "sgst_ledger", opt?.value || null)
+                      }
+                      isClearable
+                      placeholder="Select SGST ledger…"
+                      styles={reactSelectStyles}
+                      menuPlacement="auto"
+                      menuPosition="fixed"
+                    />
+                    <ReactSelect
+                      options={igstLedgerOptions}
+                      value={
+                        igstLedgerOptions.find(
+                          (o) => o.value === rateMapState[rate]?.igst_ledger
+                        ) || null
+                      }
+                      onChange={(opt) =>
+                        handleRateLedgerChange(rate, "igst_ledger", opt?.value || null)
+                      }
+                      isClearable
+                      placeholder="Select IGST ledger…"
+                      styles={reactSelectStyles}
+                      menuPlacement="auto"
+                      menuPosition="fixed"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>

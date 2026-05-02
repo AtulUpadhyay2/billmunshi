@@ -14,6 +14,7 @@ const ZohoExpenseBill = () => {
   return (
     <BillsList
       variant="expense"
+      module="zoho"
       copy={{
         title: "Expense bills",
         subtitle: "Upload, analyse and post expense bills directly to Zoho Books.",

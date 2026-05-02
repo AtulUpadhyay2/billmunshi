@@ -61,6 +61,8 @@ const getTallySyncState = (bill) => {
 
 const BillsList = ({
   variant, // "vendor" | "expense"
+  // "tally" | "zoho" — chooses which backend tree the scanner endpoint hits
+  module = "tally",
   copy,    // labels: { title, subtitle, billLabel, moveTargetLabel, detailRoute, uploadTitle }
   // hooks (from the per-page service file)
   useGetBills,
@@ -732,6 +734,7 @@ const BillsList = ({
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
         title={copy.uploadTitle}
+        module={module}
       />
 
       <FileViewerModal

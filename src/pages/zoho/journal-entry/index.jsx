@@ -14,6 +14,7 @@ const ZohoJournalEntry = () => {
   return (
     <BillsList
       variant="journal"
+      module="zoho"
       copy={{
         title: "Journal entries",
         subtitle: "Upload, analyse and post journal entries directly to Zoho Books.",

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/utils/apiClient';
+import apiClient, { apiFetch } from '@/utils/apiClient';
 
 // ===========================
 // TALLY CONFIGS
@@ -45,6 +45,133 @@ export const useCreateOrUpdateTallyConfig = () => {
     onSuccess: (data, variables) => {
       // Invalidate the config query to refetch
       queryClient.invalidateQueries({ queryKey: ['tallyConfig', variables.organizationId] });
+    },
+  });
+};
+
+// ===========================
+// BILL IMAGE SCANNER (server-side OpenCV)
+// ===========================
+
+/**
+ * Send a bill image to the server for CamScanner-style enhancement.
+ *
+ * The same backend helper (apps/common/image_enhancement.py) is mounted under
+ * both /tally/.../scan/process/ and /zoho/.../scan/process/, so we pick the
+ * correct URL based on `module` ("tally" by default).
+ *
+ * Args:
+ *   organizationId
+ *   module:   "tally" | "zoho"           — default "tally"
+ *   image:    File   — raw image picked by the operator
+ *   corners?: [{x,y}, ...4]  — optional, in working-resolution coords from
+ *                              a previous response. If omitted, server
+ *                              auto-detects.
+ *   filter?:  "bw" | "grayscale" | "original"  — default "bw"
+ *
+ * Returns:
+ *   { success, enhanced_b64, corners: [{x,y}, ...], image_size: {width,height} }
+ */
+export const useProcessBillScan = () => {
+  return useMutation({
+    mutationFn: async ({
+      organizationId,
+      module = "tally",
+      image,
+      corners,
+      filter,
+    }) => {
+      const formData = new FormData();
+      formData.append("image", image);
+      if (corners && corners.length === 4) {
+        formData.append("corners", JSON.stringify(corners));
+      }
+      if (filter) {
+        formData.append("filter", filter);
+      }
+      const base = module === "zoho" ? "zoho" : "tally";
+      const response = await apiClient.post(
+        `${base}/org/${organizationId}/scan/process/`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return response.data;
+    },
+  });
+};
+
+// ===========================
+// GST RATE → LEDGER MAPPINGS
+// ===========================
+
+/**
+ * Get per-org GST rate → CGST/SGST/IGST ledger mappings.
+ * Used for line-item level tax assignment on mixed-rate vendor bills.
+ */
+export const useGetGstRateLedgerMappings = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['gstRateLedgerMappings', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/config/gst-rate-mappings/`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
+/**
+ * Bulk upsert GST rate → ledger mappings.
+ * Body shape: { mappings: [{ rate, cgst_ledger, sgst_ledger, igst_ledger }, ...] }
+ */
+export const useUpsertGstRateLedgerMappings = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ organizationId, mappings }) => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/config/gst-rate-mappings/save/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ mappings }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      return response;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['gstRateLedgerMappings', variables.organizationId],
+      });
+    },
+  });
+};
+
+/**
+ * Delete a single GST rate → ledger mapping by id.
+ */
+export const useDeleteGstRateLedgerMapping = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ organizationId, mappingId }) => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/config/gst-rate-mappings/${mappingId}/delete/`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      return response;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['gstRateLedgerMappings', variables.organizationId],
+      });
     },
   });
 };

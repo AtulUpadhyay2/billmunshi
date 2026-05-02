@@ -14,6 +14,7 @@ const TallyExpenseBill = () => {
   return (
     <BillsList
       variant="expense"
+      module="tally"
       copy={{
         title: "Expense bills",
         subtitle: "Upload, analyse and post expense bills directly to Tally.",

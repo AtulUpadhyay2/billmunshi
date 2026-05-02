@@ -22,6 +22,7 @@ import {
   useGetTallyConfig,
   useGetTallyPurchaseLedgers,
   useGetTallyExpenseChartOfAccountsLedgers,
+  useGetGstRateLedgerMappings,
 } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
@@ -180,6 +181,104 @@ const TallyVendorBillDetail = () => {
     selectedOrganization?.id,
     { enabled: !!selectedOrganization?.id },
   );
+
+  // GST rate → CGST/SGST/IGST ledger mapping (used for line-item tax ledger auto-fill)
+  const { data: gstRateMappingsResponse } = useGetGstRateLedgerMappings(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id },
+  );
+  const rateLedgerMap = useMemo(() => {
+    const list = gstRateMappingsResponse?.data || [];
+    const m = {};
+    list.forEach((entry) => {
+      const rateKey = String(Number(entry.rate));
+      m[rateKey] = {
+        cgst_ledger: entry.cgst_ledger || null,
+        cgst_ledger_name: entry.cgst_ledger_name || "",
+        sgst_ledger: entry.sgst_ledger || null,
+        sgst_ledger_name: entry.sgst_ledger_name || "",
+        igst_ledger: entry.igst_ledger || null,
+        igst_ledger_name: entry.igst_ledger_name || "",
+      };
+    });
+    return m;
+  }, [gstRateMappingsResponse]);
+
+  // Parse "18%" / "5%" / "Exempted" / "" → numeric rate ("18", "5", "0").
+  const parseGstRate = (gst) => {
+    if (!gst) return null;
+    const match = String(gst).match(/([\d.]+)/);
+    if (!match) return "0";
+    return String(Number(match[1]));
+  };
+
+  // Resolve the per-line tax ledgers for a given GST rate, using mapping + bill GST type.
+  // Returns { cgst_ledger, sgst_ledger, igst_ledger } where each is the ledger UUID or null.
+  const resolveLineTaxLedgers = (gstRateText) => {
+    const rateKey = parseGstRate(gstRateText);
+    if (!rateKey) return { cgst_ledger: null, sgst_ledger: null, igst_ledger: null };
+    const mapping = rateLedgerMap[rateKey];
+    if (!mapping) return { cgst_ledger: null, sgst_ledger: null, igst_ledger: null };
+    return {
+      cgst_ledger: mapping.cgst_ledger,
+      sgst_ledger: mapping.sgst_ledger,
+      igst_ledger: mapping.igst_ledger,
+    };
+  };
+
+  // Bill-level CGST / SGST / IGST derived from per-line values. The backend
+  // verify endpoint reconciles line totals against bill-level totals (±₹1),
+  // so we keep them in sync as the user edits line items.
+  const lineTaxTotals = useMemo(() => {
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+    (products || []).forEach((p) => {
+      cgst += parseFloat(p.cgst) || 0;
+      sgst += parseFloat(p.sgst) || 0;
+      igst += parseFloat(p.igst) || 0;
+    });
+    return {
+      cgst: Number(cgst.toFixed(2)),
+      sgst: Number(sgst.toFixed(2)),
+      igst: Number(igst.toFixed(2)),
+    };
+  }, [products]);
+
+  useEffect(() => {
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      cgst: String(lineTaxTotals.cgst || 0),
+      sgst: String(lineTaxTotals.sgst || 0),
+      igst: String(lineTaxTotals.igst || 0),
+    }));
+  }, [lineTaxTotals.cgst, lineTaxTotals.sgst, lineTaxTotals.igst]);
+
+  // Group line items by GST rate for the read-only Tax-by-rate rollup table.
+  const taxRateRollup = useMemo(() => {
+    const buckets = {};
+    (products || []).forEach((p) => {
+      const rateKey = parseGstRate(p.gst);
+      if (rateKey === null) return;
+      if (!buckets[rateKey]) {
+        buckets[rateKey] = {
+          rate: rateKey,
+          taxable: 0,
+          cgst: 0,
+          sgst: 0,
+          igst: 0,
+          cgst_ledger_name: rateLedgerMap[rateKey]?.cgst_ledger_name || "",
+          sgst_ledger_name: rateLedgerMap[rateKey]?.sgst_ledger_name || "",
+          igst_ledger_name: rateLedgerMap[rateKey]?.igst_ledger_name || "",
+        };
+      }
+      buckets[rateKey].taxable += parseFloat(p.amount) || 0;
+      buckets[rateKey].cgst += parseFloat(p.cgst) || 0;
+      buckets[rateKey].sgst += parseFloat(p.sgst) || 0;
+      buckets[rateKey].igst += parseFloat(p.igst) || 0;
+    });
+    return Object.values(buckets).sort((a, b) => Number(a.rate) - Number(b.rate));
+  }, [products, rateLedgerMap]);
 
   // Update mutation
   const { mutateAsync: updateVendorBill } = useUpdateTallyVendorBill();
@@ -637,6 +736,9 @@ const TallyVendorBillDetail = () => {
             quantity: item.quantity || "",
             amount: item.amount || "",
             gst: item.product_gst || "",
+            cgst_ledger: item.cgst_ledger || null,
+            sgst_ledger: item.sgst_ledger || null,
+            igst_ledger: item.igst_ledger || null,
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
@@ -1573,6 +1675,9 @@ const TallyVendorBillDetail = () => {
             quantity: item.quantity || "",
             amount: item.amount || "",
             gst: item.product_gst || "",
+            cgst_ledger: item.cgst_ledger || null,
+            sgst_ledger: item.sgst_ledger || null,
+            igst_ledger: item.igst_ledger || null,
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
@@ -1591,6 +1696,9 @@ const TallyVendorBillDetail = () => {
             quantity: tally.consolidated_product.quantity || "",
             amount: tally.consolidated_product.amount || "",
             gst: tally.consolidated_product.product_gst || "",
+            cgst_ledger: tally.consolidated_product.cgst_ledger || null,
+            sgst_ledger: tally.consolidated_product.sgst_ledger || null,
+            igst_ledger: tally.consolidated_product.igst_ledger || null,
             igst: tally.consolidated_product.igst || 0.0,
             cgst: tally.consolidated_product.cgst || 0.0,
             sgst: tally.consolidated_product.sgst || 0.0,
@@ -1612,6 +1720,9 @@ const TallyVendorBillDetail = () => {
             quantity: item.quantity || "",
             amount: item.amount || "",
             gst: item.product_gst || "",
+            cgst_ledger: item.cgst_ledger || null,
+            sgst_ledger: item.sgst_ledger || null,
+            igst_ledger: item.igst_ledger || null,
             igst: item.igst || 0.0,
             cgst: item.cgst || 0.0,
             sgst: item.sgst || 0.0,
@@ -1649,6 +1760,39 @@ const TallyVendorBillDetail = () => {
             ? parseFloat(value) || 0
             : parseFloat(updated[index].quantity) || 0;
         updated[index].amount = (price * quantity).toString();
+      }
+
+      // When the GST rate changes, auto-fill the per-line CGST/SGST/IGST ledger
+      // from the org's rate→ledger mapping (only if the user hasn't picked a
+      // custom one explicitly). Also recompute per-line CGST/SGST/IGST amounts
+      // from the row amount + rate, using bill-level GST type to split.
+      if (field === "gst") {
+        const ledgers = resolveLineTaxLedgers(value);
+        if (!updated[index].cgst_ledger_id_user_set) {
+          updated[index].cgst_ledger = ledgers.cgst_ledger;
+        }
+        if (!updated[index].sgst_ledger_id_user_set) {
+          updated[index].sgst_ledger = ledgers.sgst_ledger;
+        }
+        if (!updated[index].igst_ledger_id_user_set) {
+          updated[index].igst_ledger = ledgers.igst_ledger;
+        }
+
+        const rateNum = parseFloat(parseGstRate(value)) || 0;
+        const amount = parseFloat(updated[index].amount) || 0;
+        const totalTax = (amount * rateNum) / 100;
+        const isInterState =
+          tallyAnalysedData?.gst_type === "IGST" ||
+          (parseFloat(billSummaryForm.igst) || 0) > 0;
+        if (isInterState) {
+          updated[index].igst = totalTax.toFixed(2);
+          updated[index].cgst = "0.00";
+          updated[index].sgst = "0.00";
+        } else {
+          updated[index].cgst = (totalTax / 2).toFixed(2);
+          updated[index].sgst = (totalTax / 2).toFixed(2);
+          updated[index].igst = "0.00";
+        }
       }
 
       return updated;
@@ -1789,14 +1933,17 @@ const TallyVendorBillDetail = () => {
                     item_details: product.item_details || "",
                     tax_ledger: taxLedger?.name || "No Tax Ledger",
                     price: parseFloat(product.price) || 0,
-                    rate: parseFloat(product.price) || 0, // Include both for compatibility
+                    rate: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
-                    original_items_count: products.length, // Set based on current products count
+                    cgst_ledger: product.cgst_ledger || null,
+                    sgst_ledger: product.sgst_ledger || null,
+                    igst_ledger: product.igst_ledger || null,
+                    original_items_count: products.length,
                   };
                 }),
               }
@@ -1817,6 +1964,9 @@ const TallyVendorBillDetail = () => {
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
+                    cgst_ledger: product.cgst_ledger || null,
+                    sgst_ledger: product.sgst_ledger || null,
+                    igst_ledger: product.igst_ledger || null,
                   };
                 }),
               }),
@@ -2913,6 +3063,9 @@ const TallyVendorBillDetail = () => {
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               GST % <span className="text-red-500">*</span>
                             </th>
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[180px]">
+                              Tax ledger
+                            </th>
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
@@ -3139,6 +3292,78 @@ const TallyVendorBillDetail = () => {
                                 </div>
                               </td>
 
+                              {/* Tax ledger (auto-resolved from GST rate → org rate-ledger mapping) */}
+                              <td className="px-3 py-2">
+                                {(() => {
+                                  const rateKey = parseGstRate(product.gst);
+                                  const mapping = rateKey ? rateLedgerMap[rateKey] : null;
+                                  const isInterState =
+                                    parseFloat(product.igst) > 0 ||
+                                    tallyAnalysedData?.gst_type === "IGST";
+                                  if (!product.gst) {
+                                    return (
+                                      <span className="text-[11px] italic text-slate-400">
+                                        Pick GST rate first
+                                      </span>
+                                    );
+                                  }
+                                  if (
+                                    rateKey === "0" ||
+                                    product.gst === "Exempted" ||
+                                    product.gst === "N/A"
+                                  ) {
+                                    return (
+                                      <span className="text-[11px] italic text-slate-400">
+                                        No tax (0%)
+                                      </span>
+                                    );
+                                  }
+                                  if (!mapping) {
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                                        <Icon
+                                          icon="heroicons:exclamation-triangle"
+                                          className="text-sm"
+                                        />
+                                        No mapping for {Number(rateKey)}% — set in Tally setup
+                                      </span>
+                                    );
+                                  }
+                                  if (isInterState) {
+                                    return (
+                                      <div className="flex flex-col">
+                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                          IGST
+                                        </span>
+                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                          {mapping.igst_ledger_name || "Not set"}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div className="flex flex-col gap-0.5">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                                          CGST
+                                        </span>
+                                        <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
+                                          {mapping.cgst_ledger_name || "Not set"}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                                          SGST
+                                        </span>
+                                        <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
+                                          {mapping.sgst_ledger_name || "Not set"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+
                               {/* Actions */}
                               <td className="px-3 py-2 text-center">
                                 {products.length > 1 && (
@@ -3212,6 +3437,140 @@ const TallyVendorBillDetail = () => {
                 </div>
               </div>
 
+              {/* Tax summary by rate (derived from line items, read-only) */}
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:chart-pie" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                    Tax summary by rate
+                  </h3>
+                  <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-800 text-[10px] font-bold uppercase">
+                    Derived from line items
+                  </span>
+                </div>
+
+                {(() => {
+                  // Detect any line that has a GST rate but no rate→ledger mapping configured
+                  const missingMappingRates = taxRateRollup
+                    .filter((b) => Number(b.rate) > 0)
+                    .filter((b) => !rateLedgerMap[b.rate])
+                    .map((b) => `${Number(b.rate)}%`);
+
+                  if (taxRateRollup.length === 0) {
+                    return (
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 text-[12px] text-slate-500 dark:text-slate-400">
+                        No line items added yet. Add line items above to see the
+                        tax breakdown.
+                      </div>
+                    );
+                  }
+
+                  const isInterState =
+                    tallyAnalysedData?.gst_type === "IGST" ||
+                    lineTaxTotals.igst > 0;
+
+                  return (
+                    <>
+                      {missingMappingRates.length > 0 && (
+                        <div className="mb-3 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 px-3 py-2 flex items-start gap-2">
+                          <Icon
+                            icon="heroicons:exclamation-triangle"
+                            className="text-rose-600 dark:text-rose-400 text-base mt-0.5"
+                          />
+                          <div className="text-[12px] text-rose-700 dark:text-rose-300">
+                            <span className="font-semibold">
+                              Missing rate-ledger mapping
+                            </span>{" "}
+                            for {missingMappingRates.join(", ")}. Configure them
+                            in <span className="font-semibold">Tally setup → GST rate ledger mapping</span> before verifying.
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                        <div className="hidden md:grid grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Rate</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Taxable (₹)</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax ledger</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Tax (₹)</span>
+                        </div>
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {taxRateRollup.map((b) => {
+                            const taxAmt = isInterState
+                              ? b.igst
+                              : b.cgst + b.sgst;
+                            return (
+                              <div
+                                key={b.rate}
+                                className="grid grid-cols-1 md:grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2 items-center"
+                              >
+                                <span className="inline-flex w-fit items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[11px] font-bold">
+                                  {Number(b.rate)}%
+                                </span>
+                                <span className="text-[12px] font-mono text-slate-900 dark:text-white">
+                                  ₹{b.taxable.toFixed(2)}
+                                </span>
+                                <div className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                                  {Number(b.rate) === 0 ? (
+                                    <span className="italic text-slate-400">—</span>
+                                  ) : isInterState ? (
+                                    <span>
+                                      <span className="font-bold uppercase mr-1 text-slate-500">IGST</span>
+                                      {b.igst_ledger_name || (
+                                        <span className="italic text-rose-500">Not mapped</span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span className="flex flex-col gap-0.5">
+                                      <span>
+                                        <span className="font-bold uppercase mr-1 text-slate-500">CGST</span>
+                                        {b.cgst_ledger_name || (
+                                          <span className="italic text-rose-500">Not mapped</span>
+                                        )}
+                                      </span>
+                                      <span>
+                                        <span className="font-bold uppercase mr-1 text-slate-500">SGST</span>
+                                        {b.sgst_ledger_name || (
+                                          <span className="italic text-rose-500">Not mapped</span>
+                                        )}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right">
+                                  ₹{taxAmt.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700 dark:text-blue-400">
+                            Total
+                          </span>
+                          <span className="text-[12px] font-mono text-blue-700 dark:text-blue-400">
+                            ₹
+                            {taxRateRollup
+                              .reduce((s, b) => s + b.taxable, 0)
+                              .toFixed(2)}
+                          </span>
+                          <span />
+                          <span className="text-[14px] font-mono font-bold text-blue-700 dark:text-blue-400 text-right">
+                            ₹
+                            {(isInterState
+                              ? lineTaxTotals.igst
+                              : lineTaxTotals.cgst + lineTaxTotals.sgst
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
               {/* Bill Summary - Tax and Other Items */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
@@ -3219,18 +3578,23 @@ const TallyVendorBillDetail = () => {
                     <Icon icon="heroicons:calculator" className="text-sm" />
                   </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Tax and Other Items
+                    Adjustments
                   </h3>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Cess, discount, freight & round off (bill level)
+                  </span>
                 </div>
 
                 {(() => {
                   const amountCls =
                     "w-full px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
+                  // CGST / SGST / IGST were removed from this panel — they are
+                  // now derived per-line item from the GST rate column (read-only
+                  // rollup is rendered above this block). Only the bill-level
+                  // adjustments (cess, discount, freight, round-off) remain
+                  // editable here.
                   const rows = [
-                    { key: "cgst", label: "CGST", required: parseFloat(billSummaryForm.cgst || 0) > 0, missing: isCgstLedgerRequired(), options: cgstLedgerOptions, ledgerId: billSummaryForm.cgstLedgerId, onSelect: handleCgstLedgerSelect, onClear: handleCgstLedgerClear, loading: cgstLedgersLoading, placeholder: "CGST ledger" },
-                    { key: "sgst", label: "SGST", required: parseFloat(billSummaryForm.sgst || 0) > 0, missing: isSgstLedgerRequired(), options: sgstLedgerOptions, ledgerId: billSummaryForm.sgstLedgerId, onSelect: handleSgstLedgerSelect, onClear: handleSgstLedgerClear, loading: sgstLedgersLoading, placeholder: "SGST ledger" },
-                    { key: "igst", label: "IGST", required: parseFloat(billSummaryForm.igst || 0) > 0, missing: isIgstLedgerRequired(), options: igstLedgerOptions, ledgerId: billSummaryForm.igstLedgerId, onSelect: handleIgstLedgerSelect, onClear: handleIgstLedgerClear, loading: igstLedgersLoading, placeholder: "IGST ledger" },
                     { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
                     { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) > 0, missing: parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
                     { key: "freight", label: "Freight / Delivery", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
