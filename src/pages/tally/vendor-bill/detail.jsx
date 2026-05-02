@@ -3212,20 +3212,20 @@ const TallyVendorBillDetail = () => {
                 </div>
               </div>
 
-              {/* Bill Summary - Invoice Style */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+              {/* Bill Summary - Tax and Other Items */}
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
                     <Icon icon="heroicons:calculator" className="text-sm" />
                   </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Tax &amp; summary
+                    Tax and Other Items
                   </h3>
                 </div>
 
                 {(() => {
-                  const inputCls = (extra = "") =>
-                    `w-full px-2 py-1.5 text-right text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${extra}`;
+                  const amountCls =
+                    "w-full px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
                   const rows = [
                     { key: "cgst", label: "CGST", required: parseFloat(billSummaryForm.cgst || 0) > 0, missing: isCgstLedgerRequired(), options: cgstLedgerOptions, ledgerId: billSummaryForm.cgstLedgerId, onSelect: handleCgstLedgerSelect, onClear: handleCgstLedgerClear, loading: cgstLedgersLoading, placeholder: "CGST ledger" },
@@ -3240,10 +3240,10 @@ const TallyVendorBillDetail = () => {
                   return (
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
                       {/* Header */}
-                      <div className="hidden md:grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Component</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Amount (₹)</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger</span>
+                      <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                       </div>
 
                       {/* Rows */}
@@ -3251,7 +3251,7 @@ const TallyVendorBillDetail = () => {
                         {rows.map((r) => (
                           <div
                             key={r.key}
-                            className="grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-2 items-center"
+                            className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 items-center"
                           >
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                               {r.label}
@@ -3264,7 +3264,7 @@ const TallyVendorBillDetail = () => {
                               onChange={(e) => handleBillSummaryChange(r.key, e.target.value)}
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={inputCls()}
+                              className={amountCls}
                             />
                             <div
                               className={`relative ${
@@ -3306,22 +3306,19 @@ const TallyVendorBillDetail = () => {
                       </div>
 
                       {/* Total row */}
-                      <div className="grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60">
-                        <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
+                      <div className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
                           Total amount
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-700 dark:text-blue-400">₹</span>
-                          <input
-                            type="number"
-                            name="total"
-                            value={billSummaryForm.total}
-                            onChange={(e) => handleBillSummaryChange("total", e.target.value)}
-                            placeholder="0.00"
-                            disabled={isVerified}
-                            className="w-full pl-6 pr-2 py-1.5 text-right text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                        </div>
+                        </span>
+                        <input
+                          type="number"
+                          name="total"
+                          value={billSummaryForm.total}
+                          onChange={(e) => handleBillSummaryChange("total", e.target.value)}
+                          placeholder="0.00"
+                          disabled={isVerified}
+                          className="w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
                           Including all taxes &amp; adjustments
                         </span>

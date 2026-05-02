@@ -2102,23 +2102,22 @@ const ZohoVendorBillDetail = () => {
                               </p>
                             )}
 
-                          {/* Selected TDS/TCS Details */}
-                          {/* {selectedTdsTcs && tdsTcsData?.results && (
-                                                    (() => {
-                                                        const selectedItem = tdsTcsData.results.find(item => item.id === selectedTdsTcs);
-                                                        return selectedItem ? (
-                                                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                                <div className="flex items-center gap-2">
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Discount section */}
+                  <div className="mt-5">
+                    <div className="flex items-center gap-2 mb-3">
                       <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:document-text" className="text-sm" />
+                        <Icon icon="heroicons:tag" className="text-sm" />
                       </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Discount
                       </h3>
                     </div>
-                </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Discount Type */}
                     <div>
@@ -2275,6 +2274,8 @@ const ZohoVendorBillDetail = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+              </div>
               </div>
 
               {/* Tax and Other Items */}
