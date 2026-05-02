@@ -836,7 +836,7 @@ const ZohoJournalEntryDetail = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -1052,8 +1052,8 @@ const ZohoJournalEntryDetail = () => {
               }
               className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
                 isSyncing || isVerified || journalInfo?.status !== "Verified"
-                  ? "text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75"
-                  : "text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500"
+                  ? "text-slate-400 dark:text-slate-500 bg-gray-25 border-slate-100 dark:border-slate-800 cursor-not-allowed opacity-75"
+                  : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:border-slate-700 hover:shadow-md focus:ring-slate-500"
               }`}
               title={
                 isSyncing
@@ -1157,12 +1157,12 @@ const ZohoJournalEntryDetail = () => {
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
               {journalInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                    <h3 className="text-base font-medium text-gray-900 truncate mr-2">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {journalInfo.billmunshiName
                         ? `${journalInfo.billmunshiName}`
                         : "Document"}
@@ -1171,9 +1171,9 @@ const ZohoJournalEntryDetail = () => {
                       {/* Keyboard Shortcuts Info */}
                       {!isPDF(journalInfo.file) && (
                         <div className="relative group">
-                          <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                          <button className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-gray-200 transition-colors">
                             <svg
-                              className="w-3.5 h-3.5 text-gray-600"
+                              className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1204,7 +1204,7 @@ const ZohoJournalEntryDetail = () => {
                         <>
                           <button
                             onClick={handleZoomOut}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom Out (Ctrl + -)"
                             disabled={zoomLevel <= 0.25}
                           >
@@ -1222,12 +1222,12 @@ const ZohoJournalEntryDetail = () => {
                               />
                             </svg>
                           </button>
-                          <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 min-w-[38px] text-center bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {Math.round(zoomLevel * 100)}%
                           </span>
                           <button
                             onClick={handleZoomIn}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom In (Ctrl + +)"
                             disabled={zoomLevel >= 3}
                           >
@@ -1247,7 +1247,7 @@ const ZohoJournalEntryDetail = () => {
                           </button>
                           <button
                             onClick={handleResetZoom}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                             title="Reset Zoom (Ctrl + 0)"
                           >
                             <svg
@@ -1270,7 +1270,7 @@ const ZohoJournalEntryDetail = () => {
                       {/* Fullscreen Toggle */}
                       <button
                         onClick={toggleFullscreen}
-                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                        className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                         title="Toggle Fullscreen (Ctrl + F)"
                       >
                         <svg
@@ -1334,7 +1334,7 @@ const ZohoJournalEntryDetail = () => {
                           className="flex flex-col items-center justify-center w-full h-full"
                         >
                           <svg
-                            className="w-12 h-12 text-gray-400 mb-4"
+                            className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1346,7 +1346,7 @@ const ZohoJournalEntryDetail = () => {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
                             Unable to load document
                           </p>
                         </div>
@@ -1357,7 +1357,7 @@ const ZohoJournalEntryDetail = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
+                    className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1369,10 +1369,10 @@ const ZohoJournalEntryDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-gray-600">No document available</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -1380,85 +1380,56 @@ const ZohoJournalEntryDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
               {/* Bill Information Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:document-text" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Bill Information
                   </h3>
                 </div>
 
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-2">
-                          Required for verification:
-                        </h4>
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {isVendorRequired && <li>• Select a vendor</li>}
-                          {journalLineItems.length === 0 && (
-                            <li>• Add at least one journal line item</li>
-                          )}
-                          {getLineItemsWithoutCOA().length > 0 && (
-                            <li>
-                              • Select Chart of Accounts for{" "}
-                              {getLineItemsWithoutCOA().length} line item
-                              {getLineItemsWithoutCOA().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                        </ul>
-                      </div>
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
+                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                        Resolve before verifying
+                      </p>
+                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
+                        {isVendorRequired && <li>Select a vendor</li>}
+                        {journalLineItems.length === 0 && (
+                          <li>Add at least one journal line item</li>
+                        )}
+                        {getLineItemsWithoutCOA().length > 0 && (
+                          <li>
+                            Select chart of accounts for{" "}
+                            {getLineItemsWithoutCOA().length} line item
+                            {getLineItemsWithoutCOA().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   </div>
                 )}
 
                 {/* Bill Form Fields */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* First Row: Vendor and Bill Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {/* Vendor Selection Field */}
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-500">*</span>
-                        {isVendorRequired && !isVerified && (
-                          <span className="text-red-500 text-xs ml-2">
-                            Required for verification
-                          </span>
-                        )}
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <div
                         className={`${
                           isVendorRequired && !isVerified
-                            ? "ring-2 ring-red-300 rounded-md"
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
@@ -1475,11 +1446,11 @@ const ZohoJournalEntryDetail = () => {
                           disabled={isVerified}
                           renderOption={(vendor) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {vendor.companyName}
                               </div>
                               {vendor.gstNo && (
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
                                   GST: {vendor.gstNo}
                                 </div>
                               )}
@@ -1542,7 +1513,7 @@ const ZohoJournalEntryDetail = () => {
 
                     {/* Bill Number Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Number
                       </label>
                       <input
@@ -1554,9 +1525,9 @@ const ZohoJournalEntryDetail = () => {
                         }
                         placeholder="Enter bill number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
                           isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
                         }`}
                       />
@@ -1564,10 +1535,10 @@ const ZohoJournalEntryDetail = () => {
                   </div>
 
                   {/* Second Row: GST, Bill Date, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* GST Number Field */}
                     <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         GST Number
                         {/* {journalEntryForm.selectedVendor && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
@@ -1582,7 +1553,7 @@ const ZohoJournalEntryDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
                         readOnly={
                           journalEntryForm.selectedVendor &&
                           journalEntryForm.selectedVendor.gstNo
@@ -1592,7 +1563,7 @@ const ZohoJournalEntryDetail = () => {
 
                     {/* Bill Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Date
                       </label>
                       <input
@@ -1606,12 +1577,12 @@ const ZohoJournalEntryDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.entryDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.entryDate && (
@@ -1636,7 +1607,7 @@ const ZohoJournalEntryDetail = () => {
 
                     {/* Due Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Due Date
                       </label>
                       <input
@@ -1650,12 +1621,12 @@ const ZohoJournalEntryDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -1682,32 +1653,22 @@ const ZohoJournalEntryDetail = () => {
               </div>
 
               {/* Journal Entry Items Section */}
-              <div className="relative p-8 border-b border-gray-200">
+              <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:document-text" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Journal Entry Items
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Consolidate Items
+                      <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Consolidate items
                         </span>
                         <Switch
                           value={isConsolidated}
@@ -1744,25 +1705,25 @@ const ZohoJournalEntryDetail = () => {
                   </div>
 
                   {/* Enhanced Journal Entry Items Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1000px]">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
                               Item Details
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                               Chart of Accounts{" "}
                               <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               Amount
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Type
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -1771,10 +1732,10 @@ const ZohoJournalEntryDetail = () => {
                           {journalLineItems.map((item, index) => (
                             <tr
                               key={item.id}
-                              className="hover:bg-gray-50 transition-colors duration-150"
+                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
                             >
                               {/* Item Details */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <textarea
                                   value={item.item_details}
                                   onChange={(e) => {
@@ -1787,20 +1748,20 @@ const ZohoJournalEntryDetail = () => {
                                   }}
                                   placeholder="Enter item details..."
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                  className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   rows={3}
                                 />
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div
                                   className={`${
                                     !item.chart_of_accounts_id && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -1831,7 +1792,7 @@ const ZohoJournalEntryDetail = () => {
                                     disabled={isVerified}
                                     renderOption={(account) => (
                                       <div className="flex flex-col py-1">
-                                        <div className="font-medium text-gray-900">
+                                        <div className="font-medium text-slate-900 dark:text-white text-sm">
                                           {account.accountName}
                                         </div>
                                       </div>
@@ -1842,7 +1803,7 @@ const ZohoJournalEntryDetail = () => {
                               </td>
 
                               {/* Amount */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={item.amount}
@@ -1856,9 +1817,9 @@ const ZohoJournalEntryDetail = () => {
                                   }}
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   min="0"
@@ -1867,7 +1828,7 @@ const ZohoJournalEntryDetail = () => {
                               </td>
 
                               {/* Debit/Credit Type */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <select
                                   value={item.debit_or_credit}
                                   onChange={(e) => {
@@ -1879,9 +1840,9 @@ const ZohoJournalEntryDetail = () => {
                                     setJournalLineItems(newItems);
                                   }}
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 ${
+                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                 >
@@ -1891,14 +1852,14 @@ const ZohoJournalEntryDetail = () => {
                               </td>
 
                               {/* Actions */}
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {journalLineItems.length > 1 && (
                                   <button
                                     onClick={() => removeJournalLineItem(index)}
                                     disabled={isVerified}
                                     className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
                                       isVerified
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                        ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                         : ""
                                     }`}
                                     title="Remove Item"
@@ -1926,9 +1887,9 @@ const ZohoJournalEntryDetail = () => {
                     </div>
 
                     {/* Journal Entry Items Summary */}
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-slate-600 dark:text-slate-400">
                           Total Items: {journalLineItems.length}
                         </span>
                       </div>
@@ -1938,32 +1899,22 @@ const ZohoJournalEntryDetail = () => {
               </div>
 
               {/* Tax and Other Items Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:calculator" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Tax and Other Items
                   </h3>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <div className="space-y-4">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+                  <div className="space-y-3">
                     {/* CGST Row */}
-                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-slate-200 dark:border-slate-800">
                       <div className="col-span-2">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           CGST:
                         </span>
                       </div>
@@ -1981,7 +1932,7 @@ const ZohoJournalEntryDetail = () => {
                           disabled={isVerified}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {account.accountName}
                               </div>
                             </div>
@@ -1999,9 +1950,9 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
                             isVerified
-                              ? "bg-gray-100 cursor-not-allowed opacity-60"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
                         >
@@ -2011,7 +1962,7 @@ const ZohoJournalEntryDetail = () => {
                       </div>
                       <div className="col-span-3">
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="cgst"
@@ -2021,9 +1972,9 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                               isVerified
-                                ? "opacity-60 cursor-not-allowed bg-gray-100"
+                                ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
                           />
@@ -2032,9 +1983,9 @@ const ZohoJournalEntryDetail = () => {
                     </div>
 
                     {/* SGST Row */}
-                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-slate-200 dark:border-slate-800">
                       <div className="col-span-2">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           SGST:
                         </span>
                       </div>
@@ -2052,7 +2003,7 @@ const ZohoJournalEntryDetail = () => {
                           disabled={isVerified}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {account.accountName}
                               </div>
                             </div>
@@ -2070,9 +2021,9 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
                             isVerified
-                              ? "bg-gray-100 cursor-not-allowed opacity-60"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
                         >
@@ -2082,7 +2033,7 @@ const ZohoJournalEntryDetail = () => {
                       </div>
                       <div className="col-span-3">
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="sgst"
@@ -2092,9 +2043,9 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                               isVerified
-                                ? "opacity-60 cursor-not-allowed bg-gray-100"
+                                ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
                           />
@@ -2103,9 +2054,9 @@ const ZohoJournalEntryDetail = () => {
                     </div>
 
                     {/* IGST Row */}
-                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-gray-200">
+                    <div className="grid grid-cols-12 gap-3 items-center py-2 border-b border-slate-200 dark:border-slate-800">
                       <div className="col-span-2">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           IGST:
                         </span>
                       </div>
@@ -2123,7 +2074,7 @@ const ZohoJournalEntryDetail = () => {
                           disabled={isVerified}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {account.accountName}
                               </div>
                             </div>
@@ -2141,9 +2092,9 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
                             isVerified
-                              ? "bg-gray-100 cursor-not-allowed opacity-60"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
                         >
@@ -2153,7 +2104,7 @@ const ZohoJournalEntryDetail = () => {
                       </div>
                       <div className="col-span-3">
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="igst"
@@ -2163,9 +2114,9 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                               isVerified
-                                ? "opacity-60 cursor-not-allowed bg-gray-100"
+                                ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
                           />
@@ -2177,7 +2128,7 @@ const ZohoJournalEntryDetail = () => {
                     <div className="col-span-12 pt-2">
                       <div className="grid grid-cols-12 gap-3 items-center py-2">
                         <div className="col-span-2">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                             Payable to Vendor:
                           </span>
                         </div>
@@ -2193,7 +2144,7 @@ const ZohoJournalEntryDetail = () => {
                                                                     <div className="font-medium text-blue-900">{journalEntryForm.selectedVendor.companyName}</div>
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-gray-500 italic">No vendor selected</span>
+                                                                <span className="text-slate-500 dark:text-slate-400 italic">No vendor selected</span>
                                                             )}
                                                         </div> */}
 
@@ -2211,7 +2162,7 @@ const ZohoJournalEntryDetail = () => {
                               disabled={isVerified}
                               renderOption={(account) => (
                                 <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
+                                  <div className="font-medium text-slate-900 dark:text-white text-sm">
                                     {account.accountName}
                                   </div>
                                 </div>
@@ -2232,9 +2183,9 @@ const ZohoJournalEntryDetail = () => {
                               )
                             }
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
                               isVerified
-                                ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                 : ""
                             }`}
                           >
@@ -2244,10 +2195,10 @@ const ZohoJournalEntryDetail = () => {
                         </div>
                         <div className="col-span-3">
                           <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">
                               ₹
                             </span>
-                            <div className="w-full px-2 py-1 text-right border border-gray-300 rounded-md bg-gray-50 text-sm font-medium">
+                            <div className="w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900/60 text-sm font-medium">
                               {journalEntryForm.totalAmount
                                 ? parseFloat(
                                     journalEntryForm.totalAmount,
@@ -2265,9 +2216,9 @@ const ZohoJournalEntryDetail = () => {
               </div>
 
               {/* Notes Section */}
-              <div className="p-8">
+              <div className="p-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -2284,9 +2235,9 @@ const ZohoJournalEntryDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${
+                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
                       isVerified
-                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
                     placeholder="Add notes or comments..."

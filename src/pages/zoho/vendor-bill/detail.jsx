@@ -1084,12 +1084,12 @@ const ZohoVendorBillDetail = () => {
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
               {vendorBillData?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                    <h3 className="text-base font-medium text-gray-900 truncate mr-2">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {vendorBillData.billmunshiName
                         ? `${vendorBillData.billmunshiName}`
                         : "Document"}
@@ -1098,9 +1098,9 @@ const ZohoVendorBillDetail = () => {
                       {/* Keyboard Shortcuts Info */}
                       {!isPDF(vendorBillData.file) && (
                         <div className="relative group">
-                          <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                          <button className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-gray-200 transition-colors">
                             <svg
-                              className="w-3.5 h-3.5 text-gray-600"
+                              className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1131,7 +1131,7 @@ const ZohoVendorBillDetail = () => {
                         <>
                           <button
                             onClick={handleZoomOut}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom Out (Ctrl + -)"
                             disabled={zoomLevel <= 0.25}
                           >
@@ -1149,12 +1149,12 @@ const ZohoVendorBillDetail = () => {
                               />
                             </svg>
                           </button>
-                          <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 min-w-[38px] text-center bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {Math.round(zoomLevel * 100)}%
                           </span>
                           <button
                             onClick={handleZoomIn}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom In (Ctrl + +)"
                             disabled={zoomLevel >= 3}
                           >
@@ -1174,7 +1174,7 @@ const ZohoVendorBillDetail = () => {
                           </button>
                           <button
                             onClick={handleResetZoom}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                             title="Reset Zoom (Ctrl + 0)"
                           >
                             <svg
@@ -1197,7 +1197,7 @@ const ZohoVendorBillDetail = () => {
                       {/* Fullscreen Toggle */}
                       <button
                         onClick={toggleFullscreen}
-                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                        className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                         title="Toggle Fullscreen (Ctrl + F)"
                       >
                         <svg
@@ -1261,7 +1261,7 @@ const ZohoVendorBillDetail = () => {
                           className="flex flex-col items-center justify-center w-full h-full"
                         >
                           <svg
-                            className="w-12 h-12 text-gray-400 mb-4"
+                            className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1273,7 +1273,7 @@ const ZohoVendorBillDetail = () => {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
                             Unable to load document
                           </p>
                         </div>
@@ -1284,7 +1284,7 @@ const ZohoVendorBillDetail = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
+                    className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1296,10 +1296,10 @@ const ZohoVendorBillDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-gray-600">No document available</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -1307,80 +1307,61 @@ const ZohoVendorBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
               {/* Vendor Information Section */}
-              <div className="p-8 border-b border-gray-200">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-2">
-                          Required for verification:
-                        </h4>
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {isVendorRequired && <li>• Select a vendor</li>}
-                          {products.length === 0 && (
-                            <li>• Add at least one product</li>
-                          )}
-                          {getProductsWithoutCOA().length > 0 && (
-                            <li>
-                              • Select Chart of Accounts for{" "}
-                              {getProductsWithoutCOA().length} product
-                              {getProductsWithoutCOA().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                          {getProductsWithoutTaxes().length > 0 && (
-                            <li>
-                              • Select Taxes for{" "}
-                              {getProductsWithoutTaxes().length} product
-                              {getProductsWithoutTaxes().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                          {isDiscountAccountRequired() && (
-                            <li>
-                              • Select Discount Account (required when discount
-                              value is provided)
-                            </li>
-                          )}
-                        </ul>
-                      </div>
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
+                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                        Resolve before verifying
+                      </p>
+                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
+                        {isVendorRequired && <li>Select a vendor</li>}
+                        {products.length === 0 && (
+                          <li>Add at least one product</li>
+                        )}
+                        {getProductsWithoutCOA().length > 0 && (
+                          <li>
+                            Select chart of accounts for{" "}
+                            {getProductsWithoutCOA().length} product
+                            {getProductsWithoutCOA().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                        {getProductsWithoutTaxes().length > 0 && (
+                          <li>
+                            Select taxes for{" "}
+                            {getProductsWithoutTaxes().length} product
+                            {getProductsWithoutTaxes().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                        {isDiscountAccountRequired() && (
+                          <li>
+                            Select discount account (required when discount
+                            value is provided)
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   </div>
                 )}
 
                 {/* Simple Form Fields */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* First Row: Vendor and Invoice Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {/* Vendor Selection Field */}
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-500">*</span>
-                        {isVendorRequired && !isVerified && (
-                          <span className="text-red-500 text-xs ml-2">
-                            Required for verification
-                          </span>
-                        )}
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <div className="space-y-2">
                         <div
                           className={`${
                             isVendorRequired && !isVerified
-                              ? "ring-2 ring-red-300 rounded-md"
+                              ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                               : ""
                           }`}
                         >
@@ -1430,7 +1411,7 @@ const ZohoVendorBillDetail = () => {
                                   {option.label}
                                 </div>
                                 {option.gstNo && (
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
                                     GST: {option.gstNo}
                                   </div>
                                 )}
@@ -1503,7 +1484,7 @@ const ZohoVendorBillDetail = () => {
 
                     {/* Invoice Number Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Invoice Number
                       </label>
                       <input
@@ -1514,17 +1495,17 @@ const ZohoVendorBillDetail = () => {
                           handleFormChange("invoiceNumber", e.target.value)
                         }
                         placeholder="Enter invoice number"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        className="w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         disabled={isVerified}
                       />
                     </div>
                   </div>
 
                   {/* Second Row: GST, Date Issued, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* GST Number Field */}
                     <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         GST Number
                         {/* {zohoData?.vendor === null && vendorForm.selectedVendor && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
@@ -1538,7 +1519,7 @@ const ZohoVendorBillDetail = () => {
                           handleFormChange("vendorGST", e.target.value)
                         }
                         placeholder="Enter GST number"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
                         readOnly={
                           zohoData?.vendor === null && vendorForm.selectedVendor
                         }
@@ -1548,7 +1529,7 @@ const ZohoVendorBillDetail = () => {
 
                     {/* Date Issued Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Date Issued
                       </label>
                       <input
@@ -1560,10 +1541,10 @@ const ZohoVendorBillDetail = () => {
                         }
                         min="1900-01-01"
                         max="2100-12-31"
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dateIssued
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                         disabled={isVerified}
                       />
@@ -1589,7 +1570,7 @@ const ZohoVendorBillDetail = () => {
 
                     {/* Due Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Due Date
                       </label>
                       <input
@@ -1601,10 +1582,10 @@ const ZohoVendorBillDetail = () => {
                         }
                         min="1900-01-01"
                         max="2100-12-31"
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                         disabled={isVerified}
                       />
@@ -1632,33 +1613,23 @@ const ZohoVendorBillDetail = () => {
               </div>
 
               {/* Product Information Section */}
-              <div className="relative p-8 border-b border-gray-200">
+              <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 {/* Products Section */}
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:list-bullet" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Products Details
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Consolidate Items
+                      <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Consolidate items
                         </span>
                         <Switch
                           value={isConsolidated}
@@ -1691,37 +1662,37 @@ const ZohoVendorBillDetail = () => {
                   </div>
 
                   {/* Enhanced Products Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1200px]">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                               Item Details
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                               Chart of Accounts{" "}
                               <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               Taxes <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               Reverse Charge
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[140px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[140px]">
                               ITC Eligibility
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Rate
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Quantity
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Amount
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -1730,10 +1701,10 @@ const ZohoVendorBillDetail = () => {
                           {products.map((product, index) => (
                             <tr
                               key={product.id}
-                              className="hover:bg-gray-50 transition-colors duration-150"
+                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
                             >
                               {/* Item Details */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <textarea
                                   value={product.item_details}
                                   onChange={(e) =>
@@ -1744,7 +1715,7 @@ const ZohoVendorBillDetail = () => {
                                     )
                                   }
                                   placeholder="Enter item details..."
-                                  className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none"
+                                  className="w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none"
                                   rows={2}
                                   disabled={isVerified}
                                 />
@@ -1755,7 +1726,7 @@ const ZohoVendorBillDetail = () => {
                                 <div
                                   className={`${
                                     !product.chart_of_accounts && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -1798,7 +1769,7 @@ const ZohoVendorBillDetail = () => {
                                 <div
                                   className={`${
                                     !product.taxes && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -1831,7 +1802,7 @@ const ZohoVendorBillDetail = () => {
                               </td>
 
                               {/* Reverse Charge Tax */}
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 <input
                                   type="checkbox"
                                   checked={product.reverse_charge_tax_id}
@@ -1842,7 +1813,7 @@ const ZohoVendorBillDetail = () => {
                                       e.target.checked,
                                     )
                                   }
-                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                  className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded focus:ring-blue-500 focus:ring-2"
                                   disabled={isVerified}
                                 />
                               </td>
@@ -1875,7 +1846,7 @@ const ZohoVendorBillDetail = () => {
                               </td>
 
                               {/* Rate */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={product.rate}
@@ -1887,7 +1858,7 @@ const ZohoVendorBillDetail = () => {
                                     )
                                   }
                                   placeholder="0.00"
-                                  className="w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   min="0"
                                   step="0.01"
                                   disabled={isVerified}
@@ -1895,7 +1866,7 @@ const ZohoVendorBillDetail = () => {
                               </td>
 
                               {/* Quantity */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={product.quantity}
@@ -1907,7 +1878,7 @@ const ZohoVendorBillDetail = () => {
                                     )
                                   }
                                   placeholder="0"
-                                  className="w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   min="0"
                                   step="1"
                                   disabled={isVerified}
@@ -1915,8 +1886,8 @@ const ZohoVendorBillDetail = () => {
                               </td>
 
                               {/* Amount */}
-                              <td className="px-4 py-3">
-                                <div className="text-sm font-semibold text-gray-900 text-right">
+                              <td className="px-3 py-2">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white text-right">
                                   ₹
                                   {parseFloat(
                                     product.amount || 0,
@@ -1927,7 +1898,7 @@ const ZohoVendorBillDetail = () => {
                               </td>
 
                               {/* Actions */}
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {products.length > 1 && !isVerified && (
                                   <button
                                     onClick={() => removeProduct(index)}
@@ -1958,12 +1929,12 @@ const ZohoVendorBillDetail = () => {
                     </div>
 
                     {/* Products Summary */}
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-slate-600 dark:text-slate-400">
                           Total Items: {products.length}
                         </span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           Subtotal: ₹
                           {products
                             .reduce(
@@ -1982,33 +1953,23 @@ const ZohoVendorBillDetail = () => {
               </div>
 
               {/* Tax Deduction/Collection Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-6">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Tax Deduction/Collection
-                    </h3>
-                  </div>
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:document-text" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                        Tax Deduction/Collection
+                      </h3>
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Tax Type Selection */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
                         Tax Type
                       </label>
                       <div className="flex items-center gap-6 flex-wrap">
@@ -2025,17 +1986,17 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleFormChange("is_tax", e.target.value)
                             }
-                            className="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 focus:ring-gray-500 focus:ring-2 transition-colors"
+                            className="w-4 h-4 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-slate-500 focus:ring-2 transition-colors"
                             disabled={isVerified}
                           />
                           <label
                             htmlFor="tax-not-applicable"
-                            className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors"
+                            className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:text-white transition-colors"
                           >
-                            <span className="font-semibold text-gray-600">
+                            <span className="font-semibold text-slate-600 dark:text-slate-400">
                               Not Applicable
                             </span>
-                            <span className="text-gray-500 ml-1">
+                            <span className="text-slate-500 dark:text-slate-400 ml-1">
                               (No tax deduction/collection)
                             </span>
                           </label>
@@ -2050,17 +2011,17 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleFormChange("is_tax", e.target.value)
                             }
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
+                            className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:ring-2 transition-colors"
                             disabled={isVerified}
                           />
                           <label
                             htmlFor="tax-tds"
-                            className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors"
+                            className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:text-white transition-colors"
                           >
                             <span className="font-semibold text-blue-600">
                               TDS
                             </span>
-                            <span className="text-gray-500 ml-1">
+                            <span className="text-slate-500 dark:text-slate-400 ml-1">
                               (Tax Deducted at Source)
                             </span>
                           </label>
@@ -2075,17 +2036,17 @@ const ZohoVendorBillDetail = () => {
                             onChange={(e) =>
                               handleFormChange("is_tax", e.target.value)
                             }
-                            className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
+                            className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-green-500 focus:ring-2 transition-colors"
                             disabled={isVerified}
                           />
                           <label
                             htmlFor="tax-tcs"
-                            className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors"
+                            className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:text-white transition-colors"
                           >
                             <span className="font-semibold text-green-600">
                               TCS
                             </span>
-                            <span className="text-gray-500 ml-1">
+                            <span className="text-slate-500 dark:text-slate-400 ml-1">
                               (Tax Collected at Source)
                             </span>
                           </label>
@@ -2097,7 +2058,7 @@ const ZohoVendorBillDetail = () => {
                     {vendorForm.is_tax &&
                       vendorForm.is_tax !== "NOT_APPLICABLE" && (
                         <div className="relative">
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                             Select {vendorForm.is_tax} Rate
                           </label>
                           <SearchableDropdown
@@ -2126,7 +2087,7 @@ const ZohoVendorBillDetail = () => {
                                 <div className="font-medium">
                                   {option.taxName}
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
                                   {option.taxPercentage}% - {option.taxType}
                                 </div>
                               </div>
@@ -2148,54 +2109,20 @@ const ZohoVendorBillDetail = () => {
                                                         return selectedItem ? (
                                                             <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                                                                 <div className="flex items-center gap-2">
-                                                                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                    <span className="text-sm font-semibold text-green-800">
-                                                                        Selected: {selectedItem.taxName}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="mt-1 text-xs text-green-700">
-                                                                    Rate: {selectedItem.taxPercentage}% | Type: {selectedItem.taxType} | ID: {selectedItem.taxId}
-                                                                </div>
-                                                            </div>
-                                                        ) : null;
-                                                    })()
-                                                )} */}
-                        </div>
-                      )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Discount Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Discount
-                    </h3>
-                  </div>
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:document-text" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                        Discount
+                      </h3>
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Discount Type */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
                         Discount Type
                       </label>
                       <div className="flex items-center gap-6">
@@ -2212,17 +2139,17 @@ const ZohoVendorBillDetail = () => {
                                 e.target.value,
                               )
                             }
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 transition-colors"
+                            className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:ring-2 transition-colors"
                             disabled={isVerified}
                           />
                           <label
                             htmlFor="discount-inr"
-                            className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors"
+                            className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:text-white transition-colors"
                           >
                             <span className="font-semibold text-blue-600">
                               INR
                             </span>
-                            <span className="text-gray-500 ml-1">
+                            <span className="text-slate-500 dark:text-slate-400 ml-1">
                               (Fixed Amount)
                             </span>
                           </label>
@@ -2242,17 +2169,17 @@ const ZohoVendorBillDetail = () => {
                                 e.target.value,
                               )
                             }
-                            className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500 focus:ring-2 transition-colors"
+                            className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-green-500 focus:ring-2 transition-colors"
                             disabled={isVerified}
                           />
                           <label
                             htmlFor="discount-percentage"
-                            className="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900 transition-colors"
+                            className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:text-white transition-colors"
                           >
                             <span className="font-semibold text-green-600">
                               Percentage
                             </span>
-                            <span className="text-gray-500 ml-1">(%)</span>
+                            <span className="text-slate-500 dark:text-slate-400 ml-1">(%)</span>
                           </label>
                         </div>
                       </div>
@@ -2260,7 +2187,7 @@ const ZohoVendorBillDetail = () => {
 
                     {/* Discount Value */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                         Discount{" "}
                         {discountForm.discount_type === "Percentage"
                           ? "(%)"
@@ -2278,7 +2205,7 @@ const ZohoVendorBillDetail = () => {
                             ? "Enter percentage"
                             : "Enter amount"
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm"
+                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm"
                         disabled={isVerified}
                         min="0"
                         step={
@@ -2291,7 +2218,7 @@ const ZohoVendorBillDetail = () => {
 
                     {/* Discount Amount (Calculated) */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                         Discount Amount (₹)
                       </label>
                       <input
@@ -2300,14 +2227,14 @@ const ZohoVendorBillDetail = () => {
                         value={discountForm.discount_amount}
                         readOnly
                         placeholder="0.00"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-medium text-gray-700 cursor-not-allowed"
+                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900/60 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-not-allowed"
                         disabled
                       />
                     </div>
 
                     {/* Discount Account */}
                     <div className="relative">
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                         Discount Account
                         {isDiscountAccountRequired() && !isVerified && (
                           <span className="text-red-500 text-xs ml-1">*</span>
@@ -2316,7 +2243,7 @@ const ZohoVendorBillDetail = () => {
                       <div
                         className={`${
                           isDiscountAccountRequired() && !isVerified
-                            ? "ring-2 ring-red-300 rounded-md"
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
@@ -2351,38 +2278,28 @@ const ZohoVendorBillDetail = () => {
               </div>
 
               {/* Tax and Other Items */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-6">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Tax and Other Items
-                    </h3>
-                  </div>
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:calculator" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                        Tax and Other Items
+                      </h3>
+                    </div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
                   <div className="grid grid-cols-2 gap-6">
                     {/* Left Column - Tax Details */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           CGST:
                         </span>
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="cgst"
@@ -2391,17 +2308,17 @@ const ZohoVendorBillDetail = () => {
                               handleBillSummaryChange("cgst", e.target.value)
                             }
                             placeholder="0"
-                            className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             disabled={isVerified}
                           />
                         </div>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           SGST:
                         </span>
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="sgst"
@@ -2410,17 +2327,17 @@ const ZohoVendorBillDetail = () => {
                               handleBillSummaryChange("sgst", e.target.value)
                             }
                             placeholder="0"
-                            className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             disabled={isVerified}
                           />
                         </div>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           IGST:
                         </span>
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="igst"
@@ -2429,19 +2346,19 @@ const ZohoVendorBillDetail = () => {
                               handleBillSummaryChange("igst", e.target.value)
                             }
                             placeholder="0"
-                            className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             disabled={isVerified}
                           />
                         </div>
                       </div>
 
                       {/* Adjustment Section in Left Column */}
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200 pt-4">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800 pt-4">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           Adjustment:
                         </span>
                         <div className="flex items-center">
-                          <span className="text-sm text-gray-600 mr-2">₹</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                           <input
                             type="number"
                             name="adjustment_amount"
@@ -2453,7 +2370,7 @@ const ZohoVendorBillDetail = () => {
                               )
                             }
                             placeholder="0.00"
-                            className="w-32 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             disabled={isVerified}
                           />
                         </div>
@@ -2461,14 +2378,14 @@ const ZohoVendorBillDetail = () => {
                     </div>
 
                     {/* Right Column - Total and Adjustment Description */}
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
+                    <div className="space-y-3">
+                      <div className="rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 p-4 w-full">
                         <div className="text-center">
-                          <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">
+                          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400 mb-1.5">
                             Total Amount
                           </div>
                           <div className="flex items-center justify-center">
-                            <span className="text-2xl font-bold text-blue-600 mr-2">
+                            <span className="text-lg font-bold text-blue-700 dark:text-blue-400 mr-1">
                               ₹
                             </span>
                             <input
@@ -2479,11 +2396,11 @@ const ZohoVendorBillDetail = () => {
                                 handleBillSummaryChange("total", e.target.value)
                               }
                               placeholder="0.00"
-                              className="w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-32 px-2 py-1 text-center text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               disabled={isVerified}
                             />
                           </div>
-                          <div className="text-xs text-blue-600 mt-2">
+                          <div className="text-[10px] text-blue-700/80 dark:text-blue-400/80 mt-1">
                             Including all taxes
                           </div>
                         </div>
@@ -2500,7 +2417,7 @@ const ZohoVendorBillDetail = () => {
                           )
                         }
                         placeholder="Enter adjustment description..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm resize-none"
+                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm resize-none"
                         rows={3}
                         disabled={isVerified}
                       />
@@ -2509,9 +2426,9 @@ const ZohoVendorBillDetail = () => {
                 </div>
               </div>
               {/* Notes Section */}
-              <div className="p-8">
+              <div className="p-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -2527,7 +2444,7 @@ const ZohoVendorBillDetail = () => {
                       }/zoho/vendor-bill/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none"
+                    className="w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"
                     placeholder="Add notes or comments..."
                     rows={4}
                     disabled={isVerified}

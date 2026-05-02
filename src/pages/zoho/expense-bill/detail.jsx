@@ -735,7 +735,7 @@ const ZohoExpenseBillDetail = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -846,7 +846,7 @@ const ZohoExpenseBillDetail = () => {
             </button>
             <button
               onClick={handleBackClick}
-              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-500 border border-transparent rounded-lg shadow-sm hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
+              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-500 border border-transparent rounded-lg shadow-sm hover:bg-slate-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-slate-500 transition-all duration-200 active:scale-95"
               title="Back"
             >
               <svg
@@ -974,8 +974,8 @@ const ZohoExpenseBillDetail = () => {
               }
               className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
                 isSyncing || isVerified || billInfo?.status !== "Verified"
-                  ? "text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75"
-                  : "text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500"
+                  ? "text-slate-400 dark:text-slate-500 bg-gray-25 border-slate-100 dark:border-slate-800 cursor-not-allowed opacity-75"
+                  : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:border-slate-700 hover:shadow-md focus:ring-slate-500"
               }`}
               title={
                 isSyncing
@@ -1079,12 +1079,12 @@ const ZohoExpenseBillDetail = () => {
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                    <h3 className="text-base font-medium text-gray-900 truncate mr-2">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {billInfo.billmunshiName
                         ? `${billInfo.billmunshiName}`
                         : "Document"}
@@ -1093,9 +1093,9 @@ const ZohoExpenseBillDetail = () => {
                       {/* Keyboard Shortcuts Info */}
                       {!isPDF(billInfo.file) && (
                         <div className="relative group">
-                          <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                          <button className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-gray-200 transition-colors">
                             <svg
-                              className="w-3.5 h-3.5 text-gray-600"
+                              className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1126,7 +1126,7 @@ const ZohoExpenseBillDetail = () => {
                         <>
                           <button
                             onClick={handleZoomOut}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom Out (Ctrl + -)"
                             disabled={zoomLevel <= 0.25}
                           >
@@ -1144,12 +1144,12 @@ const ZohoExpenseBillDetail = () => {
                               />
                             </svg>
                           </button>
-                          <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 min-w-[38px] text-center bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {Math.round(zoomLevel * 100)}%
                           </span>
                           <button
                             onClick={handleZoomIn}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom In (Ctrl + +)"
                             disabled={zoomLevel >= 3}
                           >
@@ -1169,7 +1169,7 @@ const ZohoExpenseBillDetail = () => {
                           </button>
                           <button
                             onClick={handleResetZoom}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                             title="Reset Zoom (Ctrl + 0)"
                           >
                             <svg
@@ -1192,7 +1192,7 @@ const ZohoExpenseBillDetail = () => {
                       {/* Fullscreen Toggle */}
                       <button
                         onClick={toggleFullscreen}
-                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                        className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                         title="Toggle Fullscreen (Ctrl + F)"
                       >
                         <svg
@@ -1256,7 +1256,7 @@ const ZohoExpenseBillDetail = () => {
                           className="flex flex-col items-center justify-center w-full h-full"
                         >
                           <svg
-                            className="w-12 h-12 text-gray-400 mb-4"
+                            className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1268,7 +1268,7 @@ const ZohoExpenseBillDetail = () => {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
                             Unable to load document
                           </p>
                         </div>
@@ -1279,7 +1279,7 @@ const ZohoExpenseBillDetail = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
+                    className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1291,10 +1291,10 @@ const ZohoExpenseBillDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-gray-600">No document available</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -1302,92 +1302,63 @@ const ZohoExpenseBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
               {/* Bill Information Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:document-text" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Bill Information
                   </h3>
                 </div>
 
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-2">
-                          Required for verification:
-                        </h4>
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {isVendorRequired && <li>• Select a vendor</li>}
-                          {expenseItems.length === 0 && (
-                            <li>• Add at least one expense item</li>
-                          )}
-                          {getItemsWithoutCOA().length > 0 && (
-                            <li>
-                              • Select Chart of Accounts for{" "}
-                              {getItemsWithoutCOA().length} expense item
-                              {getItemsWithoutCOA().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                          {getItemsWithoutTaxes().length > 0 && (
-                            <li>
-                              • Select Taxes for {getItemsWithoutTaxes().length}{" "}
-                              expense item
-                              {getItemsWithoutTaxes().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                        </ul>
-                      </div>
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
+                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                        Resolve before verifying
+                      </p>
+                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
+                        {isVendorRequired && <li>Select a vendor</li>}
+                        {expenseItems.length === 0 && (
+                          <li>Add at least one expense item</li>
+                        )}
+                        {getItemsWithoutCOA().length > 0 && (
+                          <li>
+                            Select chart of accounts for{" "}
+                            {getItemsWithoutCOA().length} expense item
+                            {getItemsWithoutCOA().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                        {getItemsWithoutTaxes().length > 0 && (
+                          <li>
+                            Select taxes for {getItemsWithoutTaxes().length}{" "}
+                            expense item
+                            {getItemsWithoutTaxes().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   </div>
                 )}
 
                 {/* Bill Form Fields */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* First Row: Vendor, Bill Number, and Chart of Accounts */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {/* Vendor Selection Field */}
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-500">*</span>
-                        {isVendorRequired && !isVerified && (
-                          <span className="text-red-500 text-xs ml-2">
-                            Required
-                          </span>
-                        )}
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <div
                         className={`${
                           isVendorRequired && !isVerified
-                            ? "ring-2 ring-red-300 rounded-md"
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
@@ -1404,11 +1375,11 @@ const ZohoExpenseBillDetail = () => {
                           disabled={isVerified}
                           renderOption={(vendor) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {vendor.companyName}
                               </div>
                               {vendor.gstNo && (
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
                                   GST: {vendor.gstNo}
                                 </div>
                               )}
@@ -1447,7 +1418,7 @@ const ZohoExpenseBillDetail = () => {
 
                     {/* Bill Number Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Number
                       </label>
                       <input
@@ -1459,9 +1430,9 @@ const ZohoExpenseBillDetail = () => {
                         }
                         placeholder="Enter bill number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
                           isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
                         }`}
                       />
@@ -1469,7 +1440,7 @@ const ZohoExpenseBillDetail = () => {
 
                     {/* Chart of Accounts Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Paid Through
                       </label>
                       <SearchableDropdown
@@ -1489,11 +1460,11 @@ const ZohoExpenseBillDetail = () => {
                         disabled={isVerified}
                         renderOption={(account) => (
                           <div className="flex flex-col py-1">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-slate-900 dark:text-white text-sm">
                               {account.accountName}
                             </div>
                             {account.accountCode && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
                                 Code: {account.accountCode}
                               </div>
                             )}
@@ -1527,10 +1498,10 @@ const ZohoExpenseBillDetail = () => {
                   )}
 
                   {/* Second Row: GST, Bill Date, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* GST Number Field */}
                     <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         GST Number
                         {/* {billForm.selectedVendor && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
@@ -1545,7 +1516,7 @@ const ZohoExpenseBillDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
                         readOnly={
                           billForm.selectedVendor &&
                           billForm.selectedVendor.gstNo
@@ -1555,7 +1526,7 @@ const ZohoExpenseBillDetail = () => {
 
                     {/* Bill Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Date
                       </label>
                       <input
@@ -1569,12 +1540,12 @@ const ZohoExpenseBillDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.billDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.billDate && (
@@ -1599,7 +1570,7 @@ const ZohoExpenseBillDetail = () => {
 
                     {/* Due Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Due Date
                       </label>
                       <input
@@ -1613,12 +1584,12 @@ const ZohoExpenseBillDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -1645,32 +1616,22 @@ const ZohoExpenseBillDetail = () => {
               </div>
 
               {/* Expense Items Section */}
-              <div className="relative p-8 border-b border-gray-200">
+              <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:list-bullet" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Expense Items
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Consolidate Items
+                      <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Consolidate items
                         </span>
                         <Switch
                           value={isConsolidated}
@@ -1707,25 +1668,25 @@ const ZohoExpenseBillDetail = () => {
                   </div>
 
                   {/* Enhanced Expense Items Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1000px]">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
                               Notes
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                               Expense Accounts{" "}
                               <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                               Taxes <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               Amount
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -1734,10 +1695,10 @@ const ZohoExpenseBillDetail = () => {
                           {expenseItems.map((item, index) => (
                             <tr
                               key={item.id}
-                              className="hover:bg-gray-50 transition-colors duration-150"
+                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
                             >
                               {/* Item Details */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <textarea
                                   value={item.item_details}
                                   onChange={(e) => {
@@ -1750,9 +1711,9 @@ const ZohoExpenseBillDetail = () => {
                                   }}
                                   placeholder="Enter item details..."
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                  className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   rows={3}
@@ -1760,11 +1721,11 @@ const ZohoExpenseBillDetail = () => {
                               </td>
 
                               {/* Chart of Accounts */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div
                                   className={`${
                                     !item.chart_of_accounts_id && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -1795,7 +1756,7 @@ const ZohoExpenseBillDetail = () => {
                                     disabled={isVerified}
                                     renderOption={(account) => (
                                       <div className="flex flex-col py-1">
-                                        <div className="font-medium text-gray-900">
+                                        <div className="font-medium text-slate-900 dark:text-white text-sm">
                                           {account.accountName}
                                         </div>
                                       </div>
@@ -1810,7 +1771,7 @@ const ZohoExpenseBillDetail = () => {
                                 <div
                                   className={`${
                                     !item.taxes && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -1847,7 +1808,7 @@ const ZohoExpenseBillDetail = () => {
                               </td>
 
                               {/* Amount */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={item.amount}
@@ -1861,9 +1822,9 @@ const ZohoExpenseBillDetail = () => {
                                   }}
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   min="0"
@@ -1872,14 +1833,14 @@ const ZohoExpenseBillDetail = () => {
                               </td>
 
                               {/* Actions */}
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {expenseItems.length > 1 && (
                                   <button
                                     onClick={() => removeExpenseItem(index)}
                                     disabled={isVerified}
                                     className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
                                       isVerified
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                        ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                         : ""
                                     }`}
                                     title="Remove Item"
@@ -1907,9 +1868,9 @@ const ZohoExpenseBillDetail = () => {
                     </div>
 
                     {/* Expense Items Summary */}
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-slate-600 dark:text-slate-400">
                           Total Items: {expenseItems.length}
                         </span>
                       </div>
@@ -1919,35 +1880,25 @@ const ZohoExpenseBillDetail = () => {
               </div>
 
               {/* Tax Summary Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:calculator" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Tax and Other Items
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Left Column - Tax Details */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-sm font-medium text-gray-700">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         CGST:
                       </span>
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                         <input
                           type="number"
                           name="cgst"
@@ -1957,18 +1908,18 @@ const ZohoExpenseBillDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`w-24 px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm font-mono font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             isVerified ? "opacity-60 cursor-not-allowed" : ""
                           }`}
                         />
                       </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-sm font-medium text-gray-700">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         SGST:
                       </span>
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                         <input
                           type="number"
                           name="sgst"
@@ -1978,18 +1929,18 @@ const ZohoExpenseBillDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`w-24 px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm font-mono font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             isVerified ? "opacity-60 cursor-not-allowed" : ""
                           }`}
                         />
                       </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-sm font-medium text-gray-700">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         IGST:
                       </span>
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-600 mr-2">₹</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">₹</span>
                         <input
                           type="number"
                           name="igst"
@@ -1999,7 +1950,7 @@ const ZohoExpenseBillDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`w-24 px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm font-mono font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             isVerified ? "opacity-60 cursor-not-allowed" : ""
                           }`}
                         />
@@ -2009,13 +1960,13 @@ const ZohoExpenseBillDetail = () => {
 
                   {/* Right Column - Total */}
                   <div className="flex items-center justify-center">
-                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
+                    <div className="rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 p-4 w-full">
                       <div className="text-center">
-                        <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400 mb-1.5">
                           Total Amount
                         </div>
                         <div className="flex items-center justify-center">
-                          <span className="text-2xl font-bold text-blue-600 mr-2">
+                          <span className="text-lg font-bold text-blue-700 dark:text-blue-400 mr-1">
                             ₹
                           </span>
                           <input
@@ -2027,12 +1978,12 @@ const ZohoExpenseBillDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`w-32 px-2 py-1 text-center text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                               isVerified ? "opacity-60 cursor-not-allowed" : ""
                             }`}
                           />
                         </div>
-                        <div className="text-xs text-blue-600 mt-2">
+                        <div className="text-[10px] text-blue-700/80 dark:text-blue-400/80 mt-1">
                           Including all taxes
                         </div>
                       </div>
@@ -2042,9 +1993,9 @@ const ZohoExpenseBillDetail = () => {
               </div>
 
               {/* Notes Section */}
-              <div className="p-8">
+              <div className="p-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -2061,9 +2012,9 @@ const ZohoExpenseBillDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${
+                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
                       isVerified
-                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
                     placeholder="Add notes or comments..."

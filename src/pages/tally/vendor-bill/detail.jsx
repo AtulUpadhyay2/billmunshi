@@ -2205,7 +2205,7 @@ const TallyVendorBillDetail = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -2350,12 +2350,12 @@ const TallyVendorBillDetail = () => {
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                    <h3 className="text-base font-medium text-gray-900 truncate mr-2">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {billInfo.bill_munshi_name
                         ? `${billInfo.bill_munshi_name}`
                         : "Document"}
@@ -2364,9 +2364,9 @@ const TallyVendorBillDetail = () => {
                       {/* Keyboard Shortcuts Info */}
                       {!isPDF(billInfo.file) && (
                         <div className="relative group">
-                          <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                          <button className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-gray-200 transition-colors">
                             <svg
-                              className="w-3.5 h-3.5 text-gray-600"
+                              className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -2397,7 +2397,7 @@ const TallyVendorBillDetail = () => {
                         <>
                           <button
                             onClick={handleZoomOut}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom Out (Ctrl + -)"
                             disabled={zoomLevel <= 0.25}
                           >
@@ -2415,12 +2415,12 @@ const TallyVendorBillDetail = () => {
                               />
                             </svg>
                           </button>
-                          <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 min-w-[38px] text-center bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {Math.round(zoomLevel * 100)}%
                           </span>
                           <button
                             onClick={handleZoomIn}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom In (Ctrl + +)"
                             disabled={zoomLevel >= 3}
                           >
@@ -2440,7 +2440,7 @@ const TallyVendorBillDetail = () => {
                           </button>
                           <button
                             onClick={handleResetZoom}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                             title="Reset Zoom (Ctrl + 0)"
                           >
                             <svg
@@ -2463,7 +2463,7 @@ const TallyVendorBillDetail = () => {
                       {/* Fullscreen Toggle */}
                       <button
                         onClick={toggleFullscreen}
-                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                        className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                         title="Toggle Fullscreen (Ctrl + F)"
                       >
                         <svg
@@ -2527,7 +2527,7 @@ const TallyVendorBillDetail = () => {
                           className="flex flex-col items-center justify-center w-full h-full"
                         >
                           <svg
-                            className="w-12 h-12 text-gray-400 mb-4"
+                            className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -2539,7 +2539,7 @@ const TallyVendorBillDetail = () => {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
                             Unable to load document
                           </p>
                         </div>
@@ -2550,7 +2550,7 @@ const TallyVendorBillDetail = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
+                    className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2562,10 +2562,10 @@ const TallyVendorBillDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-gray-600">No document available</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -2573,126 +2573,31 @@ const TallyVendorBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
               {/* Vendor Information Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Vendor Information
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:building-office-2" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                    Bill from
                   </h3>
                 </div>
 
-                {/* Validation Summary */}
-                {!isVerified && hasValidationErrors() && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-2">
-                          Required for verification:
-                        </h4>
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {isVendorRequired && <li>• Select a vendor</li>}
-                          {productSync &&
-                            getProductsWithoutItemName().length > 0 && (
-                              <li>
-                                • Select Item Name for{" "}
-                                {getProductsWithoutItemName().length} product
-                                {getProductsWithoutItemName().length > 1
-                                  ? "s"
-                                  : ""}
-                              </li>
-                            )}
-                          {getProductsWithoutTaxLedger().length > 0 && (
-                            <li>
-                              • Select Tax Ledger for{" "}
-                              {getProductsWithoutTaxLedger().length} product
-                              {getProductsWithoutTaxLedger().length > 1
-                                ? "s"
-                                : ""}
-                            </li>
-                          )}
-                          {getProductsWithoutGST().length > 0 && (
-                            <li>
-                              • Select GST % for{" "}
-                              {getProductsWithoutGST().length} product
-                              {getProductsWithoutGST().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                          {isCgstLedgerRequired() && (
-                            <li>• Select CGST ledger</li>
-                          )}
-                          {isSgstLedgerRequired() && (
-                            <li>• Select SGST ledger</li>
-                          )}
-                          {isIgstLedgerRequired() && (
-                            <li>• Select IGST ledger</li>
-                          )}
-                          {isDiscountLedgerRequired() && (
-                            <li>• Select Discount ledger</li>
-                          )}
-                          {isCessLedgerRequired() && (
-                            <li>• Select Cess ledger</li>
-                          )}
-                          {isFreightLedgerRequired() && (
-                            <li>• Select Freight ledger</li>
-                          )}
-                          {isSubtotalGreaterThanTotal() && (
-                            <li>
-                              • Subtotal (₹{billSummaryForm.subtotal}) cannot be
-                              greater than total amount (₹
-                              {billSummaryForm.total})
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Simple Form Fields */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* First Row: Vendor and Invoice Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {/* Vendor Selection Field */}
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-500">*</span>
-                        {isVendorRequired && !isVerified && (
-                          <span className="text-red-500 text-xs ml-2">
-                            Required for verification
-                          </span>
-                        )}
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <div
                         className={`${
                           isVendorRequired && !isVerified
-                            ? "ring-2 ring-red-300 rounded-md"
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
@@ -2709,11 +2614,11 @@ const TallyVendorBillDetail = () => {
                           disabled={isVerified}
                           renderOption={(vendor) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white">
                                 {vendor.name}
                               </div>
                               {vendor.gst_in && (
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
                                   GST: {vendor.gst_in}
                                 </div>
                               )}
@@ -2779,7 +2684,7 @@ const TallyVendorBillDetail = () => {
 
                     {/* Invoice Number Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Invoice Number
                       </label>
                       <input
@@ -2791,9 +2696,9 @@ const TallyVendorBillDetail = () => {
                         }
                         placeholder="Enter invoice number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
                           isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
                         }`}
                       />
@@ -2801,10 +2706,10 @@ const TallyVendorBillDetail = () => {
                   </div>
 
                   {/* Second Row: GST, Date Issued, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* GST Number Field */}
                     <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         GST Number
                         {/* {vendorForm.selectedVendor && vendorForm.selectedVendor.gst_in && (
                                                     <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
@@ -2819,7 +2724,7 @@ const TallyVendorBillDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
                         readOnly={
                           vendorForm.selectedVendor &&
                           vendorForm.selectedVendor.gst_in &&
@@ -2829,7 +2734,7 @@ const TallyVendorBillDetail = () => {
                     </div>
                     {/* Date Issued Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Date Issued
                       </label>
                       <input
@@ -2842,12 +2747,12 @@ const TallyVendorBillDetail = () => {
                         min="1900-01-01"
                         max="2100-12-31"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dateIssued
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dateIssued && (
@@ -2871,7 +2776,7 @@ const TallyVendorBillDetail = () => {
                     </div>{" "}
                     {/* Due Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Due Date
                       </label>
                       <input
@@ -2884,12 +2789,12 @@ const TallyVendorBillDetail = () => {
                         min="1900-01-01"
                         max="2100-12-31"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -2916,37 +2821,27 @@ const TallyVendorBillDetail = () => {
               </div>
 
               {/* Product Information Section */}
-              <div className="relative p-8 border-b border-gray-200">
+              <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 {/* Products Section */}
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Products Details{" "}
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:list-bullet" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                        Line items{" "}
                         {isConsolidated && (
-                          <span className="text-blue-600 text-sm font-medium ml-2">
-                            (Consolidated View)
+                          <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold normal-case tracking-normal">
+                            Consolidated
                           </span>
                         )}
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           Consolidate Items
                         </span>
                         <Switch
@@ -2988,37 +2883,37 @@ const TallyVendorBillDetail = () => {
                   </div>
 
                   {/* Enhanced Products Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1000px]">
                         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                           <tr>
                             {productSync && (
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                              <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                                 Item Name{" "}
                                 <span className="text-red-500">*</span>
                               </th>
                             )}
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                               Item Details
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                               Purchase Ledger{" "}
                               <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Price
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Quantity
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]">
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Amount
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               GST % <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                            <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -3027,15 +2922,15 @@ const TallyVendorBillDetail = () => {
                           {products.map((product, index) => (
                             <tr
                               key={product.id}
-                              className="hover:bg-gray-50 transition-colors duration-150"
+                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
                             >
                               {/* Item Name - Only show if productSync is true */}
                               {productSync && (
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <div
                                     className={`relative ${
                                       !product.item_id && !isVerified
-                                        ? "ring-2 ring-red-300 rounded-md"
+                                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                         : ""
                                     }`}
                                   >
@@ -3055,7 +2950,7 @@ const TallyVendorBillDetail = () => {
                                       disabled={isVerified}
                                       renderOption={(stockItem) => (
                                         <div className="flex flex-col py-1">
-                                          <div className="font-medium text-gray-900">
+                                          <div className="font-medium text-slate-900 dark:text-white">
                                             {stockItem.name}
                                           </div>
                                           {stockItem.alias !== "0" &&
@@ -3073,7 +2968,7 @@ const TallyVendorBillDetail = () => {
                               )}
 
                               {/* Item Details */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <textarea
                                   value={product.item_details}
                                   onChange={(e) =>
@@ -3085,9 +2980,9 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="Enter item details..."
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                  className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   rows={2}
@@ -3095,11 +2990,11 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* Tax Ledger */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div
                                   className={`relative ${
                                     !product.tax_ledger_id && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -3118,7 +3013,7 @@ const TallyVendorBillDetail = () => {
                                     disabled={isVerified}
                                     renderOption={(taxLedger) => (
                                       <div className="flex flex-col py-1">
-                                        <div className="font-medium text-gray-900">
+                                        <div className="font-medium text-slate-900 dark:text-white">
                                           {taxLedger.name}
                                         </div>
                                       </div>
@@ -3129,7 +3024,7 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* Price */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={product.price}
@@ -3142,9 +3037,9 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   min="0"
@@ -3153,7 +3048,7 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* Quantity */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={product.quantity}
@@ -3166,9 +3061,9 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   min="0"
@@ -3177,7 +3072,7 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* Amount */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="number"
                                   value={product.amount}
@@ -3190,9 +3085,9 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                     isVerified
-                                      ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
                                   min="0"
@@ -3201,11 +3096,11 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* GST % */}
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div
                                   className={`${
                                     !product.gst && !isVerified
-                                      ? "ring-2 ring-red-300 rounded-md"
+                                      ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
                                 >
@@ -3219,9 +3114,9 @@ const TallyVendorBillDetail = () => {
                                       )
                                     }
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                       isVerified
-                                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
                                     style={{
@@ -3245,14 +3140,14 @@ const TallyVendorBillDetail = () => {
                               </td>
 
                               {/* Actions */}
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {products.length > 1 && (
                                   <button
                                     onClick={() => removeProduct(index)}
                                     disabled={isVerified}
                                     className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
                                       isVerified
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                        ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                         : ""
                                     }`}
                                     title={
@@ -3289,9 +3184,9 @@ const TallyVendorBillDetail = () => {
                     </div>
 
                     {/* Products Summary */}
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-slate-600 dark:text-slate-400">
                           Total Items: {products.length}{" "}
                           {isConsolidated && (
                             <span className="text-blue-600 font-medium ml-2">
@@ -3299,7 +3194,7 @@ const TallyVendorBillDetail = () => {
                             </span>
                           )}
                         </span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           Subtotal: ₹
                           {products
                             .reduce(
@@ -3318,566 +3213,135 @@ const TallyVendorBillDetail = () => {
               </div>
 
               {/* Bill Summary - Invoice Style */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Tax and Other Items
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:calculator" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                    Tax &amp; summary
                   </h3>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Left Column - Tax Details */}
-                    <div className="space-y-4">
-                      {/* <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-                                                <div className="flex items-center">
-                                                    <span className="text-sm text-gray-600 mr-2">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        name="subtotal"
-                                                        value={billSummaryForm.subtotal}
-                                                        onChange={e => handleBillSummaryChange('subtotal', e.target.value)}
-                                                        placeholder="0.00"
-                                                        disabled={isVerified}
-                                                        className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isVerified ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                                    />
-                                                </div>
-                                            </div> */}
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          CGST:
-                          {parseFloat(billSummaryForm.cgst || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="cgst"
-                              value={billSummaryForm.cgst}
-                              onChange={(e) =>
-                                handleBillSummaryChange("cgst", e.target.value)
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              isCgstLedgerRequired() && !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={cgstLedgerOptions}
-                              value={billSummaryForm.cgstLedgerId || null}
-                              onChange={handleCgstLedgerSelect}
-                              onClear={handleCgstLedgerClear}
-                              placeholder="Select CGST ledger..."
-                              searchPlaceholder="Type to search CGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={cgstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {/* {ledger.parent_name && (
-                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
-                                                                    )}
-                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )} */}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          SGST:
-                          {parseFloat(billSummaryForm.sgst || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="sgst"
-                              value={billSummaryForm.sgst}
-                              onChange={(e) =>
-                                handleBillSummaryChange("sgst", e.target.value)
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              isSgstLedgerRequired() && !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={sgstLedgerOptions}
-                              value={billSummaryForm.sgstLedgerId || null}
-                              onChange={handleSgstLedgerSelect}
-                              onClear={handleSgstLedgerClear}
-                              placeholder="Select SGST ledger..."
-                              searchPlaceholder="Type to search SGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={sgstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {/* {ledger.parent_name && (
-                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
-                                                                    )}
-                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )} */}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          IGST:
-                          {parseFloat(billSummaryForm.igst || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="igst"
-                              value={billSummaryForm.igst}
-                              onChange={(e) =>
-                                handleBillSummaryChange("igst", e.target.value)
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              isIgstLedgerRequired() && !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={igstLedgerOptions}
-                              value={billSummaryForm.igstLedgerId || null}
-                              onChange={handleIgstLedgerSelect}
-                              onClear={handleIgstLedgerClear}
-                              placeholder={
-                                parseFloat(billSummaryForm.igst || 0) > 0
-                                  ? "* Select IGST ledger... *"
-                                  : "Select IGST ledger..."
-                              }
-                              searchPlaceholder="Type to search IGST ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={igstLedgersLoading}
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {/* {ledger.parent_name && (
-                                                                        <div className="text-xs text-blue-600">{ledger.parent_name}</div>
-                                                                    )}
-                                                                    {ledger.opening_balance && parseFloat(ledger.opening_balance) !== 0 && (
-                                                                        <div className="text-xs text-gray-500">Balance: ₹{parseFloat(ledger.opening_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                                                    )} */}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Cess:
-                          {parseFloat(billSummaryForm.cess || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="cess"
-                              value={billSummaryForm.cess}
-                              onChange={(e) =>
-                                handleBillSummaryChange("cess", e.target.value)
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              isCessLedgerRequired() && !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={discountLedgerOptions}
-                              value={billSummaryForm.cessLedgerId || null}
-                              onChange={handleCessLedgerSelect}
-                              onClear={handleCessLedgerClear}
-                              placeholder={
-                                parseFloat(billSummaryForm.cess || 0) > 0
-                                  ? "* Select Cess ledger... *"
-                                  : "Select Cess ledger..."
-                              }
-                              searchPlaceholder="Type to search expense ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={
-                                purchaseLedgersLoading || expenseLedgersLoading
-                              }
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {ledger.type && (
-                                    <div className="text-xs text-blue-600">
-                                      {ledger.type} Ledger
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Discount:
-                          {parseFloat(billSummaryForm.discount || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="discount"
-                              value={billSummaryForm.discount}
-                              onChange={(e) =>
-                                handleBillSummaryChange(
-                                  "discount",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              parseFloat(billSummaryForm.discount || 0) > 0 &&
-                              !billSummaryForm.discountLedgerId &&
-                              !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={discountLedgerOptions}
-                              value={billSummaryForm.discountLedgerId || null}
-                              onChange={handleDiscountLedgerSelect}
-                              onClear={handleDiscountLedgerClear}
-                              placeholder={
-                                parseFloat(billSummaryForm.discount || 0) > 0
-                                  ? "* Select Discount ledger *"
-                                  : "Select Discount ledger"
-                              }
-                              searchPlaceholder="Type to search purchase or expense ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={
-                                purchaseLedgersLoading || expenseLedgersLoading
-                              }
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {ledger.type && (
-                                    <div className="text-xs text-blue-600">
-                                      {ledger.type} Ledger
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Freight / Delivery:
-                          {parseFloat(billSummaryForm.freight || 0) > 0 && (
-                            <span className="text-red-500 ml-1">*</span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="freight"
-                              value={billSummaryForm.freight}
-                              onChange={(e) =>
-                                handleBillSummaryChange(
-                                  "freight",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div
-                            className={`relative flex-1 min-w-[200px] ${
-                              isFreightLedgerRequired() && !isVerified
-                                ? "ring-2 ring-red-300 rounded-md"
-                                : ""
-                            }`}
-                          >
-                            <SearchableDropdown
-                              options={discountLedgerOptions}
-                              value={billSummaryForm.freightLedgerId || null}
-                              onChange={handleFreightLedgerSelect}
-                              onClear={handleFreightLedgerClear}
-                              placeholder={
-                                parseFloat(billSummaryForm.freight || 0) > 0
-                                  ? "* Select Freight ledger... *"
-                                  : "Select Freight ledger..."
-                              }
-                              searchPlaceholder="Type to search expense ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={
-                                purchaseLedgersLoading || expenseLedgersLoading
-                              }
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {ledger.type && (
-                                    <div className="text-xs text-blue-600">
-                                      {ledger.type} Ledger
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Round Off:
-                          {/* <span
-                            className="ml-1 text-xs text-gray-500"
-                            title="Auto-computed at verify when |total − (subtotal + GST + cess + freight − discount)| < ₹1"
-                          >
-                            (auto)
-                          </span> */}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-2">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              name="round_off"
-                              value={billSummaryForm.round_off}
-                              onChange={(e) =>
-                                handleBillSummaryChange(
-                                  "round_off",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={`w-24 px-2 py-1 text-right border-0 border-b border-gray-300 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            />
-                          </div>
-                          <div className="relative flex-1 min-w-[200px]">
-                            <SearchableDropdown
-                              options={discountLedgerOptions}
-                              value={billSummaryForm.roundOffLedgerId || null}
-                              onChange={handleRoundOffLedgerSelect}
-                              onClear={handleRoundOffLedgerClear}
-                              placeholder="Select Round Off ledger..."
-                              searchPlaceholder="Type to search expense ledgers..."
-                              optionLabelKey="name"
-                              optionValueKey="id"
-                              loading={
-                                purchaseLedgersLoading || expenseLedgersLoading
-                              }
-                              disabled={isVerified}
-                              renderOption={(ledger) => (
-                                <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
-                                    {ledger.name}
-                                  </div>
-                                  {ledger.type && (
-                                    <div className="text-xs text-blue-600">
-                                      {ledger.type} Ledger
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              className="text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                {(() => {
+                  const inputCls = (extra = "") =>
+                    `w-full px-2 py-1.5 text-right text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${extra}`;
 
-                    {/* Right Column - Total */}
-                    <div className="flex items-center justify-center">
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 w-full">
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-blue-700 uppercase tracking-wider mb-2">
-                            Total Amount
-                          </div>
-                          <div className="flex items-center justify-center">
-                            <span className="text-2xl font-bold text-blue-600 mr-2">
-                              ₹
-                            </span>
+                  const rows = [
+                    { key: "cgst", label: "CGST", required: parseFloat(billSummaryForm.cgst || 0) > 0, missing: isCgstLedgerRequired(), options: cgstLedgerOptions, ledgerId: billSummaryForm.cgstLedgerId, onSelect: handleCgstLedgerSelect, onClear: handleCgstLedgerClear, loading: cgstLedgersLoading, placeholder: "CGST ledger" },
+                    { key: "sgst", label: "SGST", required: parseFloat(billSummaryForm.sgst || 0) > 0, missing: isSgstLedgerRequired(), options: sgstLedgerOptions, ledgerId: billSummaryForm.sgstLedgerId, onSelect: handleSgstLedgerSelect, onClear: handleSgstLedgerClear, loading: sgstLedgersLoading, placeholder: "SGST ledger" },
+                    { key: "igst", label: "IGST", required: parseFloat(billSummaryForm.igst || 0) > 0, missing: isIgstLedgerRequired(), options: igstLedgerOptions, ledgerId: billSummaryForm.igstLedgerId, onSelect: handleIgstLedgerSelect, onClear: handleIgstLedgerClear, loading: igstLedgersLoading, placeholder: "IGST ledger" },
+                    { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
+                    { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) > 0, missing: parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
+                    { key: "freight", label: "Freight / Delivery", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
+                    { key: "round_off", label: "Round off", required: false, missing: false, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
+                  ];
+
+                  return (
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                      {/* Header */}
+                      <div className="hidden md:grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Component</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Amount (₹)</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger</span>
+                      </div>
+
+                      {/* Rows */}
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {rows.map((r) => (
+                          <div
+                            key={r.key}
+                            className="grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-2 items-center"
+                          >
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                              {r.label}
+                              {r.required && <span className="text-rose-500">*</span>}
+                            </label>
                             <input
                               type="number"
-                              name="total"
-                              value={billSummaryForm.total}
-                              onChange={(e) =>
-                                handleBillSummaryChange("total", e.target.value)
-                              }
+                              name={r.key}
+                              value={billSummaryForm[r.key]}
+                              onChange={(e) => handleBillSummaryChange(r.key, e.target.value)}
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-40 px-3 py-2 text-center text-2xl font-bold text-blue-600 border-0 border-b-2 border-blue-300 bg-transparent focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                isVerified
-                                  ? "opacity-60 cursor-not-allowed"
+                              className={inputCls()}
+                            />
+                            <div
+                              className={`relative ${
+                                r.missing && !isVerified
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
-                            />
+                            >
+                              <SearchableDropdown
+                                options={r.options}
+                                value={r.ledgerId || null}
+                                onChange={r.onSelect}
+                                onClear={r.onClear}
+                                placeholder={
+                                  r.required ? `Select ${r.placeholder}*` : `Select ${r.placeholder}`
+                                }
+                                searchPlaceholder={`Search ${r.placeholder.toLowerCase()}…`}
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                loading={r.loading}
+                                disabled={isVerified}
+                                renderOption={(ledger) => (
+                                  <div className="flex flex-col py-1">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
+                                      {ledger.name}
+                                    </div>
+                                    {ledger.type && (
+                                      <div className="text-[11px] text-blue-600 dark:text-blue-400">
+                                        {ledger.type} Ledger
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                className="text-xs"
+                              />
+                            </div>
                           </div>
-                          <div className="text-xs text-blue-600 mt-2">
-                            Including all taxes
-                          </div>
+                        ))}
+                      </div>
+
+                      {/* Total row */}
+                      <div className="grid grid-cols-[140px_120px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60">
+                        <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
+                          Total amount
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-700 dark:text-blue-400">₹</span>
+                          <input
+                            type="number"
+                            name="total"
+                            value={billSummaryForm.total}
+                            onChange={(e) => handleBillSummaryChange("total", e.target.value)}
+                            placeholder="0.00"
+                            disabled={isVerified}
+                            className="w-full pl-6 pr-2 py-1.5 text-right text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
                         </div>
+                        <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
+                          Including all taxes &amp; adjustments
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Notes Section */}
-              <div className="p-8">
+              <div className="p-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                      <Icon icon="heroicons:pencil-square" className="text-sm" />
+                    </span>
+                    <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                      Notes
+                    </label>
+                  </div>
                   <textarea
                     value={
                       notes ||
@@ -3892,9 +3356,9 @@ const TallyVendorBillDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${
+                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
                       isVerified
-                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
                     placeholder="Add notes or comments..."

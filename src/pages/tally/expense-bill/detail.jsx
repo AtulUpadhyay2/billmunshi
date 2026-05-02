@@ -1638,7 +1638,7 @@ const TallyExpenseBillDetail = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -1791,12 +1791,12 @@ const TallyExpenseBillDetail = () => {
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-300 flex-shrink-0 z-10">
-                    <h3 className="text-base font-medium text-gray-900 truncate mr-2">
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                    <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {billInfo.bill_munshi_name
                         ? `${billInfo.bill_munshi_name}`
                         : "Document"}
@@ -1805,9 +1805,9 @@ const TallyExpenseBillDetail = () => {
                       {/* Keyboard Shortcuts Info */}
                       {!isPDF(billInfo.file) && (
                         <div className="relative group">
-                          <button className="p-1 rounded-md bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors">
+                          <button className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-gray-200 transition-colors">
                             <svg
-                              className="w-3.5 h-3.5 text-gray-600"
+                              className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1838,7 +1838,7 @@ const TallyExpenseBillDetail = () => {
                         <>
                           <button
                             onClick={handleZoomOut}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom Out (Ctrl + -)"
                             disabled={zoomLevel <= 0.25}
                           >
@@ -1856,12 +1856,12 @@ const TallyExpenseBillDetail = () => {
                               />
                             </svg>
                           </button>
-                          <span className="text-[11px] font-medium text-gray-700 min-w-[38px] text-center bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 min-w-[38px] text-center bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                             {Math.round(zoomLevel * 100)}%
                           </span>
                           <button
                             onClick={handleZoomIn}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Zoom In (Ctrl + +)"
                             disabled={zoomLevel >= 3}
                           >
@@ -1881,7 +1881,7 @@ const TallyExpenseBillDetail = () => {
                           </button>
                           <button
                             onClick={handleResetZoom}
-                            className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                            className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                             title="Reset Zoom (Ctrl + 0)"
                           >
                             <svg
@@ -1904,7 +1904,7 @@ const TallyExpenseBillDetail = () => {
                       {/* Fullscreen Toggle */}
                       <button
                         onClick={toggleFullscreen}
-                        className="p-1 rounded-md bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                        className="p-1 rounded-md bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-slate-900/60 transition-colors"
                         title="Toggle Fullscreen (Ctrl + F)"
                       >
                         <svg
@@ -1960,7 +1960,7 @@ const TallyExpenseBillDetail = () => {
                           className="flex flex-col items-center"
                         >
                           <svg
-                            className="w-12 h-12 text-gray-400 mb-4"
+                            className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1972,7 +1972,7 @@ const TallyExpenseBillDetail = () => {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
                             Unable to load document
                           </p>
                         </div>
@@ -1983,7 +1983,7 @@ const TallyExpenseBillDetail = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
+                    className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1995,10 +1995,10 @@ const TallyExpenseBillDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-gray-600">No document available</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -2006,114 +2006,77 @@ const TallyExpenseBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
               {/* Bill Information Section */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:document-text" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Bill Information
                   </h3>
                 </div>
 
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                      <div>
-                        <h4 className="text-sm font-medium text-red-800 mb-2">
-                          Required for verification:
-                        </h4>
-                        <ul className="text-sm text-red-700 space-y-1">
-                          {isVendorRequired && <li>• Select a vendor</li>}
-                          {expenseItems.length === 0 && (
-                            <li>• Add at least one expense item</li>
-                          )}
-                          {getItemsWithoutCOA().length > 0 && (
-                            <li>
-                              • Select Expense Ledger for{" "}
-                              {getItemsWithoutCOA().length} expense item
-                              {getItemsWithoutCOA().length > 1 ? "s" : ""}
-                            </li>
-                          )}
-                          {isCgstLedgerRequired() && (
-                            <li>• Select CGST Ledger Account</li>
-                          )}
-                          {isSgstLedgerRequired() && (
-                            <li>• Select SGST Ledger Account</li>
-                          )}
-                          {isIgstLedgerRequired() && (
-                            <li>• Select IGST Ledger Account</li>
-                          )}
-                          {isTdsLedgerRequired() && (
-                            <li>• Select TDS Ledger Account</li>
-                          )}
-                          {isOtherAdjustmentLedgerRequired() && (
-                            <li>• Select Other Adjustment Ledger Account</li>
-                          )}
-                          {isSubtotalGreaterThanTotal() && (
-                            <li>
-                              • Subtotal (₹
-                              {expenseItems
-                                .reduce(
-                                  (sum, item) =>
-                                    sum + parseFloat(item.amount || 0),
-                                  0,
-                                )
-                                .toFixed(2)}
-                              ) cannot be greater than total amount (₹
-                              {billForm.totalAmount})
-                            </li>
-                          )}
-                        </ul>
-                      </div>
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
+                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                        Resolve before verifying
+                      </p>
+                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
+                        {isVendorRequired && <li>Select a vendor</li>}
+                        {expenseItems.length === 0 && (
+                          <li>Add at least one expense item</li>
+                        )}
+                        {getItemsWithoutCOA().length > 0 && (
+                          <li>
+                            Select expense ledger for{" "}
+                            {getItemsWithoutCOA().length} expense item
+                            {getItemsWithoutCOA().length > 1 ? "s" : ""}
+                          </li>
+                        )}
+                        {isCgstLedgerRequired() && <li>Select CGST ledger</li>}
+                        {isSgstLedgerRequired() && <li>Select SGST ledger</li>}
+                        {isIgstLedgerRequired() && <li>Select IGST ledger</li>}
+                        {isTdsLedgerRequired() && <li>Select TDS ledger</li>}
+                        {isOtherAdjustmentLedgerRequired() && (
+                          <li>Select other-adjustment ledger</li>
+                        )}
+                        {isSubtotalGreaterThanTotal() && (
+                          <li>
+                            Subtotal (₹
+                            {expenseItems
+                              .reduce(
+                                (sum, item) =>
+                                  sum + parseFloat(item.amount || 0),
+                                0,
+                              )
+                              .toFixed(2)}
+                            ) cannot be greater than total amount (₹
+                            {billForm.totalAmount})
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   </div>
                 )}
 
                 {/* Bill Form Fields */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* First Row: Vendor and Bill Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {/* Vendor Selection Field */}
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Vendor <span className="text-red-500">*</span>
-                        {isVendorRequired && !isVerified && (
-                          <span className="text-red-500 text-xs ml-2">
-                            Required for verification
-                          </span>
-                        )}
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <div
                         className={`${
                           isVendorRequired && !isVerified
-                            ? "ring-2 ring-red-300 rounded-md"
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
@@ -2130,11 +2093,11 @@ const TallyExpenseBillDetail = () => {
                           disabled={isVerified}
                           renderOption={(vendor) => (
                             <div className="flex flex-col py-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {vendor.name}
                               </div>
                               {vendor.gst_in && (
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
                                   GST: {vendor.gst_in}
                                 </div>
                               )}
@@ -2198,7 +2161,7 @@ const TallyExpenseBillDetail = () => {
 
                     {/* Bill Number Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Number
                       </label>
                       <input
@@ -2210,9 +2173,9 @@ const TallyExpenseBillDetail = () => {
                         }
                         placeholder="Enter bill number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
                           isVerified
-                            ? "bg-gray-100 cursor-not-allowed opacity-60"
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
                         }`}
                       />
@@ -2220,10 +2183,10 @@ const TallyExpenseBillDetail = () => {
                   </div>
 
                   {/* Second Row: Vendor GST, Bill Date, Due Date */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* GST Number Field */}
                     <div className="lg:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         GST Number
                       </label>
                       <input
@@ -2235,7 +2198,7 @@ const TallyExpenseBillDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none`}
+                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
                         readOnly={
                           billForm.selectedVendor &&
                           billForm.selectedVendor.gst_in &&
@@ -2246,7 +2209,7 @@ const TallyExpenseBillDetail = () => {
 
                     {/* Bill Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Bill Date
                       </label>
                       <input
@@ -2260,12 +2223,12 @@ const TallyExpenseBillDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.billDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.billDate && (
@@ -2290,7 +2253,7 @@ const TallyExpenseBillDetail = () => {
 
                     {/* Due Date Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Due Date
                       </label>
                       <input
@@ -2304,12 +2267,12 @@ const TallyExpenseBillDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:outline-none ${
+                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
-                              ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                       />
                       {dateErrors.dueDate && (
@@ -2336,37 +2299,27 @@ const TallyExpenseBillDetail = () => {
               </div>
 
               {/* Expense Items Section */}
-              <div className="relative p-8 border-b border-gray-200">
+              <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <svg
-                        className="w-5 h-5 text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Credit / Debit Items{" "}
+                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                        <Icon icon="heroicons:list-bullet" className="text-sm" />
+                      </span>
+                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                        Credit / Debit items
                         {isConsolidated && (
-                          <span className="text-blue-600 text-sm font-medium ml-2">
-                            (Consolidated View)
+                          <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold normal-case tracking-normal">
+                            Consolidated
                           </span>
                         )}
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">
-                          Consolidate Items
+                      <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Consolidate items
                         </span>
                         <Switch
                           value={isConsolidated}
@@ -2405,27 +2358,27 @@ const TallyExpenseBillDetail = () => {
                   </div>
 
                   {/* Enhanced Expense Items Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px]">
+                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto">
                       <div className="max-h-[600px] overflow-y-auto min-h-[350px]">
                         <table className="w-full min-w-[800px]">
                           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                              <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
                                 Item Details{" "}
                                 <span className="text-red-500">*</span>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[200px]">
+                              <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                                 Expense Ledger{" "}
                                 <span className="text-red-500">*</span>
                               </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                              <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                                 Amount
                               </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                              <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                                 Type
                               </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[80px]">
+                              <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                                 Actions
                               </th>
                             </tr>
@@ -2434,14 +2387,14 @@ const TallyExpenseBillDetail = () => {
                             {expenseItems.map((item, index) => (
                               <tr
                                 key={item.id}
-                                className="hover:bg-gray-50 transition-colors duration-150"
+                                className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
                               >
                                 {/* Item Details */}
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <div
                                     className={`${
                                       !item.item_details && !isVerified
-                                        ? "ring-2 ring-red-300 rounded-md"
+                                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                         : ""
                                     }`}
                                   >
@@ -2456,9 +2409,9 @@ const TallyExpenseBillDetail = () => {
                                       }
                                       placeholder="Enter item details..."
                                       disabled={isVerified}
-                                      className={`w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 resize-none ${
+                                      className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
                                         isVerified
-                                          ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                          ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                           : ""
                                       }`}
                                       rows={3}
@@ -2466,11 +2419,11 @@ const TallyExpenseBillDetail = () => {
                                   </div>
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <div
                                     className={`${
                                       !item.chart_of_accounts_id && !isVerified
-                                        ? "ring-2 ring-red-300 rounded-md"
+                                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                         : ""
                                     }`}
                                   >
@@ -2494,7 +2447,7 @@ const TallyExpenseBillDetail = () => {
                                       disabled={isVerified}
                                       renderOption={(ledger) => (
                                         <div className="flex flex-col py-1">
-                                          <div className="font-medium text-gray-900">
+                                          <div className="font-medium text-slate-900 dark:text-white text-sm">
                                             {ledger.name}
                                           </div>
                                         </div>
@@ -2503,7 +2456,7 @@ const TallyExpenseBillDetail = () => {
                                   </div>
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <input
                                     type="number"
                                     value={item.amount}
@@ -2516,9 +2469,9 @@ const TallyExpenseBillDetail = () => {
                                     }
                                     placeholder="0.00"
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                       isVerified
-                                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
                                     min="0"
@@ -2527,7 +2480,7 @@ const TallyExpenseBillDetail = () => {
                                 </td>
 
                                 {/* Debit/Credit Type */}
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <select
                                     value={item.debit_or_credit}
                                     onChange={(e) =>
@@ -2538,9 +2491,9 @@ const TallyExpenseBillDetail = () => {
                                       )
                                     }
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                       isVerified
-                                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
                                     style={{
@@ -2557,14 +2510,14 @@ const TallyExpenseBillDetail = () => {
                                 </td>
 
                                 {/* Actions */}
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-3 py-2 text-center">
                                   {expenseItems.length > 1 && (
                                     <button
                                       onClick={() => removeExpenseItem(index)}
                                       disabled={isVerified}
                                       className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
                                         isVerified
-                                          ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-100"
+                                          ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                           : ""
                                       }`}
                                       title="Remove Item"
@@ -2592,9 +2545,9 @@ const TallyExpenseBillDetail = () => {
                       </div>
 
                       {/* Expense Items Summary */}
-                      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                      <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600">
+                          <span className="text-slate-600 dark:text-slate-400">
                             Total Items: {expenseItems.length}{" "}
                             {isConsolidated && (
                               <span className="text-blue-600 font-medium ml-2">
@@ -2602,7 +2555,7 @@ const TallyExpenseBillDetail = () => {
                               </span>
                             )}
                           </span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-slate-900 dark:text-white">
                             Subtotal: ₹
                             {expenseItems
                               .reduce(
@@ -2622,59 +2575,49 @@ const TallyExpenseBillDetail = () => {
               </div>
 
               {/* Bill Summary - Tax and Other Items */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-900">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:calculator" className="text-sm" />
+                  </span>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Tax and Other Items
                   </h3>
                 </div>
 
                 {/* Tax and Other Items Table */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[800px]">
                       <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                          <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                             Tax Type
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[300px]">
+                          <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
                             Ledger Account
                           </th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[120px]">
+                          <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                             Type
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                          <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                             Amount
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {/* CGST Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               CGST
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <div
                               className={`${
                                 isCgstLedgerRequired() && !isVerified
-                                  ? "ring-2 ring-red-300 rounded-md"
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
                             >
@@ -2691,7 +2634,7 @@ const TallyExpenseBillDetail = () => {
                                 disabled={isVerified}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
                                   </div>
@@ -2704,7 +2647,7 @@ const TallyExpenseBillDetail = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={taxSummaryForm.cgstDebitCredit || "debit"}
                               onChange={(e) =>
@@ -2714,9 +2657,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -2731,7 +2674,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="cgst"
@@ -2741,9 +2684,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -2753,17 +2696,17 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* SGST Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               SGST
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <div
                               className={`${
                                 isSgstLedgerRequired() && !isVerified
-                                  ? "ring-2 ring-red-300 rounded-md"
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
                             >
@@ -2780,7 +2723,7 @@ const TallyExpenseBillDetail = () => {
                                 disabled={isVerified}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
                                   </div>
@@ -2793,7 +2736,7 @@ const TallyExpenseBillDetail = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={taxSummaryForm.sgstDebitCredit || "debit"}
                               onChange={(e) =>
@@ -2803,9 +2746,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -2820,7 +2763,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="sgst"
@@ -2830,9 +2773,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -2842,17 +2785,17 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* IGST Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               IGST
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <div
                               className={`${
                                 isIgstLedgerRequired() && !isVerified
-                                  ? "ring-2 ring-red-300 rounded-md"
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
                             >
@@ -2869,7 +2812,7 @@ const TallyExpenseBillDetail = () => {
                                 disabled={isVerified}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
                                   </div>
@@ -2882,7 +2825,7 @@ const TallyExpenseBillDetail = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={taxSummaryForm.igstDebitCredit || "debit"}
                               onChange={(e) =>
@@ -2892,9 +2835,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -2909,7 +2852,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="igst"
@@ -2919,9 +2862,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -2931,17 +2874,17 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* TDS Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               TDS
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <div
                               className={`${
                                 isTdsLedgerRequired() && !isVerified
-                                  ? "ring-2 ring-red-300 rounded-md"
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
                             >
@@ -2958,7 +2901,7 @@ const TallyExpenseBillDetail = () => {
                                 disabled={isVerified}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
                                   </div>
@@ -2971,7 +2914,7 @@ const TallyExpenseBillDetail = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={taxSummaryForm.tdsDebitCredit || "debit"}
                               onChange={(e) =>
@@ -2981,9 +2924,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -2998,7 +2941,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="tds"
@@ -3008,9 +2951,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -3020,17 +2963,17 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* Other Adjustment Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               Other Adjustment
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <div
                               className={`${
                                 isOtherAdjustmentLedgerRequired() && !isVerified
-                                  ? "ring-2 ring-red-300 rounded-md"
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : ""
                               }`}
                             >
@@ -3049,7 +2992,7 @@ const TallyExpenseBillDetail = () => {
                                 disabled={isVerified}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
                                   </div>
@@ -3063,7 +3006,7 @@ const TallyExpenseBillDetail = () => {
                                 </span>
                               )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={
                                 taxSummaryForm.other_adjustment_debit_or_credit ||
@@ -3076,9 +3019,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -3093,7 +3036,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="other_adjustment"
@@ -3106,9 +3049,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -3118,19 +3061,19 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* Round Off Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               Round Off
                               <span
-                                className="ml-1 text-xs text-gray-500"
+                                className="ml-1 text-xs text-slate-500 dark:text-slate-400"
                                 title="Auto-computed at verify when |DR − CR| < ₹1; side is set automatically to balance the journal."
                               >
                                 (auto)
                               </span>
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <SearchableDropdown
                               options={ledgerOptions}
                               value={taxSummaryForm.round_off_taxes || null}
@@ -3144,14 +3087,14 @@ const TallyExpenseBillDetail = () => {
                               disabled={isVerified}
                               renderOption={(ledger) => (
                                 <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
+                                  <div className="font-medium text-slate-900 dark:text-white text-sm">
                                     {ledger.name}
                                   </div>
                                 </div>
                               )}
                             />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={
                                 taxSummaryForm.round_off_debit_or_credit ||
@@ -3164,9 +3107,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -3181,7 +3124,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="round_off"
@@ -3194,9 +3137,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -3206,13 +3149,13 @@ const TallyExpenseBillDetail = () => {
                         </tr>
 
                         {/* Payable to Vendor Row */}
-                        <tr className="hover:bg-gray-50 transition-colors duration-150 bg-blue-50">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">
+                        <tr className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150 bg-blue-50">
+                          <td className="px-3 py-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
                               Payable / Paid
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <SearchableDropdown
                               options={vendorOptions}
                               value={billForm.selectedVendor?.id || null}
@@ -3226,11 +3169,11 @@ const TallyExpenseBillDetail = () => {
                               disabled={isVerified}
                               renderOption={(vendor) => (
                                 <div className="flex flex-col py-1">
-                                  <div className="font-medium text-gray-900">
+                                  <div className="font-medium text-slate-900 dark:text-white text-sm">
                                     {vendor.name}
                                   </div>
                                   {vendor.gst_in && (
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
                                       GST: {vendor.gst_in}
                                     </div>
                                   )}
@@ -3238,7 +3181,7 @@ const TallyExpenseBillDetail = () => {
                               )}
                             />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <select
                               value={
                                 taxSummaryForm.vendorDebitCredit || "credit"
@@ -3250,9 +3193,9 @@ const TallyExpenseBillDetail = () => {
                                 )
                               }
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 appearance-none cursor-pointer ${
+                              className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               style={{
@@ -3267,7 +3210,7 @@ const TallyExpenseBillDetail = () => {
                               <option value="credit">Credit</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               name="vendorAmount"
@@ -3280,9 +3223,9 @@ const TallyExpenseBillDetail = () => {
                               }
                               placeholder="0.00"
                               disabled={isVerified}
-                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                 isVerified
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
+                                  ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                   : ""
                               }`}
                               min="0"
@@ -3295,13 +3238,13 @@ const TallyExpenseBillDetail = () => {
                   </div>
 
                   {/* Total Amount Footer */}
-                  <div className="px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                  <div className="px-4 py-3 border-t border-blue-100 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30">
                     <div className="flex justify-between items-center">
-                      <span className="text-base font-semibold text-gray-900">
-                        Total Amount:
+                      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
+                        Total amount
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">₹</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-bold text-blue-700 dark:text-blue-400">₹</span>
                         <input
                           type="number"
                           name="totalAmount"
@@ -3311,11 +3254,7 @@ const TallyExpenseBillDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className={`w-48 px-3 py-2 text-right border border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none text-sm font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                            isVerified
-                              ? "opacity-60 cursor-not-allowed bg-gray-100"
-                              : ""
-                          }`}
+                          className="w-32 px-2 py-1 text-right text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           min="0"
                           step="0.01"
                         />
@@ -3326,9 +3265,9 @@ const TallyExpenseBillDetail = () => {
               </div>
 
               {/* Notes Section */}
-              <div className="p-8">
+              <div className="p-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -3345,9 +3284,9 @@ const TallyExpenseBillDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none resize-none ${
+                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
                       isVerified
-                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
                     placeholder="Add notes or comments..."
