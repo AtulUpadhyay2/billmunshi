@@ -1,5 +1,5 @@
 import React from "react";
-import TallyBillsList from "@/pages/tally/_shared/TallyBillsList";
+import BillsList from "@/pages/_shared/BillsList";
 import {
   useGetTallyExpenseBills,
   useUpdateTallyExpenseBill,
@@ -12,7 +12,7 @@ import {
 
 const TallyExpenseBill = () => {
   return (
-    <TallyBillsList
+    <BillsList
       variant="expense"
       copy={{
         title: "Expense bills",

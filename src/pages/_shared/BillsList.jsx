@@ -48,13 +48,18 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Tally serializers expose `bill_munshi_name` (snake_case); Zoho serializers
+// expose `billmunshiName` (camelCase). Read whichever the API returned.
+const getBillName = (bill) =>
+  bill?.bill_munshi_name || bill?.billmunshiName || "";
+
 const getTallySyncState = (bill) => {
   if (bill.tally_synced) return "success";
   if (bill.tally_sync_message && !bill.tally_synced) return "failed";
   return null;
 };
 
-const TallyBillsList = ({
+const BillsList = ({
   variant, // "vendor" | "expense"
   copy,    // labels: { title, subtitle, billLabel, moveTargetLabel, detailRoute, uploadTitle }
   // hooks (from the per-page service file)
@@ -152,7 +157,7 @@ const TallyBillsList = ({
     if (!searchQuery.trim()) return bills;
     const q = searchQuery.toLowerCase();
     return bills.filter((b) =>
-      [b.bill_munshi_name, b.status, b.uploaded_by_name, b.processing_error]
+      [getBillName(b), b.status, b.uploaded_by_name, b.processing_error]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -589,14 +594,14 @@ const TallyBillsList = ({
                             </div>
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {bill.bill_munshi_name || "—"}
+                                {getBillName(bill) || "—"}
                               </div>
                               <div className="flex items-center flex-wrap gap-1.5 mt-1">
                                 {bill.file && (
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedFile({ url: bill.file, name: bill.bill_munshi_name || copy.billLabel });
+                                      setSelectedFile({ url: bill.file, name: getBillName(bill) || copy.billLabel });
                                       setIsFileViewerOpen(true);
                                     }}
                                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 cursor-pointer"
@@ -789,7 +794,7 @@ const TallyBillsList = ({
                 <p className="mt-1">
                   Bill{" "}
                   <span className="font-mono font-semibold">
-                    {selectedDuplicateBill.bill_munshi_name}
+                    {getBillName(selectedDuplicateBill)}
                   </span>{" "}
                   may match an existing bill in this workspace.
                 </p>
@@ -944,4 +949,4 @@ const TallyBillsList = ({
   );
 };
 
-export default TallyBillsList;
+export default BillsList;

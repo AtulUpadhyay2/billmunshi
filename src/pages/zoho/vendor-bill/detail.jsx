@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Card from "@/components/ui/Card";
+import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -897,46 +897,36 @@ const ZohoVendorBillDetail = () => {
   // Show error state
   if (error) {
     return (
-      <div className="space-y-5">
-        <Card title="Error" noBorder>
-          <div className="flex flex-col items-center justify-center py-8">
-            <svg
-              className="w-12 h-12 text-red-500 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="text-red-600 text-center">
-              <p className="text-lg font-medium">Failed to load vendor bill</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {error?.data?.message ||
-                  error?.message ||
-                  "An error occurred while fetching vendor bill details"}
-              </p>
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={handleBackClick}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
-        </Card>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+        </div>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+          Failed to load vendor bill
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+          {error?.data?.message ||
+            error?.message ||
+            "An error occurred while fetching vendor bill details."}
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+          >
+            <Icon icon="heroicons:arrow-left" className="text-base" />
+            Go back
+          </button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+          >
+            <Icon icon="heroicons:arrow-path" className="text-base" />
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
@@ -944,11 +934,16 @@ const ZohoVendorBillDetail = () => {
   // Show message if no organization selected
   if (!selectedOrganization?.id) {
     return (
-      <div className="text-center py-8">
-        <div className="text-slate-500">No organization selected</div>
-        <div className="text-xs text-slate-400 mt-2">
-          Please select an organization to view vendor bill details
+      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
+        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+          <Icon icon="heroicons:building-office" className="text-2xl" />
         </div>
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          No workspace selected
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Please select a client to view vendor bill details.
+        </p>
       </div>
     );
   }
@@ -1003,215 +998,89 @@ const ZohoVendorBillDetail = () => {
         </div>
       )}
 
-      <Card
-        title={`Vendor Bill Detail`}
-        noBorder
-        headerSlot={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh vendor bill"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                />
-              </svg>
-              {isLoading ? "Refreshing..." : "Refresh"}
-            </button>
-            <button
-              onClick={handleBackClick}
-              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-500 border border-transparent rounded-lg shadow-sm hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-500 transition-all duration-200 active:scale-95"
-              title="Back"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Back
-            </button>
-            <button
-              onClick={() =>
-                navigate(`/zoho/vendor-bill/${vendorBillData?.next_bill}`)
-              }
-              disabled={!vendorBillData?.next_bill}
-              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                vendorBillData?.next_bill
-                  ? "Go to next bill"
-                  : "No next bill available"
-              }
-            >
-              Next
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleVerification}
-              disabled={
-                isVerifying ||
-                isSynced ||
-                !selectedOrganization?.id ||
-                hasValidationErrors()
-              }
-              className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isSynced
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : hasValidationErrors()
-                    ? "bg-gray-400 hover:bg-gray-400"
-                    : ""
-              }`}
-              title={
-                isSynced
-                  ? "Bill already synced/posted - cannot verify again"
-                  : hasValidationErrors()
-                    ? "Please select vendor and chart of accounts for all products"
-                    : vendorBillData?.status === "Verified"
-                      ? "Re-verify Bill (you can verify multiple times)"
-                      : "Verify Bill"
-              }
-            >
-              {isVerifying ? (
-                <>
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.8}
-                    stroke="currentColor"
-                    className="w-4 h-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  {vendorBillData?.status === "Verified"
-                    ? "Re-verify"
-                    : "Verify"}
-                </>
-              )}
-            </button>
-            {/* Sync Button - Only enable once when status is Verified, disable forever after synced */}
-            <button
-              onClick={handleSync}
-              disabled={
-                isSyncing || isSynced || vendorBillData?.status !== "Verified"
-              }
-              className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
-                isSyncing || isSynced || vendorBillData?.status !== "Verified"
-                  ? "text-gray-400 bg-gray-25 border-gray-100 cursor-not-allowed opacity-75"
-                  : "text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:shadow-md focus:ring-gray-500"
-              }`}
-              title={
-                isSyncing
-                  ? "Syncing in progress..."
-                  : isSynced
-                    ? "Bill already synced - cannot sync again"
-                    : vendorBillData?.status !== "Verified"
-                      ? "Bill must be verified before sync"
-                      : "Sync with Zoho (can only sync once)"
-              }
-            >
-              {isSyncing ? (
-                <svg
-                  className="w-4 h-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                  className="w-4 h-4 group-hover:scale-110 transition-transform duration-200"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                  />
-                </svg>
-              )}
-              {isSyncing ? "Syncing..." : "Sync"}
-            </button>
+      {/* Page header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            title="Back to vendor bills"
+          >
+            <Icon icon="heroicons:arrow-left" className="text-base" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+              {vendorBillData?.bill_munshi_name || vendorBillData?.billmunshiName || "Vendor bill"}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {vendorBillData?.status ? `Status: ${vendorBillData.status}` : "Vendor bill detail"}
+            </p>
           </div>
-        }
-      >
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+          >
+            <Icon icon="heroicons:arrow-path" className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/zoho/vendor-bill/${vendorBillData?.next_bill}`)}
+            disabled={!vendorBillData?.next_bill}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            title={vendorBillData?.next_bill ? "Go to next bill" : "No next bill"}
+          >
+            Next
+            <Icon icon="heroicons:arrow-right" className="text-base" />
+          </button>
+          <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          <button
+            type="button"
+            onClick={handleVerification}
+            disabled={isVerifying || isSynced || hasValidationErrors()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            title={
+              isVerifying
+                ? "Verifying…"
+                : isSynced
+                  ? "Bill already synced"
+                  : hasValidationErrors()
+                    ? "Resolve validation issues before verifying"
+                    : vendorBillData?.status === "Verified"
+                      ? "Re-verify"
+                      : "Verify"
+            }
+          >
+            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-base ${isVerifying ? "animate-spin" : ""}`} />
+            {isVerifying ? "Verifying…" : vendorBillData?.status === "Verified" ? "Re-verify" : "Verify"}
+          </button>
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={isSyncing || isSynced || vendorBillData?.status !== "Verified"}
+            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            title={
+              isSyncing
+                ? "Syncing…"
+                : isSynced
+                  ? "Bill already synced"
+                  : vendorBillData?.status !== "Verified"
+                    ? "Bill must be verified before sync"
+                    : "Sync with Zoho"
+            }
+          >
+            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-base ${isSyncing ? "animate-spin" : ""}`} />
+            {isSyncing ? "Syncing…" : "Sync to Zoho"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6">
         <div className="flex flex-col lg:flex-row gap-6 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
@@ -2668,7 +2537,7 @@ const ZohoVendorBillDetail = () => {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Fullscreen Modal */}
       {isFullscreen && vendorBillData?.file && (
