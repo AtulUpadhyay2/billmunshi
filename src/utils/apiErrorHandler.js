@@ -11,8 +11,6 @@ import { globalToast } from "./toast";
  * @returns {boolean} - Returns false (token expiration is handled elsewhere)
  */
 export const handleApiError = (error, defaultMessage = "An error occurred") => {
-  console.error("API Error:", error);
-
   // Handle other common error cases
   let errorMessage = defaultMessage;
 
@@ -73,29 +71,6 @@ export const extractErrorMessage = (
   }
 
   return defaultMessage;
-};
-
-/**
- * Check if error is a token expiration error
- * @param {Object} error - The error object from API response
- * @returns {boolean} - True if token is expired
- */
-export const isTokenExpiredError = (error) => {
-  if (error?.status === 401 && error?.data) {
-    const data = error.data;
-
-    return (
-      data?.code === "token_not_valid" ||
-      data?.detail === "Given token not valid for any token type" ||
-      (data?.messages &&
-        data.messages.some(
-          (msg) =>
-            msg.message === "Token is expired" || msg.token_type === "access",
-        ))
-    );
-  }
-
-  return false;
 };
 
 export default handleApiError;

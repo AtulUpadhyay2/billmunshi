@@ -1,6 +1,6 @@
 import { API_CONFIG } from "../config/api";
 import store from "../store";
-import { setUser, forceLogout } from "../store/api/auth/authSlice";
+import { forceLogout, setTokens, updateProfile } from "../store/api/auth/authSlice";
 import { globalToast } from "./toast";
 
 // Single mutex + promise shared across ALL API layers (axios & RTK Query)
@@ -73,26 +73,23 @@ async function performRefresh(refreshToken) {
       throw new Error("Invalid refresh response");
     }
 
-    // Update localStorage
+    // Update localStorage with the new token pair. We update Redux's auth
+    // tokens directly via setTokens so the auth slice stays consistent
+    // WITHOUT touching the user object or selectedOrganization (those
+    // pathways used to trigger a re-render storm after every refresh).
     localStorage.setItem("access_token", data.access);
     if (data.refresh) {
       localStorage.setItem("refresh_token", data.refresh);
     }
-    if (data.user) {
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
+    store.dispatch(
+      setTokens({
+        access: data.access,
+        refresh: data.refresh || refreshToken,
+      }),
+    );
 
-    // Update Redux state
-    const state = store.getState();
-    const userToUpdate = data.user || state.auth.user;
-    if (userToUpdate) {
-      store.dispatch(
-        setUser({
-          user: userToUpdate,
-          access: data.access,
-          refresh: data.refresh || refreshToken,
-        }),
-      );
+    if (data.user) {
+      store.dispatch(updateProfile(data.user));
     }
 
     return data;

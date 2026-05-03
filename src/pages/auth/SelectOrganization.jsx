@@ -57,11 +57,13 @@ const SelectOrganization = () => {
 
   useEffect(() => {
     if (!loginData) {
-      navigate("/login");
+      navigate("/auth/login");
       return;
     }
-    localStorage.setItem("access_token", loginData.access);
-    localStorage.setItem("refresh_token", loginData.refresh);
+    // Tokens were already written to localStorage by LoginForm before the
+    // navigate happened — do NOT write them again here. A second write
+    // (with the same value) was harmless on its own but confused the post-
+    // login flow during debugging.
     fetchOrganizations();
   }, [loginData]);
 
@@ -87,7 +89,21 @@ const SelectOrganization = () => {
     try {
       const selectedOrg = organizations.find((org) => org.id === selectedOrgId);
       if (selectedOrg) {
-        dispatch(setUser(loginData));
+        // Hydrate the user payload with the orgs we just fetched, so
+        // RequireAuth's `user.organizations.length === 0` check passes
+        // immediately and doesn't bounce the user to /auth/no-organization
+        // while a profile refresh is in flight.
+        const hydratedUser = {
+          ...loginData.user,
+          organizations,
+        };
+        dispatch(
+          setUser({
+            user: hydratedUser,
+            access: loginData.access,
+            refresh: loginData.refresh,
+          }),
+        );
         dispatch(setSelectedOrganization(selectedOrg));
         toast.success(`Selected ${selectedOrg.name}`);
         navigate("/dashboard");

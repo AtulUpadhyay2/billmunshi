@@ -22,13 +22,6 @@ export const authApi = apiSlice.injectEndpoints({
         method: "GET",
       }),
     }),
-    refreshToken: builder.mutation({
-      query: (refreshToken) => ({
-        url: "auth/refresh/",
-        method: "POST",
-        body: { refresh: refreshToken },
-      }),
-    }),
     changePassword: builder.mutation({
       query: (data) => ({
         url: "auth/password/change/",
@@ -44,4 +37,12 @@ export const authApi = apiSlice.injectEndpoints({
     }),
   }),
 });
-export const { useRegisterUserMutation, useLoginMutation, useGetProfileQuery, useLazyGetProfileQuery, useRefreshTokenMutation, useChangePasswordMutation, useGetOrganizationsQuery, useLazyGetOrganizationsQuery } = authApi;
+export const {
+  useRegisterUserMutation,
+  useLoginMutation,
+  useGetProfileQuery,
+  useLazyGetProfileQuery,
+  useChangePasswordMutation,
+  useGetOrganizationsQuery,
+  useLazyGetOrganizationsQuery,
+} = authApi;

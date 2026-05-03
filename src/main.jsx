@@ -8,8 +8,17 @@ import { Provider } from "react-redux";
 import store from "./store";
 import "./utils/toast"; // Import global toast utility
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
+
+// Devtools are loaded only in development to keep them out of production
+// bundles entirely (Vite tree-shakes the import.meta.env.DEV branch).
+const ReactQueryDevtools = import.meta.env.DEV
+  ? React.lazy(() =>
+      import("@tanstack/react-query-devtools").then((m) => ({
+        default: m.ReactQueryDevtools,
+      }))
+    )
+  : null;
 
 // Create a QueryClient instance with conservative defaults — avoids
 // hammering the backend when the user switches tabs / refocuses the window.
@@ -45,7 +54,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <QueryClientProvider client={queryClient}>
           <App />
           <Toaster position="top-right" richColors closeButton />
-          <ReactQueryDevtools initialIsOpen={false} />
+          {ReactQueryDevtools && (
+            <React.Suspense fallback={null}>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </React.Suspense>
+          )}
         </QueryClientProvider>
       </Provider>
     </BrowserRouter>

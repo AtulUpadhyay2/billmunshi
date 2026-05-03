@@ -19,6 +19,7 @@ const Error = lazy(() => import("./pages/NotFound"));
 
 import Layout from "./layouts/Layout";
 import AuthLayout from "./layouts/AuthLayout";
+import RequireAuth from "./layouts/RequireAuth";
 
 // utility pages
 const Profile = lazy(() => import("./pages/utility/profile"));
@@ -118,6 +119,7 @@ function App() {
             element={<SelectOrganization />}
           />
         </Route>
+        <Route element={<RequireAuth />}>
         <Route path="/*" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
 
@@ -174,6 +176,7 @@ function App() {
           <Route path="clients" element={<Clients />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
+        </Route>
         </Route>
         <Route
           path="/404"

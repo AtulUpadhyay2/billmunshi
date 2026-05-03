@@ -1,5 +1,5 @@
-import React, { useEffect, Suspense, Fragment, useRef } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import React, { Suspense, useRef } from "react";
+import { Outlet } from "react-router-dom";
 import Header from "@/components/partials/header";
 import Sidebar from "@/components/partials/sidebar";
 import useWidth from "@/hooks/useWidth";
@@ -10,18 +10,18 @@ import useMenuHidden from "@/hooks/useMenuHidden";
 import useProfileRefresh from "@/hooks/useProfileRefresh";
 import usePageTitle from "@/hooks/usePageTitle";
 import Footer from "@/components/partials/footer";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import MobileFooter from "@/components/partials/footer/MobileFooter";
-import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
+// NOTE: auth gating lives in <RequireAuth> in App.jsx so that the redirect
+// happens *before* this layout (and its children) ever mount. Doing it here
+// in a useEffect caused the post-login screen flash.
 const Layout = () => {
   const { width, breakpoints } = useWidth();
   const [collapsed] = useSidebar();
-  const navigate = useNavigate();
-  const { isAuth, user } = useSelector((state) => state.auth);
 
   // Auto-refresh user profile data every 5 minutes
   useProfileRefresh(5);
@@ -29,14 +29,6 @@ const Layout = () => {
   // Update page title based on current route
   usePageTitle();
 
-  useEffect(() => {
-    if (!isAuth || !user) {
-      navigate("/");
-    } else if (user && (!user.organizations || user.organizations.length === 0)) {
-      // If user is authenticated but has no organizations, redirect to no-organization page
-      navigate("/auth/no-organization");
-    }
-  }, [isAuth, user, navigate]);
   const switchHeaderClass = () => {
     if (menuType === "horizontal" || menuHidden) {
       return "ltr:ml-0 rtl:mr-0";

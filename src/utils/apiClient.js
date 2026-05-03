@@ -11,20 +11,6 @@ const apiClient = axios.create({
   },
 });
 
-// Queue for requests waiting on a token refresh
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
@@ -34,39 +20,31 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor for token refresh
+// Response interceptor for token refresh.
+// Concurrent 401s are deduplicated inside refreshAccessToken (single shared
+// promise + mutex), so each in-flight request waits on the same refresh
+// without spawning duplicate refresh calls.
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
       isTokenExpiredError(error.response?.data)
     ) {
       originalRequest._retry = true;
 
       try {
-        // Use the shared refresh — if another refresh is already in flight,
-        // this will wait for it instead of starting a second one.
         const data = await refreshAccessToken();
-
-        // Process any queued requests
-        processQueue(null, data.access);
-
-        // Retry the original request with the new token
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
         return Promise.reject(refreshError);
       }
     }
