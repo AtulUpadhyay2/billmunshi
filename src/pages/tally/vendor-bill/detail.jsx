@@ -302,6 +302,41 @@ const TallyVendorBillDetail = () => {
     () => vendorBillData?.analyzed_bill || {},
     [vendorBillData],
   );
+
+  // Bill-image vs line-items reconciliation. ``analysed_data`` carries
+  // the raw CGST/SGST/IGST values extracted from the original bill image
+  // before any user edits. The user can re-pick GST rates per line, which
+  // silently shifts line tax totals. We compare the two sides so the
+  // operator gets an explicit warning when the verified bill no longer
+  // matches what was printed on the invoice.
+  const billTaxMatch = useMemo(() => {
+    const TOL = 1; // ±₹1 — same tolerance as the backend verify check
+    const billValues = {
+      cgst: parseFloat(analysedData?.cgst) || 0,
+      sgst: parseFloat(analysedData?.sgst) || 0,
+      igst: parseFloat(analysedData?.igst) || 0,
+    };
+    const haveBillValues =
+      billValues.cgst > 0 || billValues.sgst > 0 || billValues.igst > 0;
+    if (!haveBillValues) {
+      return { hasBillValues: false };
+    }
+    const diffs = {
+      cgst: Number((lineTaxTotals.cgst - billValues.cgst).toFixed(2)),
+      sgst: Number((lineTaxTotals.sgst - billValues.sgst).toFixed(2)),
+      igst: Number((lineTaxTotals.igst - billValues.igst).toFixed(2)),
+    };
+    const mismatches = ["cgst", "sgst", "igst"].filter(
+      (k) => Math.abs(diffs[k]) > TOL,
+    );
+    return {
+      hasBillValues: true,
+      billValues,
+      diffs,
+      mismatches,
+      isMatch: mismatches.length === 0,
+    };
+  }, [analysedData, lineTaxTotals]);
   const productSync = useMemo(
     () => configResponse?.data?.tally_product_allow_sync || false,
     [configResponse],
@@ -3063,9 +3098,6 @@ const TallyVendorBillDetail = () => {
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               GST % <span className="text-red-500">*</span>
                             </th>
-                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[180px]">
-                              Tax ledger
-                            </th>
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Actions
                             </th>
@@ -3292,77 +3324,9 @@ const TallyVendorBillDetail = () => {
                                 </div>
                               </td>
 
-                              {/* Tax ledger (auto-resolved from GST rate → org rate-ledger mapping) */}
-                              <td className="px-3 py-2">
-                                {(() => {
-                                  const rateKey = parseGstRate(product.gst);
-                                  const mapping = rateKey ? rateLedgerMap[rateKey] : null;
-                                  const isInterState =
-                                    parseFloat(product.igst) > 0 ||
-                                    tallyAnalysedData?.gst_type === "IGST";
-                                  if (!product.gst) {
-                                    return (
-                                      <span className="text-[11px] italic text-slate-400">
-                                        Pick GST rate first
-                                      </span>
-                                    );
-                                  }
-                                  if (
-                                    rateKey === "0" ||
-                                    product.gst === "Exempted" ||
-                                    product.gst === "N/A"
-                                  ) {
-                                    return (
-                                      <span className="text-[11px] italic text-slate-400">
-                                        No tax (0%)
-                                      </span>
-                                    );
-                                  }
-                                  if (!mapping) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                                        <Icon
-                                          icon="heroicons:exclamation-triangle"
-                                          className="text-sm"
-                                        />
-                                        No mapping for {Number(rateKey)}% — set in Tally setup
-                                      </span>
-                                    );
-                                  }
-                                  if (isInterState) {
-                                    return (
-                                      <div className="flex flex-col">
-                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                                          IGST
-                                        </span>
-                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                                          {mapping.igst_ledger_name || "Not set"}
-                                        </span>
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <div className="flex flex-col gap-0.5">
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
-                                          CGST
-                                        </span>
-                                        <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
-                                          {mapping.cgst_ledger_name || "Not set"}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
-                                          SGST
-                                        </span>
-                                        <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">
-                                          {mapping.sgst_ledger_name || "Not set"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </td>
+                              {/* Tax ledger column removed — the per-rate
+                                  IGST/CGST/SGST breakdown is shown in the
+                                  "Tax summary by rate" panel below. */}
 
                               {/* Actions */}
                               <td className="px-3 py-2 text-center">
@@ -3439,7 +3403,7 @@ const TallyVendorBillDetail = () => {
 
               {/* Tax summary by rate (derived from line items, read-only) */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
                     <Icon icon="heroicons:chart-pie" className="text-sm" />
                   </span>
@@ -3449,7 +3413,93 @@ const TallyVendorBillDetail = () => {
                   <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-800 text-[10px] font-bold uppercase">
                     Derived from line items
                   </span>
+
+                  {/* Bill-image reconciliation badge — flags drift between
+                      the values printed on the original invoice and the
+                      user-edited line totals. Hidden when the bill image
+                      had no tax values to extract. */}
+                  {billTaxMatch.hasBillValues && (
+                    <span
+                      className={`ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase tracking-wide ring-1 ${
+                        billTaxMatch.isMatch
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-200 dark:ring-emerald-900/60"
+                          : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-rose-200 dark:ring-rose-900/60"
+                      }`}
+                      title={
+                        billTaxMatch.isMatch
+                          ? "Line item taxes match the values printed on the original bill."
+                          : `Mismatch with bill (${billTaxMatch.mismatches
+                              .map(
+                                (k) =>
+                                  `${k.toUpperCase()}: line ₹${lineTaxTotals[k].toFixed(2)} vs bill ₹${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}₹${billTaxMatch.diffs[k].toFixed(2)})`,
+                              )
+                              .join(", ")}). Recheck the GST rate or amount on each line.`
+                      }
+                    >
+                      <Icon
+                        icon={
+                          billTaxMatch.isMatch
+                            ? "heroicons:check-circle"
+                            : "heroicons:exclamation-triangle"
+                        }
+                        className="text-[12px]"
+                      />
+                      {billTaxMatch.isMatch
+                        ? "Matches bill"
+                        : `Bill mismatch · ${billTaxMatch.mismatches
+                            .map((k) => k.toUpperCase())
+                            .join(" + ")}`}
+                    </span>
+                  )}
                 </div>
+
+                {/* Detail row on bill mismatch — shows side-by-side numbers
+                    so the operator can see the exact drift without hovering. */}
+                {billTaxMatch.hasBillValues && !billTaxMatch.isMatch && (
+                  <div className="mb-3 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 px-3 py-2">
+                    <div className="flex items-start gap-2">
+                      <Icon
+                        icon="heroicons:exclamation-triangle"
+                        className="text-rose-600 dark:text-rose-400 text-base mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12px] font-semibold text-rose-700 dark:text-rose-300 mb-1">
+                          Line totals don't match the values printed on the bill
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                          {["cgst", "sgst", "igst"].map((k) => {
+                            const drifted =
+                              billTaxMatch.mismatches.includes(k);
+                            return (
+                              <div
+                                key={k}
+                                className={`rounded-md px-2 py-1.5 ring-1 ${
+                                  drifted
+                                    ? "bg-white dark:bg-slate-900 ring-rose-200 dark:ring-rose-900/60"
+                                    : "bg-white/40 dark:bg-slate-900/40 ring-slate-200 dark:ring-slate-800"
+                                }`}
+                              >
+                                <div className="font-bold uppercase text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
+                                  {k}
+                                </div>
+                                <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                                  Line ₹{lineTaxTotals[k].toFixed(2)} · Bill ₹
+                                  {billTaxMatch.billValues[k].toFixed(2)}
+                                </div>
+                                {drifted && (
+                                  <div className="font-mono text-[11px] font-semibold text-rose-700 dark:text-rose-400 mt-0.5">
+                                    Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                    {billTaxMatch.diffs[k].toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {(() => {
                   // Detect any line that has a GST rate but no rate→ledger mapping configured
@@ -3489,83 +3539,158 @@ const TallyVendorBillDetail = () => {
                         </div>
                       )}
 
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-                        <div className="hidden md:grid grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Rate</span>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Taxable (₹)</span>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax ledger</span>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Tax (₹)</span>
-                        </div>
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {taxRateRollup.map((b) => {
-                            const taxAmt = isInterState
-                              ? b.igst
-                              : b.cgst + b.sgst;
+                      {(() => {
+                        // 6-column grid: Rate | Taxable | IGST | CGST | SGST | Total
+                        // Each tax column shows BOTH the ledger name and the
+                        // amount per GST rate, so the accountant can verify
+                        // each sub-tax against the bill image at a glance.
+                        // The Total column rolls up IGST+CGST+SGST per row,
+                        // and the footer Total cell shows the bill-wide tax.
+                        const cols =
+                          "grid-cols-1 md:grid-cols-[70px_120px_1fr_1fr_1fr_120px]";
+                        const renderLedgerCell = (
+                          label,
+                          amount,
+                          ledgerName,
+                          { isApplicable },
+                        ) => {
+                          if (!isApplicable) {
                             return (
-                              <div
-                                key={b.rate}
-                                className="grid grid-cols-1 md:grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2 items-center"
-                              >
-                                <span className="inline-flex w-fit items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[11px] font-bold">
-                                  {Number(b.rate)}%
-                                </span>
-                                <span className="text-[12px] font-mono text-slate-900 dark:text-white">
-                                  ₹{b.taxable.toFixed(2)}
-                                </span>
-                                <div className="text-[11px] text-slate-600 dark:text-slate-400 truncate">
-                                  {Number(b.rate) === 0 ? (
-                                    <span className="italic text-slate-400">—</span>
-                                  ) : isInterState ? (
-                                    <span>
-                                      <span className="font-bold uppercase mr-1 text-slate-500">IGST</span>
-                                      {b.igst_ledger_name || (
-                                        <span className="italic text-rose-500">Not mapped</span>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span className="flex flex-col gap-0.5">
-                                      <span>
-                                        <span className="font-bold uppercase mr-1 text-slate-500">CGST</span>
-                                        {b.cgst_ledger_name || (
-                                          <span className="italic text-rose-500">Not mapped</span>
-                                        )}
-                                      </span>
-                                      <span>
-                                        <span className="font-bold uppercase mr-1 text-slate-500">SGST</span>
-                                        {b.sgst_ledger_name || (
-                                          <span className="italic text-rose-500">Not mapped</span>
-                                        )}
-                                      </span>
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right">
-                                  ₹{taxAmt.toFixed(2)}
-                                </span>
-                              </div>
+                              <span className="italic text-slate-300 dark:text-slate-600 text-[11px]">
+                                —
+                              </span>
                             );
-                          })}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-[80px_140px_1fr_140px] gap-3 px-3 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60">
-                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700 dark:text-blue-400">
-                            Total
-                          </span>
-                          <span className="text-[12px] font-mono text-blue-700 dark:text-blue-400">
-                            ₹
-                            {taxRateRollup
-                              .reduce((s, b) => s + b.taxable, 0)
-                              .toFixed(2)}
-                          </span>
-                          <span />
-                          <span className="text-[14px] font-mono font-bold text-blue-700 dark:text-blue-400 text-right">
-                            ₹
-                            {(isInterState
-                              ? lineTaxTotals.igst
-                              : lineTaxTotals.cgst + lineTaxTotals.sgst
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
+                          }
+                          return (
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className="text-[12px] font-mono font-semibold text-slate-900 dark:text-white">
+                                ₹{(amount || 0).toFixed(2)}
+                              </span>
+                              <span
+                                className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate"
+                                title={ledgerName || ""}
+                              >
+                                {ledgerName || (
+                                  <span className="italic text-rose-500">
+                                    Not mapped
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        };
+
+                        return (
+                          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                            <div
+                              className={`hidden md:grid ${cols} gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800`}
+                            >
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                Rate
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                Taxable (₹)
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                IGST
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                CGST
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                SGST
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">
+                                Total (₹)
+                              </span>
+                            </div>
+
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {taxRateRollup.map((b) => {
+                                const isZeroRate =
+                                  Number(b.rate) === 0 ||
+                                  b.rate === "Exempted" ||
+                                  b.rate === "N/A";
+                                const rowTotal = isZeroRate
+                                  ? 0
+                                  : isInterState
+                                    ? b.igst || 0
+                                    : (b.cgst || 0) + (b.sgst || 0);
+                                return (
+                                  <div
+                                    key={b.rate}
+                                    className={`grid ${cols} gap-3 px-3 py-2 items-start`}
+                                  >
+                                    <span className="inline-flex w-fit items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[11px] font-bold">
+                                      {Number(b.rate)}%
+                                    </span>
+                                    <span className="text-[12px] font-mono text-slate-900 dark:text-white pt-[2px]">
+                                      ₹{b.taxable.toFixed(2)}
+                                    </span>
+                                    {renderLedgerCell(
+                                      "IGST",
+                                      b.igst,
+                                      b.igst_ledger_name,
+                                      { isApplicable: !isZeroRate && isInterState },
+                                    )}
+                                    {renderLedgerCell(
+                                      "CGST",
+                                      b.cgst,
+                                      b.cgst_ledger_name,
+                                      { isApplicable: !isZeroRate && !isInterState },
+                                    )}
+                                    {renderLedgerCell(
+                                      "SGST",
+                                      b.sgst,
+                                      b.sgst_ledger_name,
+                                      { isApplicable: !isZeroRate && !isInterState },
+                                    )}
+                                    <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right pt-[2px]">
+                                      ₹{rowTotal.toFixed(2)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div
+                              className={`grid ${cols} gap-3 px-3 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60`}
+                            >
+                              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700 dark:text-blue-400">
+                                Total
+                              </span>
+                              <span className="text-[12px] font-mono text-blue-700 dark:text-blue-400">
+                                ₹
+                                {taxRateRollup
+                                  .reduce((s, b) => s + b.taxable, 0)
+                                  .toFixed(2)}
+                              </span>
+                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
+                                {isInterState
+                                  ? `₹${lineTaxTotals.igst.toFixed(2)}`
+                                  : "—"}
+                              </span>
+                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
+                                {!isInterState
+                                  ? `₹${lineTaxTotals.cgst.toFixed(2)}`
+                                  : "—"}
+                              </span>
+                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
+                                {!isInterState
+                                  ? `₹${lineTaxTotals.sgst.toFixed(2)}`
+                                  : "—"}
+                              </span>
+                              <span className="text-[14px] font-mono font-bold text-blue-700 dark:text-blue-400 text-right">
+                                ₹
+                                {(isInterState
+                                  ? lineTaxTotals.igst
+                                  : lineTaxTotals.cgst + lineTaxTotals.sgst
+                                ).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}
