@@ -255,6 +255,10 @@ const TallyVendorBillDetail = () => {
   }, [lineTaxTotals.cgst, lineTaxTotals.sgst, lineTaxTotals.igst]);
 
   // Group line items by GST rate for the read-only Tax-by-rate rollup table.
+  // The bucket also carries the currently-effective CGST/SGST/IGST ledger so
+  // the inline dropdowns can show a real "selected" value. When the products
+  // in the bucket disagree on a ledger (rare, manual edit on a single line),
+  // we surface that with a special ``mixed`` marker so the user notices.
   const taxRateRollup = useMemo(() => {
     const buckets = {};
     (products || []).forEach((p) => {
@@ -267,17 +271,43 @@ const TallyVendorBillDetail = () => {
           cgst: 0,
           sgst: 0,
           igst: 0,
+          // Default-fall-back to the org's rate→ledger mapping until any
+          // product in the bucket picks a custom ledger.
+          cgst_ledger_id: rateLedgerMap[rateKey]?.cgst_ledger || null,
+          sgst_ledger_id: rateLedgerMap[rateKey]?.sgst_ledger || null,
+          igst_ledger_id: rateLedgerMap[rateKey]?.igst_ledger || null,
           cgst_ledger_name: rateLedgerMap[rateKey]?.cgst_ledger_name || "",
           sgst_ledger_name: rateLedgerMap[rateKey]?.sgst_ledger_name || "",
           igst_ledger_name: rateLedgerMap[rateKey]?.igst_ledger_name || "",
+          _cgst_ledger_ids: new Set(),
+          _sgst_ledger_ids: new Set(),
+          _igst_ledger_ids: new Set(),
         };
       }
       buckets[rateKey].taxable += parseFloat(p.amount) || 0;
       buckets[rateKey].cgst += parseFloat(p.cgst) || 0;
       buckets[rateKey].sgst += parseFloat(p.sgst) || 0;
       buckets[rateKey].igst += parseFloat(p.igst) || 0;
+      if (p.cgst_ledger) buckets[rateKey]._cgst_ledger_ids.add(p.cgst_ledger);
+      if (p.sgst_ledger) buckets[rateKey]._sgst_ledger_ids.add(p.sgst_ledger);
+      if (p.igst_ledger) buckets[rateKey]._igst_ledger_ids.add(p.igst_ledger);
     });
-    return Object.values(buckets).sort((a, b) => Number(a.rate) - Number(b.rate));
+    return Object.values(buckets)
+      .map((b) => {
+        // If every product in the bucket agrees on the per-line ledger, use
+        // that as the selected value; otherwise stay on the rate-map default.
+        ["cgst", "sgst", "igst"].forEach((t) => {
+          const ids = b[`_${t}_ledger_ids`];
+          if (ids.size === 1) {
+            b[`${t}_ledger_id`] = Array.from(ids)[0];
+          } else if (ids.size > 1) {
+            b[`${t}_ledger_mixed`] = true;
+          }
+          delete b[`_${t}_ledger_ids`];
+        });
+        return b;
+      })
+      .sort((a, b) => Number(a.rate) - Number(b.rate));
   }, [products, rateLedgerMap]);
 
   // Update mutation
@@ -1437,9 +1467,13 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
-  // Invoice math: subtotal + taxes + cess + freight - discount + round_off = total
-  // Live preview only: surface a rounding-off entry when the residual is < ₹1.
-  // Backend authoritatively recomputes round_off on verify (compute_round_off).
+  // Invoice math: total = subtotal + taxes + cess + freight - discount + round_off.
+  // ``total`` is now a derived field — recomputed live whenever any input
+  // moves. The input control is rendered read-only so the user cannot
+  // type into it; this guarantees the bill stays internally consistent
+  // when a tax amount or adjustment is edited. ``round_off`` remains a
+  // user-editable input that the operator can use to absorb invoice
+  // rounding from the bill image.
   useEffect(() => {
     const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
     const cgst = parseFloat(billSummaryForm.cgst) || 0;
@@ -1448,26 +1482,14 @@ const TallyVendorBillDetail = () => {
     const cess = parseFloat(billSummaryForm.cess) || 0;
     const freight = parseFloat(billSummaryForm.freight) || 0;
     const discount = parseFloat(billSummaryForm.discount) || 0;
-    const total = parseFloat(billSummaryForm.total) || 0;
+    const roundOff = parseFloat(billSummaryForm.round_off) || 0;
 
-    const expected = +(
-      subtotal +
-      cgst +
-      sgst +
-      igst +
-      cess +
-      freight -
-      discount
+    const nextTotal = (
+      subtotal + cgst + sgst + igst + cess + freight - discount + roundOff
     ).toFixed(2);
-    const residual = +(total - expected).toFixed(2);
-    const nextRoundOff =
-      Math.abs(residual) > 0 && Math.abs(residual) < 1
-        ? residual.toFixed(2)
-        : "";
+
     setBillSummaryForm((prev) =>
-      prev.round_off === nextRoundOff
-        ? prev
-        : { ...prev, round_off: nextRoundOff },
+      prev.total === nextTotal ? prev : { ...prev, total: nextTotal },
     );
   }, [
     billSummaryForm.subtotal,
@@ -1477,7 +1499,7 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.cess,
     billSummaryForm.freight,
     billSummaryForm.discount,
-    billSummaryForm.total,
+    billSummaryForm.round_off,
   ]);
 
   // Handle form input changes
@@ -1799,8 +1821,7 @@ const TallyVendorBillDetail = () => {
 
       // When the GST rate changes, auto-fill the per-line CGST/SGST/IGST ledger
       // from the org's rate→ledger mapping (only if the user hasn't picked a
-      // custom one explicitly). Also recompute per-line CGST/SGST/IGST amounts
-      // from the row amount + rate, using bill-level GST type to split.
+      // custom one explicitly).
       if (field === "gst") {
         const ledgers = resolveLineTaxLedgers(value);
         if (!updated[index].cgst_ledger_id_user_set) {
@@ -1812,14 +1833,31 @@ const TallyVendorBillDetail = () => {
         if (!updated[index].igst_ledger_id_user_set) {
           updated[index].igst_ledger = ledgers.igst_ledger;
         }
+      }
 
-        const rateNum = parseFloat(parseGstRate(value)) || 0;
+      // Re-derive per-line CGST/SGST/IGST from (amount × rate) whenever the
+      // *amount* could have shifted — that means price, quantity, the amount
+      // field itself, or the GST rate. Previously this only ran on rate
+      // changes, so a user editing the line amount (e.g. correcting an OCR
+      // miss) left the tax totals at their stale values.
+      if (
+        field === "price" ||
+        field === "quantity" ||
+        field === "amount" ||
+        field === "gst"
+      ) {
+        const rateNum =
+          parseFloat(parseGstRate(updated[index].gst)) || 0;
         const amount = parseFloat(updated[index].amount) || 0;
         const totalTax = (amount * rateNum) / 100;
         const isInterState =
           tallyAnalysedData?.gst_type === "IGST" ||
           (parseFloat(billSummaryForm.igst) || 0) > 0;
-        if (isInterState) {
+        if (rateNum === 0 || amount === 0) {
+          updated[index].igst = "0.00";
+          updated[index].cgst = "0.00";
+          updated[index].sgst = "0.00";
+        } else if (isInterState) {
           updated[index].igst = totalTax.toFixed(2);
           updated[index].cgst = "0.00";
           updated[index].sgst = "0.00";
@@ -1832,6 +1870,66 @@ const TallyVendorBillDetail = () => {
 
       return updated;
     });
+  };
+
+  // ------------------------------------------------------------------
+  // Tax Summary by Rate — editable amount + ledger
+  // ------------------------------------------------------------------
+  // When the user overrides the CGST/SGST/IGST amount for a single GST
+  // rate bucket, distribute the new total back to the underlying line
+  // items in that bucket *proportionally* by line amount. This lets the
+  // user nudge a single sub-tax (e.g. OCR captured an off-by-one) without
+  // having to edit every line individually.
+  const handleSummaryTaxAmountChange = (rateKey, taxType, rawValue) => {
+    const newTotal = parseFloat(rawValue);
+    if (Number.isNaN(newTotal)) return;
+
+    setProducts((prev) => {
+      const bucketIndexes = [];
+      let bucketAmountSum = 0;
+      prev.forEach((p, i) => {
+        if (parseGstRate(p.gst) !== rateKey) return;
+        bucketIndexes.push(i);
+        bucketAmountSum += parseFloat(p.amount) || 0;
+      });
+      if (bucketIndexes.length === 0) return prev;
+
+      const next = [...prev];
+      let allocated = 0;
+      bucketIndexes.forEach((idx, k) => {
+        const lineAmount = parseFloat(prev[idx].amount) || 0;
+        let share;
+        if (k === bucketIndexes.length - 1) {
+          // Last bucket entry absorbs the rounding residual so the
+          // group total matches the edited value exactly.
+          share = newTotal - allocated;
+        } else if (bucketAmountSum > 0) {
+          share = (newTotal * lineAmount) / bucketAmountSum;
+        } else {
+          share = newTotal / bucketIndexes.length;
+        }
+        share = Math.round(share * 100) / 100;
+        allocated = Math.round((allocated + share) * 100) / 100;
+        next[idx] = { ...next[idx], [taxType]: share.toFixed(2) };
+      });
+      return next;
+    });
+  };
+
+  // Pick a CGST/SGST/IGST ledger for an entire rate bucket. The selection
+  // is applied to every product in that bucket and the per-line ledger is
+  // marked as user-set so future GST-rate edits don't overwrite it.
+  const handleSummaryTaxLedgerChange = (rateKey, taxType, ledgerId) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (parseGstRate(p.gst) !== rateKey) return p;
+        return {
+          ...p,
+          [`${taxType}_ledger`]: ledgerId,
+          [`${taxType}_ledger_id_user_set`]: true,
+        };
+      }),
+    );
   };
 
   const addProduct = () => {
@@ -3410,9 +3508,6 @@ const TallyVendorBillDetail = () => {
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Tax summary by rate
                   </h3>
-                  <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-800 text-[10px] font-bold uppercase">
-                    Derived from line items
-                  </span>
 
                   {/* Bill-image reconciliation badge — flags drift between
                       the values printed on the original invoice and the
@@ -3534,7 +3629,7 @@ const TallyVendorBillDetail = () => {
                               Missing rate-ledger mapping
                             </span>{" "}
                             for {missingMappingRates.join(", ")}. Configure them
-                            in <span className="font-semibold">Tally setup → GST rate ledger mapping</span> before verifying.
+                            in <span className="font-semibold">Tally setup → Tax &amp; Adjustments</span> before verifying.
                           </div>
                         </div>
                       )}
@@ -3548,11 +3643,14 @@ const TallyVendorBillDetail = () => {
                         // and the footer Total cell shows the bill-wide tax.
                         const cols =
                           "grid-cols-1 md:grid-cols-[70px_120px_1fr_1fr_1fr_120px]";
-                        const renderLedgerCell = (
-                          label,
-                          amount,
-                          ledgerName,
-                          { isApplicable },
+
+                        // Editable amount + ledger cell. ``isApplicable``
+                        // is false for the side of the bill that doesn't
+                        // apply (e.g. CGST cells on an interstate bill).
+                        const renderEditableTaxCell = (
+                          bucket,
+                          taxType,
+                          { isApplicable, options, mixed },
                         ) => {
                           if (!isApplicable) {
                             return (
@@ -3561,29 +3659,66 @@ const TallyVendorBillDetail = () => {
                               </span>
                             );
                           }
+                          const amountVal = bucket[taxType] || 0;
+                          const ledgerId = bucket[`${taxType}_ledger_id`];
                           return (
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                              <span className="text-[12px] font-mono font-semibold text-slate-900 dark:text-white">
-                                ₹{(amount || 0).toFixed(2)}
-                              </span>
-                              <span
-                                className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate"
-                                title={ledgerName || ""}
-                              >
-                                {ledgerName || (
-                                  <span className="italic text-rose-500">
-                                    Not mapped
-                                  </span>
-                                )}
-                              </span>
+                            <div className="flex flex-col gap-1 min-w-0">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="0.01"
+                                min="0"
+                                value={Number(amountVal).toFixed(2)}
+                                disabled={isVerified}
+                                onChange={(e) =>
+                                  handleSummaryTaxAmountChange(
+                                    bucket.rate,
+                                    taxType,
+                                    e.target.value,
+                                  )
+                                }
+                                className={`w-full px-2 py-1 text-[12px] font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                              />
+                              <SearchableDropdown
+                                options={options}
+                                value={ledgerId || null}
+                                onChange={(id) =>
+                                  handleSummaryTaxLedgerChange(
+                                    bucket.rate,
+                                    taxType,
+                                    id,
+                                  )
+                                }
+                                onClear={() =>
+                                  handleSummaryTaxLedgerChange(
+                                    bucket.rate,
+                                    taxType,
+                                    null,
+                                  )
+                                }
+                                placeholder={`Select ${taxType.toUpperCase()} ledger…`}
+                                searchPlaceholder={`Search ${taxType.toUpperCase()} ledgers…`}
+                                optionLabelKey="name"
+                                optionValueKey="id"
+                                disabled={isVerified}
+                                className="tax-summary-ledger-dropdown text-[10.5px]"
+                              />
+                              {mixed && (
+                                <span className="text-[10px] italic text-amber-600 dark:text-amber-400">
+                                  Mixed ledgers across lines
+                                </span>
+                              )}
                             </div>
                           );
                         };
 
                         return (
-                          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                          // overflow-visible (not -hidden) so the inline
+                          // ledger dropdown panel can render outside the
+                          // card without getting clipped.
+                          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                             <div
-                              className={`hidden md:grid ${cols} gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800`}
+                              className={`hidden md:grid ${cols} gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg`}
                             >
                               <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                                 Rate
@@ -3627,24 +3762,21 @@ const TallyVendorBillDetail = () => {
                                     <span className="text-[12px] font-mono text-slate-900 dark:text-white pt-[2px]">
                                       ₹{b.taxable.toFixed(2)}
                                     </span>
-                                    {renderLedgerCell(
-                                      "IGST",
-                                      b.igst,
-                                      b.igst_ledger_name,
-                                      { isApplicable: !isZeroRate && isInterState },
-                                    )}
-                                    {renderLedgerCell(
-                                      "CGST",
-                                      b.cgst,
-                                      b.cgst_ledger_name,
-                                      { isApplicable: !isZeroRate && !isInterState },
-                                    )}
-                                    {renderLedgerCell(
-                                      "SGST",
-                                      b.sgst,
-                                      b.sgst_ledger_name,
-                                      { isApplicable: !isZeroRate && !isInterState },
-                                    )}
+                                    {renderEditableTaxCell(b, "igst", {
+                                      isApplicable: !isZeroRate && isInterState,
+                                      options: igstLedgerOptions,
+                                      mixed: b.igst_ledger_mixed,
+                                    })}
+                                    {renderEditableTaxCell(b, "cgst", {
+                                      isApplicable: !isZeroRate && !isInterState,
+                                      options: cgstLedgerOptions,
+                                      mixed: b.cgst_ledger_mixed,
+                                    })}
+                                    {renderEditableTaxCell(b, "sgst", {
+                                      isApplicable: !isZeroRate && !isInterState,
+                                      options: sgstLedgerOptions,
+                                      mixed: b.sgst_ledger_mixed,
+                                    })}
                                     <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right pt-[2px]">
                                       ₹{rowTotal.toFixed(2)}
                                     </span>
@@ -3654,7 +3786,7 @@ const TallyVendorBillDetail = () => {
                             </div>
 
                             <div
-                              className={`grid ${cols} gap-3 px-3 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60`}
+                              className={`grid ${cols} gap-3 px-3 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60 rounded-b-lg`}
                             >
                               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700 dark:text-blue-400">
                                 Total
@@ -3705,9 +3837,6 @@ const TallyVendorBillDetail = () => {
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Adjustments
                   </h3>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Cess, discount, freight & round off (bill level)
-                  </span>
                 </div>
 
                 {(() => {
@@ -3727,9 +3856,12 @@ const TallyVendorBillDetail = () => {
                   ];
 
                   return (
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    // overflow-visible (not -hidden) so the inline ledger
+                    // dropdown panels can render outside the card without
+                    // getting clipped.
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
-                      <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                      <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
@@ -3795,7 +3927,7 @@ const TallyVendorBillDetail = () => {
                       </div>
 
                       {/* Total row */}
-                      <div className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60">
+                      <div className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
                         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
                           Total amount
                         </span>
@@ -3803,13 +3935,14 @@ const TallyVendorBillDetail = () => {
                           type="number"
                           name="total"
                           value={billSummaryForm.total}
-                          onChange={(e) => handleBillSummaryChange("total", e.target.value)}
+                          readOnly
+                          tabIndex={-1}
                           placeholder="0.00"
-                          disabled={isVerified}
-                          className="w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Computed automatically from subtotal + taxes + adjustments"
+                          className="w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
-                          Including all taxes &amp; adjustments
+                          Auto-calculated · Subtotal + taxes + adjustments
                         </span>
                       </div>
                     </div>

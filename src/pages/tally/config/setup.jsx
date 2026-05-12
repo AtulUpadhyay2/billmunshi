@@ -199,7 +199,7 @@ const TallySetup = () => {
         organizationId: selectedOrganization.id,
         mappings,
       });
-      globalToast.success("GST rate ledger mappings saved");
+      globalToast.success("Tax & Adjustments saved");
       refetchGstRateMappings();
     } catch (err) {
       const errorMessage =
@@ -549,48 +549,6 @@ const TallySetup = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Inventory sync toggle card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
-                <Icon icon="heroicons:cube" className="text-lg" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                    Inventory accounting
-                  </h3>
-                  <Tooltip
-                    content="Enable Inventory Accounting if you want to capture inventory details in Tally"
-                    placement="right"
-                    arrow
-                  >
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
-                      <Icon icon="heroicons:question-mark-circle" className="text-xs" />
-                    </span>
-                  </Tooltip>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Track inventory movement when posting vouchers to Tally.
-                </p>
-              </div>
-            </div>
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${
-                config.tally_product_allow_sync
-                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-slate-200 dark:ring-slate-700"
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  config.tally_product_allow_sync ? "bg-emerald-500" : "bg-slate-400"
-                }`}
-              />
-              {config.tally_product_allow_sync ? "Enabled" : "Disabled"}
-            </span>
-          </div>
-
           {/* Tax ledgers section */}
           <section>
             <div className="flex items-center justify-between mb-3 px-1">
@@ -651,12 +609,12 @@ const TallySetup = () => {
             </div>
           </section>
 
-          {/* GST rate ledger mapping section */}
+          {/* Tax & Adjustments section */}
           <section>
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  GST rate ledger mapping
+                  Tax &amp; Adjustments
                 </h2>
                 <Tooltip
                   content="For mixed-rate bills, map each GST slab (5/12/18/28) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."

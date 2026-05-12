@@ -409,33 +409,6 @@ const BillsList = ({
         </div>
       </div>
 
-      {/* Compact stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        {[
-          { label: `Total ${copy.billLabel}s`, value: counts.all, icon: "heroicons:document-text" },
-          { label: "Draft", value: counts.draft, icon: "heroicons:document" },
-          { label: "Analysed", value: counts.analysed, icon: "heroicons:sparkles" },
-          { label: "Synced", value: counts.synced, icon: "heroicons:check-badge" },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2.5 flex items-center gap-3"
-          >
-            <span className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-              <Icon icon={s.icon} className="text-sm" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                {s.label}
-              </div>
-              <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
-                {s.value}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Table card */}
       <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
