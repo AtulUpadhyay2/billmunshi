@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -21,6 +21,76 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+
+/**
+ * Number input that lets the user type freely.
+ *
+ * The naive ``value={Number(value).toFixed(2)}`` pattern is hostile to
+ * typing — every keystroke re-renders, snaps the displayed value back
+ * to a 2-dp formatted string, and resets the caret. Intermediate states
+ * like ``2.``, ``2.5`` or an empty cell during clear+retype become
+ * impossible to land on.
+ *
+ * This wrapper keeps a local ``draft`` string while focused so the user
+ * sees exactly what they typed. ``onCommit`` fires on blur (or Enter),
+ * passing the parsed numeric string to the parent.
+ *
+ * Mirrors the helper used in the tally vendor-bill detail page so both
+ * pages have identical typing UX.
+ */
+const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
+  const formatted = Number(value || 0).toFixed(2);
+  const [draft, setDraft] = useState(formatted);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDraft(formatted);
+  }, [formatted, focused]);
+
+  const commit = () => {
+    setFocused(false);
+    const trimmed = draft.trim();
+    if (trimmed === "") {
+      onCommit("0");
+      setDraft("0.00");
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) {
+      setDraft(formatted);
+      return;
+    }
+    onCommit(String(parsed));
+    setDraft(parsed.toFixed(2));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      disabled={disabled}
+      onFocus={(e) => {
+        setFocused(true);
+        e.target.select();
+      }}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          setDraft(formatted);
+          e.currentTarget.blur();
+        }
+      }}
+      className={
+        className ||
+        "w-full px-2 py-1 text-[12px] font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+      }
+    />
+  );
+};
 
 const TallyExpenseBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -160,6 +230,56 @@ const TallyExpenseBillDetail = () => {
 
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
   const isVerified = billInfo?.tally_synced === true;
+
+  // Bill-image vs user-edited tax reconciliation. ``analysed_data``
+  // carries the raw CGST/SGST/IGST values extracted from the original
+  // bill image before any user edits. The user can edit the Tax & Other
+  // Items rows freely, which silently changes the tax totals. We compare
+  // the two sides so the operator gets an explicit warning when the
+  // verified bill no longer matches what was printed on the invoice.
+  // Informational only — never blocks verification (mirrors the badge
+  // pattern used on the tally vendor-bill page).
+  const billTaxMatch = useMemo(() => {
+    const TOL = 1; // ±₹1 — same tolerance the backend treats as a warning
+    const billValues = {
+      cgst: parseFloat(analysedData?.cgst) || 0,
+      sgst: parseFloat(analysedData?.sgst) || 0,
+      igst: parseFloat(analysedData?.igst) || 0,
+    };
+    const editedValues = {
+      cgst: parseFloat(taxSummaryForm.cgst) || 0,
+      sgst: parseFloat(taxSummaryForm.sgst) || 0,
+      igst: parseFloat(taxSummaryForm.igst) || 0,
+    };
+    const haveBillValues =
+      billValues.cgst > 0 || billValues.sgst > 0 || billValues.igst > 0;
+    if (!haveBillValues) {
+      return { hasBillValues: false };
+    }
+    const diffs = {
+      cgst: Number((editedValues.cgst - billValues.cgst).toFixed(2)),
+      sgst: Number((editedValues.sgst - billValues.sgst).toFixed(2)),
+      igst: Number((editedValues.igst - billValues.igst).toFixed(2)),
+    };
+    const mismatches = ["cgst", "sgst", "igst"].filter(
+      (k) => Math.abs(diffs[k]) > TOL,
+    );
+    return {
+      hasBillValues: true,
+      billValues,
+      editedValues,
+      diffs,
+      mismatches,
+      isMatch: mismatches.length === 0,
+    };
+  }, [
+    analysedData?.cgst,
+    analysedData?.sgst,
+    analysedData?.igst,
+    taxSummaryForm.cgst,
+    taxSummaryForm.sgst,
+    taxSummaryForm.igst,
+  ]);
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
@@ -2576,14 +2696,108 @@ const TallyExpenseBillDetail = () => {
 
               {/* Bill Summary - Tax and Other Items */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
                     <Icon icon="heroicons:calculator" className="text-sm" />
                   </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Tax and Other Items
                   </h3>
+
+                  {/* Bill-image reconciliation badge — informational only.
+                      Flags drift between the values printed on the original
+                      invoice and the user-edited tax values. Mismatch
+                      shows in AMBER (warning), not red (error) — it does
+                      NOT block verification. Hidden when the bill image
+                      had no tax values to extract. */}
+                  {billTaxMatch.hasBillValues && (
+                    <span
+                      className={`ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase tracking-wide ring-1 ${
+                        billTaxMatch.isMatch
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-200 dark:ring-emerald-900/60"
+                          : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-900/60"
+                      }`}
+                      title={
+                        billTaxMatch.isMatch
+                          ? "Tax values match those printed on the original bill."
+                          : `Heads-up: edited tax values differ from the bill image (${billTaxMatch.mismatches
+                              .map(
+                                (k) =>
+                                  `${k.toUpperCase()}: edited ₹${billTaxMatch.editedValues[k].toFixed(2)} vs bill ₹${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}₹${billTaxMatch.diffs[k].toFixed(2)})`,
+                              )
+                              .join(", ")}). This won't block verification — confirm the values are intentional and proceed.`
+                      }
+                    >
+                      <Icon
+                        icon={
+                          billTaxMatch.isMatch
+                            ? "heroicons:check-circle"
+                            : "heroicons:information-circle"
+                        }
+                        className="text-[12px]"
+                      />
+                      {billTaxMatch.isMatch
+                        ? "Matches bill"
+                        : `Differs from bill · ${billTaxMatch.mismatches
+                            .map((k) => k.toUpperCase())
+                            .join(" + ")}`}
+                    </span>
+                  )}
                 </div>
+
+                {/* Detail row on bill mismatch — informational warning,
+                    NOT an error. The operator can verify regardless;
+                    this surfaces the gap so they can sanity-check. */}
+                {billTaxMatch.hasBillValues && !billTaxMatch.isMatch && (
+                  <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2">
+                    <div className="flex items-start gap-2">
+                      <Icon
+                        icon="heroicons:information-circle"
+                        className="text-amber-600 dark:text-amber-400 text-base mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12px] font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
+                          Heads-up: tax values differ from the bill image
+                        </div>
+                        <div className="text-[11px] text-amber-700 dark:text-amber-400 mb-1.5">
+                          This is informational only — you can still verify
+                          and save. Confirm the tax values are intentional
+                          before proceeding.
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                          {["cgst", "sgst", "igst"].map((k) => {
+                            const drifted =
+                              billTaxMatch.mismatches.includes(k);
+                            return (
+                              <div
+                                key={k}
+                                className={`rounded-md px-2 py-1.5 ring-1 ${
+                                  drifted
+                                    ? "bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
+                                    : "bg-white/40 dark:bg-slate-900/40 ring-slate-200 dark:ring-slate-800"
+                                }`}
+                              >
+                                <div className="font-bold uppercase text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
+                                  {k}
+                                </div>
+                                <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                                  Edited ₹{billTaxMatch.editedValues[k].toFixed(2)} · Bill ₹
+                                  {billTaxMatch.billValues[k].toFixed(2)}
+                                </div>
+                                {drifted && (
+                                  <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
+                                    Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                    {billTaxMatch.diffs[k].toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {(() => {
                   const amountCls =
@@ -2689,9 +2903,12 @@ const TallyExpenseBillDetail = () => {
                   ];
 
                   return (
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    // overflow-visible (not -hidden) so the inline ledger
+                    // dropdown panels can render outside the card without
+                    // getting clipped.
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
-                      <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                      <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
@@ -2717,18 +2934,13 @@ const TallyExpenseBillDetail = () => {
                                 </span>
                               )}
                             </label>
-                            <input
-                              type="number"
-                              name={r.amountField}
+                            <EditableTaxAmount
                               value={taxSummaryForm[r.amountField]}
-                              onChange={(e) =>
-                                handleTaxSummaryChange(r.amountField, e.target.value)
-                              }
-                              placeholder="0.00"
                               disabled={isVerified}
+                              onCommit={(v) =>
+                                handleTaxSummaryChange(r.amountField, v)
+                              }
                               className={amountCls}
-                              min="0"
-                              step="0.01"
                             />
                             <div
                               className={`relative ${
@@ -2846,7 +3058,7 @@ const TallyExpenseBillDetail = () => {
                       </div>
 
                       {/* Total row */}
-                      <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60">
+                      <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
                         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
                           Total amount
                         </span>
