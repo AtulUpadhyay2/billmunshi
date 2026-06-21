@@ -112,6 +112,14 @@ const TallyVendorBillDetail = () => {
   const productTaxMatchedRef = useRef(false);
   const stockItemsInitialMatchedRef = useRef(false);
 
+  // Tracks which adjustment ledgers the user has explicitly CLEARED in
+  // this session (via the dropdown's × button). Without this, the
+  // auto-match effect would immediately re-fill the field from
+  // ``tallyAnalysedData`` because its condition is
+  // ``backendValue && !currentValue`` — clearing sets current to null
+  // and the effect re-applies the backend value, defeating the X click.
+  const userClearedLedgersRef = useRef(new Set());
+
   // Form state for vendor information
   const [vendorForm, setVendorForm] = useState({
     vendorName: "",
@@ -436,6 +444,31 @@ const TallyVendorBillDetail = () => {
       isMatch: mismatches.length === 0,
     };
   }, [analysedData, lineTaxTotals]);
+
+  // Invoice-total reconciliation. Compares the OCR-extracted invoice
+  // total against the auto-computed total (subtotal + taxes + adjustments).
+  // Like ``billTaxMatch``, this is informational only — it never blocks
+  // verification, just surfaces drift so the operator can sanity-check.
+  const billTotalMatch = useMemo(() => {
+    const TOL = 1; // ±₹1 — same as the tax tolerance
+    const billTotal = parseFloat(analysedData?.total);
+    const computedTotal = parseFloat(billSummaryForm.total);
+    if (!billTotal || Number.isNaN(billTotal)) {
+      return { hasBillValue: false };
+    }
+    if (Number.isNaN(computedTotal)) {
+      return { hasBillValue: false };
+    }
+    const diff = Number((computedTotal - billTotal).toFixed(2));
+    return {
+      hasBillValue: true,
+      billTotal,
+      computedTotal,
+      diff,
+      isMatch: Math.abs(diff) <= TOL,
+    };
+  }, [analysedData?.total, billSummaryForm.total]);
+
   const productSync = useMemo(
     () => configResponse?.data?.tally_product_allow_sync || false,
     [configResponse],
@@ -546,28 +579,48 @@ const TallyVendorBillDetail = () => {
     return true;
   };
 
-  // Handle date input changes with validation
+  // Handle date input changes.
+  //
+  // CRITICAL: always commit the typed value to state, even mid-typing.
+  // Native ``<input type="date">`` fires onChange for every intermediate
+  // year segment (e.g. ``0002-06-17`` → ``0020-…`` → ``0202-…`` →
+  // ``2026-…``). Previously we rejected those intermediates and returned
+  // early, so the first three keystrokes of the year were silently
+  // dropped — the user had to "type the year three times" before it
+  // stuck. The validation is now non-blocking: state always updates,
+  // and any error is shown inline. Toast spam on every keystroke is
+  // also gone.
   const handleDateChange = (name, value) => {
-    // Clear error for this field first
-    setDateErrors((prev) => ({ ...prev, [name]: "" }));
-
-    // For date inputs, validate before setting
-    if (value && !validateDateInput(value)) {
-      // Set inline error message
-      const [year] = value.split("-").map(Number);
-      let errorMessage = "Invalid date";
-
-      if (year < 1900 || year > 2100) {
-        errorMessage = "Year must be between 1900 and 2100";
-      }
-
-      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
-
-      // Still show toast for user awareness
-      globalToast("error", errorMessage);
-      return; // Don't update the state with invalid date
-    }
+    // Always update the value first so typing feels responsive.
     handleFormChange(name, value);
+
+    // Then surface a non-blocking inline error if it's invalid. Empty
+    // values clear the error. Errors only appear on a fully-formed but
+    // out-of-range value — partial dates (e.g. ``002-06-17``) won't
+    // match the regex and silently clear, so the user isn't yelled at
+    // mid-typing.
+    if (!value) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    if (validateDateInput(value)) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    // Only emit an error if it parses as a full YYYY-MM-DD — that means
+    // the user finished typing and the result is genuinely out-of-range
+    // (year < 1900 or > 2100, or a calendar-invalid date).
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(value)) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    const [year] = value.split("-").map(Number);
+    const errorMessage =
+      year < 1900 || year > 2100
+        ? "Year must be between 1900 and 2100"
+        : "Invalid date";
+    setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
   };
 
   // Process vendor ledgers data for dropdown - Memoized
@@ -1242,8 +1295,16 @@ const TallyVendorBillDetail = () => {
 
     if (discountLedgerOptions.length > 0) {
       const updates = {};
+      // ``userClearedLedgersRef`` lets the user actually clear a ledger
+      // via the dropdown × — without this guard, the effect would
+      // immediately re-fill the field from the backend value.
+      const cleared = userClearedLedgersRef.current;
 
-      if (discount_taxes && !billSummaryForm.discountLedgerId) {
+      if (
+        discount_taxes &&
+        !billSummaryForm.discountLedgerId &&
+        !cleared.has("discount")
+      ) {
         const matchedDiscountLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === discount_taxes,
         );
@@ -1252,7 +1313,11 @@ const TallyVendorBillDetail = () => {
         }
       }
 
-      if (cess_taxes && !billSummaryForm.cessLedgerId) {
+      if (
+        cess_taxes &&
+        !billSummaryForm.cessLedgerId &&
+        !cleared.has("cess")
+      ) {
         const matchedCessLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === cess_taxes,
         );
@@ -1261,7 +1326,11 @@ const TallyVendorBillDetail = () => {
         }
       }
 
-      if (freight_taxes && !billSummaryForm.freightLedgerId) {
+      if (
+        freight_taxes &&
+        !billSummaryForm.freightLedgerId &&
+        !cleared.has("freight")
+      ) {
         const matchedFreightLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === freight_taxes,
         );
@@ -1270,7 +1339,11 @@ const TallyVendorBillDetail = () => {
         }
       }
 
-      if (round_off_taxes && !billSummaryForm.roundOffLedgerId) {
+      if (
+        round_off_taxes &&
+        !billSummaryForm.roundOffLedgerId &&
+        !cleared.has("round_off")
+      ) {
         const matchedRoundOffLedger = discountLedgerOptions.find(
           (ledger) => ledger.id === round_off_taxes,
         );
@@ -1295,11 +1368,14 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.roundOffLedgerId,
   ]);
 
-  // Auto-select freight ledger when discount amount > 0 and no freight ledger selected
+  // Auto-select freight ledger when discount amount > 0 and no freight
+  // ledger selected. Skipped if the user explicitly cleared freight in
+  // this session (same guard as the main auto-match effect above).
   useEffect(() => {
     if (
       parseFloat(billSummaryForm.discount || 0) > 0 &&
       !billSummaryForm.freightLedgerId &&
+      !userClearedLedgersRef.current.has("freight") &&
       discountLedgerOptions.length > 0
     ) {
       const freightLedger = discountLedgerOptions.find(
@@ -1719,7 +1795,14 @@ const TallyVendorBillDetail = () => {
     }));
   };
 
+  // Adjustment ledger select / clear handlers. ``userClearedLedgersRef``
+  // remembers which fields the user has explicitly cleared in this
+  // session so the auto-match useEffect doesn't immediately re-fill
+  // them from ``tallyAnalysedData`` (the source of the "X button doesn't
+  // work" bug). Selecting any value clears the mark — the user is
+  // actively engaging again.
   const handleDiscountLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("discount");
     setBillSummaryForm((prev) => ({
       ...prev,
       discountLedgerId: ledgerId,
@@ -1727,6 +1810,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleDiscountLedgerClear = () => {
+    userClearedLedgersRef.current.add("discount");
     setBillSummaryForm((prev) => ({
       ...prev,
       discountLedgerId: null,
@@ -1734,6 +1818,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleCessLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("cess");
     setBillSummaryForm((prev) => ({
       ...prev,
       cessLedgerId: ledgerId,
@@ -1741,6 +1826,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleCessLedgerClear = () => {
+    userClearedLedgersRef.current.add("cess");
     setBillSummaryForm((prev) => ({
       ...prev,
       cessLedgerId: null,
@@ -1748,6 +1834,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleFreightLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("freight");
     setBillSummaryForm((prev) => ({
       ...prev,
       freightLedgerId: ledgerId,
@@ -1755,6 +1842,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleFreightLedgerClear = () => {
+    userClearedLedgersRef.current.add("freight");
     setBillSummaryForm((prev) => ({
       ...prev,
       freightLedgerId: null,
@@ -1762,6 +1850,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleRoundOffLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("round_off");
     setBillSummaryForm((prev) => ({
       ...prev,
       roundOffLedgerId: ledgerId,
@@ -1769,6 +1858,7 @@ const TallyVendorBillDetail = () => {
   };
 
   const handleRoundOffLedgerClear = () => {
+    userClearedLedgersRef.current.add("round_off");
     setBillSummaryForm((prev) => ({
       ...prev,
       roundOffLedgerId: null,
@@ -4020,11 +4110,48 @@ const TallyVendorBillDetail = () => {
                           tabIndex={-1}
                           placeholder="0.00"
                           title="Computed automatically from subtotal + taxes + adjustments"
-                          className="w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            billTotalMatch.hasBillValue && !billTotalMatch.isMatch
+                              ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
+                              : "border-blue-200 dark:border-blue-900/60"
+                          }`}
                         />
-                        <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
-                          Auto-calculated · Subtotal + taxes + adjustments
-                        </span>
+                        {/* Caption — switches to an amber heads-up when
+                            the computed total drifts from the OCR-extracted
+                            invoice total by more than ±₹1. Informational
+                            only; does not block verification. */}
+                        {billTotalMatch.hasBillValue &&
+                        !billTotalMatch.isMatch ? (
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span
+                              className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
+                              title={`Computed total ₹${billTotalMatch.computedTotal.toFixed(2)} differs from the invoice total on the bill (₹${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
+                            >
+                              <Icon
+                                icon="heroicons:information-circle"
+                                className="text-[12px]"
+                              />
+                              Differs from bill total
+                            </span>
+                            <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
+                              Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
+                              {billTotalMatch.diff > 0 ? "+" : ""}₹
+                              {billTotalMatch.diff.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : billTotalMatch.hasBillValue ? (
+                          <span className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 text-[10.5px] font-bold uppercase tracking-wide">
+                            <Icon
+                              icon="heroicons:check-circle"
+                              className="text-[12px]"
+                            />
+                            Matches bill total
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
+                            Auto-calculated · Subtotal + taxes + adjustments
+                          </span>
+                        )}
                       </div>
                     </div>
                   );

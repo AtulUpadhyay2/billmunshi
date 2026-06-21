@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -141,6 +141,14 @@ const TallyExpenseBillDetail = () => {
     round_off_taxes: null,
   });
 
+  // Multi-rate GST entries for Journal voucher. Each item:
+  //   { id, rate: "18%", tax_type: "CGST"|"SGST"|"IGST",
+  //     amount: "4500.00", ledger_id: <uuid|null>,
+  //     debit_or_credit: "debit"|"credit" }
+  // Replaces the old single CGST/SGST/IGST rows. Hydrated from
+  // ``analyzed_bill.gst_lines`` and sent back in the verify payload.
+  const [gstLines, setGstLines] = useState([]);
+
   // State for notes
   const [notes, setNotes] = useState("");
 
@@ -246,10 +254,16 @@ const TallyExpenseBillDetail = () => {
       sgst: parseFloat(analysedData?.sgst) || 0,
       igst: parseFloat(analysedData?.igst) || 0,
     };
+    // Sum the multi-rate gstLines per tax type. CGST = sum of all CGST
+    // entries across rates (e.g. 18% + 28%), same for SGST + IGST.
+    const sumLines = (taxType) =>
+      gstLines
+        .filter((l) => l.tax_type === taxType)
+        .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
     const editedValues = {
-      cgst: parseFloat(taxSummaryForm.cgst) || 0,
-      sgst: parseFloat(taxSummaryForm.sgst) || 0,
-      igst: parseFloat(taxSummaryForm.igst) || 0,
+      cgst: sumLines("CGST"),
+      sgst: sumLines("SGST"),
+      igst: sumLines("IGST"),
     };
     const haveBillValues =
       billValues.cgst > 0 || billValues.sgst > 0 || billValues.igst > 0;
@@ -276,10 +290,32 @@ const TallyExpenseBillDetail = () => {
     analysedData?.cgst,
     analysedData?.sgst,
     analysedData?.igst,
-    taxSummaryForm.cgst,
-    taxSummaryForm.sgst,
-    taxSummaryForm.igst,
+    gstLines,
   ]);
+
+  // Invoice-total reconciliation for the Journal entry. Compares the
+  // OCR-extracted invoice total against the user-edited total. Like
+  // ``billTaxMatch``, this is informational only — it never blocks
+  // verification, just surfaces drift so the operator can sanity-check.
+  const billTotalMatch = useMemo(() => {
+    const TOL = 1; // ±₹1 — same as the tax tolerance
+    const billTotal = parseFloat(analysedData?.total);
+    const currentTotal = parseFloat(billForm.totalAmount);
+    if (!billTotal || Number.isNaN(billTotal)) {
+      return { hasBillValue: false };
+    }
+    if (Number.isNaN(currentTotal)) {
+      return { hasBillValue: false };
+    }
+    const diff = Number((currentTotal - billTotal).toFixed(2));
+    return {
+      hasBillValue: true,
+      billTotal,
+      currentTotal,
+      diff,
+      isMatch: Math.abs(diff) <= TOL,
+    };
+  }, [analysedData?.total, billForm.totalAmount]);
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
@@ -392,28 +428,42 @@ const TallyExpenseBillDetail = () => {
     return true;
   };
 
-  // Handle date input changes with validation
+  // Handle date input changes.
+  //
+  // CRITICAL: always commit the typed value to state, even mid-typing.
+  // Native ``<input type="date">`` fires onChange for every intermediate
+  // year segment (e.g. ``0002-06-17`` → ``0020-…`` → ``0202-…`` →
+  // ``2026-…``). Previously we rejected those intermediates and returned
+  // early, so the first three keystrokes of the year were silently
+  // dropped — the user had to "type the year three times" before it
+  // stuck. The validation is now non-blocking: state always updates,
+  // and any error is shown inline. Toast spam on every keystroke is
+  // also gone.
   const handleDateChange = (name, value) => {
-    // Clear error for this field first
-    setDateErrors((prev) => ({ ...prev, [name]: "" }));
-
-    // For date inputs, validate before setting
-    if (value && !validateDateInput(value)) {
-      // Set inline error message
-      const [year] = value.split("-").map(Number);
-      let errorMessage = "Invalid date";
-
-      if (year < 1900 || year > 2100) {
-        errorMessage = "Year must be between 1900 and 2100";
-      }
-
-      setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
-
-      // Still show toast for user awareness
-      globalToast("error", errorMessage);
-      return; // Don't update the state with invalid date
-    }
+    // Always update the value first so typing feels responsive.
     handleFormChange(name, value);
+
+    if (!value) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    if (validateDateInput(value)) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    // Only emit an error if it parses as a full YYYY-MM-DD — that means
+    // the user finished typing and the result is genuinely out-of-range.
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(value)) {
+      setDateErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+    const [year] = value.split("-").map(Number);
+    const errorMessage =
+      year < 1900 || year > 2100
+        ? "Year must be between 1900 and 2100"
+        : "Invalid date";
+    setDateErrors((prev) => ({ ...prev, [name]: errorMessage }));
   };
 
   // Process ledgers data for dropdown (Chart of Accounts)
@@ -621,6 +671,66 @@ const TallyExpenseBillDetail = () => {
         round_off_taxes: tally?.round_off_taxes || null,
       });
 
+      // Initialize multi-rate GST lines from API. Each backend row
+      // becomes one ``gstLines`` entry. If the backend hasn't sent
+      // anything (very old bills migrated in-flight, or fresh AI bills
+      // before verify), we seed from the legacy bill-level CGST/SGST/
+      // IGST values so the UI doesn't start empty.
+      const apiGstLines = Array.isArray(tally?.gst_lines)
+        ? tally.gst_lines
+        : [];
+      if (apiGstLines.length > 0) {
+        setGstLines(
+          apiGstLines.map((line) => ({
+            id: line.id || `gst-${Date.now()}-${Math.random()}`,
+            rate: line.rate || "",
+            tax_type: line.tax_type || "CGST",
+            amount: line.amount != null ? String(line.amount) : "",
+            ledger_id: line.ledger || null,
+            debit_or_credit: line.debit_or_credit || "debit",
+          })),
+        );
+      } else {
+        // Seed from legacy bill-level fields so the operator sees the
+        // OCR-extracted GST instead of an empty table on first open.
+        const seeded = [];
+        const seedRate = "18%"; // default slab; user re-picks on first edit
+        const cgst = parseFloat(tally?.cgst || 0);
+        const sgst = parseFloat(tally?.sgst || 0);
+        const igst = parseFloat(tally?.igst || 0);
+        if (cgst > 0) {
+          seeded.push({
+            id: `gst-seed-cgst-${Date.now()}`,
+            rate: seedRate,
+            tax_type: "CGST",
+            amount: String(cgst),
+            ledger_id: tally?.cgst_taxes || null,
+            debit_or_credit: tally?.cgst_debit_or_credit || "debit",
+          });
+        }
+        if (sgst > 0) {
+          seeded.push({
+            id: `gst-seed-sgst-${Date.now()}`,
+            rate: seedRate,
+            tax_type: "SGST",
+            amount: String(sgst),
+            ledger_id: tally?.sgst_taxes || null,
+            debit_or_credit: tally?.sgst_debit_or_credit || "debit",
+          });
+        }
+        if (igst > 0) {
+          seeded.push({
+            id: `gst-seed-igst-${Date.now()}`,
+            rate: seedRate,
+            tax_type: "IGST",
+            amount: String(igst),
+            ledger_id: tally?.igst_taxes || null,
+            debit_or_credit: tally?.igst_debit_or_credit || "debit",
+          });
+        }
+        setGstLines(seeded);
+      }
+
       // Initialize notes
       setNotes(tally?.note || "");
 
@@ -779,8 +889,17 @@ const TallyExpenseBillDetail = () => {
       igstLedgerOptions.length > 0 &&
       tallyAnalysedData
     ) {
+      // ``userClearedLedgersRef`` lets the user actually clear a
+      // ledger via the dropdown × — without this guard, the effect
+      // would immediately re-fill the field from the backend value.
+      const cleared = userClearedLedgersRef.current;
+
       // Match CGST ledger by ID first, then by name
-      if (tallyAnalysedData.cgst_taxes && !taxSummaryForm.cgstLedgerId) {
+      if (
+        tallyAnalysedData.cgst_taxes &&
+        !taxSummaryForm.cgstLedgerId &&
+        !cleared.has("cgst")
+      ) {
         const matchedCgstLedger = cgstLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.cgst_taxes,
         );
@@ -793,7 +912,11 @@ const TallyExpenseBillDetail = () => {
       }
 
       // Match SGST ledger by ID first, then by name
-      if (tallyAnalysedData.sgst_taxes && !taxSummaryForm.sgstLedgerId) {
+      if (
+        tallyAnalysedData.sgst_taxes &&
+        !taxSummaryForm.sgstLedgerId &&
+        !cleared.has("sgst")
+      ) {
         const matchedSgstLedger = sgstLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.sgst_taxes,
         );
@@ -806,7 +929,11 @@ const TallyExpenseBillDetail = () => {
       }
 
       // Match IGST ledger by ID first, then by name
-      if (tallyAnalysedData.igst_taxes && !taxSummaryForm.igstLedgerId) {
+      if (
+        tallyAnalysedData.igst_taxes &&
+        !taxSummaryForm.igstLedgerId &&
+        !cleared.has("igst")
+      ) {
         const matchedIgstLedger = igstLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.igst_taxes,
         );
@@ -819,7 +946,11 @@ const TallyExpenseBillDetail = () => {
       }
 
       // Match TDS ledger by ID (if available in future)
-      if (tallyAnalysedData.tds_taxes && !taxSummaryForm.tdsLedgerId) {
+      if (
+        tallyAnalysedData.tds_taxes &&
+        !taxSummaryForm.tdsLedgerId &&
+        !cleared.has("tds")
+      ) {
         const matchedTdsLedger = taxLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.tds_taxes,
         );
@@ -834,7 +965,8 @@ const TallyExpenseBillDetail = () => {
       // Match Other Adjustment ledger by ID
       if (
         tallyAnalysedData.other_adjustment_taxes &&
-        !taxSummaryForm.other_adjustment_taxes
+        !taxSummaryForm.other_adjustment_taxes &&
+        !cleared.has("other_adjustment")
       ) {
         const matchedOtherAdjustmentLedger = ledgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.other_adjustment_taxes,
@@ -850,7 +982,8 @@ const TallyExpenseBillDetail = () => {
       // Match Round Off ledger by ID
       if (
         tallyAnalysedData.round_off_taxes &&
-        !taxSummaryForm.round_off_taxes
+        !taxSummaryForm.round_off_taxes &&
+        !cleared.has("round_off")
       ) {
         const matchedRoundOffLedger = ledgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.round_off_taxes,
@@ -973,33 +1106,16 @@ const TallyExpenseBillDetail = () => {
     let totalTaxDebit = 0;
     let totalTaxCredit = 0;
 
-    // CGST calculation
-    if (taxSummaryForm.cgst) {
-      const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
-      if (taxSummaryForm.cgstDebitCredit === "debit") {
-        totalTaxDebit += cgstAmount;
+    // Multi-rate GST lines — sum each entry into DR or CR depending on
+    // its own ``debit_or_credit`` flag. Replaces the old single
+    // CGST/SGST/IGST bill-level fields.
+    for (const line of gstLines) {
+      const amt = parseFloat(line.amount || 0);
+      if (!amt) continue;
+      if (line.debit_or_credit === "credit") {
+        totalTaxCredit += amt;
       } else {
-        totalTaxCredit += cgstAmount;
-      }
-    }
-
-    // SGST calculation
-    if (taxSummaryForm.sgst) {
-      const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
-      if (taxSummaryForm.sgstDebitCredit === "debit") {
-        totalTaxDebit += sgstAmount;
-      } else {
-        totalTaxCredit += sgstAmount;
-      }
-    }
-
-    // IGST calculation
-    if (taxSummaryForm.igst) {
-      const igstAmount = parseFloat(taxSummaryForm.igst || 0);
-      if (taxSummaryForm.igstDebitCredit === "debit") {
-        totalTaxDebit += igstAmount;
-      } else {
-        totalTaxCredit += igstAmount;
+        totalTaxDebit += amt;
       }
     }
 
@@ -1045,16 +1161,11 @@ const TallyExpenseBillDetail = () => {
     }));
   }, [
     expenseItems,
-    taxSummaryForm.cgst,
-    taxSummaryForm.sgst,
-    taxSummaryForm.igst,
+    gstLines,
     taxSummaryForm.tds,
-    taxSummaryForm.cgstDebitCredit,
-    taxSummaryForm.sgstDebitCredit,
-    taxSummaryForm.igstDebitCredit,
     taxSummaryForm.tdsDebitCredit,
     taxSummaryForm.vendorDebitCredit,
-  ]); // Re-calculate whenever expense items, tax amounts, or vendor debit/credit type changes
+  ]); // Re-calculate whenever expense items, GST lines, TDS, or vendor DR/CR type changes
 
   // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
   // the total absorbs the rounding so that all debits = all credits.
@@ -1229,8 +1340,61 @@ const TallyExpenseBillDetail = () => {
     };
   };
 
-  // Handle tax ledger selections
+  // ------------------------------------------------------------------
+  // GST Lines (multi-rate Journal voucher GST)
+  // ------------------------------------------------------------------
+  // Each ``gstLines`` row represents one ``<ledger>`` posting in the
+  // Tally Journal voucher: a (rate, tax_type, ledger, amount, DR/CR)
+  // tuple. Mixed-rate bills have 2–N rows; a single-rate intrastate
+  // has 2 rows (CGST + SGST); interstate has 1 row (IGST).
+  const GST_RATE_OPTIONS = ["5%", "12%", "18%", "28%", "Exempted", "N/A"];
+
+  const handleGstLineAdd = () => {
+    setGstLines((prev) => [
+      ...prev,
+      {
+        id: `gst-${Date.now()}-${Math.random()}`,
+        rate: "18%",
+        // Default tax type based on what's already there — if existing
+        // rows are CGST/SGST, add an IGST so the user can flip; if
+        // existing rows are IGST, add another IGST. Falls back to CGST.
+        tax_type: prev.some((l) => l.tax_type === "IGST")
+          ? "IGST"
+          : prev.some((l) => l.tax_type === "SGST")
+            ? "CGST"
+            : prev.some((l) => l.tax_type === "CGST")
+              ? "SGST"
+              : "CGST",
+        amount: "0.00",
+        ledger_id: null,
+        debit_or_credit: "debit",
+      },
+    ]);
+  };
+
+  const handleGstLineRemove = (lineId) => {
+    setGstLines((prev) => prev.filter((l) => l.id !== lineId));
+  };
+
+  const handleGstLineChange = (lineId, field, value) => {
+    setGstLines((prev) =>
+      prev.map((l) => (l.id === lineId ? { ...l, [field]: value } : l)),
+    );
+  };
+
+  // Tracks which adjustment ledgers the user has explicitly CLEARED in
+  // this session. Without this, the auto-match useEffect would
+  // immediately re-fill the field from ``tallyAnalysedData`` because
+  // its condition is ``backendValue && !currentValue`` — clearing sets
+  // current to null and the effect re-applies the backend value,
+  // defeating the × click.
+  const userClearedLedgersRef = useRef(new Set());
+
+  // Handle tax ledger selections. Selecting any value removes the
+  // "user cleared" mark so the auto-match doesn't fight the choice;
+  // clearing adds it so the auto-match doesn't re-fill from backend.
   const handleCgstLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("cgst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       cgstLedgerId: ledgerId,
@@ -1238,6 +1402,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleSgstLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("sgst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       sgstLedgerId: ledgerId,
@@ -1245,6 +1410,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleIgstLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("igst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       igstLedgerId: ledgerId,
@@ -1252,6 +1418,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleCgstLedgerClear = () => {
+    userClearedLedgersRef.current.add("cgst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       cgstLedgerId: null,
@@ -1259,6 +1426,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleSgstLedgerClear = () => {
+    userClearedLedgersRef.current.add("sgst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       sgstLedgerId: null,
@@ -1266,6 +1434,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleIgstLedgerClear = () => {
+    userClearedLedgersRef.current.add("igst");
     setTaxSummaryForm((prev) => ({
       ...prev,
       igstLedgerId: null,
@@ -1273,14 +1442,17 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleTdsLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("tds");
     setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: ledgerId }));
   };
 
   const handleTdsLedgerClear = () => {
+    userClearedLedgersRef.current.add("tds");
     setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: null }));
   };
 
   const handleOtherAdjustmentLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("other_adjustment");
     setTaxSummaryForm((prev) => ({
       ...prev,
       other_adjustment_taxes: ledgerId,
@@ -1288,10 +1460,12 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleOtherAdjustmentLedgerClear = () => {
+    userClearedLedgersRef.current.add("other_adjustment");
     setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: null }));
   };
 
   const handleRoundOffLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("round_off");
     setTaxSummaryForm((prev) => ({
       ...prev,
       round_off_taxes: ledgerId,
@@ -1299,6 +1473,7 @@ const TallyExpenseBillDetail = () => {
   };
 
   const handleRoundOffLedgerClear = () => {
+    userClearedLedgersRef.current.add("round_off");
     setTaxSummaryForm((prev) => ({ ...prev, round_off_taxes: null }));
   };
 
@@ -1418,19 +1593,44 @@ const TallyExpenseBillDetail = () => {
         company_id: selectedVendor?.company || billForm.companyId || "Unknown",
         vendor_debit_or_credit: taxSummaryForm.vendorDebitCredit || "credit",
         vendor_amount: formatDecimal(taxSummaryForm.vendorAmount),
+        // Multi-rate GST as a flat array — one entry per (rate, ledger)
+        // bucket. Backend wipes + recreates ``TallyExpenseGstLine``
+        // rows from this list on verify. The legacy ``taxes.cgst/sgst/
+        // igst`` block is still sent below (as rollup sums) for old
+        // backend readers; the backend prioritises gst_lines when
+        // present.
+        gst_lines: gstLines.map((line) => ({
+          rate: line.rate || "",
+          tax_type: line.tax_type,
+          amount: formatDecimal(line.amount),
+          ledger: line.ledger_id || null,
+          debit_or_credit: line.debit_or_credit || "debit",
+        })),
         taxes: {
           igst: {
-            amount: formatDecimal(taxSummaryForm.igst),
+            amount: formatDecimal(
+              gstLines
+                .filter((l) => l.tax_type === "IGST")
+                .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
+            ),
             ledger: igstLedger?.name || "No Tax Ledger",
             debit_or_credit: taxSummaryForm.igstDebitCredit || "debit",
           },
           cgst: {
-            amount: formatDecimal(taxSummaryForm.cgst),
+            amount: formatDecimal(
+              gstLines
+                .filter((l) => l.tax_type === "CGST")
+                .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
+            ),
             ledger: cgstLedger?.name || "No Tax Ledger",
             debit_or_credit: taxSummaryForm.cgstDebitCredit || "debit",
           },
           sgst: {
-            amount: formatDecimal(taxSummaryForm.sgst),
+            amount: formatDecimal(
+              gstLines
+                .filter((l) => l.tax_type === "SGST")
+                .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
+            ),
             ledger: sgstLedger?.name || "No Tax Ledger",
             debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit",
           },
@@ -2799,6 +2999,212 @@ const TallyExpenseBillDetail = () => {
                   </div>
                 )}
 
+                {/* ──────────────────────────────────────────────────
+                    GST Lines table — multi-rate Journal voucher GST.
+                    Each row maps 1:1 to a <ledger> entry in the sync
+                    XML. A single-rate intrastate bill has 2 rows
+                    (CGST + SGST); interstate has 1 (IGST); mixed-rate
+                    bills can have N rows.
+                    ────────────────────────────────────────────────── */}
+                {(() => {
+                  const gstSelectCls =
+                    "w-full px-2 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer";
+                  // Per-row ledger pool depends on tax_type.
+                  const optionsForType = (taxType) => {
+                    if (taxType === "CGST") return cgstLedgerOptions;
+                    if (taxType === "SGST") return sgstLedgerOptions;
+                    if (taxType === "IGST") return igstLedgerOptions;
+                    return [];
+                  };
+                  const loadingForType = (taxType) => {
+                    if (taxType === "CGST") return cgstLedgersLoading;
+                    if (taxType === "SGST") return sgstLedgersLoading;
+                    if (taxType === "IGST") return igstLedgersLoading;
+                    return false;
+                  };
+
+                  return (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                            <Icon icon="heroicons:list-bullet" className="text-[12px]" />
+                          </span>
+                          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                            GST Lines
+                          </h4>
+                          <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                            One row per (rate, ledger) — supports multi-rate
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGstLineAdd}
+                          disabled={isVerified}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Icon icon="heroicons:plus" className="text-[12px]" />
+                          Add GST line
+                        </button>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
+                        {/* Header */}
+                        <div className="hidden md:grid grid-cols-[80px_80px_110px_minmax(180px,1fr)_100px_40px] gap-2 px-2 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Rate</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Type</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Amount (₹)</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">DR/CR</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-center">×</span>
+                        </div>
+
+                        {gstLines.length === 0 ? (
+                          <div className="px-3 py-4 text-center text-[12px] italic text-slate-500 dark:text-slate-400">
+                            No GST lines yet — click "Add GST line" if the bill carries GST.
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {gstLines.map((line) => {
+                              const amountVal = parseFloat(line.amount || 0);
+                              const missingLedger =
+                                amountVal > 0 && !line.ledger_id && !isVerified;
+                              return (
+                                <div
+                                  key={line.id}
+                                  className="grid grid-cols-[80px_80px_110px_minmax(180px,1fr)_100px_40px] gap-2 px-2 py-2 items-center"
+                                >
+                                  {/* Rate */}
+                                  <select
+                                    value={line.rate}
+                                    onChange={(e) =>
+                                      handleGstLineChange(
+                                        line.id,
+                                        "rate",
+                                        e.target.value,
+                                      )
+                                    }
+                                    disabled={isVerified}
+                                    className={gstSelectCls}
+                                  >
+                                    {GST_RATE_OPTIONS.map((r) => (
+                                      <option key={r} value={r}>
+                                        {r}
+                                      </option>
+                                    ))}
+                                  </select>
+
+                                  {/* Tax type */}
+                                  <select
+                                    value={line.tax_type}
+                                    onChange={(e) => {
+                                      // Type change ⇒ clear ledger (the
+                                      // dropdown pool is type-specific).
+                                      handleGstLineChange(
+                                        line.id,
+                                        "tax_type",
+                                        e.target.value,
+                                      );
+                                      handleGstLineChange(
+                                        line.id,
+                                        "ledger_id",
+                                        null,
+                                      );
+                                    }}
+                                    disabled={isVerified}
+                                    className={gstSelectCls}
+                                  >
+                                    <option value="CGST">CGST</option>
+                                    <option value="SGST">SGST</option>
+                                    <option value="IGST">IGST</option>
+                                  </select>
+
+                                  {/* Amount — typing-friendly editable */}
+                                  <EditableTaxAmount
+                                    value={line.amount}
+                                    disabled={isVerified}
+                                    onCommit={(v) =>
+                                      handleGstLineChange(line.id, "amount", v)
+                                    }
+                                  />
+
+                                  {/* Ledger */}
+                                  <div
+                                    className={`relative ${
+                                      missingLedger
+                                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                                        : ""
+                                    }`}
+                                  >
+                                    <SearchableDropdown
+                                      options={optionsForType(line.tax_type)}
+                                      value={line.ledger_id || null}
+                                      onChange={(id) =>
+                                        handleGstLineChange(
+                                          line.id,
+                                          "ledger_id",
+                                          id,
+                                        )
+                                      }
+                                      onClear={() =>
+                                        handleGstLineChange(
+                                          line.id,
+                                          "ledger_id",
+                                          null,
+                                        )
+                                      }
+                                      placeholder={`Select ${line.tax_type} ledger…`}
+                                      searchPlaceholder={`Search ${line.tax_type} ledgers…`}
+                                      optionLabelKey="name"
+                                      optionValueKey="id"
+                                      loading={loadingForType(line.tax_type)}
+                                      disabled={isVerified}
+                                      className="text-xs"
+                                    />
+                                  </div>
+
+                                  {/* DR/CR */}
+                                  <select
+                                    value={line.debit_or_credit}
+                                    onChange={(e) =>
+                                      handleGstLineChange(
+                                        line.id,
+                                        "debit_or_credit",
+                                        e.target.value,
+                                      )
+                                    }
+                                    disabled={isVerified}
+                                    className={gstSelectCls}
+                                  >
+                                    <option value="debit">Debit</option>
+                                    <option value="credit">Credit</option>
+                                  </select>
+
+                                  {/* Delete */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleGstLineRemove(line.id)
+                                    }
+                                    disabled={isVerified}
+                                    title="Remove this GST line"
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    <Icon
+                                      icon="heroicons:trash"
+                                      className="text-[14px]"
+                                    />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {(() => {
                   const amountCls =
                     "w-full px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -2806,52 +3212,11 @@ const TallyExpenseBillDetail = () => {
                   const selectCls =
                     "w-full px-2 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer";
 
+                  // CGST/SGST/IGST rows REMOVED — multi-rate GST is now
+                  // managed via the dedicated GST Lines table rendered
+                  // above this Adjustments block. TDS, Other Adjustment
+                  // and Round Off stay here as bill-level singletons.
                   const rows = [
-                    {
-                      key: "cgst",
-                      label: "CGST",
-                      amountField: "cgst",
-                      typeField: "cgstDebitCredit",
-                      defaultType: "debit",
-                      missing: isCgstLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.cgst || 0) > 0,
-                      options: cgstLedgerOptions,
-                      ledgerId: taxSummaryForm.cgstLedgerId,
-                      onSelect: handleCgstLedgerSelect,
-                      onClear: handleCgstLedgerClear,
-                      loading: cgstLedgersLoading,
-                      placeholder: "CGST ledger",
-                    },
-                    {
-                      key: "sgst",
-                      label: "SGST",
-                      amountField: "sgst",
-                      typeField: "sgstDebitCredit",
-                      defaultType: "debit",
-                      missing: isSgstLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.sgst || 0) > 0,
-                      options: sgstLedgerOptions,
-                      ledgerId: taxSummaryForm.sgstLedgerId,
-                      onSelect: handleSgstLedgerSelect,
-                      onClear: handleSgstLedgerClear,
-                      loading: sgstLedgersLoading,
-                      placeholder: "SGST ledger",
-                    },
-                    {
-                      key: "igst",
-                      label: "IGST",
-                      amountField: "igst",
-                      typeField: "igstDebitCredit",
-                      defaultType: "debit",
-                      missing: isIgstLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.igst || 0) > 0,
-                      options: igstLedgerOptions,
-                      ledgerId: taxSummaryForm.igstLedgerId,
-                      onSelect: handleIgstLedgerSelect,
-                      onClear: handleIgstLedgerClear,
-                      loading: igstLedgersLoading,
-                      placeholder: "IGST ledger",
-                    },
                     {
                       key: "tds",
                       label: "TDS",
@@ -3071,13 +3436,50 @@ const TallyExpenseBillDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className="w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            billTotalMatch.hasBillValue && !billTotalMatch.isMatch
+                              ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
+                              : "border-blue-200 dark:border-blue-900/60"
+                          }`}
                           min="0"
                           step="0.01"
                         />
-                        <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
-                          Including all taxes &amp; adjustments
-                        </span>
+                        {/* Caption — switches to an amber heads-up when
+                            the current total drifts from the OCR-extracted
+                            invoice total by more than ±₹1. Informational
+                            only; does not block verification. */}
+                        {billTotalMatch.hasBillValue &&
+                        !billTotalMatch.isMatch ? (
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span
+                              className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
+                              title={`Current total ₹${billTotalMatch.currentTotal.toFixed(2)} differs from the invoice total on the bill (₹${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
+                            >
+                              <Icon
+                                icon="heroicons:information-circle"
+                                className="text-[12px]"
+                              />
+                              Differs from bill total
+                            </span>
+                            <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
+                              Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
+                              {billTotalMatch.diff > 0 ? "+" : ""}₹
+                              {billTotalMatch.diff.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : billTotalMatch.hasBillValue ? (
+                          <span className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 text-[10.5px] font-bold uppercase tracking-wide">
+                            <Icon
+                              icon="heroicons:check-circle"
+                              className="text-[12px]"
+                            />
+                            Matches bill total
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
+                            Including all taxes &amp; adjustments
+                          </span>
+                        )}
                         <span />
                       </div>
                     </div>
