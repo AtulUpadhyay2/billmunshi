@@ -11,6 +11,8 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Login = lazy(() => import("./pages/auth/login"));
 const Register = lazy(() => import("./pages/auth/register"));
 const ForgotPass = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/auth/VerifyEmail"));
 const NoOrganization = lazy(() => import("./pages/auth/NoOrganization"));
 const SelectOrganization = lazy(
   () => import("./pages/auth/SelectOrganization"),
@@ -59,6 +61,10 @@ const TallyVendorBillDetail = lazy(
 const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const TallyExpenseBillDetail = lazy(
   () => import("./pages/tally/expense-bill/detail"),
+);
+const TallyPaymentVoucher = lazy(() => import("./pages/tally/payment-voucher"));
+const TallyPaymentVoucherDetail = lazy(
+  () => import("./pages/tally/payment-voucher/detail"),
 );
 const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
 const TallySetups = lazy(() => import("./pages/tally/config/setup"));
@@ -113,6 +119,8 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPass />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/no-organization" element={<NoOrganization />} />
           <Route
             path="/auth/select-organization"
@@ -163,6 +171,11 @@ function App() {
           <Route
             path="tally/expense-bill/:id"
             element={<TallyExpenseBillDetail />}
+          />
+          <Route path="tally/payment-voucher" element={<TallyPaymentVoucher />} />
+          <Route
+            path="tally/payment-voucher/:id"
+            element={<TallyPaymentVoucherDetail />}
           />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />

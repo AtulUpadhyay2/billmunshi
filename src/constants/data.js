@@ -72,7 +72,7 @@ export const menuItems = [
   },
 
   {
-    title: "Vendor Bill",
+    title: "Purchase Voucher",
     isHide: true,
     icon: "heroicons-outline:document-text",
     link: "/tally/vendor-bill",
@@ -83,6 +83,13 @@ export const menuItems = [
     isHide: true,
     icon: "heroicons-outline:clipboard",
     link: "/tally/expense-bill",
+  },
+
+  {
+    title: "Payment Voucher",
+    isHide: true,
+    icon: "heroicons-outline:credit-card",
+    link: "/tally/payment-voucher",
   },
 
   {
@@ -194,14 +201,19 @@ export const topMenu = [
     link: "#",
     child: [
       {
-        childtitle: "Vendor Bill",
+        childtitle: "Purchase Voucher",
         childlink: "/tally/vendor-bill",
         childicon: "heroicons-outline:document-text",
       },
       {
-        childtitle: "Expense Bill",
+        childtitle: "Journal Entry",
         childlink: "/tally/expense-bill",
         childicon: "heroicons-outline:clipboard",
+      },
+      {
+        childtitle: "Payment Voucher",
+        childlink: "/tally/payment-voucher",
+        childicon: "heroicons-outline:credit-card",
       },
       {
         childtitle: "Account Info",

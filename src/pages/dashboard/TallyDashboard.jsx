@@ -60,7 +60,7 @@ const TallyDashboard = () => {
       globalToast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to upload vendor bills",
+          "Failed to upload purchase vouchers",
       );
     }
   };

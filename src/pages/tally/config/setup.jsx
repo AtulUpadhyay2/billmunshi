@@ -536,7 +536,7 @@ const TallySetup = () => {
           </div>
           <p className="text-base font-bold text-slate-900 dark:text-white">No configuration yet</p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-5 max-w-md mx-auto">
-            Set up Tally ledger mappings so vendor bills, expenses, and taxes post to the right ledgers automatically.
+            Set up Tally ledger mappings so purchase vouchers, journal entries, and taxes post to the right ledgers automatically.
           </p>
           <button
             type="button"

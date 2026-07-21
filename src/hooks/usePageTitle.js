@@ -32,14 +32,21 @@ const usePageTitle = () => {
         path.includes("/tally/vendor-bill/") &&
         path.split("/").length === 4
       ) {
-        pageTitle = `Bill Munshi | Tally Vendor Bill`;
+        pageTitle = `Bill Munshi | Tally Purchase Voucher`;
         document.title = pageTitle;
         return;
       } else if (
         path.includes("/tally/expense-bill/") &&
         path.split("/").length === 4
       ) {
-        pageTitle = `Bill Munshi | Tally Expense Bill`;
+        pageTitle = `Bill Munshi | Tally Journal Entry`;
+        document.title = pageTitle;
+        return;
+      } else if (
+        path.includes("/tally/payment-voucher/") &&
+        path.split("/").length === 4
+      ) {
+        pageTitle = `Bill Munshi | Tally Payment Voucher`;
         document.title = pageTitle;
         return;
       }
@@ -62,8 +69,9 @@ const usePageTitle = () => {
         "/zoho/vendors-credits": "Zoho Vendor Credits",
 
         // Tally routes
-        "/tally/vendor-bill": "Tally Vendor Bills",
-        "/tally/expense-bill": "Tally Expense Bills",
+        "/tally/vendor-bill": "Tally Purchase Vouchers",
+        "/tally/expense-bill": "Tally Journal Entries",
+        "/tally/payment-voucher": "Tally Payment Vouchers",
         "/tally/ledgers": "Tally Ledgers",
         "/tally/setup": "Tally Setup",
         "/tally/masters": "Tally Masters",

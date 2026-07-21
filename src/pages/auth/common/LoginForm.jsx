@@ -143,7 +143,7 @@ const LoginForm = () => {
           </span>
         </label>
         <Link
-          to="/forgot-password"
+          to="/auth/forgot-password"
           className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
         >
           Forgot password?

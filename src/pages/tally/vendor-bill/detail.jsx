@@ -27,6 +27,8 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import QuickAddMastersBar from "@/components/tally/QuickAddMastersBar";
+import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
 
 /**
@@ -2455,19 +2457,36 @@ const TallyVendorBillDetail = () => {
     try {
       setIsSyncing(true);
 
-      await syncVendorBill({
-        organizationId: selectedOrganization?.id,
-        billId,
-      });
+      // Wrap the sync in the masters-guard helper: if backend returns
+      // 409 WAITING_FOR_MASTERS, poll the same call every 15s (up to
+      // 3 min) until Tally imports the pending records, then proceed.
+      // Zero XML change — see docs/tally-master-sync.md for the flow.
+      const outcome = await tallySyncWithMastersGuard(
+        () =>
+          syncVendorBill({
+            organizationId: selectedOrganization?.id,
+            billId,
+          }),
+        {
+          retryFn: async () => true, // keep polling until timeout
+        },
+      );
 
-      globalToast.success("Bill synced to Tally successfully");
-      refetch(); // Refresh the data to show updated status
+      if (outcome.status === "success") {
+        globalToast.success("Bill synced to Tally successfully");
+        refetch();
+      } else if (outcome.status === "timeout") {
+        // Toast already shown by the helper — just make sure state is fresh.
+        refetch();
+      }
+      // "waiting" without retry never fires because retryFn returns true.
     } catch (error) {
       console.error("Failed to sync vendor bill:", error);
       globalToast.error(
-        error?.response?.data?.message ||
+        error?.data?.message ||
+          error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync vendor bill",
+          "Failed to sync purchase voucher",
       );
     } finally {
       setIsSyncing(false);
@@ -2600,12 +2619,12 @@ const TallyVendorBillDetail = () => {
           <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
-          Failed to load vendor bill
+          Failed to load purchase voucher
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
           {error?.data?.message ||
             error?.message ||
-            "An error occurred while fetching vendor bill details."}
+            "An error occurred while fetching purchase voucher details."}
         </p>
         <div className="flex items-center justify-center gap-2">
           <button
@@ -2640,7 +2659,7 @@ const TallyVendorBillDetail = () => {
           No workspace selected
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Please select a client to view vendor bill details.
+          Please select a client to view purchase voucher details.
         </p>
       </div>
     );
@@ -2655,7 +2674,7 @@ const TallyVendorBillDetail = () => {
             type="button"
             onClick={handleBackClick}
             className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
-            title="Back to vendor bills"
+            title="Back to purchase vouchers"
           >
             <Icon icon="heroicons:arrow-left" className="text-base" />
           </button>
@@ -2670,6 +2689,17 @@ const TallyVendorBillDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Quick-add masters — creates Vendor / Ledger / Item on the
+              fly. Dropdowns in the form below auto-refresh via
+              react-query invalidation, so the new record appears
+              immediately in its picker. Sync will wait for Tally to
+              import it (see tallySyncGuard). */}
+          <QuickAddMastersBar
+            className="mr-1"
+            ledgerDefaultParent="Purchase Accounts"
+            ledgerTitle="Add New Purchase Ledger"
+          />
+          <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
             onClick={() => refetch()}

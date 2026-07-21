@@ -72,6 +72,9 @@ const BillsList = ({
   useAnalyzeBill,
   useSyncBill,
   useMoveBills,
+  // Optional: XLSX report download hook — when supplied, a "Download
+  // Excel" button appears on the Analysed / Verified / Synced tabs.
+  useDownloadReport,
   // direction args for the move endpoint
   moveFrom,
   moveTo,
@@ -135,6 +138,36 @@ const BillsList = ({
   const { mutateAsync: syncBill } = useSyncBill();
   const { mutateAsync: moveBills } = useMoveBills();
 
+  // Download-report hook is optional. When the parent page doesn't
+  // pass one, ``downloadReport`` is a no-op and the button stays hidden.
+  const downloadReportMutation = useDownloadReport ? useDownloadReport() : null;
+  const canDownloadReport =
+    Boolean(useDownloadReport) &&
+    ["analysed", "synced"].includes(activeTab);
+  const isDownloadingReport = downloadReportMutation?.isPending || false;
+
+  const handleDownloadReport = async () => {
+    if (!downloadReportMutation) return;
+    // Analysed tab groups Analysed + Verified server-side (see
+    // bills_list_base); mirror that here so the exported rows match
+    // what the user is looking at.
+    const statusFilter =
+      activeTab === "synced"
+        ? "Synced"
+        : "Analysed,Verified";
+    try {
+      await downloadReportMutation.mutateAsync({
+        organizationId: selectedOrganization?.id,
+        status: statusFilter,
+      });
+      globalToast.success("Report downloaded");
+    } catch (err) {
+      globalToast.error(
+        err?.response?.data?.message || err?.message || "Failed to download report",
+      );
+    }
+  };
+
   // UI state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
@@ -151,6 +184,10 @@ const BillsList = ({
   const [deletingBills, setDeletingBills] = useState(new Set());
   const [selectedBills, setSelectedBills] = useState(new Set());
   const [deleteConfirmBillId, setDeleteConfirmBillId] = useState(null);
+  // Bulk action modals
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkSyncOpen, setIsBulkSyncOpen] = useState(false);
+  const [isBulkActing, setIsBulkActing] = useState(false);
 
   const bills = billsData?.results || [];
 
@@ -170,9 +207,28 @@ const BillsList = ({
     return filtered.slice(startIdx, startIdx + pageSize);
   }, [filtered, page, pageSize]);
 
-  const selectableIds = useMemo(
-    () => paged.filter((b) => b.status === "Draft" || b.status === "Analysed").map((b) => b.id),
-    [paged]
+  // All bills on the current page are selectable — bulk actions
+  // decide per-bill eligibility (Sync only fires on Verified, Delete
+  // works on any status, Move keeps its original per-page semantics).
+  const selectableIds = useMemo(() => paged.map((b) => b.id), [paged]);
+
+  const selectedBillObjs = useMemo(
+    () => bills.filter((b) => selectedBills.has(b.id)),
+    [bills, selectedBills],
+  );
+  // Bulk-sync eligibility: any Verified bill, plus previously-Synced
+  // bills whose backend flag (``tally_synced``) still says the sync
+  // never actually landed in Tally.
+  const bulkSyncableIds = useMemo(
+    () =>
+      selectedBillObjs
+        .filter(
+          (b) =>
+            b.status === "Verified" ||
+            (b.status === "Synced" && !b.tally_synced),
+        )
+        .map((b) => b.id),
+    [selectedBillObjs],
   );
   const allSelectablePicked =
     selectableIds.length > 0 && selectableIds.every((id) => selectedBills.has(id));
@@ -288,6 +344,47 @@ const BillsList = ({
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedBills.size === 0) return;
+    setIsBulkActing(true);
+    const ids = Array.from(selectedBills);
+    let ok = 0;
+    let failed = 0;
+    // No dedicated bulk-delete endpoint — fan out per-bill deletes in
+    // parallel so a slow/failed one doesn't block the rest.
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        deleteBill({ organizationId: selectedOrganization?.id, id }),
+      ),
+    );
+    results.forEach((r) => (r.status === "fulfilled" ? ok++ : failed++));
+    setIsBulkActing(false);
+    setIsBulkDeleteOpen(false);
+    setSelectedBills(new Set());
+    if (ok) globalToast.success(`Deleted ${ok} bill${ok > 1 ? "s" : ""}`);
+    if (failed) globalToast.error(`Failed to delete ${failed} bill${failed > 1 ? "s" : ""}`);
+    refetch();
+  };
+
+  const handleBulkSync = async () => {
+    if (bulkSyncableIds.length === 0) return;
+    setIsBulkActing(true);
+    let ok = 0;
+    let failed = 0;
+    const results = await Promise.allSettled(
+      bulkSyncableIds.map((billId) =>
+        syncBill({ organizationId: selectedOrganization?.id, billId }),
+      ),
+    );
+    results.forEach((r) => (r.status === "fulfilled" ? ok++ : failed++));
+    setIsBulkActing(false);
+    setIsBulkSyncOpen(false);
+    setSelectedBills(new Set());
+    if (ok) globalToast.success(`Queued ${ok} bill${ok > 1 ? "s" : ""} for sync`);
+    if (failed) globalToast.error(`Failed to sync ${failed} bill${failed > 1 ? "s" : ""}`);
+    refetch();
+  };
+
   // Action button cell
   const ActionCell = ({ bill }) => {
     const { status } = bill;
@@ -380,13 +477,52 @@ const BillsList = ({
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {selectedBills.size > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsMoveModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+              >
+                <Icon icon="heroicons:arrow-right-circle" className="text-base" />
+                Move ({selectedBills.size})
+              </button>
+              {bulkSyncableIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsBulkSyncOpen(true)}
+                  disabled={isBulkActing}
+                  title="Sync selected Verified bills to Tally"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <Icon icon="heroicons:arrow-up-on-square" className="text-base" />
+                  Sync ({bulkSyncableIds.length})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteOpen(true)}
+                disabled={isBulkActing}
+                title="Delete selected bills"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              >
+                <Icon icon="heroicons:trash" className="text-base" />
+                Delete ({selectedBills.size})
+              </button>
+            </>
+          )}
+          {canDownloadReport && (
             <button
               type="button"
-              onClick={() => setIsMoveModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+              onClick={handleDownloadReport}
+              disabled={isDownloadingReport}
+              title={`Download ${activeTab === "synced" ? "Synced" : "Analysed & Verified"} ${copy.billLabel}s as Excel`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
             >
-              <Icon icon="heroicons:arrow-right-circle" className="text-base" />
-              Move ({selectedBills.size})
+              <Icon
+                icon={isDownloadingReport ? "heroicons:arrow-path" : "heroicons:arrow-down-tray"}
+                className={`text-base ${isDownloadingReport ? "animate-spin" : ""}`}
+              />
+              {isDownloadingReport ? "Preparing…" : "Download Excel"}
             </button>
           )}
           <button
@@ -537,7 +673,9 @@ const BillsList = ({
                 ) : (
                   paged.map((bill, idx) => {
                     const serial = (page - 1) * pageSize + idx + 1;
-                    const canSelect = bill.status === "Draft" || bill.status === "Analysed";
+                    // Any status is now selectable — bulk actions gate
+                    // themselves by status (Sync only on Verified, etc.).
+                    const canSelect = true;
                     const isSelected = selectedBills.has(bill.id);
                     const tallyState = getTallySyncState(bill);
                     return (
@@ -632,11 +770,14 @@ const BillsList = ({
                                     <Icon icon="heroicons:x-mark" className="text-[11px]" /> Tally
                                   </button>
                                 )}
-                                {bill.processing_error && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60">
-                                    <Icon icon="heroicons:exclamation-circle" className="text-[11px]" /> Error
-                                  </span>
-                                )}
+                                {bill.processing_error &&
+                                  !["Analysed", "Verified", "Synced"].includes(
+                                    bill.status,
+                                  ) && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60">
+                                      <Icon icon="heroicons:exclamation-circle" className="text-[11px]" /> Error
+                                    </span>
+                                  )}
                               </div>
                             </div>
                           </div>
@@ -920,6 +1061,36 @@ const BillsList = ({
         message="This action cannot be undone."
         confirmText="Yes, delete"
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={isBulkDeleteOpen}
+        onClose={() => (isBulkActing ? null : setIsBulkDeleteOpen(false))}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedBills.size} bill${selectedBills.size > 1 ? "s" : ""}?`}
+        message={
+          `You're about to permanently delete ${selectedBills.size} selected ` +
+          `${copy.billLabel}${selectedBills.size > 1 ? "s" : ""}. This action ` +
+          `cannot be undone.`
+        }
+        confirmText={isBulkActing ? "Deleting…" : `Yes, delete ${selectedBills.size}`}
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={isBulkSyncOpen}
+        onClose={() => (isBulkActing ? null : setIsBulkSyncOpen(false))}
+        onConfirm={handleBulkSync}
+        title={`Sync ${bulkSyncableIds.length} bill${bulkSyncableIds.length > 1 ? "s" : ""} to Tally?`}
+        message={
+          selectedBills.size > bulkSyncableIds.length
+            ? `Only ${bulkSyncableIds.length} of the ${selectedBills.size} selected ` +
+              `bills are eligible for sync (Verified, or Synced-but-not-posted). ` +
+              `Ineligible bills will be skipped.`
+            : `The ${bulkSyncableIds.length} selected bill${bulkSyncableIds.length > 1 ? "s" : ""} ` +
+              `will be posted to Tally.`
+        }
+        confirmText={isBulkActing ? "Syncing…" : `Yes, sync ${bulkSyncableIds.length}`}
       />
     </div>
   );

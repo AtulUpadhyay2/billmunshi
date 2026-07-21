@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/apiClient";
 import apiClient from "@/utils/apiClient";
+import { downloadAuthenticatedFile } from "@/utils/downloadFile";
 
 // ==================== VENDOR BILLS ====================
 
@@ -206,3 +207,19 @@ export const useMoveVendorBills = () => {
     },
   });
 };
+
+/**
+ * Trigger an authenticated download of the XLSX report for the given
+ * status filter (Analysed / Verified / Synced — comma-separated string
+ * or single value). Falls back to all three when ``status`` is empty.
+ */
+export const useDownloadZohoVendorReport = () =>
+  useMutation({
+    mutationFn: async ({ organizationId, status = "" }) => {
+      const params = status ? { status } : undefined;
+      return downloadAuthenticatedFile(
+        `zoho/org/${organizationId}/vendor-bills/report/`,
+        { fallbackName: `zoho-vendor-bills.xlsx`, params },
+      );
+    },
+  });

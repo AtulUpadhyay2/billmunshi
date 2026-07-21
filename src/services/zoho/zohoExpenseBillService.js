@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/apiClient";
 import apiClient from "@/utils/apiClient";
+import { downloadAuthenticatedFile } from "@/utils/downloadFile";
 
 // ==================== EXPENSE BILLS ====================
 
@@ -228,3 +229,19 @@ export const useMoveExpenseBills = () => {
     },
   });
 };
+
+/**
+ * Trigger an authenticated download of the XLSX report for the given
+ * status filter (Analysed / Verified / Synced — comma-separated string
+ * or single value). Falls back to all three when ``status`` is empty.
+ */
+export const useDownloadZohoExpenseReport = () =>
+  useMutation({
+    mutationFn: async ({ organizationId, status = "" }) => {
+      const params = status ? { status } : undefined;
+      return downloadAuthenticatedFile(
+        `zoho/org/${organizationId}/expense-bills/report/`,
+        { fallbackName: `zoho-expense-bills.xlsx`, params },
+      );
+    },
+  });

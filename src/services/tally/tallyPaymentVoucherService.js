@@ -4,20 +4,20 @@ import apiClient from '@/utils/apiClient';
 import { downloadAuthenticatedFile } from "@/utils/downloadFile";
 
 // ===========================
-// TALLY EXPENSE BILLS - QUERIES
+// TALLY PAYMENT VOUCHERS - QUERIES
 // ===========================
 
 /**
- * Get all Tally expense bills for an organization
+ * Get all Tally payment vouchers for an organization
  * @param {Object} params - Query parameters
  * @param {string} params.organizationId - Organization ID
  * @param {string} params.status - Optional bill status filter
  */
-export const useGetTallyExpenseBills = ({ organizationId, status }, options = {}) => {
+export const useGetTallyPaymentVouchers = ({ organizationId, status }, options = {}) => {
   return useQuery({
-    queryKey: ['tallyExpenseBills', organizationId, status],
+    queryKey: ['tallyPaymentVouchers', organizationId, status],
     queryFn: async () => {
-      let url = `tally/org/${organizationId}/expense-bills/`;
+      let url = `tally/org/${organizationId}/payment-vouchers/`;
       if (status) {
         url += `?status=${status}`;
       }
@@ -35,13 +35,13 @@ export const useGetTallyExpenseBills = ({ organizationId, status }, options = {}
 };
 
 /**
- * Get a specific Tally expense bill
+ * Get a specific Tally payment voucher
  */
-export const useGetTallyExpenseBill = ({ organizationId, billId }, options = {}) => {
+export const useGetTallyPaymentVoucher = ({ organizationId, billId }, options = {}) => {
   return useQuery({
-    queryKey: ['tallyExpenseBill', organizationId, billId],
+    queryKey: ['tallyPaymentVoucher', organizationId, billId],
     queryFn: async () => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/${billId}/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/${billId}/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -55,13 +55,13 @@ export const useGetTallyExpenseBill = ({ organizationId, billId }, options = {})
 };
 
 /**
- * Get detailed information for a Tally expense bill
+ * Get detailed information for a Tally payment voucher
  */
-export const useGetTallyExpenseBillDetails = ({ organizationId, billId }, options = {}) => {
+export const useGetTallyPaymentVoucherDetails = ({ organizationId, billId }, options = {}) => {
   return useQuery({
-    queryKey: ['tallyExpenseBillDetails', organizationId, billId],
+    queryKey: ['tallyPaymentVoucherDetails', organizationId, billId],
     queryFn: async () => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/${billId}/details/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/${billId}/details/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -75,18 +75,18 @@ export const useGetTallyExpenseBillDetails = ({ organizationId, billId }, option
 };
 
 // ===========================
-// TALLY EXPENSE BILLS - MUTATIONS
+// TALLY PAYMENT VOUCHERS - MUTATIONS
 // ===========================
 
 /**
- * Create a new Tally expense bill
+ * Create a new Tally payment voucher
  */
-export const useCreateTallyExpenseBill = () => {
+export const useCreateTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ organizationId, ...newBill }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/`, {
         method: 'POST',
         body: JSON.stringify(newBill),
         headers: {
@@ -96,15 +96,15 @@ export const useCreateTallyExpenseBill = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
     },
   });
 };
 
 /**
- * Upload Tally expense bills
+ * Upload Tally payment vouchers
  */
-export const useUploadTallyExpenseBills = () => {
+export const useUploadTallyPaymentVouchers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -127,7 +127,7 @@ export const useUploadTallyExpenseBills = () => {
       // Use axios directly for FormData uploads
       // IMPORTANT: Set Content-Type to multipart/form-data for file uploads
       const response = await apiClient.post(
-        `tally/org/${organizationId}/expense-bills/upload/`,
+        `tally/org/${organizationId}/payment-vouchers/upload/`,
         tallyFormData,
         {
           headers: {
@@ -138,20 +138,20 @@ export const useUploadTallyExpenseBills = () => {
       return response.data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
     },
   });
 };
 
 /**
- * Update a Tally expense bill
+ * Update a Tally payment voucher
  */
-export const useUpdateTallyExpenseBill = () => {
+export const useUpdateTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ organizationId, id, ...patch }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/${id}/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify(patch),
         headers: {
@@ -161,22 +161,22 @@ export const useUpdateTallyExpenseBill = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBill', variables.organizationId, variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBillDetails', variables.organizationId, variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucher', variables.organizationId, variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucherDetails', variables.organizationId, variables.id] });
     },
   });
 };
 
 /**
- * Delete a Tally expense bill
+ * Delete a Tally payment voucher
  */
-export const useDeleteTallyExpenseBill = () => {
+export const useDeleteTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ organizationId, id }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/${id}/delete/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/${id}/delete/`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -185,15 +185,15 @@ export const useDeleteTallyExpenseBill = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
     },
   });
 };
 
 /**
- * Analyze a Tally expense bill
+ * Analyze a Tally payment voucher
  */
-export const useAnalyzeTallyExpenseBill = () => {
+export const useAnalyzeTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -202,28 +202,28 @@ export const useAnalyzeTallyExpenseBill = () => {
       formData.append('bill_id', billId);
       
       const response = await apiClient.post(
-        `tally/org/${organizationId}/expense-bills/analyze/`,
+        `tally/org/${organizationId}/payment-vouchers/analyze/`,
         formData
       );
       return response.data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBill', variables.organizationId, variables.billId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBillDetails', variables.organizationId, variables.billId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucher', variables.organizationId, variables.billId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucherDetails', variables.organizationId, variables.billId] });
     },
   });
 };
 
 /**
- * Verify a Tally expense bill
+ * Verify a Tally payment voucher
  */
-export const useVerifyTallyExpenseBill = () => {
+export const useVerifyTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ organizationId, ...verifyData }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/verify/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/verify/`, {
         method: 'POST',
         body: JSON.stringify(verifyData),
         headers: {
@@ -233,22 +233,22 @@ export const useVerifyTallyExpenseBill = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBill', variables.organizationId, variables.bill_id] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBillDetails', variables.organizationId, variables.bill_id] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucher', variables.organizationId, variables.bill_id] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucherDetails', variables.organizationId, variables.bill_id] });
     },
   });
 };
 
 /**
- * Sync a Tally expense bill to Tally
+ * Sync a Tally payment voucher to Tally
  */
-export const useSyncTallyExpenseBill = () => {
+export const useSyncTallyPaymentVoucher = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ organizationId, billId }) => {
-      const response = await apiFetch(`tally/org/${organizationId}/expense-bills/sync/`, {
+      const response = await apiFetch(`tally/org/${organizationId}/payment-vouchers/sync/`, {
         method: 'POST',
         body: JSON.stringify({ bill_id: billId }),
         headers: {
@@ -258,17 +258,17 @@ export const useSyncTallyExpenseBill = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBills', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBill', variables.organizationId, variables.billId] });
-      queryClient.invalidateQueries({ queryKey: ['tallyExpenseBillDetails', variables.organizationId, variables.billId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVouchers', variables.organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucher', variables.organizationId, variables.billId] });
+      queryClient.invalidateQueries({ queryKey: ['tallyPaymentVoucherDetails', variables.organizationId, variables.billId] });
     },
   });
 };
 
 /**
- * Move Tally expense bills to another bill type
+ * Move Tally payment vouchers to another bill type
  */
-export const useMoveTallyExpenseBills = () => {
+export const useMoveTallyPaymentVouchers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -279,7 +279,7 @@ export const useMoveTallyExpenseBills = () => {
       }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["tallyExpenseBills", variables.organizationId],
+        queryKey: ["tallyPaymentVouchers", variables.organizationId],
       });
     },
   });
@@ -290,13 +290,13 @@ export const useMoveTallyExpenseBills = () => {
  * status filter (Analysed / Verified / Synced — comma-separated string
  * or single value). Falls back to all three when ``status`` is empty.
  */
-export const useDownloadTallyExpenseReport = () =>
+export const useDownloadTallyPaymentReport = () =>
   useMutation({
     mutationFn: async ({ organizationId, status = "" }) => {
       const params = status ? { status } : undefined;
       return downloadAuthenticatedFile(
-        `tally/org/${organizationId}/expense-bills/report/`,
-        { fallbackName: `tally-journal-entries.xlsx`, params },
+        `tally/org/${organizationId}/payment-vouchers/report/`,
+        { fallbackName: `tally-payment-vouchers.xlsx`, params },
       );
     },
   });

@@ -6,10 +6,10 @@ import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
 import {
-  useGetTallyExpenseBillDetails,
-  useVerifyTallyExpenseBill,
-  useSyncTallyExpenseBill,
-} from "@/services/tally/tallyExpenseBillService";
+  useGetTallyPaymentVoucherDetails,
+  useVerifyTallyPaymentVoucher,
+  useSyncTallyPaymentVoucher,
+} from "@/services/tally/tallyPaymentVoucherService";
 import {
   useGetTallyVendorLedgers,
   useGetTallyTaxLedgers,
@@ -181,13 +181,13 @@ const TallyExpenseBillDetail = () => {
   // State for sync operation
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Fetch expense bill details
+  // Fetch payment voucher details
   const {
     data: expenseBillData,
     error,
     isLoading,
     refetch,
-  } = useGetTallyExpenseBillDetails(
+  } = useGetTallyPaymentVoucherDetails(
     { organizationId: selectedOrganization?.id, billId },
     { enabled: !!selectedOrganization?.id && !!billId },
   );
@@ -229,10 +229,10 @@ const TallyExpenseBillDetail = () => {
     });
 
   // Verify mutation
-  const { mutateAsync: verifyExpenseBill } = useVerifyTallyExpenseBill();
+  const { mutateAsync: verifyExpenseBill } = useVerifyTallyPaymentVoucher();
 
   // Sync mutation
-  const { mutateAsync: syncExpenseBill } = useSyncTallyExpenseBill();
+  const { mutateAsync: syncExpenseBill } = useSyncTallyPaymentVoucher();
 
   // Extract data from the API response
   const billInfo = expenseBillData || {};
@@ -1145,11 +1145,11 @@ const TallyExpenseBillDetail = () => {
     const grandTotalCredit = totalExpenseCredit + totalTaxCredit;
 
     // Calculate vendor amount to balance the equation (Total Debit = Total Credit)
-    // In expense bills: Expenses (Debit) + Taxes (Debit/Credit) = Vendor Payable (Credit)
+    // In payment vouchers: Expenses (Debit) + Taxes (Debit/Credit) = Vendor Payable (Credit)
     let vendorAmount = 0;
 
     if (taxSummaryForm.vendorDebitCredit === "credit") {
-      // If vendor is credit (typical case for expense bills):
+      // If vendor is credit (typical case for payment vouchers):
       // Total Debit = Total Credit + Vendor Amount
       // Vendor Amount = Total Debit - Total Credit
       vendorAmount = grandTotalDebit - grandTotalCredit;
@@ -1725,8 +1725,8 @@ const TallyExpenseBillDetail = () => {
 
       globalToast.success("Journal entry verified successfully");
 
-      // Navigate to expense bill list after successful verification
-      // navigate('/tally/expense-bill');
+      // Navigate to payment voucher list after successful verification
+      // navigate('/tally/payment-voucher');
     } catch (error) {
       console.error("Failed to verify journal entry:", error);
 
@@ -1800,12 +1800,12 @@ const TallyExpenseBillDetail = () => {
         refetch();
       }
     } catch (error) {
-      console.error("Failed to sync journal entry:", error);
+      console.error("Failed to sync payment voucher:", error);
       globalToast.error(
         error?.data?.message ||
           error?.response?.data?.message ||
           error?.message ||
-          "Failed to sync journal entry to Tally",
+          "Failed to sync payment voucher to Tally",
       );
     } finally {
       setIsSyncing(false);
@@ -1908,8 +1908,8 @@ const TallyExpenseBillDetail = () => {
     if (collapsed) {
       setMenuCollapsed(false);
     }
-    // Navigate back to expense bill list
-    navigate("/tally/expense-bill");
+    // Navigate back to payment voucher list
+    navigate("/tally/payment-voucher");
   };
 
   // Show loading state
@@ -1990,10 +1990,10 @@ const TallyExpenseBillDetail = () => {
           </button>
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
-              {billInfo?.bill_munshi_name || "Expense bill"}
+              {billInfo?.bill_munshi_name || "Payment voucher"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {billInfo?.status ? `Status: ${billInfo.status}` : "Expense bill detail"}
+              {billInfo?.status ? `Status: ${billInfo.status}` : "Payment voucher detail"}
               {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
             </p>
           </div>
@@ -2001,8 +2001,8 @@ const TallyExpenseBillDetail = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <QuickAddMastersBar
             className="mr-1"
-            ledgerDefaultParent="Indirect Expenses"
-            ledgerTitle="Add New Expense Ledger"
+            ledgerDefaultParent="Bank Accounts"
+            ledgerTitle="Add New Bank / Cash Ledger"
             showItem={false}
           />
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
@@ -2017,7 +2017,7 @@ const TallyExpenseBillDetail = () => {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/tally/expense-bill/${expenseBillData?.next_bill}`)}
+            onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.next_bill}`)}
             disabled={!expenseBillData?.next_bill}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill"}
@@ -3528,7 +3528,7 @@ const TallyExpenseBillDetail = () => {
                         "Vendor"
                       } entered via BillMunshi ${
                         window.location.origin
-                      }/tally/expense-bill/${billId}\n\n`
+                      }/tally/payment-voucher/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}

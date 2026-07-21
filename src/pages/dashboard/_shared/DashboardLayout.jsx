@@ -586,6 +586,7 @@ const DashboardLayout = ({
   ];
 
   const expenseLabel = module === "tally" ? "Journal entry" : "Expense";
+  const vendorLabel = module === "tally" ? "Purchase voucher" : "Vendor bill";
 
   // ---------------- handlers ------------------------------------------
 
@@ -753,7 +754,7 @@ const DashboardLayout = ({
         isOpen={isVendorOpen}
         onClose={() => setIsVendorOpen(false)}
         onUpload={handleVendorUpload}
-        title="Upload vendor bills"
+        title={`Upload ${vendorLabel.toLowerCase()}s`}
         module={module}
       />
       <UploadBillModal

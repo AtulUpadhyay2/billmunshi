@@ -8,6 +8,8 @@ import {
   useAnalyzeTallyVendorBill,
   useSyncTallyVendorBill,
   useMoveTallyVendorBills,
+  useDownloadTallyVendorReport,
+
 } from "@/services/tally/tallyVendorBillService";
 
 const TallyVendorBill = () => {
@@ -16,12 +18,12 @@ const TallyVendorBill = () => {
       variant="vendor"
       module="tally"
       copy={{
-        title: "Vendor bills",
-        subtitle: "Upload, analyse and post vendor bills directly to Tally.",
-        billLabel: "vendor bill",
+        title: "Purchase Vouchers",
+        subtitle: "Upload, analyse and post purchase vouchers directly to Tally.",
+        billLabel: "purchase voucher",
         moveTargetLabel: "Journal Entry",
         detailRoute: "/tally/vendor-bill",
-        uploadTitle: "Upload vendor bills",
+        uploadTitle: "Upload purchase vouchers",
       }}
       useGetBills={useGetTallyVendorBills}
       useUpdateBill={useUpdateTallyVendorBill}
@@ -30,6 +32,7 @@ const TallyVendorBill = () => {
       useAnalyzeBill={useAnalyzeTallyVendorBill}
       useSyncBill={useSyncTallyVendorBill}
       useMoveBills={useMoveTallyVendorBills}
+      useDownloadReport={useDownloadTallyVendorReport}
       moveFrom="vendor"
       moveTo="expense"
     />

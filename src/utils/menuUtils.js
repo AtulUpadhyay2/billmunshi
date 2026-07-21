@@ -94,8 +94,11 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Vendor Bill
-      if (item.title === "Vendor Bill" && item.link === "/tally/vendor-bill") {
+      // Handle Tally Purchase Voucher (formerly Vendor Bill)
+      if (
+        item.title === "Purchase Voucher" &&
+        item.link === "/tally/vendor-bill"
+      ) {
         return enabledModuleNames.includes("tally");
       }
 
@@ -103,6 +106,14 @@ export const getFilteredMenuItems = (enabledModules = []) => {
       if (
         item.title === "Journal Entry" &&
         item.link === "/tally/expense-bill"
+      ) {
+        return enabledModuleNames.includes("tally");
+      }
+
+      // Handle Tally Payment Voucher
+      if (
+        item.title === "Payment Voucher" &&
+        item.link === "/tally/payment-voucher"
       ) {
         return enabledModuleNames.includes("tally");
       }

@@ -8,6 +8,8 @@ import {
   useAnalyzeZohoExpenseBill,
   useSyncZohoExpenseBill,
   useMoveExpenseBills,
+  useDownloadZohoExpenseReport,
+
 } from "@/services/zoho/zohoExpenseBillService";
 
 const ZohoExpenseBill = () => {
@@ -30,6 +32,7 @@ const ZohoExpenseBill = () => {
       useAnalyzeBill={useAnalyzeZohoExpenseBill}
       useSyncBill={useSyncZohoExpenseBill}
       useMoveBills={useMoveExpenseBills}
+      useDownloadReport={useDownloadZohoExpenseReport}
       moveFrom="expense"
       moveTo="vendor"
     />

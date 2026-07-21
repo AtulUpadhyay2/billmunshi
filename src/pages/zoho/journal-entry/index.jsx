@@ -8,6 +8,8 @@ import {
   useAnalyzeZohoJournalBill,
   useSyncZohoJournalBill,
   useMoveJournalBills,
+  useDownloadZohoJournalReport,
+
 } from "@/services/zoho/zohoJournalEntryService";
 
 const ZohoJournalEntry = () => {
@@ -30,6 +32,7 @@ const ZohoJournalEntry = () => {
       useAnalyzeBill={useAnalyzeZohoJournalBill}
       useSyncBill={useSyncZohoJournalBill}
       useMoveBills={useMoveJournalBills}
+      useDownloadReport={useDownloadZohoJournalReport}
       moveFrom="journal"
       moveTo="vendor"
     />
