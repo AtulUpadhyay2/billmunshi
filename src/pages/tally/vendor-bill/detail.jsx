@@ -1632,13 +1632,19 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
-  // Invoice math: total = subtotal + taxes + cess + freight - discount + round_off.
-  // ``total`` is now a derived field — recomputed live whenever any input
-  // moves. The input control is rendered read-only so the user cannot
-  // type into it; this guarantees the bill stays internally consistent
-  // when a tax amount or adjustment is edited. ``round_off`` remains a
-  // user-editable input that the operator can use to absorb invoice
-  // rounding from the bill image.
+  // Invoice math — bill_total is the AUTHORITY (from OCR, user-editable
+  // to correct an extraction mistake). Round-off is DERIVED to make the
+  // ledger balance:
+  //     round_off = bill_total - (subtotal + taxes + cess + freight - discount)
+  //
+  // Flip vs. old logic: total used to be derived, round_off manual.
+  // That silently kept a stale round_off when the operator corrected a
+  // line item — bill total then drifted away from the invoice.
+  //
+  // The user can still override round_off manually (some invoices print
+  // an explicit round-off amount that doesn't come out of arithmetic).
+  // Only recompute when |derived - current| > 0.005 so we don't fight
+  // a manually-typed value byte-for-byte.
   useEffect(() => {
     const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
     const cgst = parseFloat(billSummaryForm.cgst) || 0;
@@ -1647,15 +1653,21 @@ const TallyVendorBillDetail = () => {
     const cess = parseFloat(billSummaryForm.cess) || 0;
     const freight = parseFloat(billSummaryForm.freight) || 0;
     const discount = parseFloat(billSummaryForm.discount) || 0;
-    const roundOff = parseFloat(billSummaryForm.round_off) || 0;
-
-    const nextTotal = (
-      subtotal + cgst + sgst + igst + cess + freight - discount + roundOff
-    ).toFixed(2);
-
-    setBillSummaryForm((prev) =>
-      prev.total === nextTotal ? prev : { ...prev, total: nextTotal },
+    const total = parseFloat(billSummaryForm.total) || 0;
+    if (!total) return;
+    const derivedRoundOff = (
+      total - (subtotal + cgst + sgst + igst + cess + freight - discount)
     );
+    // Suppress micro-jitter from JS float noise; clamp to 2dp.
+    const rounded = Math.abs(derivedRoundOff) < 0.005
+      ? 0
+      : Number(derivedRoundOff.toFixed(2));
+    const current = parseFloat(billSummaryForm.round_off || 0);
+    if (Math.abs(current - rounded) < 0.005) return;
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      round_off: rounded.toString(),
+    }));
   }, [
     billSummaryForm.subtotal,
     billSummaryForm.cgst,
@@ -1664,7 +1676,7 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.cess,
     billSummaryForm.freight,
     billSummaryForm.discount,
-    billSummaryForm.round_off,
+    billSummaryForm.total,
   ]);
 
   // Handle form input changes
@@ -4153,15 +4165,22 @@ const TallyVendorBillDetail = () => {
                           type="number"
                           name="total"
                           value={billSummaryForm.total}
-                          readOnly
-                          tabIndex={-1}
+                          onChange={(e) =>
+                            setBillSummaryForm((prev) => ({
+                              ...prev,
+                              total: e.target.value,
+                            }))
+                          }
+                          disabled={isVerified}
                           placeholder="0.00"
-                          title="Computed automatically from subtotal + taxes + adjustments"
-                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          title="Bill total from invoice — round-off auto-adjusts to make DR/CR balance"
+                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
-                          }`}
+                          } ${isVerified ? "opacity-60 cursor-not-allowed" : ""}`}
+                          step="0.01"
+                          min="0"
                         />
                         {/* Caption — switches to an amber heads-up when
                             the computed total drifts from the OCR-extracted
