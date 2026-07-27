@@ -74,7 +74,7 @@ const AddLedgerModal = ({
     <Modal
       title={title}
       activeModal={isOpen}
-      onClose={submitting ? undefined : onClose}
+      onClose={submitting ? () => {} : onClose}
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

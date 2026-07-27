@@ -78,7 +78,10 @@ const AddVendorModal = ({ isOpen, onClose, onCreated }) => {
     <Modal
       title="Add New Vendor"
       activeModal={isOpen}
-      onClose={submitting ? undefined : onClose}
+      // Never pass undefined — HeadlessUI Dialog requires a function
+      // or it throws mid-render and blanks the screen. No-op during
+      // submit blocks backdrop/ESC close without crashing.
+      onClose={submitting ? () => {} : onClose}
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

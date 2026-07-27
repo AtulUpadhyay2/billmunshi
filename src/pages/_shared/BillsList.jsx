@@ -734,7 +734,8 @@ const BillsList = ({
                                     <Icon icon="heroicons:exclamation-triangle" className="text-[11px]" /> Duplicate
                                   </button>
                                 )}
-                                {bill.bill_belong_your_org === false && (
+                                {bill.bill_belong_your_org === false &&
+                                  ["Analysed", "Verified", "Synced"].includes(bill.status) && (
                                   <button
                                     type="button"
                                     onClick={() => {

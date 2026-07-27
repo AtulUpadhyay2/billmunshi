@@ -353,6 +353,12 @@ const TallyExpenseBillDetail = () => {
     return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
   };
 
+  // Round-off ledger required whenever round_off != 0 (can be negative).
+  const isRoundOffLedgerRequired = () => {
+    const roundOffAmount = parseFloat(taxSummaryForm.round_off || 0);
+    return roundOffAmount !== 0 && !taxSummaryForm.round_off_taxes;
+  };
+
   const isSubtotalGreaterThanTotal = () => {
     const subtotal = expenseItems.reduce(
       (sum, item) => sum + parseFloat(item.amount || 0),
@@ -360,6 +366,41 @@ const TallyExpenseBillDetail = () => {
     );
     const total = parseFloat(billForm.totalAmount || 0);
     return subtotal > total && total > 0;
+  };
+
+  // Multi-rate GST lines with amount > 0 must have a ledger picked;
+  // otherwise the sync payload emits ``No Tax Ledger`` and Tally rejects.
+  const getGstLinesWithoutLedger = () =>
+    (gstLines || []).filter(
+      (line) =>
+        parseFloat(line.amount || 0) > 0 && !line.ledger_id && !line.ledger,
+    );
+
+  // DR == CR must balance before verify — backend also enforces but
+  // catching in the UI is a nicer UX than a 500 on submit.
+  const isBalanceOff = () => {
+    const debit = expenseItems
+      .filter((i) => i.debit_or_credit === "debit")
+      .reduce((s, i) => s + parseFloat(i.amount || 0), 0);
+    const credit = expenseItems
+      .filter((i) => i.debit_or_credit === "credit")
+      .reduce((s, i) => s + parseFloat(i.amount || 0), 0);
+    let tDr = 0, tCr = 0;
+    for (const line of gstLines || []) {
+      const amt = parseFloat(line.amount || 0);
+      if (!amt) continue;
+      (line.debit_or_credit === "credit" ? (tCr += amt) : (tDr += amt));
+    }
+    const push = (v, dc) => {
+      const a = Math.abs(parseFloat(v || 0));
+      if (!a) return;
+      (dc === "credit" ? (tCr += a) : (tDr += a));
+    };
+    push(taxSummaryForm.tds, taxSummaryForm.tdsDebitCredit);
+    push(taxSummaryForm.other_adjustment, taxSummaryForm.other_adjustment_debit_or_credit);
+    push(taxSummaryForm.round_off, taxSummaryForm.round_off_debit_or_credit);
+    push(taxSummaryForm.vendorAmount, taxSummaryForm.vendorDebitCredit);
+    return Math.abs(debit + tDr - credit - tCr) > 0.01;
   };
 
   const hasValidationErrors = () =>
@@ -371,6 +412,9 @@ const TallyExpenseBillDetail = () => {
     isIgstLedgerRequired() ||
     isTdsLedgerRequired() ||
     isOtherAdjustmentLedgerRequired() ||
+    isRoundOffLedgerRequired() ||
+    getGstLinesWithoutLedger().length > 0 ||
+    isBalanceOff() ||
     isSubtotalGreaterThanTotal();
 
   // Get specific validation error messages
@@ -395,6 +439,18 @@ const TallyExpenseBillDetail = () => {
     if (isOtherAdjustmentLedgerRequired())
       errors.push(
         "Other adjustment ledger is required when adjustment amount > 0",
+      );
+    if (isRoundOffLedgerRequired())
+      errors.push("Round-off ledger is required when round-off amount is set");
+    const noLedgerLines = getGstLinesWithoutLedger();
+    if (noLedgerLines.length > 0) {
+      errors.push(
+        `${noLedgerLines.length} GST line(s) with non-zero amount are missing a ledger`,
+      );
+    }
+    if (isBalanceOff())
+      errors.push(
+        "Total debits and credits do not balance — check line amounts, taxes, adjustments and vendor amount",
       );
     if (isSubtotalGreaterThanTotal()) {
       const subtotal = expenseItems.reduce(
@@ -1035,20 +1091,16 @@ const TallyExpenseBillDetail = () => {
         : tallyAnalysedData?.products;
 
       const updatedItems = expenseItems.map((item, index) => {
-        // If item already has chart_of_accounts_id selected and a proper name, don't override
-        if (
-          item.chart_of_accounts_id &&
-          item.chart_of_accounts !== "No COA Ledger"
-        ) {
-          // But we might need to update the name if it's not set properly
+        // If item already has a picked chart_of_accounts_id, keep it.
+        // Refresh only the display name if it drifted (the previous
+        // check was unreachable — outer said name IS set, inner said
+        // name IS NOT set: contradiction).
+        if (item.chart_of_accounts_id) {
           const matchedLedger = ledgerOptions.find(
             (ledger) => ledger.id === item.chart_of_accounts_id,
           );
-          if (matchedLedger && item.chart_of_accounts === "No COA Ledger") {
-            return {
-              ...item,
-              chart_of_accounts: matchedLedger.name,
-            };
+          if (matchedLedger && item.chart_of_accounts !== matchedLedger.name) {
+            return { ...item, chart_of_accounts: matchedLedger.name };
           }
           return item;
         }
@@ -1088,18 +1140,25 @@ const TallyExpenseBillDetail = () => {
         return item;
       });
 
-      // Only update if there are actual changes
+      // Only update if there are actual changes. Compare both ID and
+      // name — otherwise a name drift (backend renames a ledger) would
+      // never propagate to state.
       const hasChanges = updatedItems.some(
         (item, index) =>
           item.chart_of_accounts_id !==
-          expenseItems[index].chart_of_accounts_id,
+            expenseItems[index].chart_of_accounts_id ||
+          item.chart_of_accounts !== expenseItems[index].chart_of_accounts,
       );
 
       if (hasChanges) {
         setExpenseItems(updatedItems);
       }
     }
-  }, [ledgerOptions, tallyAnalysedData, expenseItems, isConsolidated]);
+    // ``expenseItems`` intentionally NOT in deps — this effect writes
+    // to it, and the hasChanges guard already prevents redundant sets.
+    // Adding it would loop on any state mutation elsewhere.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerOptions, tallyAnalysedData, isConsolidated]);
 
   // Calculate vendor amount using double-entry accounting principle (Total Debit = Total Credit)
   useEffect(() => {
@@ -1140,6 +1199,27 @@ const TallyExpenseBillDetail = () => {
       }
     }
 
+    // Other adjustment — was omitted; unbalanced vendor amount when
+    // user set non-zero adjustment.
+    if (taxSummaryForm.other_adjustment) {
+      const otherAmt = Math.abs(parseFloat(taxSummaryForm.other_adjustment || 0));
+      if (taxSummaryForm.other_adjustment_debit_or_credit === "credit") {
+        totalTaxCredit += otherAmt;
+      } else {
+        totalTaxDebit += otherAmt;
+      }
+    }
+
+    // Round-off — was omitted; sub-rupee mismatch when user set round-off.
+    if (taxSummaryForm.round_off) {
+      const roundAmt = Math.abs(parseFloat(taxSummaryForm.round_off || 0));
+      if (taxSummaryForm.round_off_debit_or_credit === "credit") {
+        totalTaxCredit += roundAmt;
+      } else {
+        totalTaxDebit += roundAmt;
+      }
+    }
+
     // Calculate total debit and credit amounts including taxes
     const grandTotalDebit = totalExpenseDebit + totalTaxDebit;
     const grandTotalCredit = totalExpenseCredit + totalTaxCredit;
@@ -1175,8 +1255,12 @@ const TallyExpenseBillDetail = () => {
     gstLines,
     taxSummaryForm.tds,
     taxSummaryForm.tdsDebitCredit,
+    taxSummaryForm.other_adjustment,
+    taxSummaryForm.other_adjustment_debit_or_credit,
+    taxSummaryForm.round_off,
+    taxSummaryForm.round_off_debit_or_credit,
     taxSummaryForm.vendorDebitCredit,
-  ]); // Re-calculate whenever expense items, GST lines, TDS, or vendor DR/CR type changes
+  ]); // Re-calculate whenever expense items, GST lines, TDS, other adj, round-off, or vendor DR/CR type changes
 
   // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
   // the total absorbs the rounding so that all debits = all credits.

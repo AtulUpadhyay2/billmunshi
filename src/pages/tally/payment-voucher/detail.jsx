@@ -94,7 +94,7 @@ const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
   );
 };
 
-const TallyExpenseBillDetail = () => {
+const TallyPaymentVoucherDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
@@ -296,7 +296,7 @@ const TallyExpenseBillDetail = () => {
     gstLines,
   ]);
 
-  // Invoice-total reconciliation for the Journal entry. Compares the
+  // Invoice-total reconciliation for the Payment voucher. Compares the
   // OCR-extracted invoice total against the user-edited total. Like
   // ``billTaxMatch``, this is informational only — it never blocks
   // verification, just surfaces drift so the operator can sanity-check.
@@ -353,6 +353,12 @@ const TallyExpenseBillDetail = () => {
     return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
   };
 
+  // Round-off ledger required whenever round_off != 0 (can be negative).
+  const isRoundOffLedgerRequired = () => {
+    const roundOffAmount = parseFloat(taxSummaryForm.round_off || 0);
+    return roundOffAmount !== 0 && !taxSummaryForm.round_off_taxes;
+  };
+
   const isSubtotalGreaterThanTotal = () => {
     const subtotal = expenseItems.reduce(
       (sum, item) => sum + parseFloat(item.amount || 0),
@@ -360,6 +366,37 @@ const TallyExpenseBillDetail = () => {
     );
     const total = parseFloat(billForm.totalAmount || 0);
     return subtotal > total && total > 0;
+  };
+
+  const getGstLinesWithoutLedger = () =>
+    (gstLines || []).filter(
+      (line) =>
+        parseFloat(line.amount || 0) > 0 && !line.ledger_id && !line.ledger,
+    );
+
+  const isBalanceOff = () => {
+    const debit = expenseItems
+      .filter((i) => i.debit_or_credit === "debit")
+      .reduce((s, i) => s + parseFloat(i.amount || 0), 0);
+    const credit = expenseItems
+      .filter((i) => i.debit_or_credit === "credit")
+      .reduce((s, i) => s + parseFloat(i.amount || 0), 0);
+    let tDr = 0, tCr = 0;
+    for (const line of gstLines || []) {
+      const amt = parseFloat(line.amount || 0);
+      if (!amt) continue;
+      (line.debit_or_credit === "credit" ? (tCr += amt) : (tDr += amt));
+    }
+    const push = (v, dc) => {
+      const a = Math.abs(parseFloat(v || 0));
+      if (!a) return;
+      (dc === "credit" ? (tCr += a) : (tDr += a));
+    };
+    push(taxSummaryForm.tds, taxSummaryForm.tdsDebitCredit);
+    push(taxSummaryForm.other_adjustment, taxSummaryForm.other_adjustment_debit_or_credit);
+    push(taxSummaryForm.round_off, taxSummaryForm.round_off_debit_or_credit);
+    push(taxSummaryForm.vendorAmount, taxSummaryForm.vendorDebitCredit);
+    return Math.abs(debit + tDr - credit - tCr) > 0.01;
   };
 
   const hasValidationErrors = () =>
@@ -371,12 +408,15 @@ const TallyExpenseBillDetail = () => {
     isIgstLedgerRequired() ||
     isTdsLedgerRequired() ||
     isOtherAdjustmentLedgerRequired() ||
+    isRoundOffLedgerRequired() ||
+    getGstLinesWithoutLedger().length > 0 ||
+    isBalanceOff() ||
     isSubtotalGreaterThanTotal();
 
   // Get specific validation error messages
   const getValidationErrorMessages = () => {
     const errors = [];
-    if (isVendorRequired) errors.push("Please select a vendor");
+    if (isVendorRequired) errors.push("Please select a Bank / Cash ledger");
     if (getItemsWithoutCOA().length > 0) {
       errors.push(
         `${getItemsWithoutCOA().length} expense item(s) are missing Expense Ledger`,
@@ -395,6 +435,18 @@ const TallyExpenseBillDetail = () => {
     if (isOtherAdjustmentLedgerRequired())
       errors.push(
         "Other adjustment ledger is required when adjustment amount > 0",
+      );
+    if (isRoundOffLedgerRequired())
+      errors.push("Round-off ledger is required when round-off amount is set");
+    const noLedgerLines = getGstLinesWithoutLedger();
+    if (noLedgerLines.length > 0) {
+      errors.push(
+        `${noLedgerLines.length} GST line(s) with non-zero amount are missing a ledger`,
+      );
+    }
+    if (isBalanceOff())
+      errors.push(
+        "Total debits and credits do not balance — check line amounts, taxes, adjustments and Bank/Cash amount",
       );
     if (isSubtotalGreaterThanTotal()) {
       const subtotal = expenseItems.reduce(
@@ -850,31 +902,20 @@ const TallyExpenseBillDetail = () => {
     }
   }, [expenseBillData, analysedData, tallyAnalysedData]);
 
-  // Match vendor from API response with vendor options when both are available
-  // Only auto-match if user hasn't manually cleared the vendor
+  // Payment vouchers: "Payable/Paid" slot holds a Bank/Cash ledger
+  // the operator picks explicitly. Auto-matching from analyzed data
+  // (vendor name from OCR) would silently fill in the wrong ledger
+  // and defeat the whole flow. Only rehydrate an existing saved
+  // selection on reload; never guess from analysed data.
   useEffect(() => {
     if (
       vendorOptions.length > 0 &&
-      tallyAnalysedData &&
+      tallyAnalysedData?.vendor &&  // backend-echoed picked ledger UUID
       !billForm.selectedVendor &&
       !vendorManuallyCleared
     ) {
-      // First try to match by vendor name from analyzed_bill
-      let matchedVendor = null;
-
-      if (tallyAnalysedData?.vendor_name) {
-        matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === tallyAnalysedData.vendor_name,
-        );
-      }
-
-      // If not found by name, try matching from analysed_data.from
-      if (!matchedVendor && analysedData?.from?.name) {
-        matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === analysedData.from.name,
-        );
-      }
-
+      const savedId = tallyAnalysedData.vendor;
+      const matchedVendor = vendorOptions.find((v) => v.id === savedId);
       if (matchedVendor) {
         setBillForm((prev) => ({
           ...prev,
@@ -887,7 +928,6 @@ const TallyExpenseBillDetail = () => {
   }, [
     vendorOptions,
     tallyAnalysedData,
-    analysedData,
     billForm.selectedVendor,
     vendorManuallyCleared,
   ]);
@@ -1140,6 +1180,24 @@ const TallyExpenseBillDetail = () => {
       }
     }
 
+    if (taxSummaryForm.other_adjustment) {
+      const otherAmt = Math.abs(parseFloat(taxSummaryForm.other_adjustment || 0));
+      if (taxSummaryForm.other_adjustment_debit_or_credit === "credit") {
+        totalTaxCredit += otherAmt;
+      } else {
+        totalTaxDebit += otherAmt;
+      }
+    }
+
+    if (taxSummaryForm.round_off) {
+      const roundAmt = Math.abs(parseFloat(taxSummaryForm.round_off || 0));
+      if (taxSummaryForm.round_off_debit_or_credit === "credit") {
+        totalTaxCredit += roundAmt;
+      } else {
+        totalTaxDebit += roundAmt;
+      }
+    }
+
     // Calculate total debit and credit amounts including taxes
     const grandTotalDebit = totalExpenseDebit + totalTaxDebit;
     const grandTotalCredit = totalExpenseCredit + totalTaxCredit;
@@ -1175,8 +1233,12 @@ const TallyExpenseBillDetail = () => {
     gstLines,
     taxSummaryForm.tds,
     taxSummaryForm.tdsDebitCredit,
+    taxSummaryForm.other_adjustment,
+    taxSummaryForm.other_adjustment_debit_or_credit,
+    taxSummaryForm.round_off,
+    taxSummaryForm.round_off_debit_or_credit,
     taxSummaryForm.vendorDebitCredit,
-  ]); // Re-calculate whenever expense items, GST lines, TDS, or vendor DR/CR type changes
+  ]);
 
   // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
   // the total absorbs the rounding so that all debits = all credits.
@@ -1596,6 +1658,9 @@ const TallyExpenseBillDetail = () => {
       analyzed_bill: expenseBillData?.analyzed_bill?.id || null,
       analyzed_data: {
         name: billForm.vendorName || "Unknown",
+        // Explicit Bank/Cash ledger UUID — backend prefers this over
+        // name lookup (which could pick wrong ledger on collision).
+        vendor_id: billForm.selectedVendor?.id || null,
         voucher: billForm.billNumber || "",
         bill_no: billForm.billNumber || "",
         bill_date: billForm.billDate || "",
@@ -1723,15 +1788,15 @@ const TallyExpenseBillDetail = () => {
         ...verifyData,
       });
 
-      globalToast.success("Journal entry verified successfully");
+      globalToast.success("Payment voucher verified successfully");
 
       // Navigate to payment voucher list after successful verification
       // navigate('/tally/payment-voucher');
     } catch (error) {
-      console.error("Failed to verify journal entry:", error);
+      console.error("Failed to verify payment voucher:", error);
 
       // Handle specific error messages from API response
-      let errorMessage = "Failed to verify journal entry";
+      let errorMessage = "Failed to verify payment voucher";
       let errorDetails = "";
 
       // React Query + apiFetch error structure
@@ -1929,12 +1994,12 @@ const TallyExpenseBillDetail = () => {
           <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
-          Failed to load journal entry
+          Failed to load payment voucher
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
           {error?.data?.message ||
             error?.message ||
-            "An error occurred while fetching journal entry details."}
+            "An error occurred while fetching payment voucher details."}
         </p>
         <div className="flex items-center justify-center gap-2">
           <button
@@ -1969,7 +2034,7 @@ const TallyExpenseBillDetail = () => {
           No workspace selected
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Please select a client to view journal entry details.
+          Please select a client to view payment voucher details.
         </p>
       </div>
     );
@@ -2413,10 +2478,13 @@ const TallyExpenseBillDetail = () => {
                 <div className="space-y-3">
                   {/* First Row: Vendor and Bill Number */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Vendor Selection Field */}
+                    {/* Payable/Paid via — Bank or Cash ledger. Payment
+                        voucher spec: user picks this manually, no auto-fill
+                        from analysed vendor OCR. */}
                     <div className="relative">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Vendor <span className="text-rose-500">*</span>
+                        Payable / Paid via (Bank / Cash){" "}
+                        <span className="text-rose-500">*</span>
                       </label>
                       <div
                         className={`${
@@ -3698,4 +3766,4 @@ const TallyExpenseBillDetail = () => {
   );
 };
 
-export default TallyExpenseBillDetail;
+export default TallyPaymentVoucherDetail;

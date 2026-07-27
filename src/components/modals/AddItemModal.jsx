@@ -72,7 +72,7 @@ const AddItemModal = ({ isOpen, onClose, onCreated }) => {
     <Modal
       title="Add New Item (Inventory)"
       activeModal={isOpen}
-      onClose={submitting ? undefined : onClose}
+      onClose={submitting ? () => {} : onClose}
       className="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

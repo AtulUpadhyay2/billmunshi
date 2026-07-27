@@ -501,6 +501,11 @@ const TallyVendorBillDetail = () => {
   const isFreightLedgerRequired = () =>
     parseFloat(billSummaryForm.freight || 0) > 0 &&
     !billSummaryForm.freightLedgerId;
+  // Round-off ledger required whenever round_off is non-zero (can be
+  // negative — abs check via !== 0).
+  const isRoundOffLedgerRequired = () =>
+    parseFloat(billSummaryForm.round_off || 0) !== 0 &&
+    !billSummaryForm.roundOffLedgerId;
   const isSubtotalGreaterThanTotal = () => {
     const subtotal = parseFloat(billSummaryForm.subtotal || 0);
     const total = parseFloat(billSummaryForm.total || 0);
@@ -517,6 +522,7 @@ const TallyVendorBillDetail = () => {
     isDiscountLedgerRequired() ||
     isCessLedgerRequired() ||
     isFreightLedgerRequired() ||
+    isRoundOffLedgerRequired() ||
     isSubtotalGreaterThanTotal();
 
   // Get specific validation error messages
@@ -550,6 +556,8 @@ const TallyVendorBillDetail = () => {
       errors.push("Cess ledger is required when cess amount > 0");
     if (isFreightLedgerRequired())
       errors.push("Freight ledger is required when freight amount > 0");
+    if (isRoundOffLedgerRequired())
+      errors.push("Round-off ledger is required when round-off amount is set");
     if (isSubtotalGreaterThanTotal()) {
       errors.push(
         `Subtotal (₹${billSummaryForm.subtotal}) cannot be greater than total amount (₹${billSummaryForm.total})`,
@@ -884,8 +892,9 @@ const TallyVendorBillDetail = () => {
         roundOffLedgerId: tally?.round_off_taxes || null,
       });
 
-      // Initialize notes (if any notes field exists in the API)
-      setNotes("");
+      // Seed notes from backend so re-opening a bill shows what the
+      // user entered on last verify (was hardcoded to "").
+      setNotes(tally?.note || "");
 
       // Initialize consolidate status from analyzed_bill
       const consolidateStatus = tally?.consolidate || false;
@@ -1107,6 +1116,10 @@ const TallyVendorBillDetail = () => {
 
   // Match tax ledgers from API response when both are available
   useEffect(() => {
+    // Skip once matched — otherwise clearing a ledger from UI would
+    // instantly re-fill from the backend name, silently overriding
+    // the user's explicit pick (was issue #4).
+    if (taxLedgersMatchedRef.current) return;
     // Check if we have the required data for matching
     if (
       cgstLedgerOptions.length > 0 &&
@@ -2160,11 +2173,24 @@ const TallyVendorBillDetail = () => {
         (ledger) => ledger.id === billSummaryForm.roundOffLedgerId,
       );
 
+      // Backend prefers ledger_id UUID over name (issue #4 audit) —
+      // send both so a name collision across parent groups doesn't
+      // pick the wrong ledger. Sending ledger_id: null for zero-
+      // amount rows lets the backend drop the FK cleanly.
+      const _ledgerBlock = (amount, ledger) => ({
+        amount: parseFloat(amount) || 0.0,
+        ledger: ledger?.name || "No Tax Ledger",
+        ledger_id: ledger?.id || null,
+      });
+
       const verificationPayload = {
         bill_id: billId,
         analyzed_data: {
           vendor: {
             vendor_name: vendorForm.vendorName || "Unknown Vendor",
+            // Explicit UUID — backend fuzzy-match on name silently
+            // picked wrong vendor when multiple ledgers shared name.
+            vendor_id: vendorForm.selectedVendor?.id || null,
           },
           bill_no: vendorForm.invoiceNumber || "",
           bill_date: vendorForm.dateIssued
@@ -2183,35 +2209,17 @@ const TallyVendorBillDetail = () => {
             : "",
           total_amount: parseFloat(billSummaryForm.total) || 0,
           consolidate: isConsolidated,
+          // Notes were silently dropped before — backend reads
+          // ``analyzed_data.note`` but frontend never included it.
+          note: notes || "",
           taxes: {
-            igst: {
-              amount: parseFloat(billSummaryForm.igst) || 0.0,
-              ledger: igstLedger?.name || "No Tax Ledger",
-            },
-            cgst: {
-              amount: parseFloat(billSummaryForm.cgst) || 0.0,
-              ledger: cgstLedger?.name || "No Tax Ledger",
-            },
-            sgst: {
-              amount: parseFloat(billSummaryForm.sgst) || 0.0,
-              ledger: sgstLedger?.name || "No Tax Ledger",
-            },
-            discount: {
-              amount: parseFloat(billSummaryForm.discount) || 0.0,
-              ledger: discountLedger?.name || "No Tax Ledger",
-            },
-            cess: {
-              amount: parseFloat(billSummaryForm.cess) || 0.0,
-              ledger: cessLedger?.name || "No Tax Ledger",
-            },
-            freight: {
-              amount: parseFloat(billSummaryForm.freight) || 0.0,
-              ledger: freightLedger?.name || "No Tax Ledger",
-            },
-            round_off: {
-              amount: parseFloat(billSummaryForm.round_off) || 0.0,
-              ledger: roundOffLedger?.name || "No Tax Ledger",
-            },
+            igst:      _ledgerBlock(billSummaryForm.igst, igstLedger),
+            cgst:      _ledgerBlock(billSummaryForm.cgst, cgstLedger),
+            sgst:      _ledgerBlock(billSummaryForm.sgst, sgstLedger),
+            discount:  _ledgerBlock(billSummaryForm.discount, discountLedger),
+            cess:      _ledgerBlock(billSummaryForm.cess, cessLedger),
+            freight:   _ledgerBlock(billSummaryForm.freight, freightLedger),
+            round_off: _ledgerBlock(billSummaryForm.round_off, roundOffLedger),
           },
 
           // Send products to the appropriate key based on consolidate status
@@ -2380,9 +2388,13 @@ const TallyVendorBillDetail = () => {
           // Handle consolidated products
           const updatedConsolidatedProducts = responseData.consolidate_prod.map(
             (product) => {
-              // Find tax ledger ID from name if taxes field exists
+              // Prefer explicit UUID from backend (``tax_ledger_id``),
+              // fall back to name-only match for older responses.
+              // Was silently losing tax ledger on reload because the
+              // backend returns ``tax_ledger`` name — not ``taxes`` UUID.
               const productTaxLedger = taxLedgerOptions.find(
                 (ledger) =>
+                  (product.tax_ledger_id && ledger.id === product.tax_ledger_id) ||
                   ledger.name === product.tax_ledger ||
                   ledger.id === product.taxes,
               );
@@ -3816,12 +3828,12 @@ const TallyVendorBillDetail = () => {
                   return (
                     <>
                       {missingMappingRates.length > 0 && (
-                        <div className="mb-3 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 px-3 py-2 flex items-start gap-2">
+                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 flex items-start gap-2">
                           <Icon
                             icon="heroicons:exclamation-triangle"
-                            className="text-rose-600 dark:text-rose-400 text-base mt-0.5"
+                            className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
                           />
-                          <div className="text-[12px] text-rose-700 dark:text-rose-300">
+                          <div className="text-[12px] text-amber-800 dark:text-amber-300">
                             <span className="font-semibold">
                               Missing rate-ledger mapping
                             </span>{" "}
@@ -4053,7 +4065,7 @@ const TallyVendorBillDetail = () => {
                     { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
                     { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) > 0, missing: parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
                     { key: "freight", label: "Freight / Delivery", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
-                    { key: "round_off", label: "Round off", required: false, missing: false, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
+                    { key: "round_off", label: "Round off", required: parseFloat(billSummaryForm.round_off || 0) !== 0, missing: parseFloat(billSummaryForm.round_off || 0) !== 0 && !billSummaryForm.roundOffLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
                   ];
 
                   return (
