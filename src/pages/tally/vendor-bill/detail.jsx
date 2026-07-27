@@ -928,7 +928,12 @@ const TallyVendorBillDetail = () => {
             item_id: item.item_id || item.id || null,
             item_name: item.item_name || null,
             item_details: item.item_details || "",
-            tax_ledger: item.tax_ledger || "No Purchase Ledger",
+            // Backend guard treats blank/sentinel names as "no change".
+            // Send empty string here so a stale "No Purchase Ledger"
+            // never round-trips into a real (bogus) ledger row.
+            tax_ledger: item.tax_ledger &&
+              !["No Purchase Ledger", "No Tax Ledger"].includes(item.tax_ledger)
+              ? item.tax_ledger : "",
             tax_ledger_id: item.tax_ledger_id || item.taxes || null,
             price: item.price || item.rate || "",
             quantity: item.quantity || "",
