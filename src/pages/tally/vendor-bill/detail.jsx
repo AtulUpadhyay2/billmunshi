@@ -1632,19 +1632,16 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
-  // Invoice math — bill_total is the AUTHORITY (from OCR, user-editable
-  // to correct an extraction mistake). Round-off is DERIVED to make the
-  // ledger balance:
-  //     round_off = bill_total - (subtotal + taxes + cess + freight - discount)
+  // Invoice math: total = subtotal + taxes + cess + freight - discount + round_off.
+  // ``total`` is derived — recomputed live whenever any input moves.
+  // ``round_off`` is user-editable (some invoices print an explicit
+  // rounding amount that doesn't come from arithmetic; user should be
+  // able to clear it and see the true computed total).
   //
-  // Flip vs. old logic: total used to be derived, round_off manual.
-  // That silently kept a stale round_off when the operator corrected a
-  // line item — bill total then drifted away from the invoice.
-  //
-  // The user can still override round_off manually (some invoices print
-  // an explicit round-off amount that doesn't come out of arithmetic).
-  // Only recompute when |derived - current| > 0.005 so we don't fight
-  // a manually-typed value byte-for-byte.
+  // If OCR captured a wrong price/qty, user edits line items → total
+  // shifts. To re-balance against the printed invoice total, the user
+  // clicks the "Auto-fill round-off" button next to the round-off row
+  // (see ``handleAutoFillRoundOff``).
   useEffect(() => {
     const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
     const cgst = parseFloat(billSummaryForm.cgst) || 0;
@@ -1653,21 +1650,15 @@ const TallyVendorBillDetail = () => {
     const cess = parseFloat(billSummaryForm.cess) || 0;
     const freight = parseFloat(billSummaryForm.freight) || 0;
     const discount = parseFloat(billSummaryForm.discount) || 0;
-    const total = parseFloat(billSummaryForm.total) || 0;
-    if (!total) return;
-    const derivedRoundOff = (
-      total - (subtotal + cgst + sgst + igst + cess + freight - discount)
+    const roundOff = parseFloat(billSummaryForm.round_off) || 0;
+
+    const nextTotal = (
+      subtotal + cgst + sgst + igst + cess + freight - discount + roundOff
+    ).toFixed(2);
+
+    setBillSummaryForm((prev) =>
+      prev.total === nextTotal ? prev : { ...prev, total: nextTotal },
     );
-    // Suppress micro-jitter from JS float noise; clamp to 2dp.
-    const rounded = Math.abs(derivedRoundOff) < 0.005
-      ? 0
-      : Number(derivedRoundOff.toFixed(2));
-    const current = parseFloat(billSummaryForm.round_off || 0);
-    if (Math.abs(current - rounded) < 0.005) return;
-    setBillSummaryForm((prev) => ({
-      ...prev,
-      round_off: rounded.toString(),
-    }));
   }, [
     billSummaryForm.subtotal,
     billSummaryForm.cgst,
@@ -1676,7 +1667,7 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.cess,
     billSummaryForm.freight,
     billSummaryForm.discount,
-    billSummaryForm.total,
+    billSummaryForm.round_off,
   ]);
 
   // Handle form input changes
@@ -1895,6 +1886,39 @@ const TallyVendorBillDetail = () => {
       ...prev,
       roundOffLedgerId: null,
     }));
+  };
+
+  // Auto-fill round-off: set round_off so the computed total matches
+  // the OCR-extracted bill total. One-click balance when the operator
+  // has corrected line items and needs the ledger to match the invoice.
+  const handleAutoFillRoundOff = () => {
+    const billTotal = parseFloat(analysedData?.total);
+    if (!billTotal || Number.isNaN(billTotal)) {
+      globalToast.error(
+        "No bill total available from OCR — enter round-off manually.",
+      );
+      return;
+    }
+    const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
+    const cgst = parseFloat(billSummaryForm.cgst) || 0;
+    const sgst = parseFloat(billSummaryForm.sgst) || 0;
+    const igst = parseFloat(billSummaryForm.igst) || 0;
+    const cess = parseFloat(billSummaryForm.cess) || 0;
+    const freight = parseFloat(billSummaryForm.freight) || 0;
+    const discount = parseFloat(billSummaryForm.discount) || 0;
+    const derived = billTotal - (subtotal + cgst + sgst + igst + cess + freight - discount);
+    const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
+    setBillSummaryForm((prev) => ({
+      ...prev,
+      round_off: rounded.toString(),
+    }));
+    if (rounded === 0) {
+      globalToast.success("Already balanced — no round-off needed.");
+    } else {
+      globalToast.success(
+        `Round-off set to ₹${rounded.toFixed(2)} to match bill total ₹${billTotal.toFixed(2)}.`,
+      );
+    }
   };
 
   // Handle consolidate toggle
@@ -4107,6 +4131,20 @@ const TallyVendorBillDetail = () => {
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                               {r.label}
                               {r.required && <span className="text-rose-500">*</span>}
+                              {r.key === "round_off" &&
+                                !isVerified &&
+                                billTotalMatch.hasBillValue &&
+                                !billTotalMatch.isMatch && (
+                                  <button
+                                    type="button"
+                                    onClick={handleAutoFillRoundOff}
+                                    title={`Auto-fill so total matches bill (₹${billTotalMatch.billTotal.toFixed(2)})`}
+                                    className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60 cursor-pointer"
+                                  >
+                                    <Icon icon="heroicons:sparkles" className="text-[11px]" />
+                                    Auto-fill
+                                  </button>
+                                )}
                             </label>
                             <input
                               type="number"
@@ -4165,22 +4203,15 @@ const TallyVendorBillDetail = () => {
                           type="number"
                           name="total"
                           value={billSummaryForm.total}
-                          onChange={(e) =>
-                            setBillSummaryForm((prev) => ({
-                              ...prev,
-                              total: e.target.value,
-                            }))
-                          }
-                          disabled={isVerified}
+                          readOnly
+                          tabIndex={-1}
                           placeholder="0.00"
-                          title="Bill total from invoice — round-off auto-adjusts to make DR/CR balance"
-                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          title="Computed automatically from subtotal + taxes + adjustments"
+                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
-                          } ${isVerified ? "opacity-60 cursor-not-allowed" : ""}`}
-                          step="0.01"
-                          min="0"
+                          }`}
                         />
                         {/* Caption — switches to an amber heads-up when
                             the computed total drifts from the OCR-extracted
