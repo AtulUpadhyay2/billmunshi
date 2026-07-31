@@ -268,14 +268,7 @@ const SelectOrganization = () => {
         <div className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 relative">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-xs text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                <Icon
-                  icon="heroicons:building-office"
-                  className="text-blue-600 dark:text-blue-400 text-xs"
-                />
-                Workspace selection
-              </span>
-              <h1 className="mt-2 text-2xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+              <h1 className="text-2xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
                 Select a client
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -335,7 +328,7 @@ const SelectOrganization = () => {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search clients, owner, slug…"
+                      placeholder="Search clients, unique ID, owner…"
                       className={inputBase}
                     />
                   </div>
@@ -369,9 +362,6 @@ const SelectOrganization = () => {
                         <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">
                           Unique ID
                         </th>
-                        <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">
-                          Slug
-                        </th>
                         <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                           Status
                         </th>
@@ -386,7 +376,7 @@ const SelectOrganization = () => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filtered.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-16 text-center">
+                          <td colSpan={6} className="px-4 py-16 text-center">
                             <Icon
                               icon="heroicons:magnifying-glass"
                               className="text-4xl text-slate-300 dark:text-slate-700 mx-auto mb-3"
@@ -451,11 +441,6 @@ const SelectOrganization = () => {
                               <td className="px-4 py-4 hidden md:table-cell">
                                 <span className="inline-flex items-center px-2 py-1 text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md ring-1 ring-slate-200 dark:ring-slate-700">
                                   {org.unique_name}
-                                </span>
-                              </td>
-                              <td className="px-4 py-4 hidden lg:table-cell">
-                                <span className="text-sm text-slate-600 dark:text-slate-400 font-mono">
-                                  @{org.slug}
                                 </span>
                               </td>
                               <td className="px-4 py-4">
