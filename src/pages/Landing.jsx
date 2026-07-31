@@ -115,7 +115,7 @@ const Landing = () => {
         <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
             {/* Top trust bar */}
             <div className="bg-slate-950 text-slate-300 text-[13px]">
-                <div className="container mx-auto px-6 py-2 flex items-center justify-center gap-2 text-center">
+                <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-center gap-2 text-center">
                     <span className="relative inline-flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -132,7 +132,7 @@ const Landing = () => {
             <nav className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
                 ? 'bg-white/85 dark:bg-slate-950/85 backdrop-blur-md shadow-sm border-b border-slate-200/80 dark:border-slate-800/80'
                 : 'bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800'}`}>
-                <div className="container mx-auto px-6 py-3.5">
+                <div className="container mx-auto px-4 sm:px-6 py-3.5">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="flex items-center gap-2.5 group">
                             <div className="w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all duration-300">
@@ -202,22 +202,25 @@ const Landing = () => {
                 {/* Soft brand glow */}
                 <div aria-hidden="true" className="absolute top-0 left-1/2 -translate-x-1/2 w-240 h-160 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="container mx-auto px-6 pt-16 md:pt-20 pb-16 md:pb-24 relative">
+                <div className="container mx-auto px-4 sm:px-6 pt-10 sm:pt-16 md:pt-20 pb-14 sm:pb-16 md:pb-24 relative">
                     <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-                        <div className="lg:col-span-7 animate-fade-in-up">
+                        {/* min-w-0: grid items default to min-width:auto, so the
+                            preview card's nowrap content (see below) would force
+                            this shared mobile column wider than the viewport. */}
+                        <div className="lg:col-span-7 min-w-0 animate-fade-in-up">
                             {/* Eyebrow */}
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-xs">
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">New</span>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI-powered OCR with native Tally &amp; Zoho sync</span>
                             </div>
 
-                            <h1 className="mt-6 text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.05] text-slate-900 dark:text-white">
+                            <h1 className="mt-5 sm:mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] sm:leading-[1.05] text-slate-900 dark:text-white">
                                 <span className="bg-linear-to-r from-slate-900 via-blue-800 to-slate-900 dark:from-white dark:via-blue-300 dark:to-white bg-clip-text text-transparent">
                                     Tired of manually recording &amp; organizing bills or expenses?
                                 </span>
                             </h1>
 
-                            <p className="mt-6 text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
                                 Save hours each week in processing purchases &amp; expenses. <br className="hidden sm:block" />
                                 Create accounting entries in a few clicks with accuracy &amp; compliance.
                             </p>
@@ -251,8 +254,11 @@ const Landing = () => {
                             </div>
                         </div>
 
-                        {/* Hero showcase: dashboard preview card */}
-                        <div className="lg:col-span-5 animate-fade-in" aria-hidden="true">
+                        {/* Hero showcase: dashboard preview card.
+                            min-w-0 lets the truncating bill rows inside shrink
+                            below their intrinsic width instead of stretching
+                            the grid column past the screen edge. */}
+                        <div className="lg:col-span-5 min-w-0 animate-fade-in" aria-hidden="true">
                             <div className="relative">
                                 {/* Decorative gradient ring */}
                                 <div className="absolute -inset-px rounded-3xl bg-linear-to-br from-blue-500/30 via-transparent to-orange-500/20 blur-sm" />
@@ -351,8 +357,8 @@ const Landing = () => {
             </section>
 
             {/* ===================== HOW IT HELPS ===================== */}
-            <section className="py-20 md:py-28 bg-white dark:bg-slate-950">
-                <div className="container mx-auto px-6">
+            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+                <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center mb-16 md:mb-20">
                         <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                             How it helps
@@ -418,8 +424,8 @@ const Landing = () => {
             </section>
 
             {/* ===================== THREE STEPS AUTOMATION ===================== */}
-            <section className="py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-                <div className="container mx-auto px-6">
+            <section className="py-14 sm:py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
+                <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center mb-14 md:mb-16">
                         <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                             Three Steps Automation
@@ -463,8 +469,8 @@ const Landing = () => {
             </section>
 
             {/* ===================== ABOUT BILLMUNSHI ===================== */}
-            <section className="py-20 md:py-28 bg-white dark:bg-slate-950">
-                <div className="container mx-auto px-6">
+            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+                <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center max-w-3xl mx-auto mb-14 md:mb-16">
                         <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                             About BillMunshi
@@ -496,8 +502,8 @@ const Landing = () => {
             </section>
 
             {/* ===================== INTEGRATIONS ===================== */}
-            <section className="py-20 md:py-28 bg-white dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800">
-                <div className="container mx-auto px-6">
+            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800">
+                <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
                         <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 rounded-full text-xs font-semibold text-blue-700 dark:text-blue-400">
                             <Icon icon="heroicons:link" className="text-sm" />
@@ -514,15 +520,18 @@ const Landing = () => {
                     <div className="grid md:grid-cols-2 gap-5 md:gap-6 max-w-4xl mx-auto">
                         {/* Zoho Books */}
                         <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 md:p-8 hover:border-blue-200 dark:hover:border-blue-900 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
-                            <div className="flex items-center gap-4 mb-5">
-                                <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
-                                    <Icon icon="simple-icons:zoho" className="text-3xl text-blue-600" />
+                            {/* flex-wrap + min-w-0 so the "Connected" pill drops to
+                                its own line on narrow phones instead of squeezing
+                                the title into a two-line wrap. */}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
+                                    <Icon icon="simple-icons:zoho" className="text-2xl sm:text-3xl text-blue-600" />
                                 </div>
-                                <div>
-                                    <div className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Zoho Books</div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Zoho Books</div>
                                     <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Full Integration</div>
                                 </div>
-                                <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                     Connected
                                 </span>
@@ -536,15 +545,15 @@ const Landing = () => {
 
                         {/* Tally ERP */}
                         <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 md:p-8 hover:border-emerald-200 dark:hover:border-emerald-900 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
-                            <div className="flex items-center gap-4 mb-5">
-                                <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 flex items-center justify-center">
-                                    <Icon icon="heroicons:calculator" className="text-3xl text-emerald-700 dark:text-emerald-400" />
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 flex items-center justify-center">
+                                    <Icon icon="heroicons:calculator" className="text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400" />
                                 </div>
-                                <div>
-                                    <div className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Tally ERP</div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Tally ERP</div>
                                     <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Complete Support</div>
                                 </div>
-                                <span className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                     Connected
                                 </span>
@@ -578,9 +587,9 @@ const Landing = () => {
             </section>
 
             {/* ===================== CTA ===================== */}
-            <section className="py-20 md:py-28 bg-white dark:bg-slate-950">
-                <div className="container mx-auto px-6">
-                    <div className="relative bg-linear-to-br from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-8 md:p-16 text-center overflow-hidden shadow-2xl border border-slate-800">
+            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="relative bg-linear-to-br from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 md:p-16 text-center overflow-hidden shadow-2xl border border-slate-800">
                         <div aria-hidden="true" className="absolute inset-0 opacity-60">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/25 rounded-full blur-3xl" />
                             <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
@@ -600,17 +609,17 @@ const Landing = () => {
                                 Automate routine tasks, improve accuracy, and scale with confidence.
                             </p>
 
-                            <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <div className="mt-8 sm:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
                                 <Link
                                     to="/auth/register"
-                                    className="group inline-flex items-center gap-2 px-7 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-base shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-200 ring-1 ring-orange-600/30"
+                                    className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-base shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-200 ring-1 ring-orange-600/30"
                                 >
                                     <span>Start for Free</span>
                                     <Icon icon="heroicons:arrow-right" className="text-lg group-hover:translate-x-0.5 transition-transform" />
                                 </Link>
                                 <Link
                                     to="/book-demo"
-                                    className="inline-flex items-center gap-2 px-7 py-4 bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 hover:border-white/30 text-white rounded-lg font-semibold text-base transition-all duration-200"
+                                    className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 hover:border-white/30 text-white rounded-lg font-semibold text-base transition-all duration-200"
                                 >
                                     Book Your Demo
                                 </Link>
@@ -632,8 +641,8 @@ const Landing = () => {
             </section>
 
             {/* ===================== FAQs ===================== */}
-            <section className="py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
-                <div className="container mx-auto px-6">
+            <section className="py-14 sm:py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
+                <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center max-w-2xl mx-auto mb-14 md:mb-16">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-xs mb-5">
                             <Icon icon="heroicons:question-mark-circle" className="text-blue-600 dark:text-blue-400 text-sm" />
@@ -680,9 +689,9 @@ const Landing = () => {
 
             {/* ===================== FOOTER ===================== */}
             <footer className="bg-slate-950 text-slate-400">
-                <div className="container mx-auto px-6 py-14">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-10 border-b border-slate-800">
-                        <div className="md:col-span-5">
+                <div className="container mx-auto px-4 sm:px-6 py-14">
+                    <div className="grid grid-cols-2 md:grid-cols-12 gap-8 sm:gap-10 pb-10 border-b border-slate-800">
+                        <div className="col-span-2 md:col-span-5">
                             <Link to="/" className="inline-flex items-center gap-2.5 group">
                                 <div className="w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/30">
                                     <Icon icon="heroicons:document-text" className="text-lg text-white" />
