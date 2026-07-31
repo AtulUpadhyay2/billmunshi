@@ -8,6 +8,7 @@ import UploadBillModal from "@/components/modals/UploadBillModal";
 import FileViewerModal from "@/components/modals/FileViewerModal";
 import ConfirmDialog from "@/components/modals/ConfirmDialog";
 import { globalToast } from "@/utils/toast";
+import { notifyUploadResult, notifyUploadError } from "@/utils/uploadFeedback";
 
 const inputBase =
   "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
@@ -317,12 +318,15 @@ const BillsList = ({
 
   const handleUpload = async (formData) => {
     try {
-      await uploadBills({ organizationId: selectedOrganization?.id, formData });
-      globalToast.success("Bills uploaded — processing in background…");
+      const result = await uploadBills({
+        organizationId: selectedOrganization?.id,
+        formData,
+      });
+      notifyUploadResult(result, "Bills uploaded — processing in background…");
       setIsUploadModalOpen(false);
       refetch();
     } catch (err) {
-      globalToast.error(err?.response?.data?.message || err?.message || "Failed to upload");
+      notifyUploadError(err, "Failed to upload");
     }
   };
 

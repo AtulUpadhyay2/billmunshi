@@ -8,6 +8,7 @@ import {
 import { useUploadTallyVendorBills } from "@/services/tally/tallyVendorBillService";
 import { useUploadTallyExpenseBills } from "@/services/tally/tallyExpenseBillService";
 import { globalToast } from "@/utils/toast";
+import { notifyUploadResult, notifyUploadError } from "@/utils/uploadFeedback";
 import DashboardLayout from "./_shared/DashboardLayout";
 
 const TallyDashboard = () => {
@@ -50,35 +51,27 @@ const TallyDashboard = () => {
 
   const handleVendorUpload = async (formData) => {
     try {
-      await uploadVendorBills({
+      const result = await uploadVendorBills({
         organizationId: selectedOrganization?.id,
         formData,
       });
-      globalToast.success("Vendor bills uploaded successfully");
+      notifyUploadResult(result, "Vendor bills uploaded successfully");
       refetchAll();
     } catch (error) {
-      globalToast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to upload purchase vouchers",
-      );
+      notifyUploadError(error, "Failed to upload purchase vouchers");
     }
   };
 
   const handleExpenseUpload = async (formData) => {
     try {
-      await uploadExpenseBills({
+      const result = await uploadExpenseBills({
         organizationId: selectedOrganization?.id,
         formData,
       });
-      globalToast.success("Journal entries uploaded successfully");
+      notifyUploadResult(result, "Journal entries uploaded successfully");
       refetchAll();
     } catch (error) {
-      globalToast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to upload journal entries",
-      );
+      notifyUploadError(error, "Failed to upload journal entries");
     }
   };
 
