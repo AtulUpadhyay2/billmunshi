@@ -1485,7 +1485,7 @@ const ZohoVendorBillDetail = () => {
                     {/* Invoice Number Field */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Invoice Number
+                        Invoice Number <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1530,7 +1530,7 @@ const ZohoVendorBillDetail = () => {
                     {/* Date Issued Field */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Date Issued
+                        Date Issued <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -2383,7 +2383,7 @@ const ZohoVendorBillDetail = () => {
                       <div className="rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 p-4 w-full">
                         <div className="text-center">
                           <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400 mb-1.5">
-                            Total Amount
+                            Total Amount <span className="text-rose-500">*</span>
                           </div>
                           <div className="flex items-center justify-center">
                             <span className="text-lg font-bold text-blue-700 dark:text-blue-400 mr-1">
