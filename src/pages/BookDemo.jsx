@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { toast } from 'sonner';
+import { useBookDemoMutation } from '@/store/api/demo/demoApiSlice';
+import { validateBusinessEmail } from '@/utils/businessEmail';
 
 const BookDemo = () => {
     const navigate = useNavigate();
+    const [bookDemo, { isLoading }] = useBookDemoMutation();
     const [formData, setFormData] = useState({
         fullName: '',
         organization: '',
@@ -11,20 +15,104 @@ const BookDemo = () => {
         email: '',
         phone: '',
     });
+    const [errors, setErrors] = useState({});
 
     const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+        // Clear the field's error as soon as the user edits it.
+        setErrors((prev) => (prev[name] ? { ...prev, [name]: '' } : prev));
     };
 
-    const handleSubmit = (e) => {
+    // Validate the work email on blur so the "use a business address"
+    // rule surfaces before the user reaches the submit button.
+    const handleEmailBlur = () => {
+        if (!formData.email) return;
+        setErrors((prev) => ({ ...prev, email: validateBusinessEmail(formData.email) }));
+    };
+
+    const validate = () => {
+        const next = {};
+        if (formData.fullName.trim().length < 2) next.fullName = 'Please enter your full name.';
+        if (formData.organization.trim().length < 2) next.organization = 'Please enter your organization name.';
+        if (!formData.software) next.software = 'Please select your accounting software.';
+
+        const emailError = validateBusinessEmail(formData.email);
+        if (emailError) next.email = emailError;
+
+        const digits = formData.phone.replace(/\D/g, '');
+        if (digits.length < 10 || digits.length > 15) next.phone = 'Please enter a valid phone number.';
+
+        setErrors(next);
+        return Object.keys(next).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert('Thank you! We will contact you shortly to schedule your demo.');
-        setFormData({ fullName: '', organization: '', software: '', email: '', phone: '' });
-        navigate('/');
+        if (!validate()) return;
+
+        try {
+            const response = await bookDemo({
+                full_name: formData.fullName.trim(),
+                organization: formData.organization.trim(),
+                accounting_software: formData.software,
+                email: formData.email.trim().toLowerCase(),
+                phone: formData.phone.trim(),
+            }).unwrap();
+
+            toast.success(response?.message || 'Thank you! We will contact you shortly to schedule your demo.');
+            setFormData({ fullName: '', organization: '', software: '', email: '', phone: '' });
+            setErrors({});
+            navigate('/');
+        } catch (error) {
+            const data = error?.data || {};
+
+            // 409 + already_booked — this email has a demo on file already.
+            if (data.code === 'already_booked') {
+                const message = data.message || 'Your demo is already booked with this email.';
+                setErrors({ email: message });
+                toast.info(message);
+                return;
+            }
+
+            // Map DRF's per-field errors back onto the form.
+            const fieldMap = {
+                full_name: 'fullName',
+                organization: 'organization',
+                accounting_software: 'software',
+                email: 'email',
+                phone: 'phone',
+            };
+            const mapped = {};
+            Object.entries(data.errors || {}).forEach(([key, messages]) => {
+                const field = fieldMap[key];
+                if (field) mapped[field] = Array.isArray(messages) ? messages[0] : String(messages);
+            });
+
+            if (Object.keys(mapped).length) {
+                setErrors(mapped);
+                toast.error(data.message || 'Please check the form and try again.');
+            } else {
+                toast.error(data.message || 'Something went wrong. Please try again later.');
+            }
+        }
     };
 
     const inputBase =
         'w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600';
+
+    const inputErrorRing =
+        'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800';
+
+    const fieldClass = (field) => `${inputBase} ${errors[field] ? inputErrorRing : ''}`;
+
+    const FieldError = ({ field }) =>
+        errors[field] ? (
+            <p className="mt-1 flex items-start gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                <Icon icon="heroicons:exclamation-circle" className="text-xs shrink-0 mt-0.5" />
+                <span>{errors[field]}</span>
+            </p>
+        ) : null;
 
     return (
         <div className="h-screen flex bg-white dark:bg-slate-950 antialiased text-slate-800 dark:text-slate-200 overflow-hidden">
@@ -80,10 +168,11 @@ const BookDemo = () => {
                                             onChange={handleInputChange}
                                             required
                                             autoComplete="name"
-                                            className={inputBase}
+                                            className={fieldClass('fullName')}
                                             placeholder="Your full name"
                                         />
                                     </div>
+                                    <FieldError field="fullName" />
                                 </div>
 
                                 <div>
@@ -100,10 +189,11 @@ const BookDemo = () => {
                                             onChange={handleInputChange}
                                             required
                                             autoComplete="organization"
-                                            className={inputBase}
+                                            className={fieldClass('organization')}
                                             placeholder="Your organization"
                                         />
                                     </div>
+                                    <FieldError field="organization" />
                                 </div>
                             </div>
 
@@ -119,7 +209,7 @@ const BookDemo = () => {
                                         value={formData.software}
                                         onChange={handleInputChange}
                                         required
-                                        className={`${inputBase} pr-10 cursor-pointer appearance-none`}
+                                        className={`${fieldClass('software')} pr-10 cursor-pointer appearance-none`}
                                     >
                                         <option value="">Select your accounting software</option>
                                         <option value="zoho">Zoho Books</option>
@@ -129,6 +219,7 @@ const BookDemo = () => {
                                     </select>
                                     <Icon icon="heroicons:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
                                 </div>
+                                <FieldError field="software" />
                             </div>
 
                             <div className="grid sm:grid-cols-2 gap-3.5">
@@ -144,12 +235,20 @@ const BookDemo = () => {
                                             name="email"
                                             value={formData.email}
                                             onChange={handleInputChange}
+                                            onBlur={handleEmailBlur}
                                             required
                                             autoComplete="email"
-                                            className={inputBase}
+                                            className={fieldClass('email')}
                                             placeholder="you@company.com"
                                         />
                                     </div>
+                                    {errors.email ? (
+                                        <FieldError field="email" />
+                                    ) : (
+                                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                            Use your company email — personal accounts aren&rsquo;t accepted.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -166,10 +265,11 @@ const BookDemo = () => {
                                             onChange={handleInputChange}
                                             required
                                             autoComplete="tel"
-                                            className={inputBase}
+                                            className={fieldClass('phone')}
                                             placeholder="+91 98765 43210"
                                         />
                                     </div>
+                                    <FieldError field="phone" />
                                 </div>
                             </div>
 
@@ -182,11 +282,21 @@ const BookDemo = () => {
                                 </Link>
                                 <button
                                     type="submit"
-                                    className="group sm:flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer"
+                                    disabled={isLoading}
+                                    className="group sm:flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-orange-500"
                                 >
-                                    <Icon icon="heroicons:paper-airplane" className="text-base" />
-                                    <span>Schedule my demo</span>
-                                    <Icon icon="heroicons:arrow-right" className="text-base group-hover:translate-x-0.5 transition-transform" />
+                                    {isLoading ? (
+                                        <>
+                                            <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                                            <span>Scheduling…</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon icon="heroicons:paper-airplane" className="text-base" />
+                                            <span>Schedule my demo</span>
+                                            <Icon icon="heroicons:arrow-right" className="text-base group-hover:translate-x-0.5 transition-transform" />
+                                        </>
+                                    )}
                                 </button>
                             </div>
 
@@ -226,7 +336,7 @@ const BookDemo = () => {
                         Limited time offer
                     </span>
 
-                    <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1]">
+                    <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
                         See it for yourself in{" "}
                         <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
                             30 minutes.

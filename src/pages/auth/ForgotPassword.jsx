@@ -88,7 +88,7 @@ const forgotPass = () => {
             Account recovery
           </span>
 
-          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1]">
+          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
             Your data is{" "}
             <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
               always protected.

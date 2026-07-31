@@ -79,7 +79,7 @@ const ResetPassword = () => {
             Secure reset
           </span>
 
-          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1]">
+          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
             One more step to get you back{" "}
             <span className="bg-linear-to-r from-orange-300 to-blue-300 bg-clip-text text-transparent">
               in the driver&rsquo;s seat.
