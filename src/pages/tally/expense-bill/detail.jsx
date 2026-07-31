@@ -2092,6 +2092,16 @@ const TallyExpenseBillDetail = () => {
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
+            onClick={() => navigate(`/tally/expense-bill/${expenseBillData?.previous_bill}`)}
+            disabled={!expenseBillData?.previous_bill}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            title={expenseBillData?.previous_bill ? "Go to previous bill" : "No previous bill"}
+          >
+            <Icon icon="heroicons:arrow-left" className="text-base" />
+            Back
+          </button>
+          <button
+            type="button"
             onClick={() => refetch()}
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"

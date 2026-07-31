@@ -860,6 +860,16 @@ const ZohoJournalEntryDetail = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
+            onClick={() => navigate(`/zoho/journal-entry/${journalEntryData?.previous_bill}`)}
+            disabled={!journalEntryData?.previous_bill}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            title={journalEntryData?.previous_bill ? "Go to previous bill" : "No previous bill"}
+          >
+            <Icon icon="heroicons:arrow-left" className="text-base" />
+            Back
+          </button>
+          <button
+            type="button"
             onClick={() => refetch()}
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
