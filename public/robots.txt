@@ -1,0 +1,21 @@
+# https://billmunshi.com/robots.txt
+
+User-agent: *
+Allow: /
+
+# Authentication screens — no unique content, and they should never be a
+# search result a customer lands on.
+Disallow: /auth/
+
+# Signed-in application. Crawlers can't authenticate, so these only ever
+# resolve to a redirect or an empty shell.
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /notifications
+Disallow: /clients
+Disallow: /members
+Disallow: /tally/
+Disallow: /zoho/
+Disallow: /404
+
+Sitemap: https://billmunshi.com/sitemap.xml

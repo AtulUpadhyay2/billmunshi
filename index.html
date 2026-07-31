@@ -18,7 +18,93 @@
       integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
       crossorigin=""
     />
-    <title>Bill Munshi</title>
+    <!-- ===================== SEO ===================== -->
+    <!-- These static tags are the ones social crawlers read: Facebook,
+         LinkedIn, WhatsApp and X do not execute JavaScript, so they never
+         see the per-route tags applied by <Seo>. Treat this block as the
+         site-wide fallback for link previews on every route. -->
+    <title>Bill Munshi — AI Bill Processing with Tally &amp; Zoho Books Sync</title>
+    <meta
+      name="description"
+      content="Automate bill and expense data entry with AI-powered OCR. Bill Munshi extracts line items, taxes and GST, then syncs directly to Tally ERP and Zoho Books."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="Bill Munshi" />
+    <link rel="canonical" href="https://billmunshi.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Bill Munshi" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Bill Munshi — AI Bill Processing with Tally &amp; Zoho Books Sync"
+    />
+    <meta
+      property="og:description"
+      content="Automate bill and expense data entry with AI-powered OCR. Bill Munshi extracts line items, taxes and GST, then syncs directly to Tally ERP and Zoho Books."
+    />
+    <meta property="og:url" content="https://billmunshi.com/" />
+    <meta property="og:image" content="https://billmunshi.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Bill Munshi — automated bill processing for Tally and Zoho Books"
+    />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- X / Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Bill Munshi — AI Bill Processing with Tally &amp; Zoho Books Sync"
+    />
+    <meta
+      name="twitter:description"
+      content="Automate bill and expense data entry with AI-powered OCR. Bill Munshi extracts line items, taxes and GST, then syncs directly to Tally ERP and Zoho Books."
+    />
+    <meta name="twitter:image" content="https://billmunshi.com/og-image.png" />
+
+    <!-- Structured data: site-wide entities. Kept static so crawlers pick
+         them up without a JS render pass. Route-specific schema (e.g. the
+         landing page FAQ) is injected by the <Seo> component. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Bill Munshi",
+        "url": "https://billmunshi.com",
+        "logo": "https://billmunshi.com/favicon.svg",
+        "email": "support@billmunshi.com",
+        "description": "Automate bill and expense data entry with AI-powered OCR. Bill Munshi extracts line items, taxes and GST, then syncs directly to Tally ERP and Zoho Books.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@billmunshi.com",
+          "availableLanguage": ["English"]
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Bill Munshi",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Accounting Software",
+        "operatingSystem": "Web",
+        "url": "https://billmunshi.com",
+        "description": "Automate bill and expense data entry with AI-powered OCR. Bill Munshi extracts line items, taxes and GST, then syncs directly to Tally ERP and Zoho Books.",
+        "featureList": [
+          "AI-powered OCR bill capture",
+          "Line item, tax and GST extraction",
+          "Native Tally ERP integration",
+          "Native Zoho Books integration",
+          "Role-based access control",
+          "Multi-client dashboard for accountants"
+        ]
+      }
+    </script>
   </head>
   <body class="bg-[#EEF1F9] dashcode-app" style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
     <div id="root" class="h-full"></div>

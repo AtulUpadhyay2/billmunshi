@@ -4,6 +4,8 @@ import { Icon } from '@iconify/react';
 import { toast } from 'sonner';
 import { useBookDemoMutation } from '@/store/api/demo/demoApiSlice';
 import { validateBusinessEmail } from '@/utils/businessEmail';
+import Seo from '@/components/Seo';
+import { PAGE_SEO } from '@/config/seo';
 
 const BookDemo = () => {
     const navigate = useNavigate();
@@ -116,6 +118,8 @@ const BookDemo = () => {
 
     return (
         <div className="h-screen flex bg-white dark:bg-slate-950 antialiased text-slate-800 dark:text-slate-200 overflow-hidden">
+            <Seo {...PAGE_SEO.bookDemo} />
+
             {/* Left: form */}
             <div className="flex-1 flex flex-col px-6 sm:px-10 lg:px-12 py-5 overflow-y-auto">
                 {/* Top brand */}

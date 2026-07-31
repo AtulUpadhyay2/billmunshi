@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import Seo from '@/components/Seo';
+import { PAGE_SEO } from '@/config/seo';
 
 const sections = [
   {
@@ -54,6 +56,8 @@ const sections = [
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+      <Seo {...PAGE_SEO.privacy} />
+
       {/* Nav */}
       <nav className="sticky top-0 z-40 bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6 py-3.5 flex items-center justify-between">

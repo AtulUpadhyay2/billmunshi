@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import Seo from '@/components/Seo';
+import { PAGE_SEO, buildFaqSchema } from '@/config/seo';
 
 const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -113,6 +115,12 @@ const Landing = () => {
 
     return (
         <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+            {/* The FAQ list below is also emitted as FAQPage structured data.
+                Note: since Aug 2023 Google only renders FAQ rich results for
+                government and health sites, so treat this as machine-readable
+                context (and Bing/LLM crawlers), not a rich-snippet win. */}
+            <Seo {...PAGE_SEO.home} schemas={[buildFaqSchema(faqs)]} />
+
             {/* Top trust bar */}
             <div className="bg-slate-950 text-slate-300 text-[13px]">
                 <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-center gap-2 text-center">

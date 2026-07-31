@@ -9,6 +9,7 @@ import useMenulayout from "@/hooks/useMenulayout";
 import useMenuHidden from "@/hooks/useMenuHidden";
 import useProfileRefresh from "@/hooks/useProfileRefresh";
 import usePageTitle from "@/hooks/usePageTitle";
+import useNoIndex from "@/hooks/useNoIndex";
 import Footer from "@/components/partials/footer";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -28,6 +29,8 @@ const Layout = () => {
 
   // Update page title based on current route
   usePageTitle();
+  // The signed-in application is private — keep it out of search results.
+  useNoIndex();
 
   const switchHeaderClass = () => {
     if (menuType === "horizontal" || menuHidden) {

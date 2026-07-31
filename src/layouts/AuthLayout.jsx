@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import usePageTitle from "@/hooks/usePageTitle";
+import useNoIndex from "@/hooks/useNoIndex";
 
 const AuthLayout = () => {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ const AuthLayout = () => {
 
   // Update page title based on current route
   usePageTitle();
+  // Auth screens must never surface in search results.
+  useNoIndex();
 
   useEffect(() => {
     // If user is authenticated and has organizations, redirect to dashboard
