@@ -44,6 +44,10 @@ import { toast } from "sonner";
  * sees exactly what they typed. ``onCommit`` fires on blur (or Enter),
  * passing the parsed numeric string to the parent. While unfocused,
  * the input reflects the parent ``value`` formatted to 2 decimals.
+ *
+ * Geometry (``px-2 py-1.5 text-xs``) is deliberately identical to the
+ * native selects and the ``size="sm"`` ledger dropdowns it sits beside in
+ * the tax tables, so every control in a row is the same height.
  */
 const EditableTaxAmount = ({ value, disabled, onCommit }) => {
   const formatted = Number(value || 0).toFixed(2);
@@ -95,7 +99,7 @@ const EditableTaxAmount = ({ value, disabled, onCommit }) => {
           e.currentTarget.blur();
         }
       }}
-      className="w-full px-2 py-1 text-[12px] font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full px-2 py-1.5 text-xs font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
     />
   );
 };
@@ -3963,7 +3967,8 @@ const TallyVendorBillDetail = () => {
                                     optionLabelKey="name"
                                     optionValueKey="id"
                                     disabled={isVerified}
-                                    className="tax-summary-ledger-dropdown text-[10.5px]"
+                                    size="sm"
+                                    className="tax-summary-ledger-dropdown"
                                   />
                                 </div>
                               </div>

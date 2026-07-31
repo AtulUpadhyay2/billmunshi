@@ -88,7 +88,7 @@ const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
       }}
       className={
         className ||
-        "w-full px-2 py-1 text-[12px] font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        "w-full px-2 py-1.5 text-xs font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       }
     />
   );
@@ -3262,7 +3262,7 @@ const TallyPaymentVoucherDetail = () => {
                                       optionValueKey="id"
                                       loading={loadingForType(line.tax_type)}
                                       disabled={isVerified}
-                                      className="text-xs"
+                                      size="sm"
                                     />
                                   </div>
 
@@ -3437,7 +3437,7 @@ const TallyPaymentVoucherDetail = () => {
                                     </div>
                                   </div>
                                 )}
-                                className="text-xs"
+                                size="sm"
                               />
                             </div>
                             <select
@@ -3502,7 +3502,7 @@ const TallyPaymentVoucherDetail = () => {
                                 )}
                               </div>
                             )}
-                            className="text-xs"
+                            size="sm"
                           />
                           <select
                             value={taxSummaryForm.vendorDebitCredit || "credit"}

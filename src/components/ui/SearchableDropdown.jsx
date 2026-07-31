@@ -1,5 +1,33 @@
 import React, { useState, useRef, useEffect } from "react";
 
+/**
+ * Trigger geometry per size.
+ *
+ * ``md`` is the original look — standalone form fields (vendor pickers,
+ * ledger selects in the main forms) keep rendering exactly as before.
+ *
+ * ``sm`` matches the compact controls used inside the tax tables — the
+ * amount inputs and native ``<select>``s there are all ``px-2 py-1.5
+ * text-xs rounded-md`` (30px). Without this the dropdown stood ~8px
+ * taller than everything beside it in the same row.
+ */
+const SIZE_STYLES = {
+  md: {
+    trigger: "px-3 py-2 text-sm rounded-lg shadow-sm",
+    label: "pr-6",
+    icons: "pr-2",
+    chevron: "w-4 h-4",
+    clear: "w-3 h-3",
+  },
+  sm: {
+    trigger: "px-2 py-1.5 text-xs rounded-md",
+    label: "pr-5",
+    icons: "pr-1.5",
+    chevron: "w-3.5 h-3.5",
+    clear: "w-2.5 h-2.5",
+  },
+};
+
 const SearchableDropdown = ({
   options = [],
   value,
@@ -10,12 +38,14 @@ const SearchableDropdown = ({
   disabled = false,
   loading = false,
   className = "",
+  size = "md",
   optionLabelKey = "label",
   optionValueKey = "value",
   renderOption = null,
   noOptionsMessage = "No options found",
   loadingMessage = "Loading...",
 }) => {
+  const sizeStyle = SIZE_STYLES[size] || SIZE_STYLES.md;
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [openUpward, setOpenUpward] = useState(false);
@@ -148,16 +178,24 @@ const SearchableDropdown = ({
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
       {/* Trigger Button */}
+      {/* `flex` so the label keeps its line box centred no matter how tight
+          the vertical padding gets — the `sm` variant has only 6px to work
+          with. The label is the sole flex child; the clear/chevron icons
+          stay absolutely positioned over the right edge as before. */}
       <button
         type="button"
         onClick={handleToggle}
         disabled={disabled || loading}
-        className={`w-full px-3 py-2 text-sm text-left bg-white border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+        className={`w-full flex items-center ${sizeStyle.trigger} text-left bg-white border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed ${
           selectedOption ? "text-gray-900" : "text-gray-500"
         }`}
       >
-        <span className="block truncate pr-6">{getDisplayText()}</span>
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+        <span className={`flex-1 min-w-0 truncate ${sizeStyle.label}`}>
+          {getDisplayText()}
+        </span>
+        <div
+          className={`absolute inset-y-0 right-0 flex items-center ${sizeStyle.icons}`}
+        >
           {selectedOption && !loading && (
             <div
               onClick={handleClear}
@@ -165,7 +203,7 @@ const SearchableDropdown = ({
               title="Clear selection"
             >
               <svg
-                className="w-3 h-3"
+                className={sizeStyle.clear}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -181,10 +219,12 @@ const SearchableDropdown = ({
           )}
           <div className="pointer-events-none">
             {loading ? (
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div
+                className={`${sizeStyle.chevron} border-2 border-blue-500 border-t-transparent rounded-full animate-spin`}
+              ></div>
             ) : (
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                className={`${sizeStyle.chevron} text-gray-400 transition-transform duration-200 ${
                   isOpen ? "rotate-180" : ""
                 }`}
                 fill="none"
