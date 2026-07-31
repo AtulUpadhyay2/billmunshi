@@ -3926,8 +3926,11 @@ button {
   @apply fixed ltr:left-0 rtl:right-0 top-0   h-screen   z-999;
   transition: width 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
   will-change: width;
+  /* Matches the expanded sidebar width (260px) so the hover flyout on a
+     collapsed sidebar is the same size as the real expanded panel. Was
+     248px, which made the width visibly jump. */
   &.sidebar-hovered {
-    width: 248px !important;
+    width: 260px !important;
   }
   @media print {
     @apply hidden;
@@ -3949,9 +3952,12 @@ button {
     );
   }
 }
+/* Duplicate of the `.sidebar-wrapper > &.sidebar-hovered` rule above. Same
+   specificity, but later in the file, so this is the one that actually wins —
+   keep both at the expanded width (260px). */
 .sidebar-hovered {
   &.sidebar-wrapper {
-    width: 248px !important;
+    width: 260px !important;
   }
 }
 .logo-segment {

@@ -12,7 +12,9 @@ import Navmenu from "./Navmenu";
 
 const Sidebar = () => {
   const scrollableNodeRef = useRef();
-  const [collapsed, setMenuCollapsed] = useSidebar();
+  // Collapsing is driven by the single toggle in the header — the sidebar
+  // only reads the state, it never sets it.
+  const [collapsed] = useSidebar();
   const [menuHover, setMenuHover] = useState(false);
   const [isSemiDark] = useSemiDark();
 
@@ -29,16 +31,22 @@ const Sidebar = () => {
 
   return (
     <div className={isSemiDark ? "dark" : ""}>
+      {/* `sidebar-hovered` is the "temporarily behave as expanded" state for a
+          COLLAPSED sidebar (it also un-hides the flyout labels in app.css).
+          Applying it while already expanded turned on the CSS width override
+          and visibly shrank the sidebar whenever the pointer entered it. */}
       <aside
         onMouseEnter={() => setMenuHover(true)}
         onMouseLeave={() => setMenuHover(false)}
         className={`sidebar-wrapper bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${
           collapsed ? "w-[72px] close_sidebar" : "w-65"
-        } ${menuHover ? "sidebar-hovered" : ""}`}
+        } ${collapsed && menuHover ? "sidebar-hovered" : ""}`}
         style={{ width: isExpanded ? 260 : 72 }}
       >
-        {/* Logo / brand */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800">
+        {/* Logo / brand. The collapse toggle deliberately lives in the header
+            instead of here: a button inside the sidebar disappears the moment
+            the sidebar collapses, so re-expanding would depend on hovering. */}
+        <div className="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
           <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group">
             <div className="shrink-0 w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all">
               <Icon icon="heroicons:document-text" className="text-lg text-white" />
@@ -49,20 +57,6 @@ const Sidebar = () => {
               </span>
             )}
           </Link>
-
-          {isExpanded && (
-            <button
-              type="button"
-              onClick={() => setMenuCollapsed(!collapsed)}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-            >
-              <Icon
-                icon={collapsed ? "heroicons:bars-3-bottom-right" : "heroicons:bars-3-bottom-left"}
-                className="text-base"
-              />
-            </button>
-          )}
         </div>
 
         {/* Menu */}

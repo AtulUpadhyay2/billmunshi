@@ -112,7 +112,10 @@ const Header = ({ className = "custom-class" }) => {
             <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
             <SwitchDark />
             {width >= breakpoints.md && <Profile />}
-            {width <= breakpoints.md && (
+            {/* `<` not `<=`: with `<=` this rendered at exactly 768px at the
+                same time as the left-hand trigger below xl, showing two
+                hamburger buttons at once. */}
+            {width < breakpoints.md && (
               <button
                 type="button"
                 onClick={() => setMobileMenu(!mobileMenu)}

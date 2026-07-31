@@ -51,8 +51,12 @@ const Layout = () => {
 
   return (
     <>
-      <Header className={width > breakpoints.xl ? switchHeaderClass() : ""} />
-      {menuType === "vertical" && width > breakpoints.xl && !menuHidden && (
+      {/* `>=` matches the header's own `width >= breakpoints.xl` check. With
+          `>` here, a viewport of exactly 1280px rendered the collapse toggle
+          but no sidebar — and no mobile trigger either, so the menu was
+          unreachable at that exact width. */}
+      <Header className={width >= breakpoints.xl ? switchHeaderClass() : ""} />
+      {menuType === "vertical" && width >= breakpoints.xl && !menuHidden && (
         <Sidebar />
       )}
 
@@ -72,7 +76,7 @@ const Layout = () => {
       )}
       <div
         className={`content-wrapper transition-all duration-150 bg-slate-50 dark:bg-slate-950 min-h-screen ${
-          width > 1280 ? switchHeaderClass() : ""
+          width >= breakpoints.xl ? switchHeaderClass() : ""
         }`}
       >
         <div className="page-min-height px-4 md:px-6 pt-4 md:pt-6 pb-4 md:pb-6">
