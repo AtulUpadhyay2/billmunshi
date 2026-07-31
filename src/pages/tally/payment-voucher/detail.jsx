@@ -804,6 +804,13 @@ const TallyPaymentVoucherDetail = () => {
       // Initialize expense items from consolidate_prod or expense_items based on consolidate status
       let sourceItems = [];
 
+      // Line items straight off the AI payload, whichever key it used.
+      // `expenses` is what the prompt emits; the others are older spellings.
+      const rawAnalysedItems =
+        [data?.expenses, data?.payments, data?.items].find(
+          (list) => Array.isArray(list) && list.length > 0,
+        ) || [];
+
       if (consolidateStatus && tally?.consolidate_prod?.length > 0) {
         // Use consolidated data - properly handle chart_of_accounts mapping
         sourceItems = tally.consolidate_prod.map((item, index) => {
@@ -872,15 +879,22 @@ const TallyPaymentVoucherDetail = () => {
             debit_or_credit: item.debit_or_credit || "debit",
           };
         });
-      } else if (data?.items && data.items.length > 0) {
-        // Fallback to analyzed_data items if no products
-        sourceItems = data.items.map((item, index) => ({
+      } else if (rawAnalysedItems.length > 0) {
+        // Fallback to the raw AI payload when no product rows exist.
+        // Payment vouchers are analysed with the expense prompt, so items
+        // arrive as {description, category, amount} under `expenses` — the
+        // old code read `data.items` and `price * quantity`, the vendor-bill
+        // shape, which is never present here and always yielded "".
+        sourceItems = rawAnalysedItems.map((item, index) => ({
           id: Date.now() + index,
           item_id: null,
           item_details: item.description || "",
           chart_of_accounts: "No COA Ledger",
           chart_of_accounts_id: null,
-          amount: item.price * item.quantity || "",
+          amount:
+            item.amount != null
+              ? item.amount
+              : (item.price || 0) * (item.quantity || 0) || "",
           debit_or_credit: "debit",
         }));
       } else {
