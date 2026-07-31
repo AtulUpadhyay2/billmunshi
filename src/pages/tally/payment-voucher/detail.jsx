@@ -20,7 +20,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import QuickAddMastersBar from "@/components/tally/QuickAddMastersBar";
+import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 
 /**
@@ -2006,13 +2006,9 @@ const TallyPaymentVoucherDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <QuickAddMastersBar
-            className="mr-1"
-            ledgerDefaultParent="Bank Accounts"
-            ledgerTitle="Add New Bank / Cash Ledger"
-            showItem={false}
-          />
-          <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          {/* Quick-add masters moved out of this toolbar — each "+"
+              now sits on the label / column header of the dropdown
+              it feeds. */}
           <button
             type="button"
             onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.previous_bill}`)}
@@ -2437,14 +2433,18 @@ const TallyPaymentVoucherDetail = () => {
                         Payable / Paid via (Bank / Cash){" "}
                         <span className="text-rose-500">*</span>
                       </label>
-                      <div
-                        className={`${
+                      <QuickAddGroup
+                        kind="vendor"
+                        disabled={isVerified}
+                        title="Bank / Cash ledger not in the list? Create one"
+                        className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
                         <SearchableDropdown
+                          triggerClassName="rounded-r-none"
                           options={vendorOptions}
                           value={billForm.selectedVendor?.id || null}
                           onChange={handleVendorSelect}
@@ -2470,9 +2470,8 @@ const TallyPaymentVoucherDetail = () => {
                                                             )} */}
                             </div>
                           )}
-                          className="mb-2"
                         />
-                      </div>
+                      </QuickAddGroup>
 
                       {/* Organization Mismatch Warning */}
                       {/* {billForm.selectedVendor &&
@@ -2784,7 +2783,12 @@ const TallyPaymentVoucherDetail = () => {
                                 </td>
 
                                 <td className="px-3 py-2">
-                                  <div
+                                  <QuickAddGroup
+                                    kind="ledger"
+                                    disabled={isVerified}
+                                    ledgerDefaultParent="Bank Accounts"
+                                    ledgerTitle="Add New Bank / Cash Ledger"
+                                    title="Ledger not in the list? Create one"
                                     className={`${
                                       !item.chart_of_accounts_id && !isVerified
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -2792,6 +2796,7 @@ const TallyPaymentVoucherDetail = () => {
                                     }`}
                                   >
                                     <SearchableDropdown
+                                      triggerClassName="rounded-r-none"
                                       options={ledgerOptions}
                                       value={item.chart_of_accounts_id || null}
                                       onChange={(ledgerId) =>
@@ -2817,7 +2822,7 @@ const TallyPaymentVoucherDetail = () => {
                                         </div>
                                       )}
                                     />
-                                  </div>
+                                  </QuickAddGroup>
                                 </td>
 
                                 <td className="px-3 py-2">

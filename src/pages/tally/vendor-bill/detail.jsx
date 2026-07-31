@@ -27,7 +27,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import QuickAddMastersBar from "@/components/tally/QuickAddMastersBar";
+import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
 
@@ -2746,17 +2746,9 @@ const TallyVendorBillDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Quick-add masters — creates Vendor / Ledger / Item on the
-              fly. Dropdowns in the form below auto-refresh via
-              react-query invalidation, so the new record appears
-              immediately in its picker. Sync will wait for Tally to
-              import it (see tallySyncGuard). */}
-          <QuickAddMastersBar
-            className="mr-1"
-            ledgerDefaultParent="Purchase Accounts"
-            ledgerTitle="Add New Purchase Ledger"
-          />
-          <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
+          {/* Quick-add masters moved out of this toolbar — each "+" now
+              sits on the label / column header of the dropdown it feeds
+              (Vendor, Purchase Ledger, Item Name). */}
           <button
             type="button"
             onClick={() => navigate(`/tally/vendor-bill/${vendorBillData?.previous_bill}`)}
@@ -3133,14 +3125,18 @@ const TallyVendorBillDetail = () => {
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Vendor <span className="text-rose-500">*</span>
                       </label>
-                      <div
-                        className={`${
+                      <QuickAddGroup
+                        kind="vendor"
+                        disabled={isVerified}
+                        title="Vendor not in the list? Create one"
+                        className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
                       >
                         <SearchableDropdown
+                          triggerClassName="rounded-r-none"
                           options={vendorOptions}
                           value={vendorForm.selectedVendor?.id || null}
                           onChange={handleVendorSelect}
@@ -3166,9 +3162,8 @@ const TallyVendorBillDetail = () => {
                                                         )} */}
                             </div>
                           )}
-                          className="mb-2"
                         />
-                      </div>
+                      </QuickAddGroup>
 
                       {/* Organization Mismatch Warning */}
                       {/* {vendorForm.selectedVendor &&
@@ -3466,7 +3461,10 @@ const TallyVendorBillDetail = () => {
                               {/* Item Name - Only show if productSync is true */}
                               {productSync && (
                                 <td className="px-3 py-2">
-                                  <div
+                                  <QuickAddGroup
+                                    kind="item"
+                                    disabled={isVerified}
+                                    title="Item not in the list? Create one"
                                     className={`relative ${
                                       !product.item_id && !isVerified
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3474,6 +3472,7 @@ const TallyVendorBillDetail = () => {
                                     }`}
                                   >
                                     <SearchableDropdown
+                                      triggerClassName="rounded-r-none"
                                       key={`item-${product.id}-${product.item_id}`}
                                       options={stockItemOptions}
                                       value={product.item_id || null}
@@ -3502,7 +3501,7 @@ const TallyVendorBillDetail = () => {
                                       )}
                                       className="item-name-dropdown"
                                     />
-                                  </div>
+                                  </QuickAddGroup>
                                 </td>
                               )}
 
@@ -3530,7 +3529,12 @@ const TallyVendorBillDetail = () => {
 
                               {/* Tax Ledger */}
                               <td className="px-3 py-2">
-                                <div
+                                <QuickAddGroup
+                                  kind="ledger"
+                                  disabled={isVerified}
+                                  ledgerDefaultParent="Purchase Accounts"
+                                  ledgerTitle="Add New Purchase Ledger"
+                                  title="Ledger not in the list? Create one"
                                   className={`relative ${
                                     !product.tax_ledger_id && !isVerified
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3538,6 +3542,7 @@ const TallyVendorBillDetail = () => {
                                   }`}
                                 >
                                   <SearchableDropdown
+                                    triggerClassName="rounded-r-none"
                                     options={taxLedgerOptions}
                                     value={product.tax_ledger_id || null}
                                     onChange={(taxLedgerId) =>
@@ -3559,7 +3564,7 @@ const TallyVendorBillDetail = () => {
                                     )}
                                     className="tax-ledger-dropdown"
                                   />
-                                </div>
+                                </QuickAddGroup>
                               </td>
 
                               {/* Price */}

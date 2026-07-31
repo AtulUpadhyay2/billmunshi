@@ -38,6 +38,10 @@ const SearchableDropdown = ({
   disabled = false,
   loading = false,
   className = "",
+  // Extra classes for the trigger button itself (``className`` lands on
+  // the positioning wrapper). Used to square off the trailing corners
+  // when the dropdown is the first half of an input group.
+  triggerClassName = "",
   size = "md",
   optionLabelKey = "label",
   optionValueKey = "value",
@@ -186,9 +190,9 @@ const SearchableDropdown = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled || loading}
-        className={`w-full flex items-center ${sizeStyle.trigger} text-left bg-white border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+        className={`w-full h-full flex items-center ${sizeStyle.trigger} text-left bg-white border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed ${
           selectedOption ? "text-gray-900" : "text-gray-500"
-        }`}
+        } ${triggerClassName}`}
       >
         <span className={`flex-1 min-w-0 truncate ${sizeStyle.label}`}>
           {getDisplayText()}
