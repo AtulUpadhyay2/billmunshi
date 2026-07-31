@@ -184,6 +184,11 @@ const TallyPaymentVoucherDetail = () => {
     data: expenseBillData,
     error,
     isLoading,
+    // `isLoading` is `isPending && isFetching` in react-query v5, so it
+    // is false once the bill has loaded once. `isFetching` is the flag
+    // that stays true for a manual refetch — the Refresh spinner needs
+    // that one, not `isLoading`.
+    isFetching,
     refetch,
   } = useGetTallyPaymentVoucherDetails(
     { organizationId: selectedOrganization?.id, billId },
@@ -2022,10 +2027,10 @@ const TallyPaymentVoucherDetail = () => {
           <button
             type="button"
             onClick={() => refetch()}
-            disabled={isLoading}
+            disabled={isFetching}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-base ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
