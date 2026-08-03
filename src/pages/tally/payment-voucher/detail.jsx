@@ -326,21 +326,30 @@ const TallyPaymentVoucherDetail = () => {
   const getItemsWithoutCOA = () =>
     expenseItems.filter((item) => !item.chart_of_accounts_id);
 
-  // Tax ledger validation helpers
-  const isCgstLedgerRequired = () => {
-    const cgstAmount = parseFloat(taxSummaryForm.cgst || 0);
-    return cgstAmount > 0 && !taxSummaryForm.cgstLedgerId;
-  };
+  // Tax ledger validation helpers.
+  //
+  // Validated against the GST Lines table — NOT ``taxSummaryForm.*LedgerId``.
+  // The bill-level CGST/SGST/IGST ledger dropdowns were removed when GST
+  // moved to the multi-rate GST Lines table, so the old bill-level check
+  // could only be satisfied by backend auto-match: picking a ledger in the
+  // UI left the warning banner stuck on screen with nothing left to fix.
+  const gstLinesOfTypeWithoutLedger = (taxType) =>
+    (gstLines || []).filter(
+      (line) =>
+        line.tax_type === taxType &&
+        parseFloat(line.amount || 0) > 0 &&
+        !line.ledger_id &&
+        !line.ledger,
+    );
 
-  const isSgstLedgerRequired = () => {
-    const sgstAmount = parseFloat(taxSummaryForm.sgst || 0);
-    return sgstAmount > 0 && !taxSummaryForm.sgstLedgerId;
-  };
+  const isCgstLedgerRequired = () =>
+    gstLinesOfTypeWithoutLedger("CGST").length > 0;
 
-  const isIgstLedgerRequired = () => {
-    const igstAmount = parseFloat(taxSummaryForm.igst || 0);
-    return igstAmount > 0 && !taxSummaryForm.igstLedgerId;
-  };
+  const isSgstLedgerRequired = () =>
+    gstLinesOfTypeWithoutLedger("SGST").length > 0;
+
+  const isIgstLedgerRequired = () =>
+    gstLinesOfTypeWithoutLedger("IGST").length > 0;
 
   const isOtherAdjustmentLedgerRequired = () => {
     const otherAdjustmentAmount = parseFloat(
@@ -418,19 +427,35 @@ const TallyPaymentVoucherDetail = () => {
     }
     if (expenseItems.length === 0)
       errors.push("At least one expense item is required");
-    if (isCgstLedgerRequired())
-      errors.push("CGST ledger is required when CGST amount > 0");
-    if (isSgstLedgerRequired())
-      errors.push("SGST ledger is required when SGST amount > 0");
-    if (isIgstLedgerRequired())
-      errors.push("IGST ledger is required when IGST amount > 0");
+    // "Select a CGST ledger for the 18% GST line" — names the rate so the
+    // operator knows which row of the GST Lines table to fix.
+    const missingGstLedgerMessage = (taxType) => {
+      const rates = Array.from(
+        new Set(
+          gstLinesOfTypeWithoutLedger(taxType)
+            .map((line) => line.rate)
+            .filter(Boolean),
+        ),
+      );
+      const where = rates.length
+        ? ` for the ${rates.join(", ")} GST line${rates.length > 1 ? "s" : ""}`
+        : "";
+      return `Select a ${taxType} ledger${where} in the GST Lines table`;
+    };
+    if (isCgstLedgerRequired()) errors.push(missingGstLedgerMessage("CGST"));
+    if (isSgstLedgerRequired()) errors.push(missingGstLedgerMessage("SGST"));
+    if (isIgstLedgerRequired()) errors.push(missingGstLedgerMessage("IGST"));
     if (isOtherAdjustmentLedgerRequired())
       errors.push(
         "Other adjustment ledger is required when adjustment amount > 0",
       );
     if (isRoundOffLedgerRequired())
       errors.push("Round-off ledger is required when round-off amount is set");
-    const noLedgerLines = getGstLinesWithoutLedger();
+    // Any remaining ledger-less GST line not already reported by the
+    // per-tax-type messages above (e.g. an unexpected tax_type).
+    const noLedgerLines = getGstLinesWithoutLedger().filter(
+      (line) => !["CGST", "SGST", "IGST"].includes(line.tax_type),
+    );
     if (noLedgerLines.length > 0) {
       errors.push(
         `${noLedgerLines.length} GST line(s) with non-zero amount are missing a ledger`,
@@ -1579,15 +1604,42 @@ const TallyPaymentVoucherDetail = () => {
     // Get vendor ledger information
     const selectedVendor = billForm.selectedVendor;
 
-    // Get tax ledger information for summary
-    const cgstLedger = cgstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.cgstLedgerId,
+    // Get tax ledger information for the legacy bill-level ``taxes`` block.
+    //
+    // ``gst_lines`` is authoritative; this block is kept for older backend
+    // readers. Its ledger is derived from the GST Lines table (the line
+    // carrying the largest amount wins when rates use different ledgers)
+    // because the bill-level dropdowns no longer exist —
+    // ``taxSummaryForm.*LedgerId`` is only ever set by backend auto-match.
+    const dominantGstLineLedgerId = (taxType) => {
+      const byLedger = {};
+      (gstLines || []).forEach((line) => {
+        if (line.tax_type !== taxType) return;
+        const amount = parseFloat(line.amount || 0);
+        if (amount <= 0 || !line.ledger_id) return;
+        byLedger[line.ledger_id] = (byLedger[line.ledger_id] || 0) + amount;
+      });
+      const ranked = Object.entries(byLedger).sort((a, b) => b[1] - a[1]);
+      return ranked.length > 0 ? ranked[0][0] : null;
+    };
+    const findTaxLedger = (options, taxType, fallbackId) =>
+      options.find((ledger) => ledger.id === dominantGstLineLedgerId(taxType)) ||
+      options.find((ledger) => ledger.id === fallbackId);
+
+    const cgstLedger = findTaxLedger(
+      cgstLedgerOptions,
+      "CGST",
+      taxSummaryForm.cgstLedgerId,
     );
-    const sgstLedger = sgstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.sgstLedgerId,
+    const sgstLedger = findTaxLedger(
+      sgstLedgerOptions,
+      "SGST",
+      taxSummaryForm.sgstLedgerId,
     );
-    const igstLedger = igstLedgerOptions.find(
-      (ledger) => ledger.id === taxSummaryForm.igstLedgerId,
+    const igstLedger = findTaxLedger(
+      igstLedgerOptions,
+      "IGST",
+      taxSummaryForm.igstLedgerId,
     );
     const otherAdjustmentLedger = ledgerOptions.find(
       (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes,

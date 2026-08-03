@@ -496,12 +496,47 @@ const TallyVendorBillDetail = () => {
     products.filter((product) => !product.tax_ledger_id);
   const getProductsWithoutGST = () =>
     products.filter((product) => !product.gst);
-  const isCgstLedgerRequired = () =>
-    parseFloat(billSummaryForm.cgst || 0) > 0 && !billSummaryForm.cgstLedgerId;
-  const isSgstLedgerRequired = () =>
-    parseFloat(billSummaryForm.sgst || 0) > 0 && !billSummaryForm.sgstLedgerId;
-  const isIgstLedgerRequired = () =>
-    parseFloat(billSummaryForm.igst || 0) > 0 && !billSummaryForm.igstLedgerId;
+  // Ledger that will actually carry a line's CGST/SGST/IGST, in the same
+  // order the sync XML resolves it: the explicit per-line pick, then the
+  // org's rate→ledger mapping default (what the Tax-by-rate dropdown shows
+  // when no line has an explicit pick), then the bill-level ledger the XML
+  // builder falls back to.
+  const effectiveLineTaxLedger = (product, taxType) =>
+    product?.[`${taxType}_ledger`] ||
+    rateLedgerMap[parseGstRate(product?.gst)]?.[`${taxType}_ledger`] ||
+    billSummaryForm[`${taxType}LedgerId`] ||
+    null;
+
+  // Lines carrying a non-zero tax amount with no ledger to post it to.
+  //
+  // This is validated per line — NOT against ``billSummaryForm.*LedgerId``.
+  // The bill-level CGST/SGST/IGST dropdowns were removed when tax ledgers
+  // moved into the per-rate table, so the old bill-level check could only
+  // ever be satisfied by backend auto-match: picking a ledger in the UI
+  // left the warning banner stuck on screen with nothing left to fix.
+  const getLinesWithoutTaxLedger = (taxType) =>
+    (products || []).filter(
+      (p) =>
+        (parseFloat(p[taxType]) || 0) > 0 && !effectiveLineTaxLedger(p, taxType),
+    );
+  const isCgstLedgerRequired = () => getLinesWithoutTaxLedger("cgst").length > 0;
+  const isSgstLedgerRequired = () => getLinesWithoutTaxLedger("sgst").length > 0;
+  const isIgstLedgerRequired = () => getLinesWithoutTaxLedger("igst").length > 0;
+
+  // "Select a CGST ledger for the 5%, 18% rates in the Tax by rate table"
+  const missingTaxLedgerMessage = (taxType) => {
+    const rates = Array.from(
+      new Set(
+        getLinesWithoutTaxLedger(taxType)
+          .map((p) => parseGstRate(p.gst))
+          .filter((r) => r && Number(r) > 0),
+      ),
+    );
+    const where = rates.length
+      ? ` for the ${rates.map((r) => `${r}%`).join(", ")} rate${rates.length > 1 ? "s" : ""}`
+      : "";
+    return `Select a ${taxType.toUpperCase()} ledger${where} in the Tax by rate table`;
+  };
   const isDiscountLedgerRequired = () =>
     parseFloat(billSummaryForm.discount || 0) > 0 &&
     !billSummaryForm.discountLedgerId;
@@ -553,12 +588,9 @@ const TallyVendorBillDetail = () => {
         `${getProductsWithoutGST().length} product(s) are missing GST rates`,
       );
     }
-    if (isCgstLedgerRequired())
-      errors.push("CGST ledger is required when CGST amount > 0");
-    if (isSgstLedgerRequired())
-      errors.push("SGST ledger is required when SGST amount > 0");
-    if (isIgstLedgerRequired())
-      errors.push("IGST ledger is required when IGST amount > 0");
+    if (isCgstLedgerRequired()) errors.push(missingTaxLedgerMessage("cgst"));
+    if (isSgstLedgerRequired()) errors.push(missingTaxLedgerMessage("sgst"));
+    if (isIgstLedgerRequired()) errors.push(missingTaxLedgerMessage("igst"));
     if (isDiscountLedgerRequired())
       errors.push("Discount ledger is required when discount amount > 0");
     if (isCessLedgerRequired())
@@ -2200,15 +2232,44 @@ const TallyVendorBillDetail = () => {
       setVerificationStatus(null);
       setVerificationMessage("");
 
-      // Get tax ledger information for summary
-      const cgstLedger = cgstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.cgstLedgerId,
+      // Get tax ledger information for summary.
+      //
+      // The bill-level CGST/SGST/IGST ledger is no longer picked directly —
+      // the user picks per rate in the Tax-by-rate table. Derive it from the
+      // lines (ledger carrying the largest tax amount wins when rates
+      // disagree) and only fall back to the auto-matched bill-level value.
+      // This matters for consolidated bills: consolidated products carry no
+      // per-line GST ledger, so the sync XML uses the bill-level ledger.
+      const dominantLineTaxLedgerId = (taxType) => {
+        const byLedger = {};
+        (products || []).forEach((p) => {
+          const amount = parseFloat(p[taxType]) || 0;
+          if (amount <= 0) return;
+          const ledgerId = effectiveLineTaxLedger(p, taxType);
+          if (!ledgerId) return;
+          byLedger[ledgerId] = (byLedger[ledgerId] || 0) + amount;
+        });
+        const ranked = Object.entries(byLedger).sort((a, b) => b[1] - a[1]);
+        return ranked.length > 0 ? ranked[0][0] : null;
+      };
+      const findLedger = (options, taxType, fallbackId) =>
+        options.find((ledger) => ledger.id === dominantLineTaxLedgerId(taxType)) ||
+        options.find((ledger) => ledger.id === fallbackId);
+
+      const cgstLedger = findLedger(
+        cgstLedgerOptions,
+        "cgst",
+        billSummaryForm.cgstLedgerId,
       );
-      const sgstLedger = sgstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.sgstLedgerId,
+      const sgstLedger = findLedger(
+        sgstLedgerOptions,
+        "sgst",
+        billSummaryForm.sgstLedgerId,
       );
-      const igstLedger = igstLedgerOptions.find(
-        (ledger) => ledger.id === billSummaryForm.igstLedgerId,
+      const igstLedger = findLedger(
+        igstLedgerOptions,
+        "igst",
+        billSummaryForm.igstLedgerId,
       );
       const discountLedger = discountLedgerOptions.find(
         (ledger) => ledger.id === billSummaryForm.discountLedgerId,
@@ -2292,9 +2353,13 @@ const TallyVendorBillDetail = () => {
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
-                    cgst_ledger: product.cgst_ledger || null,
-                    sgst_ledger: product.sgst_ledger || null,
-                    igst_ledger: product.igst_ledger || null,
+                    // Send the *effective* ledger (explicit pick → rate-map
+                    // default → bill-level), not just the explicit pick — a
+                    // rate-map default was previously shown as selected in the
+                    // UI but sent as null.
+                    cgst_ledger: effectiveLineTaxLedger(product, "cgst"),
+                    sgst_ledger: effectiveLineTaxLedger(product, "sgst"),
+                    igst_ledger: effectiveLineTaxLedger(product, "igst"),
                     original_items_count: products.length,
                   };
                 }),
@@ -2316,9 +2381,9 @@ const TallyVendorBillDetail = () => {
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
-                    cgst_ledger: product.cgst_ledger || null,
-                    sgst_ledger: product.sgst_ledger || null,
-                    igst_ledger: product.igst_ledger || null,
+                    cgst_ledger: effectiveLineTaxLedger(product, "cgst"),
+                    sgst_ledger: effectiveLineTaxLedger(product, "sgst"),
+                    igst_ledger: effectiveLineTaxLedger(product, "igst"),
                   };
                 }),
               }),
