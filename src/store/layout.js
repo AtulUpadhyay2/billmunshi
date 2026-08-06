@@ -2,6 +2,12 @@ import { createSlice } from "@reduxjs/toolkit";
 
 // theme config import
 import themeConfig from "@/config/themeConfig";
+// Layout choices are "preferences" cookies, so persisting them needs
+// consent. setPreference is a no-op until the visitor grants it — the
+// UI still responds instantly, the choice just doesn't outlive the tab.
+// Reads stay direct: if a key is present, it was written with consent,
+// and withdrawing consent deletes it.
+import { setPreference } from "@/utils/cookieConsent";
 
 const initialDarkMode = () => {
   const item = window.localStorage.getItem("darkMode");
@@ -60,12 +66,12 @@ export const layoutSlice = createSlice({
     // handle dark mode
     handleDarkMode: (state, action) => {
       state.darkMode = action.payload;
-      window.localStorage.setItem("darkMode", action.payload);
+      setPreference("darkMode", action.payload);
     },
     // handle sidebar collapsed
     handleSidebarCollapsed: (state, action) => {
       state.isCollapsed = action.payload;
-      window.localStorage.setItem("sidebarCollapsed", action.payload);
+      setPreference("sidebarCollapsed", action.payload);
     },
     // handle customizer
     handleCustomizer: (state, action) => {
@@ -74,17 +80,17 @@ export const layoutSlice = createSlice({
     // handle semiDark
     handleSemiDarkMode: (state, action) => {
       state.semiDarkMode = action.payload;
-      window.localStorage.setItem("semiDarkMode", action.payload);
+      setPreference("semiDarkMode", action.payload);
     },
     // handle rtl
     handleRtl: (state, action) => {
       state.isRTL = action.payload;
-      window.localStorage.setItem("direction", JSON.stringify(action.payload));
+      setPreference("direction", JSON.stringify(action.payload));
     },
     // handle skin
     handleSkin: (state, action) => {
       state.skin = action.payload;
-      window.localStorage.setItem("skin", JSON.stringify(action.payload));
+      setPreference("skin", JSON.stringify(action.payload));
     },
     // handle content width
     handleContentWidth: (state, action) => {
@@ -93,7 +99,7 @@ export const layoutSlice = createSlice({
     // handle type
     handleType: (state, action) => {
       state.type = action.payload;
-      window.localStorage.setItem("type", JSON.stringify(action.payload));
+      setPreference("type", JSON.stringify(action.payload));
     },
     // handle menu hidden
     handleMenuHidden: (state, action) => {
@@ -112,7 +118,7 @@ export const layoutSlice = createSlice({
     },
     handleMonoChrome: (state, action) => {
       state.isMonochrome = action.payload;
-      window.localStorage.setItem("monochrome", JSON.stringify(action.payload));
+      setPreference("monochrome", JSON.stringify(action.payload));
     },
   },
 });

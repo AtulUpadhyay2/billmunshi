@@ -64,6 +64,12 @@ export const PAGE_SEO = {
       "How Bill Munshi collects, stores, encrypts and protects your financial data, and the choices you have over your information.",
     path: "/privacy-policy",
   },
+  cookies: {
+    title: "Cookie Policy",
+    description:
+      "Every cookie and storage key Bill Munshi uses, what each one is for, how long it lasts, and how to change or withdraw your consent at any time.",
+    path: "/cookie-policy",
+  },
 };
 
 /**

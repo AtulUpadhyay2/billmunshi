@@ -9,6 +9,7 @@ import store from "./store";
 import "./utils/toast"; // Import global toast utility
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { CookieConsentProvider } from "./components/cookies";
 
 // Devtools are loaded only in development to keep them out of production
 // bundles entirely (Vite tree-shakes the import.meta.env.DEV branch).
@@ -52,13 +53,18 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     >
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
-          <App />
-          <Toaster position="top-right" richColors closeButton />
-          {ReactQueryDevtools && (
-            <React.Suspense fallback={null}>
-              <ReactQueryDevtools initialIsOpen={false} />
-            </React.Suspense>
-          )}
+          {/* Inside the router so the banner can link to the policy
+              pages, and above <App /> so every route — public or
+              authenticated — is covered by the same consent state. */}
+          <CookieConsentProvider>
+            <App />
+            <Toaster position="top-right" richColors closeButton />
+            {ReactQueryDevtools && (
+              <React.Suspense fallback={null}>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </React.Suspense>
+            )}
+          </CookieConsentProvider>
         </QueryClientProvider>
       </Provider>
     </BrowserRouter>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Seo from '@/components/Seo';
+import { CookieSettingsLink } from '@/components/cookies';
 import { PAGE_SEO } from '@/config/seo';
 
 const sections = [
@@ -142,6 +143,10 @@ const TermsAndConditions = () => {
             <Link to="/terms" className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Terms of Service
             </Link>
+            <Link to="/cookie-policy" className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              Cookie Policy
+            </Link>
+            <CookieSettingsLink className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" />
           </div>
         </div>
       </footer>

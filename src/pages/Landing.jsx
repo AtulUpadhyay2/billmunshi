@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Seo from '@/components/Seo';
+import { CookieSettingsLink } from '@/components/cookies';
 import { PAGE_SEO, buildFaqSchema } from '@/config/seo';
 
 const Landing = () => {
@@ -736,6 +737,10 @@ const Landing = () => {
                             <ul className="space-y-2.5 text-sm">
                                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
                                 <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                                <li><Link to="/cookie-policy" className="hover:text-white transition-colors">Cookie Policy</Link></li>
+                                <li>
+                                    <CookieSettingsLink className="hover:text-white transition-colors cursor-pointer" />
+                                </li>
                             </ul>
                         </div>
                     </div>

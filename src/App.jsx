@@ -8,6 +8,7 @@ const Landing = lazy(() => import("./pages/Landing"));
 const BookDemo = lazy(() => import("./pages/BookDemo"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const Login = lazy(() => import("./pages/auth/login"));
 const Register = lazy(() => import("./pages/auth/register"));
 const ForgotPass = lazy(() => import("./pages/auth/ForgotPassword"));
@@ -112,6 +113,14 @@ function App() {
           element={
             <Suspense fallback={<Loading />}>
               <PrivacyPolicy />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/cookie-policy"
+          element={
+            <Suspense fallback={<Loading />}>
+              <CookiePolicy />
             </Suspense>
           }
         />

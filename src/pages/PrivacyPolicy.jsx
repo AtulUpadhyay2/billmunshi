@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Seo from '@/components/Seo';
+import { CookieSettingsLink } from '@/components/cookies';
 import { PAGE_SEO } from '@/config/seo';
 
 const sections = [
@@ -39,7 +40,7 @@ const sections = [
   {
     id: 'cookies',
     t: '5. Cookies',
-    c: 'We use cookies and similar tracking technologies to track the activity on our Service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.',
+    c: 'We use cookies and similar storage to keep you signed in, remember your preferences and understand how the Service is used. Everything beyond what is strictly necessary is off until you agree, and you can change or withdraw that consent at any time from the "Cookie Settings" link in the footer. Our Cookie Policy lists every cookie we set, what it is for and how long it lasts.',
   },
   {
     id: 'changes',
@@ -191,6 +192,10 @@ const PrivacyPolicy = () => {
             <Link to="/terms" className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Terms of Service
             </Link>
+            <Link to="/cookie-policy" className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              Cookie Policy
+            </Link>
+            <CookieSettingsLink className="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" />
           </div>
         </div>
       </footer>
