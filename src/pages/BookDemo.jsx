@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { toast } from 'sonner';
 import { useBookDemoMutation } from '@/store/api/demo/demoApiSlice';
 import { validateBusinessEmail } from '@/utils/businessEmail';
 import Seo from '@/components/Seo';
+import ReCaptcha from '@/components/ReCaptcha';
+import { isRecaptchaConfigured } from '@/config/recaptcha';
 import { PAGE_SEO } from '@/config/seo';
 
 const BookDemo = () => {
@@ -18,6 +20,14 @@ const BookDemo = () => {
         phone: '',
     });
     const [errors, setErrors] = useState({});
+    const [captchaToken, setCaptchaToken] = useState('');
+    const captchaRef = useRef(null);
+
+    const handleCaptchaChange = (token) => {
+        setCaptchaToken(token || '');
+        // Passing the check clears the "tick the box" error immediately.
+        if (token) setErrors((prev) => (prev.captcha ? { ...prev, captcha: '' } : prev));
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -45,6 +55,12 @@ const BookDemo = () => {
         const digits = formData.phone.replace(/\D/g, '');
         if (digits.length < 10 || digits.length > 15) next.phone = 'Please enter a valid phone number.';
 
+        // Only demanded when a site key is configured; without one the
+        // widget isn't rendered and the backend isn't verifying either.
+        if (isRecaptchaConfigured() && !captchaToken) {
+            next.captcha = 'Please complete the “I’m not a robot” check.';
+        }
+
         setErrors(next);
         return Object.keys(next).length === 0;
     };
@@ -60,14 +76,21 @@ const BookDemo = () => {
                 accounting_software: formData.software,
                 email: formData.email.trim().toLowerCase(),
                 phone: formData.phone.trim(),
+                recaptcha_token: captchaToken,
             }).unwrap();
 
             toast.success(response?.message || 'Thank you! We will contact you shortly to schedule your demo.');
             setFormData({ fullName: '', organization: '', software: '', email: '', phone: '' });
             setErrors({});
+            captchaRef.current?.reset();
             navigate('/');
         } catch (error) {
             const data = error?.data || {};
+
+            // Google burns a token on the first siteverify call, so any
+            // failed submit leaves the visitor holding a dead one. Clear
+            // the widget before they try again.
+            captchaRef.current?.reset();
 
             // 409 + already_booked — this email has a demo on file already.
             if (data.code === 'already_booked') {
@@ -84,6 +107,7 @@ const BookDemo = () => {
                 accounting_software: 'software',
                 email: 'email',
                 phone: 'phone',
+                recaptcha_token: 'captcha',
             };
             const mapped = {};
             Object.entries(data.errors || {}).forEach(([key, messages]) => {
@@ -276,6 +300,13 @@ const BookDemo = () => {
                                     <FieldError field="phone" />
                                 </div>
                             </div>
+
+                            <ReCaptcha
+                                ref={captchaRef}
+                                onChange={handleCaptchaChange}
+                                error={errors.captcha}
+                                className="pt-1"
+                            />
 
                             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
                                 <Link

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useRegisterUserMutation } from "@/store/api/auth/authApiSlice";
 import Modal from "@/components/ui/Modal";
+import ReCaptcha from "@/components/ReCaptcha";
+import { isRecaptchaConfigured } from "@/config/recaptcha";
 
 const schema = yup
   .object({
@@ -49,6 +51,14 @@ const RegForm = () => {
   const [passwordStrength, setPasswordStrength] = useState("");
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const captchaRef = useRef(null);
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token || "");
+    if (token) setCaptchaError("");
+  };
 
   const designationOptions = [
     { value: "", label: "Select Designation" },
@@ -99,16 +109,41 @@ const RegForm = () => {
       toast.error("Please accept the Terms and Conditions and Privacy Policy");
       return;
     }
+    // Only required when a site key is configured — without one the
+    // widget isn't rendered and the backend isn't verifying either.
+    if (isRecaptchaConfigured() && !captchaToken) {
+      setCaptchaError("Please complete the “I’m not a robot” check.");
+      return;
+    }
+
     try {
-      const response = await registerUser(data);
-      if (response.error) throw new Error(response.error.message);
+      await registerUser({ ...data, recaptcha_token: captchaToken }).unwrap();
       reset();
+      setCaptchaToken("");
+      captchaRef.current?.reset();
       navigate("/");
-      toast.success("Add Successfully");
+      toast.success("Account created successfully");
     } catch (error) {
+      // Google spends a token the moment the server verifies it, so a
+      // failed attempt always leaves a dead one in the widget.
+      captchaRef.current?.reset();
+
+      // DRF reports validation failures as {"field": ["message", …]},
+      // so the captcha message has to be read off its own key before
+      // falling back to whatever else the response carried.
+      const payload = error?.data || {};
+      const captchaMessage = payload.recaptcha_token?.[0];
+      if (captchaMessage) setCaptchaError(captchaMessage);
+
       const errorMessage =
-        error.response?.data?.message ||
+        captchaMessage ||
+        payload.message ||
+        payload.detail ||
+        Object.values(payload)
+          .flat()
+          .find((m) => typeof m === "string") ||
         "An error occurred. Please try again later.";
+
       if (errorMessage === "Email is already registered") toast.error(errorMessage);
       else toast.warning(errorMessage);
     }
@@ -342,6 +377,13 @@ const RegForm = () => {
           </button>
         </span>
       </label>
+
+      <ReCaptcha
+        ref={captchaRef}
+        onChange={handleCaptchaChange}
+        error={captchaError}
+        className="pt-1"
+      />
 
       <button
         type="submit"
