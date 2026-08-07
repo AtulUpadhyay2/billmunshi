@@ -35,6 +35,10 @@ const trashBlockedReason = (bill) =>
   bill?.delete_blocked_reason ||
   "This bill has already been posted to Tally and can no longer be deleted.";
 
+// Only analysed bills produce report rows — a Draft has nothing to export.
+// Mirrors the server, which skips bills with no analysed header.
+const EXPORTABLE_STATUSES = new Set(["Analysed", "Verified", "Synced"]);
+
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", {
@@ -174,29 +178,27 @@ const BillsList = ({
   // Download-report hook is optional. When the parent page doesn't
   // pass one, ``downloadReport`` is a no-op and the button stays hidden.
   const downloadReportMutation = useDownloadReport ? useDownloadReport() : null;
+  // Export lives on the Analysed tab only. Elsewhere the button would be
+  // permanently disabled anyway — Draft rows have no analysed data to
+  // export, so offering it there is just noise.
   const canDownloadReport =
-    Boolean(useDownloadReport) &&
-    ["analysed", "synced"].includes(activeTab);
+    Boolean(useDownloadReport) && activeTab === "analysed";
   const isDownloadingReport = downloadReportMutation?.isPending || false;
 
   const handleDownloadReport = async () => {
-    if (!downloadReportMutation) return;
-    // Analysed tab groups Analysed + Verified server-side (see
-    // bills_list_base); mirror that here so the exported rows match
-    // what the user is looking at.
-    const statusFilter =
-      activeTab === "synced"
-        ? "Synced"
-        : "Analysed,Verified";
+    if (!downloadReportMutation || exportableIds.length === 0) return;
     try {
-      await downloadReportMutation.mutateAsync({
+      const filename = await downloadReportMutation.mutateAsync({
         organizationId: selectedOrganization?.id,
-        status: statusFilter,
+        ids: exportableIds,
       });
-      globalToast.success("Report downloaded");
+      globalToast.success(
+        `Exported ${exportableIds.length} ${copy.billLabel}${exportableIds.length > 1 ? "s" : ""}` +
+          (filename ? ` to ${filename}` : ""),
+      );
     } catch (err) {
       globalToast.error(
-        err?.response?.data?.message || err?.message || "Failed to download report",
+        err?.message || err?.response?.data?.message || "Failed to download report",
       );
     }
   };
@@ -272,6 +274,18 @@ const BillsList = ({
     [selectedBillObjs],
   );
   const bulkBlockedCount = selectedBillObjs.length - bulkTrashableIds.length;
+
+  // Excel export covers exactly the ticked rows. Un-analysed selections are
+  // dropped here so the user never receives a spreadsheet with fewer rows
+  // than they selected without being told why.
+  const exportableIds = useMemo(
+    () =>
+      selectedBillObjs
+        .filter((b) => EXPORTABLE_STATUSES.has(b.status))
+        .map((b) => b.id),
+    [selectedBillObjs],
+  );
+  const unexportableCount = selectedBillObjs.length - exportableIds.length;
 
   const allSelectablePicked =
     selectableIds.length > 0 && selectableIds.every((id) => selectedBills.has(id));
@@ -573,15 +587,27 @@ const BillsList = ({
             <button
               type="button"
               onClick={handleDownloadReport}
-              disabled={isDownloadingReport}
-              title={`Download ${activeTab === "synced" ? "Synced" : "Analysed & Verified"} ${copy.billLabel}s as Excel`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              disabled={isDownloadingReport || exportableIds.length === 0}
+              title={
+                selectedBillObjs.length === 0
+                  ? `Select ${copy.billLabel}s to export`
+                  : exportableIds.length === 0
+                  ? `Selected ${copy.billLabel}s have no analysed data to export yet`
+                  : unexportableCount > 0
+                  ? `Export ${exportableIds.length} selected — ${unexportableCount} un-analysed will be skipped`
+                  : `Export ${exportableIds.length} selected ${copy.billLabel}${exportableIds.length > 1 ? "s" : ""} as Excel`
+              }
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-50 dark:disabled:hover:bg-emerald-950/40"
             >
               <Icon
                 icon={isDownloadingReport ? "heroicons:arrow-path" : "heroicons:arrow-down-tray"}
                 className={`text-base ${isDownloadingReport ? "animate-spin" : ""}`}
               />
-              {isDownloadingReport ? "Preparing…" : "Download Excel"}
+              {isDownloadingReport
+                ? "Preparing…"
+                : exportableIds.length > 0
+                ? `Download Excel (${exportableIds.length})`
+                : "Download Excel"}
             </button>
           )}
           <button

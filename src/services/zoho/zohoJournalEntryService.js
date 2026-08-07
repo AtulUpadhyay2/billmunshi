@@ -247,7 +247,16 @@ export const useMoveJournalBills = () => {
  */
 export const useDownloadZohoJournalReport = () =>
   useMutation({
-    mutationFn: async ({ organizationId, status = "" }) => {
+    mutationFn: async ({ organizationId, status = "", ids }) => {
+      // When the caller passes ids, export exactly those bills. The list
+      // goes in a POST body rather than the query string so a large
+      // selection can't overflow the request line.
+      if (ids?.length) {
+        return downloadAuthenticatedFile(
+          `zoho/org/${organizationId}/journal-bills/report/`,
+          { fallbackName: `zoho-journal-entries.xlsx`, method: "post", data: { ids } },
+        );
+      }
       const params = status ? { status } : undefined;
       return downloadAuthenticatedFile(
         `zoho/org/${organizationId}/journal-bills/report/`,
