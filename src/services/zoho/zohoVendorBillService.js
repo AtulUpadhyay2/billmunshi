@@ -6,15 +6,25 @@ import { downloadAuthenticatedFile } from "@/utils/downloadFile";
 // ==================== VENDOR BILLS ====================
 
 // Fetch vendor bills list
-export const useGetVendorBills = ({ organizationId, status }, options = {}) => {
+export const useGetVendorBills = (
+  { organizationId, status, page, pageSize, search } = {},
+  options = {},
+) => {
   return useQuery({
-    queryKey: ["zohoVendorBills", organizationId, status],
+    // page / pageSize / search belong in the key: the server paginates and
+    // filters, so each combination is a distinct result set to cache.
+    queryKey: [
+      "zohoVendorBills", organizationId, status, page || 1, pageSize || null, search || "",
+    ],
     queryFn: () => {
-      let url = `zoho/org/${organizationId}/vendor-bills/`;
-      if (status) {
-        url += `?status=${status}`;
-      }
-      return apiFetch(url);
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      if (search) params.set("search", search);
+      if (page && page > 1) params.set("page", String(page));
+      if (pageSize) params.set("page_size", String(pageSize));
+
+      const query = params.toString();
+      return apiFetch(`zoho/org/${organizationId}/vendor-bills/${query ? `?${query}` : ""}`);
     },
     enabled: !!organizationId,
     ...options,

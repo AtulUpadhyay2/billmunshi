@@ -13,20 +13,33 @@ import { downloadAuthenticatedFile } from "@/utils/downloadFile";
  * @param {string} params.organizationId - Organization ID
  * @param {string} params.status - Optional bill status filter
  */
-export const useGetTallyPaymentVouchers = ({ organizationId, status }, options = {}) => {
+export const useGetTallyPaymentVouchers = (
+  { organizationId, status, page, pageSize, search } = {},
+  options = {},
+) => {
   return useQuery({
-    queryKey: ['tallyPaymentVouchers', organizationId, status],
+    // page / pageSize / search belong in the key: the server paginates and
+    // filters, so each combination is a distinct result set to cache.
+    queryKey: [
+      'tallyPaymentVouchers', organizationId, status, page || 1, pageSize || null, search || '',
+    ],
     queryFn: async () => {
-      let url = `tally/org/${organizationId}/payment-vouchers/`;
-      if (status) {
-        url += `?status=${status}`;
-      }
-      const response = await apiFetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (search) params.set('search', search);
+      if (page && page > 1) params.set('page', String(page));
+      if (pageSize) params.set('page_size', String(pageSize));
+
+      const query = params.toString();
+      const response = await apiFetch(
+        `tally/org/${organizationId}/payment-vouchers/${query ? `?${query}` : ''}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
       return response;
     },
     enabled: !!organizationId,

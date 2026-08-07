@@ -108,11 +108,30 @@ const BillsList = ({
     setSearchQuery("");
   }, [activeTab]);
 
+  // Debounced copy of the search box. The server does the filtering now, so
+  // this throttles requests instead of re-filtering an in-memory array.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // A narrower search can leave the current page past the end of the new
+  // result set, which would render an empty table on e.g. page 7 of 2.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, pageSize]);
+
   const queryParams = useMemo(() => {
-    const params = { organizationId: selectedOrganization?.id };
+    const params = {
+      organizationId: selectedOrganization?.id,
+      page,
+      pageSize,
+    };
     if (activeTab !== "all") params.status = activeTab;
+    if (debouncedSearch) params.search = debouncedSearch;
     return params;
-  }, [activeTab, selectedOrganization?.id]);
+  }, [activeTab, selectedOrganization?.id, page, pageSize, debouncedSearch]);
 
   const {
     data: billsData,
@@ -122,22 +141,20 @@ const BillsList = ({
     isFetching,
   } = useGetBills(queryParams, { enabled: !!selectedOrganization?.id });
 
-  // Counts for tabs (these queries are cached, so no thrashing)
-  const { data: allCountData } = useGetBills(
-    { organizationId: selectedOrganization?.id },
-    { enabled: !!selectedOrganization?.id }
-  );
+  // Counts for the tab badges. Only `count` is read, so ask for a single row
+  // per status instead of pulling four full pages of bills on every render.
+  const countQuery = { organizationId: selectedOrganization?.id, pageSize: 1 };
+  const countOpts = { enabled: !!selectedOrganization?.id };
+
+  const { data: allCountData } = useGetBills(countQuery, countOpts);
   const { data: draftCountData } = useGetBills(
-    { organizationId: selectedOrganization?.id, status: "draft" },
-    { enabled: !!selectedOrganization?.id }
+    { ...countQuery, status: "draft" }, countOpts
   );
   const { data: analysedCountData } = useGetBills(
-    { organizationId: selectedOrganization?.id, status: "analysed" },
-    { enabled: !!selectedOrganization?.id }
+    { ...countQuery, status: "analysed" }, countOpts
   );
   const { data: syncedCountData } = useGetBills(
-    { organizationId: selectedOrganization?.id, status: "synced" },
-    { enabled: !!selectedOrganization?.id }
+    { ...countQuery, status: "synced" }, countOpts
   );
 
   const counts = {
@@ -205,32 +222,33 @@ const BillsList = ({
   const [isBulkSyncOpen, setIsBulkSyncOpen] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
 
-  const bills = billsData?.results || [];
+  // `results` is already the requested page, filtered and sized by the
+  // server — no client-side slicing. Slicing here was the reason a 118-bill
+  // list only ever showed the paginator's first 25 rows.
+  const paged = billsData?.results || [];
 
-  // Filter on the client by search (across name, status, uploader)
-  const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return bills;
-    const q = searchQuery.toLowerCase();
-    return bills.filter((b) =>
-      [getBillName(b), b.status, b.uploaded_by_name, b.processing_error]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [bills, searchQuery]);
+  // Total across the whole result set, not just this page. Falls back to the
+  // page length so a non-paginated response still renders sensibly.
+  const totalCount = billsData?.count ?? paged.length;
 
-  const paged = useMemo(() => {
-    const startIdx = (page - 1) * pageSize;
-    return filtered.slice(startIdx, startIdx + pageSize);
-  }, [filtered, page, pageSize]);
+  // Selection only ever covers rows currently on screen, so drop it when the
+  // visible set changes — otherwise the bulk-action counter keeps totalling
+  // bills the user can no longer see.
+  useEffect(() => {
+    setSelectedBills(new Set());
+  }, [page, pageSize, debouncedSearch, activeTab]);
 
   // All bills on the current page are selectable — bulk actions
   // decide per-bill eligibility (Sync only fires on Verified, Delete
   // works on any status, Move keeps its original per-page semantics).
   const selectableIds = useMemo(() => paged.map((b) => b.id), [paged]);
 
+  // Selection is scoped to the visible page. Bills on other pages aren't in
+  // memory, so a stale id from a previous page simply drops out here rather
+  // than being acted on blind.
   const selectedBillObjs = useMemo(
-    () => bills.filter((b) => selectedBills.has(b.id)),
-    [bills, selectedBills],
+    () => paged.filter((b) => selectedBills.has(b.id)),
+    [paged, selectedBills],
   );
   // Bulk-sync eligibility: any Verified bill, plus previously-Synced
   // bills whose backend flag (``tally_synced``) still says the sync
@@ -884,11 +902,11 @@ const BillsList = ({
         </div>
 
         {/* Pagination */}
-        {!isLoading && !error && filtered.length > 0 && (
+        {!isLoading && !error && totalCount > 0 && (
           <TablePagination
             page={page}
             pageSize={pageSize}
-            total={filtered.length}
+            total={totalCount}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
             pageSizeOptions={[10, 15, 25, 50, 100]}
