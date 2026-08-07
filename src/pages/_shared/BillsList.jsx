@@ -24,6 +24,17 @@ const TABS = [
 // copy — the Trash page reads the authoritative value off the API response.
 const TRASH_RETENTION_DAYS = 30;
 
+// Whether a bill may be moved to Trash. The Tally serializers send
+// `can_delete`; the server is the real gate (it answers 409) and this only
+// decides whether the control is offered. Zoho serializers don't send the
+// field at all, so an undefined value must mean "allowed" — otherwise this
+// shared component would silently disable delete across the Zoho pages.
+const canTrashBill = (bill) => bill?.can_delete !== false;
+
+const trashBlockedReason = (bill) =>
+  bill?.delete_blocked_reason ||
+  "This bill has already been posted to Tally and can no longer be deleted.";
+
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", {
@@ -235,6 +246,15 @@ const BillsList = ({
         .map((b) => b.id),
     [selectedBillObjs],
   );
+  // Bulk-delete eligibility: bills already posted to Tally are excluded, so
+  // selecting a whole page and hitting delete quietly skips them instead of
+  // firing requests the server will refuse with 409.
+  const bulkTrashableIds = useMemo(
+    () => selectedBillObjs.filter(canTrashBill).map((b) => b.id),
+    [selectedBillObjs],
+  );
+  const bulkBlockedCount = selectedBillObjs.length - bulkTrashableIds.length;
+
   const allSelectablePicked =
     selectableIds.length > 0 && selectableIds.every((id) => selectedBills.has(id));
 
@@ -353,9 +373,10 @@ const BillsList = ({
   };
 
   const handleBulkDelete = async () => {
-    if (selectedBills.size === 0) return;
+    const ids = bulkTrashableIds;
+    const skipped = bulkBlockedCount;
+    if (ids.length === 0) return;
     setIsBulkActing(true);
-    const ids = Array.from(selectedBills);
     let ok = 0;
     let failed = 0;
     // No dedicated bulk endpoint — fan out per-bill trash calls in
@@ -371,6 +392,12 @@ const BillsList = ({
     setSelectedBills(new Set());
     if (ok) globalToast.success(`Moved ${ok} bill${ok > 1 ? "s" : ""} to Trash`);
     if (failed) globalToast.error(`Failed to move ${failed} bill${failed > 1 ? "s" : ""} to Trash`);
+    // Say what was left behind rather than letting the count quietly differ
+    // from what the user selected.
+    if (skipped)
+      globalToast.warning(
+        `Skipped ${skipped} synced bill${skipped > 1 ? "s" : ""} — already posted to Tally`,
+      );
     refetch();
   };
 
@@ -506,16 +533,22 @@ const BillsList = ({
                   Sync ({bulkSyncableIds.length})
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setIsBulkDeleteOpen(true)}
-                disabled={isBulkActing}
-                title="Move selected bills to Trash"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
-              >
-                <Icon icon="heroicons:trash" className="text-base" />
-                Move to Trash ({selectedBills.size})
-              </button>
+              {bulkTrashableIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsBulkDeleteOpen(true)}
+                  disabled={isBulkActing}
+                  title={
+                    bulkBlockedCount > 0
+                      ? `${bulkBlockedCount} selected bill(s) are already posted to Tally and will be skipped`
+                      : "Move selected bills to Trash"
+                  }
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <Icon icon="heroicons:trash" className="text-base" />
+                  Move to Trash ({bulkTrashableIds.length})
+                </button>
+              )}
             </>
           )}
           {canDownloadReport && (
@@ -817,14 +850,26 @@ const BillsList = ({
                             <button
                               type="button"
                               onClick={() => handleAction(bill.id, "delete")}
-                              disabled={deletingBills.has(bill.id)}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 disabled:opacity-50 transition-colors cursor-pointer"
-                              title="Move to Trash"
+                              disabled={
+                                deletingBills.has(bill.id) || !canTrashBill(bill)
+                              }
+                              className={
+                                canTrashBill(bill)
+                                  ? "inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 disabled:opacity-50 transition-colors cursor-pointer"
+                                  : "inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                              }
+                              title={
+                                canTrashBill(bill)
+                                  ? "Move to Trash"
+                                  : trashBlockedReason(bill)
+                              }
                             >
                               {deletingBills.has(bill.id) ? (
                                 <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
-                              ) : (
+                              ) : canTrashBill(bill) ? (
                                 <Icon icon="heroicons:trash" className="text-base" />
+                              ) : (
+                                <Icon icon="heroicons:lock-closed" className="text-base" />
                               )}
                             </button>
                           </div>
@@ -932,16 +977,18 @@ const BillsList = ({
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDuplicateModalOpen(false);
-                  setDeleteConfirmBillId(selectedDuplicateBill.id);
-                }}
-                className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
-              >
-                Move to Trash
-              </button>
+              {canTrashBill(selectedDuplicateBill) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDuplicateModalOpen(false);
+                    setDeleteConfirmBillId(selectedDuplicateBill.id);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
+                >
+                  Move to Trash
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -981,16 +1028,18 @@ const BillsList = ({
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsExternalBillModalOpen(false);
-                  setDeleteConfirmBillId(selectedExternalBill.id);
-                }}
-                className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
-              >
-                Move to Trash
-              </button>
+              {canTrashBill(selectedExternalBill) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsExternalBillModalOpen(false);
+                    setDeleteConfirmBillId(selectedExternalBill.id);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
+                >
+                  Move to Trash
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -1080,14 +1129,18 @@ const BillsList = ({
         open={isBulkDeleteOpen}
         onClose={() => (isBulkActing ? null : setIsBulkDeleteOpen(false))}
         onConfirm={handleBulkDelete}
-        title={`Move ${selectedBills.size} bill${selectedBills.size > 1 ? "s" : ""} to Trash?`}
+        title={`Move ${bulkTrashableIds.length} bill${bulkTrashableIds.length > 1 ? "s" : ""} to Trash?`}
         message={
-          `You're about to move ${selectedBills.size} selected ` +
-          `${copy.billLabel}${selectedBills.size > 1 ? "s" : ""} to Trash. You ` +
+          `You're about to move ${bulkTrashableIds.length} ` +
+          `${copy.billLabel}${bulkTrashableIds.length > 1 ? "s" : ""} to Trash. You ` +
           `can restore them from there within ${TRASH_RETENTION_DAYS} days, ` +
-          `after which they are deleted permanently.`
+          `after which they are deleted permanently.` +
+          (bulkBlockedCount > 0
+            ? ` ${bulkBlockedCount} selected bill${bulkBlockedCount > 1 ? "s are" : " is"} ` +
+              `already posted to Tally and will be skipped.`
+            : "")
         }
-        confirmText={isBulkActing ? "Moving…" : `Move ${selectedBills.size} to Trash`}
+        confirmText={isBulkActing ? "Moving…" : `Move ${bulkTrashableIds.length} to Trash`}
         variant="danger"
       />
 
