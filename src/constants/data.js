@@ -93,6 +93,13 @@ export const menuItems = [
   },
 
   {
+    title: "Trash",
+    isHide: true,
+    icon: "heroicons-outline:trash",
+    link: "/tally/trash",
+  },
+
+  {
     title: "Settings",
     icon: "heroicons-outline:cog",
     link: "#",

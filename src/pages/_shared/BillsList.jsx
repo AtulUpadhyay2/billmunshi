@@ -20,6 +20,10 @@ const TABS = [
   { key: "synced", label: "Synced" },
 ];
 
+// Mirrors TRASH_RETENTION_DAYS on the backend. Only used for confirmation
+// copy — the Trash page reads the authoritative value off the API response.
+const TRASH_RETENTION_DAYS = 30;
+
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", {
@@ -303,10 +307,10 @@ const BillsList = ({
     setDeletingBills((p) => new Set([...p, billId]));
     try {
       await deleteBill({ organizationId: selectedOrganization?.id, id: billId });
-      globalToast.success("Bill deleted");
+      globalToast.success("Moved to Trash");
       refetch();
     } catch (err) {
-      globalToast.error(err?.response?.data?.message || err?.message || "Failed to delete bill");
+      globalToast.error(err?.response?.data?.message || err?.message || "Failed to move bill to Trash");
     } finally {
       setDeletingBills((p) => {
         const n = new Set(p);
@@ -354,7 +358,7 @@ const BillsList = ({
     const ids = Array.from(selectedBills);
     let ok = 0;
     let failed = 0;
-    // No dedicated bulk-delete endpoint — fan out per-bill deletes in
+    // No dedicated bulk endpoint — fan out per-bill trash calls in
     // parallel so a slow/failed one doesn't block the rest.
     const results = await Promise.allSettled(
       ids.map((id) =>
@@ -365,8 +369,8 @@ const BillsList = ({
     setIsBulkActing(false);
     setIsBulkDeleteOpen(false);
     setSelectedBills(new Set());
-    if (ok) globalToast.success(`Deleted ${ok} bill${ok > 1 ? "s" : ""}`);
-    if (failed) globalToast.error(`Failed to delete ${failed} bill${failed > 1 ? "s" : ""}`);
+    if (ok) globalToast.success(`Moved ${ok} bill${ok > 1 ? "s" : ""} to Trash`);
+    if (failed) globalToast.error(`Failed to move ${failed} bill${failed > 1 ? "s" : ""} to Trash`);
     refetch();
   };
 
@@ -506,11 +510,11 @@ const BillsList = ({
                 type="button"
                 onClick={() => setIsBulkDeleteOpen(true)}
                 disabled={isBulkActing}
-                title="Delete selected bills"
+                title="Move selected bills to Trash"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               >
                 <Icon icon="heroicons:trash" className="text-base" />
-                Delete ({selectedBills.size})
+                Move to Trash ({selectedBills.size})
               </button>
             </>
           )}
@@ -815,7 +819,7 @@ const BillsList = ({
                               onClick={() => handleAction(bill.id, "delete")}
                               disabled={deletingBills.has(bill.id)}
                               className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 disabled:opacity-50 transition-colors cursor-pointer"
-                              title="Delete bill"
+                              title="Move to Trash"
                             >
                               {deletingBills.has(bill.id) ? (
                                 <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
@@ -936,7 +940,7 @@ const BillsList = ({
                 }}
                 className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
               >
-                Delete this bill
+                Move to Trash
               </button>
               <button
                 type="button"
@@ -985,7 +989,7 @@ const BillsList = ({
                 }}
                 className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
               >
-                Delete this bill
+                Move to Trash
               </button>
               <button
                 type="button"
@@ -1062,9 +1066,13 @@ const BillsList = ({
         open={!!deleteConfirmBillId}
         onClose={() => setDeleteConfirmBillId(null)}
         onConfirm={handleDeleteConfirm}
-        title="Delete this bill?"
-        message="This action cannot be undone."
-        confirmText="Yes, delete"
+        title="Move this bill to Trash?"
+        message={
+          `This ${copy.billLabel} will be moved to Trash. You can restore it ` +
+          `from there within ${TRASH_RETENTION_DAYS} days, after which it is ` +
+          `deleted permanently.`
+        }
+        confirmText="Move to Trash"
         variant="danger"
       />
 
@@ -1072,13 +1080,14 @@ const BillsList = ({
         open={isBulkDeleteOpen}
         onClose={() => (isBulkActing ? null : setIsBulkDeleteOpen(false))}
         onConfirm={handleBulkDelete}
-        title={`Delete ${selectedBills.size} bill${selectedBills.size > 1 ? "s" : ""}?`}
+        title={`Move ${selectedBills.size} bill${selectedBills.size > 1 ? "s" : ""} to Trash?`}
         message={
-          `You're about to permanently delete ${selectedBills.size} selected ` +
-          `${copy.billLabel}${selectedBills.size > 1 ? "s" : ""}. This action ` +
-          `cannot be undone.`
+          `You're about to move ${selectedBills.size} selected ` +
+          `${copy.billLabel}${selectedBills.size > 1 ? "s" : ""} to Trash. You ` +
+          `can restore them from there within ${TRASH_RETENTION_DAYS} days, ` +
+          `after which they are deleted permanently.`
         }
-        confirmText={isBulkActing ? "Deleting…" : `Yes, delete ${selectedBills.size}`}
+        confirmText={isBulkActing ? "Moving…" : `Move ${selectedBills.size} to Trash`}
         variant="danger"
       />
 

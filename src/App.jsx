@@ -71,6 +71,7 @@ const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
 const TallySetups = lazy(() => import("./pages/tally/config/setup"));
 const TallyMaster = lazy(() => import("./pages/tally/config/master"));
 const TallyAccountInfo = lazy(() => import("./pages/tally/account-info"));
+const TallyTrash = lazy(() => import("./pages/tally/trash"));
 
 // Settings
 const Members = lazy(() => import("./pages/settings/members"));
@@ -186,6 +187,7 @@ function App() {
             path="tally/payment-voucher/:id"
             element={<TallyPaymentVoucherDetail />}
           />
+          <Route path="tally/trash" element={<TallyTrash />} />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />
           <Route path="tally/masters" element={<TallyMaster />} />
