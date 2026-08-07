@@ -3401,6 +3401,9 @@ const TallyExpenseBillDetail = () => {
                     {
                       key: "tds",
                       label: "TDS",
+                      // TDS ledgers live under Duties & Taxes, not with the
+                      // expense ledgers the other two rows draw from.
+                      quickAddParent: "Duties & Taxes",
                       amountField: "tds",
                       typeField: "tdsDebitCredit",
                       defaultType: "debit",
@@ -3488,7 +3491,15 @@ const TallyExpenseBillDetail = () => {
                               }
                               className={amountCls}
                             />
-                            <div
+                            <QuickAddGroup
+                              kind="ledger"
+                              disabled={isVerified}
+                              ledgerDefaultParent={r.quickAddParent || "Indirect Expenses"}
+                              ledgerTitle={`Add New ${r.label} Ledger`}
+                              title="Ledger not in the list? Create one"
+                              onCreated={(ledger) =>
+                                ledger?.id && r.onSelect(ledger.id)
+                              }
                               className={`relative ${
                                 r.missing && !isVerified
                                   ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3496,6 +3507,7 @@ const TallyExpenseBillDetail = () => {
                               }`}
                             >
                               <SearchableDropdown
+                                triggerClassName="rounded-r-none"
                                 options={r.options}
                                 value={r.ledgerId || null}
                                 onChange={r.onSelect}
@@ -3517,7 +3529,7 @@ const TallyExpenseBillDetail = () => {
                                 )}
                                 size="sm"
                               />
-                            </div>
+                            </QuickAddGroup>
                             <select
                               value={taxSummaryForm[r.typeField] || r.defaultType}
                               onChange={(e) =>
@@ -3557,7 +3569,17 @@ const TallyExpenseBillDetail = () => {
                             min="0"
                             step="0.01"
                           />
+                          <QuickAddGroup
+                            kind="vendor"
+                            disabled={isVerified}
+                            title="Vendor not in the list? Create one"
+                            onCreated={(vendor) =>
+                              vendor?.id && handleVendorSelect(vendor.id)
+                            }
+                            className="relative"
+                          >
                           <SearchableDropdown
+                            triggerClassName="rounded-r-none"
                             options={vendorOptions}
                             value={billForm.selectedVendor?.id || null}
                             onChange={handleVendorSelect}
@@ -3582,6 +3604,7 @@ const TallyExpenseBillDetail = () => {
                             )}
                             size="sm"
                           />
+                          </QuickAddGroup>
                           <select
                             value={taxSummaryForm.vendorDebitCredit || "credit"}
                             onChange={(e) =>

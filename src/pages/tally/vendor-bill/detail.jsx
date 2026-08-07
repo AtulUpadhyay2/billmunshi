@@ -4245,7 +4245,15 @@ const TallyVendorBillDetail = () => {
                               disabled={isVerified}
                               className={amountCls}
                             />
-                            <div
+                            <QuickAddGroup
+                              kind="ledger"
+                              disabled={isVerified}
+                              ledgerDefaultParent={r.quickAddParent || "Indirect Expenses"}
+                              ledgerTitle={`Add New ${r.label} Ledger`}
+                              title="Ledger not in the list? Create one"
+                              onCreated={(ledger) =>
+                                ledger?.id && r.onSelect(ledger.id)
+                              }
                               className={`relative ${
                                 r.missing && !isVerified
                                   ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -4253,6 +4261,7 @@ const TallyVendorBillDetail = () => {
                               }`}
                             >
                               <SearchableDropdown
+                                triggerClassName="rounded-r-none"
                                 options={r.options}
                                 value={r.ledgerId || null}
                                 onChange={r.onSelect}
@@ -4279,7 +4288,7 @@ const TallyVendorBillDetail = () => {
                                 )}
                                 className="text-xs"
                               />
-                            </div>
+                            </QuickAddGroup>
                           </div>
                         ))}
                       </div>
