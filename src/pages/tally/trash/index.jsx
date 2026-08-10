@@ -6,6 +6,7 @@ import ConfirmDialog from "@/components/modals/ConfirmDialog";
 import FileViewerModal from "@/components/modals/FileViewerModal";
 import { globalToast } from "@/utils/toast";
 import {
+  TRASH_TYPE_TABS,
   useGetTallyTrash,
   useRestoreTallyTrashItem,
   useDeleteTallyTrashItemForever,
@@ -93,7 +94,11 @@ const TallyTrash = () => {
   const items = data?.results || [];
   const totalCount = data?.count ?? 0;
   const retentionDays = data?.retention_days ?? 30;
-  const types = data?.types || [];
+  // The tabs are built from the response, so on the first load — when there
+  // is nothing cached yet — the row would collapse to just "All" until the
+  // request finished. Fall back to the known set so the filters are there
+  // from the first paint; the server's list wins the moment it arrives.
+  const types = data?.types?.length ? data.types : TRASH_TYPE_TABS;
   const countsByType = data?.counts_by_type || {};
 
   // Permanent deletion is admin-only server-side; hiding the controls for
@@ -255,7 +260,9 @@ const TallyTrash = () => {
           </div>
         </div>
 
-        {/* Body */}
+        {/* Body — dimmed while a filter switch refetches, since the rows on
+            screen are the previous filter's until the new page lands. */}
+        <div className={isFetching && !isLoading ? "opacity-50 transition-opacity" : "transition-opacity"}>
         {isLoading ? (
           <div className="p-12 text-center text-sm text-slate-500 dark:text-slate-400">
             <Icon icon="heroicons:arrow-path" className="text-2xl animate-spin mx-auto mb-2" />
@@ -376,6 +383,7 @@ const TallyTrash = () => {
             </table>
           </div>
         )}
+        </div>
 
         {totalCount > 0 && (
           <TablePagination

@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { apiFetch } from '@/utils/apiClient';
 
 // ===========================
@@ -14,6 +19,18 @@ export const TRASH_TYPES = {
   JOURNAL_ENTRY: 'journal-entry',
   PAYMENT_VOUCHER: 'payment-voucher',
 };
+
+/**
+ * The type tabs the Trash page renders before its first response lands.
+ * `types` in the list payload is the source of truth and replaces this as
+ * soon as it arrives — this exists only so the tab row isn't empty on the
+ * very first paint. Mirrors TRASH_KINDS in apps/module/tally/trash.py.
+ */
+export const TRASH_TYPE_TABS = [
+  { slug: TRASH_TYPES.PURCHASE_VOUCHER, label: 'Purchase Voucher', list_path: '/tally/vendor-bill' },
+  { slug: TRASH_TYPES.JOURNAL_ENTRY, label: 'Journal Entry', list_path: '/tally/expense-bill' },
+  { slug: TRASH_TYPES.PAYMENT_VOUCHER, label: 'Payment Voucher', list_path: '/tally/payment-voucher' },
+];
 
 /**
  * Every query key the bill lists use, so a restore or purge refreshes the
@@ -64,6 +81,12 @@ export const useGetTallyTrash = (
       );
     },
     enabled: !!organizationId,
+    // Changing the type tab, the search or the page makes a new cache entry,
+    // which would otherwise drop back to "no data" and re-run the full-page
+    // loader — taking the filter tabs and the table with it. Holding the last
+    // response keeps the page intact while the new one is in flight; callers
+    // watch isFetching for the spinner.
+    placeholderData: keepPreviousData,
     ...options,
   });
 };
