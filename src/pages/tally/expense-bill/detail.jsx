@@ -1941,20 +1941,26 @@ const TallyExpenseBillDetail = () => {
   const handleSync = async () => {
     try {
       setIsSyncing(true);
-      const outcome = await tallySyncWithMastersGuard(
-        () =>
-          syncExpenseBill({
-            organizationId: selectedOrganization?.id,
-            billId,
-          }),
-        { retryFn: async () => true },
-      );
-      if (outcome.status === "success") {
-        globalToast.success("Bill synced to Tally successfully");
-        refetch();
-      } else if (outcome.status === "timeout") {
-        refetch();
+      const result = await syncExpenseBill({
+        organizationId: selectedOrganization?.id,
+        billId,
+      });
+      const data = result?.data || result;
+      const state = data?.tally_sync_status || "pending_tally";
+      const pendingCount = data?.pending_masters_count || 0;
+
+      if (state === "confirmed") {
+        globalToast.success("Journal entry synced to Tally");
+      } else if (pendingCount > 0) {
+        globalToast.info(
+          `Journal entry queued. Tally will import ${pendingCount} pending master${pendingCount > 1 ? "s" : ""} on its next poll, then post the voucher.`,
+        );
+      } else {
+        globalToast.info(
+          "Journal entry queued for Tally. Waiting for Tally to confirm.",
+        );
       }
+      refetch();
     } catch (error) {
       console.error("Failed to sync journal entry:", error);
       globalToast.error(
@@ -2148,9 +2154,23 @@ const TallyExpenseBillDetail = () => {
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Expense bill"}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {billInfo?.status ? `Status: ${billInfo.status}` : "Expense bill detail"}
-              {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
+              <span>
+                {billInfo?.status ? `Status: ${billInfo.status}` : "Expense bill detail"}
+                {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+              </span>
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <Icon icon="heroicons:check-circle" className="text-xs" />
+                  Synced to Tally
+                </span>
+              )}
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === false && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Icon icon="heroicons:clock" className="text-xs" />
+                  Waiting for Tally
+                </span>
+              )}
             </p>
           </div>
         </div>

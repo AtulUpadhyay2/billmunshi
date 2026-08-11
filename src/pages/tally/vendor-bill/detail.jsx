@@ -2596,29 +2596,32 @@ const TallyVendorBillDetail = () => {
     try {
       setIsSyncing(true);
 
-      // Wrap the sync in the masters-guard helper: if backend returns
-      // 409 WAITING_FOR_MASTERS, poll the same call every 15s (up to
-      // 3 min) until Tally imports the pending records, then proceed.
-      // Zero XML change — see docs/tally-master-sync.md for the flow.
-      const outcome = await tallySyncWithMastersGuard(
-        () =>
-          syncVendorBill({
-            organizationId: selectedOrganization?.id,
-            billId,
-          }),
-        {
-          retryFn: async () => true, // keep polling until timeout
-        },
-      );
+      // Backend accepts the sync into BillMunshi's queue and returns
+      // 200 with `tally_sync_status` = "pending_tally" or "confirmed".
+      // Tally TCP eventually pulls the bill + any pending masters and
+      // posts a callback that flips `tally_synced` on the bill. The
+      // detail view re-reads `bill.tally_synced` / `.tally_sync_message`
+      // to show the final state.
+      const result = await syncVendorBill({
+        organizationId: selectedOrganization?.id,
+        billId,
+      });
+      const data = result?.data || result;
+      const state = data?.tally_sync_status || "pending_tally";
+      const pendingCount = data?.pending_masters_count || 0;
 
-      if (outcome.status === "success") {
-        globalToast.success("Bill synced to Tally successfully");
-        refetch();
-      } else if (outcome.status === "timeout") {
-        // Toast already shown by the helper — just make sure state is fresh.
-        refetch();
+      if (state === "confirmed") {
+        globalToast.success("Bill synced to Tally");
+      } else if (pendingCount > 0) {
+        globalToast.info(
+          `Bill queued. Tally will import ${pendingCount} pending master${pendingCount > 1 ? "s" : ""} on its next poll, then post the voucher.`,
+        );
+      } else {
+        globalToast.info(
+          "Bill queued for Tally. Waiting for Tally to confirm.",
+        );
       }
-      // "waiting" without retry never fires because retryFn returns true.
+      refetch();
     } catch (error) {
       console.error("Failed to sync vendor bill:", error);
       globalToast.error(
@@ -2821,9 +2824,23 @@ const TallyVendorBillDetail = () => {
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Vendor bill"}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {billInfo?.status ? `Status: ${billInfo.status}` : "Vendor bill detail"}
-              {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
+              <span>
+                {billInfo?.status ? `Status: ${billInfo.status}` : "Vendor bill detail"}
+                {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+              </span>
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <Icon icon="heroicons:check-circle" className="text-xs" />
+                  Synced to Tally
+                </span>
+              )}
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === false && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Icon icon="heroicons:clock" className="text-xs" />
+                  Waiting for Tally
+                </span>
+              )}
             </p>
           </div>
         </div>

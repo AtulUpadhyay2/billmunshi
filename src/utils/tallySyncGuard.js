@@ -16,15 +16,28 @@ import { globalToast } from "@/utils/toast";
  * @param {number} [opts.maxWaitMs=180000]    Give up after this many ms (default 3 min).
  * @param {(state, meta) => void} [opts.onStateChange] Fires with ``"waiting"``/``"success"``/``"failed"``/``"timeout"``.
  */
+function _describePending(pending) {
+  if (!Array.isArray(pending) || pending.length === 0) return "";
+  return pending
+    .slice(0, 3)
+    .map((p) => `${p?.name || p?.id || "?"} (${p?.type || "master"})`)
+    .join(", ") + (pending.length > 3 ? `, +${pending.length - 3} more` : "");
+}
+
 export async function tallySyncWithMastersGuard(syncFn, opts = {}) {
   const {
     retryFn,
-    pollMs = 15000,
-    maxWaitMs = 180000,
+    // Shorter cadence so status updates feel responsive.
+    pollMs = 10000,
+    // Cap total wait tight enough that the user isn't stuck watching a
+    // spinner if Tally TCP isn't running at all. Was 3 min — the user
+    // reported the sync spinner just hung.
+    maxWaitMs = 45000,
     onStateChange,
   } = opts;
 
   const start = performance.now();
+  let waitToastShown = false;
 
   const attempt = async () => {
     try {
@@ -32,30 +45,33 @@ export async function tallySyncWithMastersGuard(syncFn, opts = {}) {
       onStateChange?.("success", { result });
       return { status: "success", result };
     } catch (err) {
-      // ApiClient's custom error preserves .status and .data
       const httpStatus = err?.status || err?.response?.status;
       const errorCode = err?.data?.error_code || err?.response?.data?.error_code;
       const pending = err?.data?.pending_masters || err?.response?.data?.pending_masters || [];
 
       if (httpStatus === 409 && errorCode === "MASTERS_PENDING") {
         const elapsed = performance.now() - start;
+        const desc = _describePending(pending);
+
         if (elapsed >= maxWaitMs) {
           onStateChange?.("timeout", { pending });
           globalToast.error(
-            `Sync timed out: ${pending.length} master(s) still not imported by Tally. ` +
-              `Check the Tally TCP is running and retry manually.`,
+            `Sync blocked — Tally hasn't imported ${pending.length} master` +
+              `${pending.length > 1 ? "s" : ""}${desc ? ": " + desc : ""}. ` +
+              "Make sure the Tally TCP bridge is running, then retry.",
           );
           return { status: "timeout", pending };
         }
 
         onStateChange?.("waiting", { pending, elapsed });
-        // `globalToast` is an object with .info/.success/etc — calling it
-        // directly throws "globalToast is not a function" (minified: L).
-        globalToast.info(
-          `Waiting for Tally to import ${pending.length} new master${pending.length > 1 ? "s" : ""}…`,
-        );
+        if (!waitToastShown) {
+          globalToast.info(
+            `Waiting for Tally to import ${pending.length} master` +
+              `${pending.length > 1 ? "s" : ""}${desc ? ": " + desc : ""}…`,
+          );
+          waitToastShown = true;
+        }
 
-        // If no retryFn, we can't do anything but return.
         if (typeof retryFn !== "function") {
           return { status: "waiting", pending };
         }
@@ -63,10 +79,9 @@ export async function tallySyncWithMastersGuard(syncFn, opts = {}) {
         await new Promise((r) => setTimeout(r, pollMs));
         const keepWaiting = await retryFn().catch(() => false);
         if (!keepWaiting) return { status: "waiting", pending };
-        return attempt(); // recurse — will re-fire syncFn
+        return attempt();
       }
 
-      // Any other error — bubble to caller.
       onStateChange?.("failed", { err });
       throw err;
     }
