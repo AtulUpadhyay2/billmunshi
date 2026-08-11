@@ -13,6 +13,7 @@ import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
 import Modal from "@/components/ui/Modal";
 import { useCreateSupportTicket } from "@/services/support/supportService";
 
@@ -29,6 +30,11 @@ const CATEGORY_OPTIONS = [
 
 const SupportWidget = () => {
   const isAuthenticated = useSelector((state) => !!state.auth?.accessToken || !!state.auth?.user);
+  const location = useLocation();
+  // Hide the floating badge when user is already on a /support/* page —
+  // the sidebar entry + page title already convey the entry point;
+  // stacking a duplicate CTA in the corner is redundant.
+  const onSupportRoute = location?.pathname?.startsWith("/support");
 
   const [isOpen, setIsOpen] = useState(false);
   const [subject, setSubject] = useState("");
@@ -71,6 +77,8 @@ const SupportWidget = () => {
   // Widget is only meaningful for signed-in users — the backend endpoint
   // requires IsAuthenticated, so hide the trigger for anonymous visitors.
   if (!isAuthenticated) return null;
+  // Hide on the support pages themselves.
+  if (onSupportRoute) return null;
 
   return (
     <>
