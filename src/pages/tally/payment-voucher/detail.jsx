@@ -2650,6 +2650,21 @@ const TallyPaymentVoucherDetail = () => {
                   </h3>
                 </div>
 
+                {/* OCR sanity banner — leading-digit miss on large amounts. */}
+                {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
+                    <Icon icon="heroicons:exclamation-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-rose-800 dark:text-rose-300 mb-1">
+                        OCR check — verify large amounts
+                      </p>
+                      <p className="text-[11px] text-rose-700/90 dark:text-rose-400/90">
+                        {analysedData._ocr_sanity.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
                   <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">

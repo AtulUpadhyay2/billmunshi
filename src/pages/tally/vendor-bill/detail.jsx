@@ -3021,6 +3021,29 @@ const TallyVendorBillDetail = () => {
       )}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6">
+        {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
+            amount (Corrections 14 + 24). Sourced from the backend
+            sanity check stashed on analysedData._ocr_sanity. */}
+        {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
+          <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
+            <Icon
+              icon="heroicons:exclamation-circle"
+              className="text-rose-600 dark:text-rose-400 text-lg shrink-0 mt-0.5"
+            />
+            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
+              <p className="font-semibold text-rose-800 dark:text-rose-300 mb-1">
+                OCR check — verify large amounts
+              </p>
+              <p>{analysedData._ocr_sanity.message}</p>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Most likely cause: OCR dropped the leading digit on a
+                7-8 digit figure. Cross-check the invoice image against
+                every amount field before verifying.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Validation summary */}
         {hasValidationErrors() && !isVerified && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
