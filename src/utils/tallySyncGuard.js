@@ -49,9 +49,10 @@ export async function tallySyncWithMastersGuard(syncFn, opts = {}) {
         }
 
         onStateChange?.("waiting", { pending, elapsed });
-        globalToast(
+        // `globalToast` is an object with .info/.success/etc — calling it
+        // directly throws "globalToast is not a function" (minified: L).
+        globalToast.info(
           `Waiting for Tally to import ${pending.length} new master${pending.length > 1 ? "s" : ""}…`,
-          { icon: "⏳" },
         );
 
         // If no retryFn, we can't do anything but return.
