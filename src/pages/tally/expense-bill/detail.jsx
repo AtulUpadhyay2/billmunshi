@@ -126,6 +126,10 @@ const TallyExpenseBillDetail = () => {
     cgst: "",
     sgst: "",
     tds: "",
+    // Selected TDS rate (%) from the dropdown — 0/1/2/5/10. Drives the
+    // auto-computed ``tds`` amount (subtotal × rate / 100). Not persisted
+    // as its own backend field; re-derived on load from tds / subtotal.
+    tdsRate: 0,
     igstLedgerId: null,
     cgstLedgerId: null,
     sgstLedgerId: null,
@@ -166,6 +170,11 @@ const TallyExpenseBillDetail = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // State for verification loading
+  // Synchronous re-entry guards for verify/sync — React batches setState,
+  // so two rapid clicks both pass an `isVerifying === false` check. A ref
+  // set on the same tick blocks the second call before either state flushes.
+  const verifyInFlightRef = useRef(false);
+  const syncInFlightRef = useRef(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // State for error alert
@@ -713,20 +722,35 @@ const TallyExpenseBillDetail = () => {
       setBillForm({
         billNumber:
           tally?.bill_no || data?.invoiceNumber || data?.billNumber || "",
-        billDate: tally?.bill_date
-          ? new Date(tally?.bill_date).toISOString().split("T")[0]
-          : data?.dateIssued
-            ? new Date(data?.dateIssued).toISOString().split("T")[0]
-            : "",
-        dueDate: tally?.due_date
-          ? new Date(tally?.due_date).toISOString().split("T")[0]
-          : data?.dueDate
-            ? new Date(data?.dueDate).toISOString().split("T")[0]
-            : tally?.bill_date
-              ? new Date(tally?.bill_date).toISOString().split("T")[0]
-              : data?.dateIssued
-                ? new Date(data?.dateIssued).toISOString().split("T")[0]
-                : "",
+        // TZ-safe normalizer — accepts YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY,
+        // or any parseable string; returns YYYY-MM-DD using UTC accessors
+        // so the string doesn't shift across timezone boundaries.
+        billDate: (() => {
+          const raw = tally?.bill_date || data?.dateIssued;
+          if (!raw) return "";
+          const s = String(raw);
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          const m = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+          if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return "";
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        })(),
+        dueDate: (() => {
+          const raw =
+            tally?.due_date ||
+            data?.dueDate ||
+            tally?.bill_date ||
+            data?.dateIssued;
+          if (!raw) return "";
+          const s = String(raw);
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          const m = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+          if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return "";
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        })(),
         vendorName: tally?.vendor_name || data?.from?.name || "",
         companyId: tally?.company_id || "",
         totalAmount: tally?.total || data?.total || "",
@@ -740,6 +764,9 @@ const TallyExpenseBillDetail = () => {
         cgst: tally?.cgst || data?.cgst || "",
         sgst: tally?.sgst || data?.sgst || "",
         tds: tally?.tds || data?.tds || "",
+        // Placeholder — replaced below once ``sourceItems`` (and thus the
+        // subtotal) is known. Kept here so the key always exists.
+        tdsRate: 0,
         igstLedgerId: tally?.igst_taxes || null,
         cgstLedgerId: tally?.cgst_taxes || null,
         sgstLedgerId: tally?.sgst_taxes || null,
@@ -933,6 +960,25 @@ const TallyExpenseBillDetail = () => {
       }
 
       setExpenseItems(sourceItems);
+
+      // Re-derive the TDS rate dropdown selection from the loaded amount.
+      // We don't persist ``tds_rate`` as its own backend field (C31 —
+      // FE-only derive, see report), so on reload we reconstruct it from
+      // tds / subtotal * 100 and snap to the nearest supported option.
+      const seededSubtotal = sourceItems.reduce(
+        (s, r) => s + (parseFloat(r.amount) || 0),
+        0,
+      );
+      const seededTds = parseFloat(tally?.tds || data?.tds || 0);
+      const supportedTdsRates = [0, 1, 2, 5, 10];
+      let derivedTdsRate = 0;
+      if (seededSubtotal > 0 && seededTds > 0) {
+        const rawRate = (seededTds / seededSubtotal) * 100;
+        derivedTdsRate = supportedTdsRates.reduce((closest, r) =>
+          Math.abs(r - rawRate) < Math.abs(closest - rawRate) ? r : closest,
+        0);
+      }
+      setTaxSummaryForm((prev) => ({ ...prev, tdsRate: derivedTdsRate }));
     }
   }, [expenseBillData, analysedData, tallyAnalysedData]);
 
@@ -1292,6 +1338,22 @@ const TallyExpenseBillDetail = () => {
     taxSummaryForm.vendorDebitCredit,
   ]); // Re-calculate whenever expense items, GST lines, TDS, other adj, round-off, or vendor DR/CR type changes
 
+  // C31 — keep the auto-computed TDS amount in sync with the items
+  // subtotal whenever a rate is selected. Only runs when tdsRate > 0 so a
+  // manually-typed TDS amount (rate left at "None") is never overwritten.
+  useEffect(() => {
+    const rate = parseFloat(taxSummaryForm.tdsRate || 0);
+    if (!rate) return;
+    const subtotal = expenseItems.reduce(
+      (sum, item) => sum + (parseFloat(item.amount) || 0),
+      0,
+    );
+    const computedTds = Number(((subtotal * rate) / 100).toFixed(2)).toString();
+    setTaxSummaryForm((prev) =>
+      prev.tds === computedTds ? prev : { ...prev, tds: computedTds },
+    );
+  }, [expenseItems, taxSummaryForm.tdsRate]);
+
   // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
   // the total absorbs the rounding so that all debits = all credits.
   useEffect(() => {
@@ -1576,6 +1638,24 @@ const TallyExpenseBillDetail = () => {
     setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: null }));
   };
 
+  // C31 — TDS rate dropdown. Changing the rate recomputes ``tds`` as
+  // Items Subtotal × rate / 100. The companion effect below (keyed on
+  // ``expenseItems``) keeps the amount in sync afterwards as line amounts
+  // change, so this handler only needs to react to the rate itself.
+  const handleTdsRateChange = (rateValue) => {
+    const numRate = parseFloat(rateValue) || 0;
+    const subtotal = expenseItems.reduce(
+      (sum, item) => sum + (parseFloat(item.amount) || 0),
+      0,
+    );
+    const computedTds = Number(((subtotal * numRate) / 100).toFixed(2));
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      tdsRate: numRate,
+      tds: computedTds.toString(),
+    }));
+  };
+
   const handleOtherAdjustmentLedgerSelect = (ledgerId) => {
     userClearedLedgersRef.current.delete("other_adjustment");
     setTaxSummaryForm((prev) => ({
@@ -1600,6 +1680,45 @@ const TallyExpenseBillDetail = () => {
   const handleRoundOffLedgerClear = () => {
     userClearedLedgersRef.current.add("round_off");
     setTaxSummaryForm((prev) => ({ ...prev, round_off_taxes: null }));
+  };
+
+  // C13 — Auto-fill round-off: set round_off so the computed total matches
+  // the OCR-extracted bill total. Mirrors ``handleAutoFillRoundOff`` in
+  // vendor-bill/detail.jsx. The journal entry has no separate "discount"
+  // field (unlike the purchase voucher), so the balance equation here is
+  // billTotal - (subtotal + GST lines + other adjustment).
+  const handleAutoFillRoundOff = () => {
+    const billTotal = parseFloat(analysedData?.total);
+    if (!billTotal || Number.isNaN(billTotal)) {
+      globalToast.error(
+        "No bill total available from OCR — enter round-off manually.",
+      );
+      return;
+    }
+    const subtotal = expenseItems.reduce(
+      (sum, row) => sum + (parseFloat(row.amount) || 0),
+      0,
+    );
+    const sumOfGstLines = (gstLines || []).reduce(
+      (sum, line) => sum + (parseFloat(line.amount) || 0),
+      0,
+    );
+    const otherAdjustment = parseFloat(taxSummaryForm.other_adjustment) || 0;
+    const discount = 0; // no discount concept on the JE / expense-bill form
+    const derived =
+      billTotal - (subtotal + sumOfGstLines + otherAdjustment - discount);
+    const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      round_off: rounded.toFixed(2),
+    }));
+    if (rounded === 0) {
+      globalToast.success("Already balanced — no round-off needed.");
+    } else {
+      globalToast.success(
+        `Round-off set to ₹${rounded.toFixed(2)} to match bill total ₹${billTotal.toFixed(2)}.`,
+      );
+    }
   };
 
   // Expense item manipulation functions
@@ -1802,6 +1921,11 @@ const TallyExpenseBillDetail = () => {
             amount: formatDecimal(taxSummaryForm.tds),
             ledger: tdsLedger?.name || "",
             debit_or_credit: taxSummaryForm.tdsDebitCredit || "debit",
+            // Sent for reload restore only — the backend's tax-field loop
+            // (expense_bills.py) reads amount/ledger/debit_or_credit and
+            // ignores unknown keys, so this is safe without a BE change.
+            // FE re-derives the rate on load from tds / subtotal instead.
+            rate: parseFloat(taxSummaryForm.tdsRate) || 0,
           },
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
@@ -1856,6 +1980,7 @@ const TallyExpenseBillDetail = () => {
 
   // Save function
   const handleSave = async () => {
+    if (verifyInFlightRef.current) return;
     try {
       // Validation before verification
       if (hasValidationErrors()) {
@@ -1868,6 +1993,7 @@ const TallyExpenseBillDetail = () => {
         return;
       }
 
+      verifyInFlightRef.current = true;
       setIsVerifying(true);
 
       // Transform data to the required API format
@@ -1934,11 +2060,14 @@ const TallyExpenseBillDetail = () => {
       });
     } finally {
       setIsVerifying(false);
+      verifyInFlightRef.current = false;
     }
   };
 
   // Sync function
   const handleSync = async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     try {
       setIsSyncing(true);
       const result = await syncExpenseBill({
@@ -1971,6 +2100,7 @@ const TallyExpenseBillDetail = () => {
       );
     } finally {
       setIsSyncing(false);
+      syncInFlightRef.current = false;
     }
   };
 
@@ -3247,10 +3377,10 @@ const TallyExpenseBillDetail = () => {
                             <Icon icon="heroicons:list-bullet" className="text-[12px]" />
                           </span>
                           <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                            GST Lines
+                            GST Items
                           </h4>
                           <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                            One row per (rate, ledger) — supports multi-rate
+                            Verify GST amount and ledgers · one row per (rate, ledger)
                           </span>
                         </div>
                         <button
@@ -3430,27 +3560,23 @@ const TallyExpenseBillDetail = () => {
 
                   // CGST/SGST/IGST rows REMOVED — multi-rate GST is now
                   // managed via the dedicated GST Lines table rendered
-                  // above this Adjustments block. TDS, Other Adjustment
-                  // and Round Off stay here as bill-level singletons.
+                  // above this Adjustments block. Other Adjustment and
+                  // Round Off stay here as bill-level singletons. TDS is
+                  // rendered separately below (C31 — rate dropdown +
+                  // auto-computed amount) instead of through this generic
+                  // row list, since it needs an extra rate control.
+                  const itemsSubtotal = expenseItems.reduce(
+                    (sum, item) => sum + (parseFloat(item.amount) || 0),
+                    0,
+                  );
+                  const tdsRateOptions = [
+                    { label: "None", value: 0 },
+                    { label: "1%", value: 1 },
+                    { label: "2%", value: 2 },
+                    { label: "5%", value: 5 },
+                    { label: "10%", value: 10 },
+                  ];
                   const rows = [
-                    {
-                      key: "tds",
-                      label: "TDS",
-                      // TDS ledgers live under Duties & Taxes, not with the
-                      // expense ledgers the other two rows draw from.
-                      quickAddParent: "Duties & Taxes",
-                      amountField: "tds",
-                      typeField: "tdsDebitCredit",
-                      defaultType: "debit",
-                      missing: isTdsLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.tds || 0) > 0,
-                      options: taxLedgerOptions,
-                      ledgerId: taxSummaryForm.tdsLedgerId,
-                      onSelect: handleTdsLedgerSelect,
-                      onClear: handleTdsLedgerClear,
-                      loading: taxLedgersLoading,
-                      placeholder: "TDS ledger",
-                    },
                     {
                       key: "other_adjustment",
                       label: "Other Adjustment",
@@ -3493,7 +3619,7 @@ const TallyExpenseBillDetail = () => {
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Type</span>
@@ -3501,6 +3627,108 @@ const TallyExpenseBillDetail = () => {
 
                       {/* Tax / adjustment rows */}
                       <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {/* C31 — TDS row: rate dropdown + auto-computed
+                            amount (Items Subtotal × rate / 100), read-only.
+                            Kept outside ``rows`` since it needs an extra
+                            rate control the generic row template doesn't
+                            have; the amount cell holds both the rate
+                            <select> and the computed-amount display so the
+                            row still lines up under the shared 4-column
+                            grid used by the other rows. */}
+                        <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 items-center">
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            TDS
+                            {parseFloat(taxSummaryForm.tds || 0) > 0 && (
+                              <span className="text-rose-500">*</span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={taxSummaryForm.tdsRate ?? 0}
+                              onChange={(e) =>
+                                handleTdsRateChange(e.target.value)
+                              }
+                              disabled={isVerified}
+                              title="TDS rate — amount is auto-computed as Items Subtotal × rate"
+                              className="w-16 shrink-0 px-1.5 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                            >
+                              {tdsRateOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <span
+                              className="flex-1 min-w-0 truncate px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md"
+                              title={`Auto-computed: Items Subtotal (₹${itemsSubtotal.toFixed(2)}) × ${taxSummaryForm.tdsRate || 0}%`}
+                            >
+                              ₹{(parseFloat(taxSummaryForm.tds) || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <QuickAddGroup
+                            kind="ledger"
+                            disabled={isVerified}
+                            ledgerDefaultParent="Duties & Taxes"
+                            ledgerTitle="Add New TDS Ledger"
+                            title="Ledger not in the list? Create one"
+                            onCreated={(ledger) =>
+                              ledger?.id && handleTdsLedgerSelect(ledger.id)
+                            }
+                            className={`relative ${
+                              isTdsLedgerRequired() && !isVerified
+                                ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                                : ""
+                            }`}
+                          >
+                            <SearchableDropdown
+                              triggerClassName="rounded-r-none"
+                              options={taxLedgerOptions}
+                              value={taxSummaryForm.tdsLedgerId || null}
+                              onChange={handleTdsLedgerSelect}
+                              onClear={handleTdsLedgerClear}
+                              placeholder={
+                                parseFloat(taxSummaryForm.tds || 0) > 0
+                                  ? "Select TDS ledger*"
+                                  : "Select TDS ledger"
+                              }
+                              searchPlaceholder="Search tds ledger…"
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={taxLedgersLoading}
+                              disabled={isVerified}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-slate-900 dark:text-white text-sm">
+                                    {ledger.name}
+                                  </div>
+                                </div>
+                              )}
+                              size="sm"
+                            />
+                          </QuickAddGroup>
+                          <select
+                            value={taxSummaryForm.tdsDebitCredit || "debit"}
+                            onChange={(e) =>
+                              handleTaxSummaryChange(
+                                "tdsDebitCredit",
+                                e.target.value,
+                              )
+                            }
+                            disabled={isVerified}
+                            className={selectCls}
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                              backgroundPosition: "right 0.4rem center",
+                              backgroundRepeat: "no-repeat",
+                              backgroundSize: "1rem 1rem",
+                              paddingRight: "1.75rem",
+                            }}
+                          >
+                            <option value="debit">Debit</option>
+                            <option value="credit">Credit</option>
+                          </select>
+                        </div>
+
                         {rows.map((r) => (
                           <div
                             key={r.key}
@@ -3517,6 +3745,24 @@ const TallyExpenseBillDetail = () => {
                                   ({r.hint})
                                 </span>
                               )}
+                              {/* C13 — Auto-fill round-off. Only shown when
+                                  we have an OCR bill total to balance
+                                  against and the computed total doesn't
+                                  already match it (mirrors vendor-bill). */}
+                              {r.key === "round_off" &&
+                                !isVerified &&
+                                billTotalMatch.hasBillValue &&
+                                !billTotalMatch.isMatch && (
+                                  <button
+                                    type="button"
+                                    onClick={handleAutoFillRoundOff}
+                                    title={`Auto-fill so total matches bill (₹${billTotalMatch.billTotal.toFixed(2)})`}
+                                    className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60 cursor-pointer"
+                                  >
+                                    <Icon icon="heroicons:sparkles" className="text-[11px]" />
+                                    Auto-fill
+                                  </button>
+                                )}
                             </label>
                             <EditableTaxAmount
                               value={taxSummaryForm[r.amountField]}

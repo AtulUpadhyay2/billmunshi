@@ -11,6 +11,7 @@ import useProfileRefresh from "@/hooks/useProfileRefresh";
 import usePageTitle from "@/hooks/usePageTitle";
 import useNoIndex from "@/hooks/useNoIndex";
 import Footer from "@/components/partials/footer";
+import SupportWidget from "@/components/support/SupportWidget";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import MobileFooter from "@/components/partials/footer/MobileFooter";
@@ -74,8 +75,12 @@ const Layout = () => {
           onClick={() => setMobileMenu(false)}
         ></div>
       )}
+      {/* `min-h-screen` used to make total layout = 100vh + footer height,
+          which forced a page-level scroll on every route. Cap at viewport
+          height and let inner pages scroll themselves. Pages that need
+          natural page-scroll should set their own root to `min-h-full`. */}
       <div
-        className={`content-wrapper transition-all duration-150 bg-slate-50 dark:bg-slate-950 min-h-screen ${
+        className={`content-wrapper transition-all duration-150 bg-slate-50 dark:bg-slate-950 min-h-screen overflow-x-hidden ${
           width >= breakpoints.xl ? switchHeaderClass() : ""
         }`}
       >
@@ -118,6 +123,7 @@ const Layout = () => {
           </div>
         </div>
       </div>
+      <SupportWidget />
       {width < breakpoints.md && <MobileFooter />}
       {width > breakpoints.md && (
         <Footer className={width > breakpoints.xl ? switchHeaderClass() : ""} />

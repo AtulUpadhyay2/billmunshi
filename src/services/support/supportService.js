@@ -1,0 +1,83 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '@/utils/apiClient';
+
+// ===========================
+// SUPPORT TICKETS
+// ===========================
+// Base URL pattern mirrors frontend/src/services/tally/*.js — all requests
+// go through apiFetch (axios instance with the auth token attached via the
+// request interceptor, see @/utils/apiClient.js).
+
+/**
+ * Create a new support ticket.
+ * POST /api/v1/support/tickets/
+ *
+ * payload: { subject, category, message, priority?, page_url?, browser? }
+ */
+export const useCreateSupportTicket = (options = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await apiFetch('support/tickets/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      });
+      return response;
+    },
+    onSuccess: (...args) => {
+      queryClient.invalidateQueries({ queryKey: ['mySupportTickets'] });
+      options.onSuccess?.(...args);
+    },
+    ...options,
+  });
+};
+
+/**
+ * List the current user's support tickets.
+ * GET /api/v1/support/tickets/mine/
+ */
+export const useMySupportTickets = (options = {}) => {
+  return useQuery({
+    queryKey: ['mySupportTickets'],
+    queryFn: async () => {
+      const response = await apiFetch('support/tickets/mine/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response?.data || [];
+    },
+    ...options,
+  });
+};
+
+/**
+ * Reply to an existing support ticket.
+ * POST /api/v1/support/tickets/{id}/reply/
+ *
+ * payload: { ticketId, body, is_internal? }
+ */
+export const useReplyToTicket = (options = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ticketId, body, is_internal }) => {
+      const response = await apiFetch(`support/tickets/${ticketId}/reply/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { body, is_internal },
+      });
+      return response;
+    },
+    onSuccess: (...args) => {
+      queryClient.invalidateQueries({ queryKey: ['mySupportTickets'] });
+      options.onSuccess?.(...args);
+    },
+    ...options,
+  });
+};

@@ -19,11 +19,6 @@ import BillScanner from "@/components/scanner/BillScanner";
  * have it — but it isn't in the default path.
  */
 
-const FILE_TYPES = [
-  { value: "Single Invoice/File", label: "Single Invoice/File" },
-  { value: "Multiple Invoice/File", label: "Multiple Invoice/File" },
-];
-
 const ACCEPTED_IMAGE_MIME = ["image/jpeg", "image/jpg", "image/png"];
 const ACCEPTED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const ACCEPTED_PDF_MIME = ["application/pdf"];
@@ -118,7 +113,9 @@ const UploadBillModal = ({
 }) => {
   // each item: { id, originalFile, tunedFile: null | File, kind: "image"|"pdf" }
   const [items, setItems] = useState([]);
-  const [fileType, setFileType] = useState("Single Invoice/File");
+  // Only single-invoice uploads are supported; the old "Multiple
+  // Invoice/File" batch mode has been removed.
+  const fileType = "Single Invoice/File";
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [rejected, setRejected] = useState([]);
@@ -129,7 +126,6 @@ const UploadBillModal = ({
   useEffect(() => {
     if (!isOpen) {
       setItems([]);
-      setFileType("Single Invoice/File");
       setIsUploading(false);
       setIsDragOver(false);
       setRejected([]);
@@ -272,29 +268,6 @@ const UploadBillModal = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {/* File type toggle */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                File type
-              </label>
-              <div className="inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg">
-                {FILE_TYPES.map((f) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setFileType(f.value)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                      fileType === f.value
-                        ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 shadow-sm"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Drop zone */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -306,7 +279,6 @@ const UploadBillModal = ({
                 accept={[...ACCEPTED_IMAGE_EXT, ...ACCEPTED_PDF_EXT].join(",")}
                 onChange={handleFileInputChange}
                 className="hidden"
-                multiple
               />
               <div
                 role="button"
@@ -332,13 +304,13 @@ const UploadBillModal = ({
                     <Icon icon="heroicons:cloud-arrow-up" className="text-2xl" />
                   </span>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {isDragOver ? "Drop files here" : "Drag & drop bill files here"}
+                    {isDragOver ? "Drop file here" : "Drag & drop a bill file here"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     or <span className="text-blue-700 dark:text-blue-400 font-semibold">click to browse</span>
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    JPG · JPEG · PNG · PDF (multiple supported)
+                    JPG · JPEG · PNG · PDF
                   </p>
                 </div>
               </div>

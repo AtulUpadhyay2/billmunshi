@@ -96,6 +96,16 @@ const ACCOUNT_FIELDS = [
   { key: "payment_parents", display: "payment_parent_names", label: "Payment ledgers", icon: "heroicons:banknotes" },
 ];
 
+// "Additional Adjustments Mapping" table — Cess / Discount / Freight Charges /
+// Round Off / TDS parent-ledger mappings, editable inline below the Tax Mapping table.
+const ADDITIONAL_ADJUSTMENT_FIELDS = [
+  { key: "cess_parents", display: "cess_parent_names", label: "Cess", icon: "heroicons:receipt-percent" },
+  { key: "discount_parents", display: "discount_parent_names", label: "Discount", icon: "heroicons:tag" },
+  { key: "freight_parents", display: "freight_parent_names", label: "Freight Charges", icon: "heroicons:truck" },
+  { key: "round_off_parents", display: "round_off_parent_names", label: "Round Off", icon: "heroicons:calculator" },
+  { key: "tds_parents", display: "tds_parent_names", label: "TDS", icon: "heroicons:document-currency-rupee" },
+];
+
 const EMPTY_CONFIG = {
   tally_product_allow_sync: false,
   igst_parents: [],
@@ -106,6 +116,10 @@ const EMPTY_CONFIG = {
   chart_of_accounts_parents: [],
   chart_of_accounts_expense_parents: [],
   payment_parents: [],
+  round_off_parents: [],
+  cess_parents: [],
+  discount_parents: [],
+  freight_parents: [],
 };
 
 /* ------------------------------------------------------------------ */
@@ -223,6 +237,55 @@ const TallySetup = () => {
     }, 0);
   }, [rateMapState]);
 
+  // ---------- Additional Adjustments Mapping (Cess / Discount / Freight / Round Off / TDS) ----------
+  const [additionalAdjustmentsState, setAdditionalAdjustmentsState] = useState(() =>
+    ADDITIONAL_ADJUSTMENT_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: [] }), {})
+  );
+
+  useEffect(() => {
+    if (config) {
+      setAdditionalAdjustmentsState(
+        ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
+          (acc, f) => ({ ...acc, [f.key]: config[f.key] || [] }),
+          {}
+        )
+      );
+    }
+  }, [config]);
+
+  const handleAdditionalAdjustmentChange = (fieldKey, values) => {
+    setAdditionalAdjustmentsState((prev) => ({ ...prev, [fieldKey]: values }));
+  };
+
+  const handleSaveAdditionalAdjustments = async () => {
+    try {
+      const payload = ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
+        (acc, f) => ({ ...acc, [f.key]: additionalAdjustmentsState[f.key] || [] }),
+        {}
+      );
+      await createOrUpdateConfigMutation.mutateAsync({
+        organizationId: selectedOrganization.id,
+        ...payload,
+      });
+      globalToast.success("Additional Adjustments Mapping saved");
+      refetch();
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        "Failed to save additional adjustments mapping";
+      globalToast.error(errorMessage);
+    }
+  };
+
+  const additionalAdjustmentsConfigured = useMemo(() => {
+    if (!config) return 0;
+    return ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
+      (sum, f) => sum + (config[f.display]?.length || 0),
+      0
+    );
+  }, [config]);
+
   const parentLedgerOptions = useMemo(
     () =>
       (parentLedgersData?.results || []).map((ledger) => ({
@@ -244,6 +307,10 @@ const TallySetup = () => {
         chart_of_accounts_parents: config.chart_of_accounts_parents || [],
         chart_of_accounts_expense_parents: config.chart_of_accounts_expense_parents || [],
         payment_parents: config.payment_parents || [],
+        round_off_parents: config.round_off_parents || [],
+        cess_parents: config.cess_parents || [],
+        discount_parents: config.discount_parents || [],
+        freight_parents: config.freight_parents || [],
       });
     }
   }, [config]);
@@ -278,6 +345,10 @@ const TallySetup = () => {
         chart_of_accounts_parents: config.chart_of_accounts_parents || [],
         chart_of_accounts_expense_parents: config.chart_of_accounts_expense_parents || [],
         payment_parents: config.payment_parents || [],
+        round_off_parents: config.round_off_parents || [],
+        cess_parents: config.cess_parents || [],
+        discount_parents: config.discount_parents || [],
+        freight_parents: config.freight_parents || [],
       });
     } else {
       setConfigData(EMPTY_CONFIG);
@@ -614,7 +685,7 @@ const TallySetup = () => {
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Tax &amp; Adjustments
+                  Tax Mapping
                 </h2>
                 <Tooltip
                   content="For mixed-rate bills, map each GST slab (5/12/18/28) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."
@@ -726,6 +797,96 @@ const TallySetup = () => {
                       menuPlacement="auto"
                       menuPosition="fixed"
                     />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Additional Adjustments Mapping section */}
+          <section>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                  Additional Adjustments Mapping
+                </h2>
+                <Tooltip
+                  content="Map the parent ledger(s) Tally should use when posting Cess, Discount, Freight Charges, Round Off and TDS adjustments."
+                  placement="right"
+                  arrow
+                >
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
+                    <Icon icon="heroicons:question-mark-circle" className="text-xs" />
+                  </span>
+                </Tooltip>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {additionalAdjustmentsConfigured} mapped
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveAdditionalAdjustments}
+                  disabled={createOrUpdateConfigMutation.isPending || isLoadingParentLedgers}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-md shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+                >
+                  {createOrUpdateConfigMutation.isPending ? (
+                    <>
+                      <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="heroicons:check" className="text-sm" />
+                      Save mappings
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              <div className="hidden md:grid grid-cols-[220px_1fr] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Item
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Ledger
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {ADDITIONAL_ADJUSTMENT_FIELDS.map((f) => (
+                  <div
+                    key={f.key}
+                    className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 px-4 py-3 items-center"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon icon={f.icon} className="text-blue-600 dark:text-blue-400 text-sm" />
+                      <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
+                        {f.label}
+                      </span>
+                    </div>
+                    {isLoadingParentLedgers ? (
+                      <div className="h-11 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                    ) : (
+                      <ReactSelect
+                        isMulti
+                        options={parentLedgerOptions}
+                        value={parentLedgerOptions.filter((o) =>
+                          (additionalAdjustmentsState[f.key] || []).includes(o.value)
+                        )}
+                        onChange={(selected) => {
+                          const vals = Array.isArray(selected) ? selected.map((s) => s.value) : [];
+                          handleAdditionalAdjustmentChange(f.key, vals);
+                        }}
+                        placeholder={`Select parent ledger(s) for ${f.label.toLowerCase()}…`}
+                        isSearchable
+                        closeMenuOnSelect={false}
+                        hideSelectedOptions={false}
+                        styles={reactSelectStyles}
+                        menuPlacement="auto"
+                        menuPosition="fixed"
+                      />
+                    )}
                   </div>
                 ))}
               </div>

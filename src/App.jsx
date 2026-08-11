@@ -78,6 +78,7 @@ const Members = lazy(() => import("./pages/settings/members"));
 
 // Clients
 const Clients = lazy(() => import("./pages/client"));
+const SupportTicketList = lazy(() => import("./pages/support/TicketList"));
 
 import Loading from "@/components/Loading";
 
@@ -198,6 +199,7 @@ function App() {
 
           {/* Clients */}
           <Route path="clients" element={<Clients />} />
+          <Route path="support/tickets" element={<SupportTicketList />} />
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>
