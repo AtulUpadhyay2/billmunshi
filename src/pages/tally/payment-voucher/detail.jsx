@@ -881,7 +881,7 @@ const TallyPaymentVoucherDetail = () => {
           id: Date.now() + index,
           item_id: null,
           item_details: item.description || "",
-          chart_of_accounts: "No COA Ledger",
+          chart_of_accounts: "",
           chart_of_accounts_id: null,
           amount:
             item.amount != null
@@ -896,7 +896,7 @@ const TallyPaymentVoucherDetail = () => {
             id: Date.now(),
             item_id: null,
             item_details: "",
-            chart_of_accounts: "No COA Ledger",
+            chart_of_accounts: "",
             chart_of_accounts_id: null,
             amount: "",
             debit_or_credit: "debit",
@@ -920,7 +920,12 @@ const TallyPaymentVoucherDetail = () => {
       !billForm.selectedVendor &&
       !vendorManuallyCleared
     ) {
-      const savedId = tallyAnalysedData.vendor;
+      // Detail endpoint returns vendor as UUID string; verify endpoint
+      // returns it as {id, name, ...} — accept both shapes.
+      const savedId =
+        typeof tallyAnalysedData.vendor === "object"
+          ? tallyAnalysedData.vendor?.id
+          : tallyAnalysedData.vendor;
       const matchedVendor = vendorOptions.find((v) => v.id === savedId);
       if (matchedVendor) {
         setBillForm((prev) => ({
@@ -1088,17 +1093,27 @@ const TallyPaymentVoucherDetail = () => {
           sourceProducts?.[index] ||
           sourceProducts?.find((p) => p.item_details === item.item_details);
 
-        if (analyzedItem && analyzedItem.chart_of_accounts) {
+        if (
+          analyzedItem &&
+          (analyzedItem.chart_of_accounts_id || analyzedItem.chart_of_accounts)
+        ) {
           let matchedLedger = null;
 
-          // First try to match by ID (if chart_of_accounts is a UUID)
-          if (analyzedItem.chart_of_accounts !== "No COA Ledger") {
-            // Check if it's a UUID by trying to match it as an ID first
+          // Prefer explicit UUID from the backend when available; only fall
+          // back to name matching for legacy rows.
+          if (analyzedItem.chart_of_accounts_id) {
+            matchedLedger = ledgerOptions.find(
+              (ledger) => ledger.id === analyzedItem.chart_of_accounts_id,
+            );
+          }
+          if (
+            !matchedLedger &&
+            analyzedItem.chart_of_accounts &&
+            analyzedItem.chart_of_accounts !== "No COA Ledger"
+          ) {
             matchedLedger = ledgerOptions.find(
               (ledger) => ledger.id === analyzedItem.chart_of_accounts,
             );
-
-            // If not found by ID, try to match by name directly
             if (!matchedLedger) {
               matchedLedger = ledgerOptions.find(
                 (ledger) => ledger.name === analyzedItem.chart_of_accounts,
@@ -1296,7 +1311,7 @@ const TallyPaymentVoucherDetail = () => {
       const updated = [...prev];
       updated[itemIndex] = {
         ...updated[itemIndex],
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
       };
       return updated;
@@ -1537,7 +1552,7 @@ const TallyPaymentVoucherDetail = () => {
         id: Date.now(),
         item_id: null,
         item_details: "",
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
         amount: "",
         debit_or_credit: "debit",
@@ -1551,14 +1566,28 @@ const TallyPaymentVoucherDetail = () => {
     }
   };
 
-  // Handle consolidate toggle
+  // Handle consolidate toggle — preserve prior COA picks so a toggle does
+  // not wipe user selections that never came from OCR.
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
     setIsConsolidated(newConsolidateStatus);
 
     const tally = tallyAnalysedData;
+    const prevByKey = new Map();
+    expenseItems.forEach((row) => {
+      const key = row.item_id || row.item_details;
+      if (key) prevByKey.set(key, row);
+    });
+    const resolveCOA = (item) => {
+      const prev = prevByKey.get(item.id || item.item_details);
+      return {
+        chart_of_accounts:
+          prev?.chart_of_accounts || item.chart_of_accounts || "",
+        chart_of_accounts_id:
+          prev?.chart_of_accounts_id || item.chart_of_accounts_id || null,
+      };
+    };
 
-    // When toggling to consolidated, use consolidate_prod if available
     if (newConsolidateStatus) {
       if (tally?.consolidate_prod && tally.consolidate_prod.length > 0) {
         setExpenseItems(
@@ -1566,25 +1595,20 @@ const TallyPaymentVoucherDetail = () => {
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts || "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
         );
       }
     } else {
-      // When toggling to non-consolidated, use products if available
       if (tally?.products && tally.products.length > 0) {
         setExpenseItems(
           tally.products.map((item, index) => ({
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts
-              ? item.chart_of_accounts
-              : "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
@@ -1684,7 +1708,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "IGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: igstLedger?.name || "No Tax Ledger",
+            ledger: igstLedger?.name || "",
             debit_or_credit: taxSummaryForm.igstDebitCredit || "debit",
           },
           cgst: {
@@ -1693,7 +1717,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "CGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: cgstLedger?.name || "No Tax Ledger",
+            ledger: cgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.cgstDebitCredit || "debit",
           },
           sgst: {
@@ -1702,7 +1726,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "SGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: sgstLedger?.name || "No Tax Ledger",
+            ledger: sgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit",
           },
           // TDS is removed from payment vouchers. The key is still sent
@@ -1711,36 +1735,40 @@ const TallyPaymentVoucherDetail = () => {
           // ever posted to Tally.
           tds: {
             amount: "0.00",
-            ledger: "No Tax Ledger",
+            ledger: "",
             debit_or_credit: "debit",
           },
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
-            ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
+            ledger: otherAdjustmentLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.other_adjustment_debit_or_credit || "debit",
           },
           round_off: {
             amount: formatDecimal(taxSummaryForm.round_off),
-            ledger: roundOffLedger?.name || "No Tax Ledger",
+            ledger: roundOffLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.round_off_debit_or_credit || "debit",
           },
         },
-        expense_items: expenseItems.map((item) => {
+        // BE reads `payment_items`, not `expense_items` — the old key
+        // caused every individual-mode verify to silently drop line
+        // updates on the backend.
+        payment_items: expenseItems.map((item) => {
           const coaLedger = ledgerOptions.find(
             (ledger) => ledger.id === item.chart_of_accounts_id,
           );
           return {
             item_id: item.id,
             item_details: item.item_details || "",
-            chart_of_accounts: coaLedger?.name || "No COA Ledger",
+            // UUID first — backend prefers `chart_of_accounts_id` and only falls back to name.
+            chart_of_accounts_id: item.chart_of_accounts_id || null,
+            chart_of_accounts: coaLedger?.name || "",
             amount: formatDecimal(item.amount),
             debit_or_credit: item.debit_or_credit || "debit",
           };
         }),
         consolidate: isConsolidated,
-        // Add consolidate_prod array when consolidation is enabled
         ...(isConsolidated
           ? {
               consolidate_prod: expenseItems.map((item) => {
@@ -1749,7 +1777,8 @@ const TallyPaymentVoucherDetail = () => {
                 );
                 return {
                   item_details: item.item_details || "",
-                  chart_of_accounts: item.chart_of_accounts_id || null,
+                  chart_of_accounts_id: item.chart_of_accounts_id || null,
+                  chart_of_accounts: coaLedger?.name || "",
                   amount: formatDecimal(item.amount),
                   debit_or_credit: item.debit_or_credit || "debit",
                 };

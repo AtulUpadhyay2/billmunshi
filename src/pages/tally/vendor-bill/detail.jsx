@@ -114,7 +114,12 @@ const TallyVendorBillDetail = () => {
   // Refs to track if initial matching has been done
   const vendorMatchedRef = useRef(false);
   const stockItemsMatchedRef = useRef(false);
-  const taxLedgersMatchedRef = useRef(false);
+  // Two separate flags — name-based match effect and ID-based match
+  // effect each run once. Sharing a single ref meant whichever fired
+  // first blocked the other forever, so an ID-loaded backend response
+  // never let the name matcher retry (and vice-versa).
+  const taxLedgersMatchedRef = useRef(false);          // name-based effect
+  const taxLedgersByIdMatchedRef = useRef(false);      // id-based effect
   const productTaxMatchedRef = useRef(false);
   const stockItemsInitialMatchedRef = useRef(false);
 
@@ -872,6 +877,7 @@ const TallyVendorBillDetail = () => {
       vendorMatchedRef.current = false;
       stockItemsMatchedRef.current = false;
       taxLedgersMatchedRef.current = false;
+      taxLedgersByIdMatchedRef.current = false;
       productTaxMatchedRef.current = false;
       stockItemsInitialMatchedRef.current = false;
 
@@ -995,7 +1001,10 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: item.description || "",
-            tax_ledger: "No Purchase Ledger",
+            // Backend guard treats blank as "no change". A sentinel
+            // like "No Purchase Ledger" would round-trip and create
+            // a bogus ledger on the next verify.
+            tax_ledger: "",
             tax_ledger_id: null,
             price: item.price || "",
             quantity: item.quantity || "",
@@ -1014,7 +1023,10 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: "",
-            tax_ledger: "No Purchase Ledger",
+            // Backend guard treats blank as "no change". A sentinel
+            // like "No Purchase Ledger" would round-trip and create
+            // a bogus ledger on the next verify.
+            tax_ledger: "",
             tax_ledger_id: null,
             price: "",
             quantity: "",
@@ -1288,7 +1300,7 @@ const TallyVendorBillDetail = () => {
 
   // Handle tax ledger IDs when they are returned as IDs (not names) from backend
   useEffect(() => {
-    if (!tallyAnalysedData || taxLedgersMatchedRef.current) return;
+    if (!tallyAnalysedData || taxLedgersByIdMatchedRef.current) return;
 
     // Check if we have tax ledger IDs directly in the analyzed_bill data
     const { cgst_taxes, sgst_taxes, igst_taxes } = tallyAnalysedData;
@@ -1337,7 +1349,7 @@ const TallyVendorBillDetail = () => {
           ...prev,
           ...updates,
         }));
-        taxLedgersMatchedRef.current = true;
+        taxLedgersByIdMatchedRef.current = true;
       }
     }
   }, [
@@ -1429,12 +1441,13 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.roundOffLedgerId,
   ]);
 
-  // Auto-select freight ledger when discount amount > 0 and no freight
-  // ledger selected. Skipped if the user explicitly cleared freight in
-  // this session (same guard as the main auto-match effect above).
+  // Auto-select freight ledger when FREIGHT amount > 0 (not discount).
+  // Previous logic keyed off discount by mistake; discount and freight
+  // are independent adjustments and a bill can have one without the
+  // other. Skipped if the user cleared freight explicitly.
   useEffect(() => {
     if (
-      parseFloat(billSummaryForm.discount || 0) > 0 &&
+      parseFloat(billSummaryForm.freight || 0) > 0 &&
       !billSummaryForm.freightLedgerId &&
       !userClearedLedgersRef.current.has("freight") &&
       discountLedgerOptions.length > 0
@@ -1452,7 +1465,7 @@ const TallyVendorBillDetail = () => {
       }
     }
   }, [
-    billSummaryForm.discount,
+    billSummaryForm.freight,
     billSummaryForm.freightLedgerId,
     discountLedgerOptions,
   ]);
@@ -1772,7 +1785,7 @@ const TallyVendorBillDetail = () => {
       const updated = [...prev];
       updated[productIndex] = {
         ...updated[productIndex],
-        tax_ledger: "No Tax Ledger",
+        tax_ledger: "",
         tax_ledger_id: null,
       };
       return updated;
@@ -1982,7 +1995,7 @@ const TallyVendorBillDetail = () => {
             item_id: item.id,
             item_name: item.item_name || null,
             item_details: item.item_details || "",
-            tax_ledger: "No Tax Ledger",
+            tax_ledger: "",
             tax_ledger_id: item.taxes || null,
             price: item.price || item.rate || "",
             quantity: item.quantity || "",
@@ -2003,7 +2016,7 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: tally.consolidated_product.item_name || null,
             item_details: tally.consolidated_product.item_details || "",
-            tax_ledger: "No Tax Ledger",
+            tax_ledger: "",
             tax_ledger_id: null,
             price: tally.consolidated_product.price || "",
             quantity: tally.consolidated_product.quantity || "",
@@ -2027,7 +2040,7 @@ const TallyVendorBillDetail = () => {
             item_id: item.item_id || null,
             item_name: item.item_name || null,
             item_details: item.item_details || "",
-            tax_ledger: item.tax_ledger || "No Tax Ledger",
+            tax_ledger: item.tax_ledger || "",
             tax_ledger_id: item.tax_ledger_id || null,
             price: item.price || "",
             quantity: item.quantity || "",
@@ -2196,7 +2209,7 @@ const TallyVendorBillDetail = () => {
         item_id: null,
         item_name: null,
         item_details: "",
-        tax_ledger: "No Tax Ledger",
+        tax_ledger: "",
         tax_ledger_id: null,
         price: "",
         quantity: "",
@@ -2290,7 +2303,7 @@ const TallyVendorBillDetail = () => {
       // amount rows lets the backend drop the FK cleanly.
       const _ledgerBlock = (amount, ledger) => ({
         amount: parseFloat(amount) || 0.0,
-        ledger: ledger?.name || "No Tax Ledger",
+        ledger: ledger?.name || "",
         ledger_id: ledger?.id || null,
       });
 
@@ -2344,9 +2357,8 @@ const TallyVendorBillDetail = () => {
                     item_id: product.id || null,
                     item_name: product.item_name || null,
                     item_details: product.item_details || "",
-                    tax_ledger: taxLedger?.name || "No Tax Ledger",
+                    tax_ledger: taxLedger?.name || "",
                     price: parseFloat(product.price) || 0,
-                    rate: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
@@ -2373,7 +2385,7 @@ const TallyVendorBillDetail = () => {
                     item_id: product.id || null,
                     item_name: product.item_name || null,
                     item_details: product.item_details || "",
-                    tax_ledger: taxLedger?.name || "No Tax Ledger",
+                    tax_ledger: taxLedger?.name || "",
                     price: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,

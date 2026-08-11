@@ -912,7 +912,7 @@ const TallyExpenseBillDetail = () => {
           id: Date.now() + index,
           item_id: null,
           item_details: item.description || "",
-          chart_of_accounts: "No COA Ledger",
+          chart_of_accounts: "",
           chart_of_accounts_id: null,
           amount: item.price * item.quantity || "",
           debit_or_credit: "debit",
@@ -924,7 +924,7 @@ const TallyExpenseBillDetail = () => {
             id: Date.now(),
             item_id: null,
             item_details: "",
-            chart_of_accounts: "No COA Ledger",
+            chart_of_accounts: "",
             chart_of_accounts_id: null,
             amount: "",
             debit_or_credit: "debit",
@@ -1367,7 +1367,7 @@ const TallyExpenseBillDetail = () => {
       const updated = [...prev];
       updated[itemIndex] = {
         ...updated[itemIndex],
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
       };
       return updated;
@@ -1618,7 +1618,7 @@ const TallyExpenseBillDetail = () => {
         id: Date.now(),
         item_id: null,
         item_details: "",
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
         amount: "",
         debit_or_credit: "debit",
@@ -1639,7 +1639,24 @@ const TallyExpenseBillDetail = () => {
 
     const tally = tallyAnalysedData;
 
-    // When toggling to consolidated, use consolidate_prod if available
+    // Preserve prior COA picks by (item_id, item_details) so a toggle does not
+    // wipe user selections that never came from OCR.
+    const prevByKey = new Map();
+    expenseItems.forEach((row) => {
+      const key = row.item_id || row.item_details;
+      if (key) prevByKey.set(key, row);
+    });
+
+    const resolveCOA = (item) => {
+      const prev = prevByKey.get(item.id || item.item_details);
+      return {
+        chart_of_accounts:
+          prev?.chart_of_accounts || item.chart_of_accounts || "",
+        chart_of_accounts_id:
+          prev?.chart_of_accounts_id || item.chart_of_accounts_id || null,
+      };
+    };
+
     if (newConsolidateStatus) {
       if (tally?.consolidate_prod && tally.consolidate_prod.length > 0) {
         setExpenseItems(
@@ -1647,25 +1664,20 @@ const TallyExpenseBillDetail = () => {
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts || "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
         );
       }
     } else {
-      // When toggling to non-consolidated, use products if available
       if (tally?.products && tally.products.length > 0) {
         setExpenseItems(
           tally.products.map((item, index) => ({
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts
-              ? item.chart_of_accounts
-              : "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
@@ -1765,7 +1777,7 @@ const TallyExpenseBillDetail = () => {
                 .filter((l) => l.tax_type === "IGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: igstLedger?.name || "No Tax Ledger",
+            ledger: igstLedger?.name || "",
             debit_or_credit: taxSummaryForm.igstDebitCredit || "debit",
           },
           cgst: {
@@ -1774,7 +1786,7 @@ const TallyExpenseBillDetail = () => {
                 .filter((l) => l.tax_type === "CGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: cgstLedger?.name || "No Tax Ledger",
+            ledger: cgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.cgstDebitCredit || "debit",
           },
           sgst: {
@@ -1783,23 +1795,23 @@ const TallyExpenseBillDetail = () => {
                 .filter((l) => l.tax_type === "SGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: sgstLedger?.name || "No Tax Ledger",
+            ledger: sgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit",
           },
           tds: {
             amount: formatDecimal(taxSummaryForm.tds),
-            ledger: tdsLedger?.name || "No Tax Ledger",
+            ledger: tdsLedger?.name || "",
             debit_or_credit: taxSummaryForm.tdsDebitCredit || "debit",
           },
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
-            ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
+            ledger: otherAdjustmentLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.other_adjustment_debit_or_credit || "debit",
           },
           round_off: {
             amount: formatDecimal(taxSummaryForm.round_off),
-            ledger: roundOffLedger?.name || "No Tax Ledger",
+            ledger: roundOffLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.round_off_debit_or_credit || "debit",
           },
@@ -1811,7 +1823,9 @@ const TallyExpenseBillDetail = () => {
           return {
             item_id: item.id,
             item_details: item.item_details || "",
-            chart_of_accounts: coaLedger?.name || "No COA Ledger",
+            // UUID first — backend prefers `chart_of_accounts_id` and only falls back to name.
+            chart_of_accounts_id: item.chart_of_accounts_id || null,
+            chart_of_accounts: coaLedger?.name || "",
             amount: formatDecimal(item.amount),
             debit_or_credit: item.debit_or_credit || "debit",
           };
@@ -1826,7 +1840,8 @@ const TallyExpenseBillDetail = () => {
                 );
                 return {
                   item_details: item.item_details || "",
-                  chart_of_accounts: item.chart_of_accounts_id || null,
+                  chart_of_accounts_id: item.chart_of_accounts_id || null,
+                  chart_of_accounts: coaLedger?.name || "",
                   amount: formatDecimal(item.amount),
                   debit_or_credit: item.debit_or_credit || "debit",
                 };
