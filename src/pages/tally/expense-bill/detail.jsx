@@ -427,6 +427,21 @@ const TallyExpenseBillDetail = () => {
     return Math.abs(debit + tDr - credit - tCr) > 0.01;
   };
 
+  // Correction 34: the total shown must agree with the amount the voucher
+  // actually settles against the vendor.
+  //
+  // `isBalanceOff` above never looked at `totalAmount`, and the vendor amount
+  // is auto-computed to balance the journal, so the DR/CR equation is balanced
+  // by construction — editing either figure produced no warning at all. Paise
+  // drift below ₹1 is absorbed by the sync effect further down, so only a
+  // genuine disagreement is reported here.
+  const isTotalOutOfBalance = () => {
+    const total = parseFloat(billForm.totalAmount);
+    const settled = parseFloat(taxSummaryForm.vendorAmount);
+    if (!Number.isFinite(total) || !Number.isFinite(settled)) return false;
+    return Math.abs(total - settled) > 0.01;
+  };
+
   const hasValidationErrors = () =>
     isVendorRequired ||
     getItemsWithoutCOA().length > 0 ||
@@ -439,6 +454,7 @@ const TallyExpenseBillDetail = () => {
     isRoundOffLedgerRequired() ||
     getGstLinesWithoutLedger().length > 0 ||
     isBalanceOff() ||
+    isTotalOutOfBalance() ||
     isSubtotalGreaterThanTotal();
 
   // Get specific validation error messages
@@ -491,6 +507,14 @@ const TallyExpenseBillDetail = () => {
     if (isBalanceOff())
       errors.push(
         "Total debits and credits do not balance — check line amounts, taxes, adjustments and vendor amount",
+      );
+    if (isTotalOutOfBalance())
+      errors.push(
+        `Total balance doesn't agree — total amount (₹${parseFloat(
+          billForm.totalAmount || 0,
+        ).toFixed(2)}) differs from Payable / Paid (₹${parseFloat(
+          taxSummaryForm.vendorAmount || 0,
+        ).toFixed(2)})`,
       );
     if (isSubtotalGreaterThanTotal()) {
       const subtotal = expenseItems.reduce(
@@ -2782,6 +2806,15 @@ const TallyExpenseBillDetail = () => {
                         kind="vendor"
                         disabled={isVerified}
                         title="Vendor not in the list? Create one"
+                        // Correction 30: seed the New Vendor modal from the
+                        // bill. Read straight off the analysed data rather than
+                        // `billForm.vendorName` — that field is overwritten with
+                        // the matched Tally vendor's name, and the whole point
+                        // here is that this vendor isn't in Tally yet.
+                        vendorDefaultName={analysedData?.from?.name || ""}
+                        vendorDefaultGstIn={
+                          analysedData?.from?.gst_number || ""
+                        }
                         className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3896,6 +3929,12 @@ const TallyExpenseBillDetail = () => {
                             kind="vendor"
                             disabled={isVerified}
                             title="Vendor not in the list? Create one"
+                            // Correction 30 — same seeding as the Bill
+                            // Information picker above.
+                            vendorDefaultName={analysedData?.from?.name || ""}
+                            vendorDefaultGstIn={
+                              analysedData?.from?.gst_number || ""
+                            }
                             onCreated={(vendor) =>
                               vendor?.id && handleVendorSelect(vendor.id)
                             }
@@ -3954,22 +3993,25 @@ const TallyExpenseBillDetail = () => {
                         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
                           Total amount
                         </span>
+                        {/* Correction 34: read-only, matching the purchase
+                            voucher. This is a derived figure — the effect above
+                            keeps it in step with the auto-balanced vendor
+                            amount — so letting it be typed over produced a
+                            total that disagreed with what the voucher actually
+                            posts, with nothing on screen saying so. */}
                         <input
-                          type="number"
+                          type="text"
                           name="totalAmount"
                           value={billForm.totalAmount}
-                          onChange={(e) =>
-                            handleFormChange("totalAmount", e.target.value)
-                          }
+                          readOnly
+                          tabIndex={-1}
+                          title="Calculated from the line items, taxes and adjustments — not directly editable."
                           placeholder="0.00"
-                          disabled={isVerified}
-                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 ${
+                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 cursor-default select-text ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
                           }`}
-                          min="0"
-                          step="0.01"
                         />
                         {/* Caption — switches to an amber heads-up when
                             the current total drifts from the OCR-extracted

@@ -19,7 +19,7 @@ const TallyPaymentVoucher = () => {
       module="tally"
       copy={{
         title: "Payment Vouchers",
-        subtitle: "Upload, analyse and post payment vouchers directly to Tally.",
+        subtitle: "Create payment voucher in Tally by BM automation.",
         billLabel: "payment voucher",
         moveTargetLabel: "Journal Entry",
         detailRoute: "/tally/payment-voucher",

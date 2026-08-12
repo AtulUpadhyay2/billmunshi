@@ -33,6 +33,82 @@ import { toast } from "sonner";
 import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 /**
+ * Correction 39: quantity defaults to 1 when the invoice doesn't state one.
+ *
+ * OCR leaves `quantity` blank on service-style invoices that only carry an
+ * amount. The line then hydrated with `quantity: ""`, the amount calculation
+ * multiplied by zero, and the whole row read as blank — bill 20260811TB00006
+ * showed price 49420.27, qty 0, amount 0.00. A missing quantity means "one of
+ * this thing", so blank / non-numeric / zero all become 1.
+ */
+const normalizeQty = (value) => {
+  const n = parseFloat(value);
+  return !Number.isFinite(n) || n === 0 ? "1" : String(value);
+};
+
+/**
+ * Reconcile a line's price / quantity / amount into a self-consistent triple.
+ *
+ * Correction 36: OCR keeps putting the line *amount* into the rate column on
+ * invoices whose quantity column carries a unit suffix ("43.000 Duty"). The row
+ * then hydrated with price 25481.37 × qty 43 and rendered an amount of
+ * ₹1,095,698.91 — a figure that appears nowhere on the invoice.
+ *
+ * The stated amount is the one number on these invoices that is reliably read,
+ * so it wins, and the unit rate is recovered from it: 25481.37 / 43 = 592.59
+ * and 32222.40 / 60 = 537.04, which are exactly the rates printed on the bill.
+ * When price × quantity already agrees with the amount, nothing is touched.
+ */
+const reconcileLine = (rawPrice, rawQty, rawAmount) => {
+  const quantity = normalizeQty(rawQty);
+  const qty = parseFloat(quantity) || 1;
+  const price = parseFloat(rawPrice);
+  const amount = parseFloat(rawAmount);
+  const hasPrice = Number.isFinite(price) && price !== 0;
+  const hasAmount = Number.isFinite(amount) && amount !== 0;
+
+  if (hasAmount && (!hasPrice || Math.abs(price * qty - amount) > 0.01)) {
+    return {
+      price: (amount / qty).toFixed(2),
+      quantity,
+      amount: String(rawAmount),
+    };
+  }
+
+  return {
+    price: hasPrice ? String(rawPrice) : "",
+    quantity,
+    amount: hasPrice ? (price * qty).toFixed(2) : "",
+  };
+};
+
+/**
+ * The one rule for a line's tax: amount × rate, split by supply type.
+ *
+ * Correction 40: this used to live only inside `handleProductChange`, so a
+ * line's CGST/SGST/IGST were correct only for lines the user had touched.
+ * Every untouched line kept whatever the OCR produced, and the GST-by-rate
+ * rollup sums those per-line values — which is how bill 20260801TB00094 ended
+ * up showing ₹8221.45 of IGST against ₹48500.00 of taxable at 18% (18% of
+ * 48500 is ₹8730.00). Hoisted so the hydration pass can apply the same rule.
+ */
+const computeLineTax = (amount, rateText, isInterState) => {
+  const match = rateText ? String(rateText).match(/([\d.]+)/) : null;
+  const rate = match ? Number(match[1]) : 0;
+  const base = parseFloat(amount) || 0;
+  const total = (base * rate) / 100;
+
+  if (!rate || !base) return { cgst: "0.00", sgst: "0.00", igst: "0.00" };
+  if (isInterState)
+    return { cgst: "0.00", sgst: "0.00", igst: total.toFixed(2) };
+  return {
+    cgst: (total / 2).toFixed(2),
+    sgst: (total / 2).toFixed(2),
+    igst: "0.00",
+  };
+};
+
+/**
  * Number input that lets the user type freely.
  *
  * The naive ``value={Number(value).toFixed(2)}`` pattern is hostile to
@@ -381,6 +457,12 @@ const TallyVendorBillDetail = () => {
           _cgst_ledger_ids: new Set(),
           _sgst_ledger_ids: new Set(),
           _igst_ledger_ids: new Set(),
+          // Correction 37: set while every line in the bucket has had this tax
+          // type explicitly cleared, so the rate-map default below is not
+          // resurrected into the dropdown the user just emptied.
+          _cgst_cleared: true,
+          _sgst_cleared: true,
+          _igst_cleared: true,
         };
       }
       buckets[rateKey].taxable += parseFloat(p.amount) || 0;
@@ -390,6 +472,9 @@ const TallyVendorBillDetail = () => {
       if (p.cgst_ledger) buckets[rateKey]._cgst_ledger_ids.add(p.cgst_ledger);
       if (p.sgst_ledger) buckets[rateKey]._sgst_ledger_ids.add(p.sgst_ledger);
       if (p.igst_ledger) buckets[rateKey]._igst_ledger_ids.add(p.igst_ledger);
+      ["cgst", "sgst", "igst"].forEach((t) => {
+        if (!p[`${t}_ledger_cleared`]) buckets[rateKey][`_${t}_cleared`] = false;
+      });
     });
     return Object.values(buckets)
       .map((b) => {
@@ -401,8 +486,13 @@ const TallyVendorBillDetail = () => {
             b[`${t}_ledger_id`] = Array.from(ids)[0];
           } else if (ids.size > 1) {
             b[`${t}_ledger_mixed`] = true;
+          } else if (b[`_${t}_cleared`]) {
+            // Explicitly emptied by the user — show empty, not the org default.
+            b[`${t}_ledger_id`] = null;
+            b[`${t}_ledger_name`] = "";
           }
           delete b[`_${t}_ledger_ids`];
+          delete b[`_${t}_cleared`];
         });
         return b;
       })
@@ -507,6 +597,12 @@ const TallyVendorBillDetail = () => {
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
   const isVerified = billInfo?.tally_synced === true;
 
+  // Inter-state supply ⇒ IGST; intra-state ⇒ CGST + SGST split. Read off the
+  // analysed GST type, falling back to "the bill carries an IGST figure".
+  const isInterStateSupply =
+    tallyAnalysedData?.gst_type === "IGST" ||
+    (parseFloat(billSummaryForm.igst) || 0) > 0;
+
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
   const getProductsWithoutItemName = () =>
@@ -520,11 +616,18 @@ const TallyVendorBillDetail = () => {
   // org's rate→ledger mapping default (what the Tax-by-rate dropdown shows
   // when no line has an explicit pick), then the bill-level ledger the XML
   // builder falls back to.
-  const effectiveLineTaxLedger = (product, taxType) =>
-    product?.[`${taxType}_ledger`] ||
-    rateLedgerMap[parseGstRate(product?.gst)]?.[`${taxType}_ledger`] ||
-    billSummaryForm[`${taxType}LedgerId`] ||
-    null;
+  const effectiveLineTaxLedger = (product, taxType) => {
+    // Correction 37: an explicit clear beats every fallback. Without this the
+    // dropdown showed empty while the XML still posted to the rate-map default
+    // — the UI would have been lying about where the tax was going.
+    if (product?.[`${taxType}_ledger_cleared`]) return null;
+    return (
+      product?.[`${taxType}_ledger`] ||
+      rateLedgerMap[parseGstRate(product?.gst)]?.[`${taxType}_ledger`] ||
+      billSummaryForm[`${taxType}LedgerId`] ||
+      null
+    );
+  };
 
   // Lines carrying a non-zero tax amount with no ledger to post it to.
   //
@@ -1000,9 +1103,11 @@ const TallyVendorBillDetail = () => {
               !["No Purchase Ledger", "No Tax Ledger"].includes(item.tax_ledger)
               ? item.tax_ledger : "",
             tax_ledger_id: item.tax_ledger_id || item.taxes || null,
-            price: item.price || item.rate || "",
-            quantity: item.quantity || "",
-            amount: item.amount || "",
+            ...reconcileLine(
+              item.price || item.rate,
+              item.quantity,
+              item.amount,
+            ),
             gst: item.product_gst || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -1024,9 +1129,7 @@ const TallyVendorBillDetail = () => {
             // a bogus ledger on the next verify.
             tax_ledger: "",
             tax_ledger_id: null,
-            price: item.price || "",
-            quantity: item.quantity || "",
-            amount: item.price * item.quantity || "",
+            ...reconcileLine(item.price, item.quantity, item.amount),
             gst: "",
             igst: 0.0,
             cgst: 0.0,
@@ -1047,7 +1150,9 @@ const TallyVendorBillDetail = () => {
             tax_ledger: "",
             tax_ledger_id: null,
             price: "",
-            quantity: "",
+            // Correction 39: a fresh row starts at 1, not blank — typing a
+            // price then has an effect on the amount straight away.
+            quantity: "1",
             amount: "",
             gst: "",
             igst: 0.0,
@@ -1627,6 +1732,48 @@ const TallyVendorBillDetail = () => {
   }, [taxLedgerOptions, tallyAnalysedData, products]);
 
   // Specific effect to handle initial stock item selection after products are loaded
+  // Correction 40: bring every line's CGST/SGST/IGST in line with its own
+  // (amount × rate) once the bill has loaded.
+  //
+  // Only lines the user edited went through `handleProductChange`, so an
+  // untouched line kept whatever the OCR produced. Since the GST-by-rate
+  // rollup sums the per-line figures, one stale line made the whole bucket
+  // internally inconsistent — 18% of ₹48500 rendering as ₹8221.45.
+  //
+  // Skipped for synced bills: their numbers are history and the page is
+  // read-only, so silently rewriting them would misrepresent what was posted.
+  // Discrepancies against the invoice are still surfaced by the
+  // "differs from bill" banner rather than being hidden by this pass.
+  const lineTaxNormalisedRef = useRef(false);
+  useEffect(() => {
+    if (lineTaxNormalisedRef.current || isVerified) return;
+    if (products.length === 0) return;
+
+    // Deliberately not `isInterStateSupply`: its fallback reads
+    // `billSummaryForm.igst`, which another effect derives *from* these very
+    // lines, so on the first pass after hydration it can still be zero. Decide
+    // from the analysed GST type, else from what the lines themselves carry.
+    const interState =
+      tallyAnalysedData?.gst_type === "IGST" ||
+      products.some((p) => (parseFloat(p.igst) || 0) > 0);
+
+    let changed = false;
+    const normalised = products.map((product) => {
+      const tax = computeLineTax(product.amount, product.gst, interState);
+      const differs = ["cgst", "sgst", "igst"].some(
+        (k) =>
+          Math.abs((parseFloat(product[k]) || 0) - parseFloat(tax[k])) > 0.01,
+      );
+      if (!differs) return product;
+      changed = true;
+      return { ...product, ...tax };
+    });
+
+    lineTaxNormalisedRef.current = true;
+    if (changed) setProducts(normalised);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, isVerified, tallyAnalysedData]);
+
   useEffect(() => {
     if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
 
@@ -2082,9 +2229,11 @@ const TallyVendorBillDetail = () => {
               item_details: item.item_details || "",
               tax_ledger: resolveTaxName(item, taxId),
               tax_ledger_id: taxId,
-              price: item.price || item.rate || "",
-              quantity: item.quantity || "",
-              amount: item.amount || "",
+              ...reconcileLine(
+                item.price || item.rate,
+                item.quantity,
+                item.amount,
+              ),
               gst: item.product_gst || "",
               cgst_ledger: item.cgst_ledger || null,
               sgst_ledger: item.sgst_ledger || null,
@@ -2104,9 +2253,11 @@ const TallyVendorBillDetail = () => {
             item_details: tally.consolidated_product.item_details || "",
             tax_ledger: "",
             tax_ledger_id: null,
-            price: tally.consolidated_product.price || "",
-            quantity: tally.consolidated_product.quantity || "",
-            amount: tally.consolidated_product.amount || "",
+            ...reconcileLine(
+              tally.consolidated_product.price,
+              tally.consolidated_product.quantity,
+              tally.consolidated_product.amount,
+            ),
             gst: tally.consolidated_product.product_gst || "",
             cgst_ledger: tally.consolidated_product.cgst_ledger || null,
             sgst_ledger: tally.consolidated_product.sgst_ledger || null,
@@ -2128,9 +2279,7 @@ const TallyVendorBillDetail = () => {
             item_details: item.item_details || "",
             tax_ledger: item.tax_ledger || "",
             tax_ledger_id: item.tax_ledger_id || null,
-            price: item.price || "",
-            quantity: item.quantity || "",
-            amount: item.amount || "",
+            ...reconcileLine(item.price, item.quantity, item.amount),
             gst: item.product_gst || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -2201,26 +2350,14 @@ const TallyVendorBillDetail = () => {
         field === "amount" ||
         field === "gst"
       ) {
-        const rateNum =
-          parseFloat(parseGstRate(updated[index].gst)) || 0;
-        const amount = parseFloat(updated[index].amount) || 0;
-        const totalTax = (amount * rateNum) / 100;
-        const isInterState =
-          tallyAnalysedData?.gst_type === "IGST" ||
-          (parseFloat(billSummaryForm.igst) || 0) > 0;
-        if (rateNum === 0 || amount === 0) {
-          updated[index].igst = "0.00";
-          updated[index].cgst = "0.00";
-          updated[index].sgst = "0.00";
-        } else if (isInterState) {
-          updated[index].igst = totalTax.toFixed(2);
-          updated[index].cgst = "0.00";
-          updated[index].sgst = "0.00";
-        } else {
-          updated[index].cgst = (totalTax / 2).toFixed(2);
-          updated[index].sgst = (totalTax / 2).toFixed(2);
-          updated[index].igst = "0.00";
-        }
+        const tax = computeLineTax(
+          updated[index].amount,
+          updated[index].gst,
+          isInterStateSupply,
+        );
+        updated[index].cgst = tax.cgst;
+        updated[index].sgst = tax.sgst;
+        updated[index].igst = tax.igst;
       }
 
       return updated;
@@ -2274,6 +2411,13 @@ const TallyVendorBillDetail = () => {
   // Pick a CGST/SGST/IGST ledger for an entire rate bucket. The selection
   // is applied to every product in that bucket and the per-line ledger is
   // marked as user-set so future GST-rate edits don't overwrite it.
+  //
+  // Correction 37 (second × in the image): clearing this dropdown has to
+  // actually clear. A null ledger alone wasn't enough — the rollup falls back
+  // to the org's rate→ledger mapping for display, and the sync resolver falls
+  // back to it too, so the removed ledger reappeared and would still have been
+  // posted. `${taxType}_ledger_cleared` records the explicit removal so both
+  // the display and the resolver skip the default. Picking a ledger lifts it.
   const handleSummaryTaxLedgerChange = (rateKey, taxType, ledgerId) => {
     setProducts((prev) =>
       prev.map((p) => {
@@ -2282,6 +2426,7 @@ const TallyVendorBillDetail = () => {
           ...p,
           [`${taxType}_ledger`]: ledgerId,
           [`${taxType}_ledger_id_user_set`]: true,
+          [`${taxType}_ledger_cleared`]: !ledgerId,
         };
       }),
     );
@@ -2298,7 +2443,8 @@ const TallyVendorBillDetail = () => {
         tax_ledger: "",
         tax_ledger_id: null,
         price: "",
-        quantity: "",
+        // Correction 39: new manual rows start at qty 1.
+        quantity: "1",
         amount: "",
         gst: "",
         igst: 0.0,

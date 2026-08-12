@@ -19,7 +19,7 @@ const TallyExpenseBill = () => {
       module="tally"
       copy={{
         title: "Journal Entries",
-        subtitle: "Upload, analyse and post journal entries directly to Tally.",
+        subtitle: "Create journal entry in Tally by BM automation.",
         billLabel: "journal entry",
         moveTargetLabel: "Purchase Voucher",
         detailRoute: "/tally/expense-bill",

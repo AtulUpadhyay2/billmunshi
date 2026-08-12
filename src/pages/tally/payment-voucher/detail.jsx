@@ -123,9 +123,17 @@ const TallyPaymentVoucherDetail = () => {
   // State for managing expense items
   const [expenseItems, setExpenseItems] = useState([]);
 
-  // State for consolidate toggle — journal entries default to
-  // consolidated per product requirement.
-  const [isConsolidated, setIsConsolidated] = useState(true);
+  // State for consolidate toggle.
+  //
+  // Correction 28: payment vouchers default to NOT consolidated. This file was
+  // copied from the journal-entry page, where the product requirement is the
+  // opposite (Correction 6), and the default came along with it.
+  const [isConsolidated, setIsConsolidated] = useState(false);
+
+  // Rows as they were before the last "consolidate ON", so switching back OFF
+  // restores exactly what the user was looking at. Needed because a payment
+  // voucher often has no backend-built ``products`` array to fall back to.
+  const preConsolidateRowsRef = useRef(null);
 
   // Form state for tax summary.
   // No `tds`/`tdsLedgerId`/`tdsDebitCredit` — TDS was removed from payment
@@ -875,14 +883,13 @@ const TallyPaymentVoucherDetail = () => {
       setNotes(tally?.note || "");
 
       // Initialize consolidate status from analyzed data.
-      // Journal entries default to CONSOLIDATED — most users only want
-      // ledger-level totals here, not per-line-item rows. If the bill
-      // was previously saved with ``consolidate: false``, we honour
-      // that explicit choice; only ``undefined``/``null`` falls through
-      // to the consolidated default.
+      //
+      // Correction 28: payment vouchers open UN-consolidated. A bill saved
+      // earlier with an explicit ``consolidate`` value still wins; only
+      // ``undefined``/``null`` falls through to the off default.
       const consolidateStatus =
         tally?.consolidate === undefined || tally?.consolidate === null
-          ? true
+          ? false
           : Boolean(tally.consolidate);
       setIsConsolidated(consolidateStatus);
 
@@ -1737,27 +1744,61 @@ const TallyPaymentVoucherDetail = () => {
   // Handle consolidate toggle — preserve prior COA picks so a toggle does
   // not wipe user selections that never came from OCR.
   //
-  // Correction 28: the toggle used to flip ``isConsolidated`` (and the
-  // "Consolidated" chip) unconditionally even when the target dataset
-  // — ``consolidate_prod`` when switching ON, ``products`` when
-  // switching OFF — was empty or missing. That left the chip/toggle
-  // switch out of sync with what was actually shown in the rows (the
-  // click "did nothing" visibly). Bail out before flipping state when
-  // there's nothing to switch to, so the button click reliably switches
-  // both the chip AND the rows together, or does neither.
+  // Correction 28: the toggle was a dead click whenever the backend hadn't
+  // built the dataset it wanted to switch to. The first attempt at a fix made
+  // it bail out early, which kept the chip and the rows in sync but still left
+  // the user clicking a switch that visibly did nothing — and on payment
+  // vouchers ``consolidate_prod`` is frequently absent, so that was the normal
+  // case, not the edge case.
+  //
+  // It now always switches. The backend's arrays are used when present;
+  // otherwise the rows on screen are consolidated locally by grouping on
+  // (ledger, debit/credit) and summing the amounts. Grouping only ever merges
+  // rows that post to the same ledger on the same side, so the debit and
+  // credit totals — and therefore the double-entry check below — are
+  // unchanged. The pre-consolidation rows are stashed so switching back OFF
+  // restores them even with no ``products`` array to rebuild from.
+  const consolidateRowsLocally = (rows) => {
+    const groups = new Map();
+    rows.forEach((row) => {
+      const key = `${row.chart_of_accounts_id || "no-ledger"}|${
+        row.debit_or_credit || "debit"
+      }`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.amount = (
+          (parseFloat(existing.amount) || 0) + (parseFloat(row.amount) || 0)
+        ).toFixed(2);
+        // Keep the labels distinguishable rather than dropping them silently.
+        if (row.item_details && !existing._labels.includes(row.item_details)) {
+          existing._labels.push(row.item_details);
+        }
+      } else {
+        groups.set(key, {
+          ...row,
+          amount: (parseFloat(row.amount) || 0).toFixed(2),
+          _labels: row.item_details ? [row.item_details] : [],
+        });
+      }
+    });
+    return Array.from(groups.values()).map((row, index) => {
+      const { _labels, ...rest } = row;
+      const merged = _labels.length > 1;
+      return {
+        ...rest,
+        // `id` doubles as the React key AND as the `item_id` sent at verify, so
+        // a merged row gets a synthetic key plus `_synthetic` to stop that key
+        // being posted as if it were a real backend row id.
+        id: merged ? `consolidated-${index}` : rest.id,
+        _synthetic: merged,
+        item_details: _labels.join(", ") || rest.item_details || "",
+      };
+    });
+  };
+
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
     const tally = tallyAnalysedData;
-
-    if (
-      newConsolidateStatus &&
-      (!tally?.consolidate_prod || tally.consolidate_prod.length === 0)
-    ) {
-      return;
-    }
-    if (!newConsolidateStatus && (!tally?.products || tally.products.length === 0)) {
-      return;
-    }
 
     setIsConsolidated(newConsolidateStatus);
 
@@ -1775,33 +1816,27 @@ const TallyPaymentVoucherDetail = () => {
           prev?.chart_of_accounts_id || item.chart_of_accounts_id || null,
       };
     };
+    const fromTally = (item, index) => ({
+      id: item.id || index,
+      item_id: item.id || null,
+      item_details: item.item_details || "",
+      ...resolveCOA(item),
+      amount: item.amount || "",
+      debit_or_credit: item.debit_or_credit || "debit",
+    });
 
     if (newConsolidateStatus) {
-      if (tally?.consolidate_prod && tally.consolidate_prod.length > 0) {
-        setExpenseItems(
-          tally.consolidate_prod.map((item, index) => ({
-            id: item.id || index,
-            item_id: item.id || null,
-            item_details: item.item_details || "",
-            ...resolveCOA(item),
-            amount: item.amount || "",
-            debit_or_credit: item.debit_or_credit || "debit",
-          })),
-        );
+      preConsolidateRowsRef.current = expenseItems;
+      if (tally?.consolidate_prod?.length > 0) {
+        setExpenseItems(tally.consolidate_prod.map(fromTally));
+      } else {
+        setExpenseItems(consolidateRowsLocally(expenseItems));
       }
-    } else {
-      if (tally?.products && tally.products.length > 0) {
-        setExpenseItems(
-          tally.products.map((item, index) => ({
-            id: item.id || index,
-            item_id: item.id || null,
-            item_details: item.item_details || "",
-            ...resolveCOA(item),
-            amount: item.amount || "",
-            debit_or_credit: item.debit_or_credit || "debit",
-          })),
-        );
-      }
+    } else if (preConsolidateRowsRef.current?.length > 0) {
+      setExpenseItems(preConsolidateRowsRef.current);
+      preConsolidateRowsRef.current = null;
+    } else if (tally?.products?.length > 0) {
+      setExpenseItems(tally.products.map(fromTally));
     }
   };
 
@@ -1951,7 +1986,10 @@ const TallyPaymentVoucherDetail = () => {
             (ledger) => ledger.id === item.chart_of_accounts_id,
           );
           return {
-            item_id: item.id,
+            // A locally merged row (consolidate toggled on with no
+            // backend-built `consolidate_prod`) has no single source row, so it
+            // must not post its synthetic React key as a backend id.
+            item_id: item._synthetic ? null : item.id,
             item_details: item.item_details || "",
             // UUID first — backend prefers `chart_of_accounts_id` and only falls back to name.
             chart_of_accounts_id: item.chart_of_accounts_id || null,
@@ -2762,6 +2800,13 @@ const TallyPaymentVoucherDetail = () => {
                         kind="vendor"
                         disabled={isVerified}
                         title="Vendor ledger not in the list? Create one"
+                        // Correction 30: seed from the bill's OCR data, not
+                        // from `billForm.vendorName` — that holds the matched
+                        // Tally vendor once one is selected.
+                        vendorDefaultName={analysedData?.from?.name || ""}
+                        vendorDefaultGstIn={
+                          analysedData?.from?.gst_number || ""
+                        }
                         className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
