@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { useQuickCreateLedger } from "@/services/tally/tallyQuickCreateService";
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
+import { CONTROL, FIELD_LABEL } from "@/constants/ui";
 
 /**
  * AddLedgerModal — creates a Purchase / Expense ledger (i.e., anything
@@ -14,9 +15,6 @@ import { useSelector } from "react-redux";
  * ``defaultParent`` prop lets the caller override the placeholder
  * (e.g. "Purchase Accounts" from a Purchase Voucher context).
  */
-const inputBase =
-  "w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
-
 const AddLedgerModal = ({
   isOpen,
   onClose,
@@ -79,7 +77,7 @@ const AddLedgerModal = ({
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Ledger Name <span className="text-rose-500">*</span>
           </label>
           <input
@@ -87,13 +85,13 @@ const AddLedgerModal = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Freight Charges, Office Rent"
-            className={inputBase}
+            className={CONTROL}
             autoFocus
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Parent Ledger
           </label>
           <input
@@ -102,7 +100,7 @@ const AddLedgerModal = ({
             value={parentName}
             onChange={(e) => setParentName(e.target.value)}
             placeholder={defaultParent}
-            className={inputBase}
+            className={CONTROL}
           />
           <datalist id="ledger-parent-options">
             {parentOptions.map((p) => (

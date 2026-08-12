@@ -27,11 +27,14 @@ export const useCreateSupportTicket = (options = {}) => {
       });
       return response;
     },
+    // `...options` has to come BEFORE `onSuccess`, not after. Spread last, a
+    // caller-supplied `onSuccess` replaced this one wholesale and the cache
+    // invalidation below never ran.
+    ...options,
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: ['mySupportTickets'] });
       options.onSuccess?.(...args);
     },
-    ...options,
   });
 };
 
@@ -74,10 +77,14 @@ export const useReplyToTicket = (options = {}) => {
       });
       return response;
     },
+    // Spread first — see the note in useCreateSupportTicket. This is the hook
+    // that actually hit the bug: TicketReplyForm passes its own onSuccess to
+    // clear the textarea, which silently cancelled the refetch, so a sent
+    // reply didn't appear in the thread until a manual reload.
+    ...options,
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: ['mySupportTickets'] });
       options.onSuccess?.(...args);
     },
-    ...options,
   });
 };

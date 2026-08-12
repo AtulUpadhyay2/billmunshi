@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { useQuickCreateVendor } from "@/services/tally/tallyQuickCreateService";
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
+import { CONTROL, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 
 /**
  * AddVendorModal — creates a Tally vendor ledger in one shot.
@@ -18,9 +19,6 @@ import { useSelector } from "react-redux";
  * On success invokes ``onCreated(ledger)`` with the fresh row so the
  * caller can push it into a dropdown as the selected value.
  */
-const inputBase =
-  "w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
-
 const AddVendorModal = ({
   isOpen,
   onClose,
@@ -98,7 +96,7 @@ const AddVendorModal = ({
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Vendor Name <span className="text-rose-500">*</span>
           </label>
           <input
@@ -106,13 +104,13 @@ const AddVendorModal = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. ABC Enterprises"
-            className={inputBase}
+            className={CONTROL}
             autoFocus
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Vendor GSTIN
           </label>
           <input
@@ -120,7 +118,15 @@ const AddVendorModal = ({
             value={gstIn}
             onChange={(e) => setGstIn(e.target.value.toUpperCase())}
             placeholder="15-char GSTIN (optional)"
-            className={`${inputBase} ${!gstInValid ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20" : ""}`}
+            // `CONTROL_VALIDATED` deliberately carries no border colour, so
+            // both branches have to name one — appending a rose border to a
+            // token that already had `border-slate-200` would be decided by
+            // stylesheet order, not by which class comes last here.
+            className={`${CONTROL_VALIDATED} ${
+              gstInValid
+                ? "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
+                : "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20"
+            }`}
             maxLength={15}
           />
           {!gstInValid && (
@@ -131,7 +137,7 @@ const AddVendorModal = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Parent Ledger
           </label>
           <input
@@ -140,7 +146,7 @@ const AddVendorModal = ({
             value={parentName}
             onChange={(e) => setParentName(e.target.value)}
             placeholder="Sundry Creditors"
-            className={inputBase}
+            className={CONTROL}
           />
           <datalist id="vendor-parent-options">
             {parentOptions.map((p) => (

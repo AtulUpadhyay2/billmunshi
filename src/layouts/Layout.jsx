@@ -11,7 +11,6 @@ import useProfileRefresh from "@/hooks/useProfileRefresh";
 import usePageTitle from "@/hooks/usePageTitle";
 import useNoIndex from "@/hooks/useNoIndex";
 import Footer from "@/components/partials/footer";
-import SupportWidget from "@/components/support/SupportWidget";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import MobileFooter from "@/components/partials/footer/MobileFooter";
@@ -132,12 +131,14 @@ const Layout = () => {
         {width >= breakpoints.md && <Footer className="shrink-0" />}
       </div>
 
-      {/* Both of these are fixed-position and deliberately sit outside the
-          shell column — they overlay the content region rather than taking a
-          row in it, so the shell's `overflow-hidden` never clips them. The
-          content region's `pb-24` below `md` is what keeps the last row of a
-          table clear of the bottom nav. */}
-      <SupportWidget />
+      {/* Fixed-position bottom nav — deliberately outside the shell column
+          since it overlays the content region rather than taking a row in it,
+          so the shell's `overflow-hidden` never clips it. The content region's
+          `pb-24` below `md` is what keeps the last row of a table clear of it.
+
+          The support CTA used to live here too. It was a floating badge on
+          every route, which put it on top of the pagination row of every list
+          page; the entry point is now a button on the Support Tickets page. */}
       {width < breakpoints.md && <MobileFooter />}
     </>
   );

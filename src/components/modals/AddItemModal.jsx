@@ -4,6 +4,12 @@ import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { useQuickCreateItem } from "@/services/tally/tallyQuickCreateService";
 import { useSelector } from "react-redux";
+import {
+  CONTROL,
+  CONTROL_SELECT,
+  CONTROL_SELECT_ARROW,
+  FIELD_LABEL,
+} from "@/constants/ui";
 
 /**
  * AddItemModal — creates a Tally StockItem (inventory) row.
@@ -15,9 +21,6 @@ import { useSelector } from "react-redux";
  *   - HSN Code (optional)
  *   - Parent (Stock Group; freetext with default "Primary")
  */
-const inputBase =
-  "w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
-
 const GST_RATES = ["0%", "5%", "12%", "18%", "28%", "Exempted"];
 const COMMON_UNITS = ["Nos", "Pcs", "Kgs", "Ltrs", "Mtrs", "Box", "Set", "Pkt"];
 
@@ -98,7 +101,7 @@ const AddItemModal = ({
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <label className={FIELD_LABEL}>
             Item Name <span className="text-rose-500">*</span>
           </label>
           <input
@@ -106,14 +109,14 @@ const AddItemModal = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Cable 10m, Printer Cartridge"
-            className={inputBase}
+            className={CONTROL}
             autoFocus
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className={FIELD_LABEL}>
               Item Unit
             </label>
             <input
@@ -122,7 +125,7 @@ const AddItemModal = ({
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder="Nos"
-              className={inputBase}
+              className={CONTROL}
             />
             <datalist id="item-unit-options">
               {COMMON_UNITS.map((u) => (
@@ -132,13 +135,14 @@ const AddItemModal = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className={FIELD_LABEL}>
               GST Rate
             </label>
             <select
               value={gstRate}
               onChange={(e) => setGstRate(e.target.value)}
-              className={inputBase}
+              className={CONTROL_SELECT}
+              style={CONTROL_SELECT_ARROW}
             >
               {GST_RATES.map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -149,7 +153,7 @@ const AddItemModal = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className={FIELD_LABEL}>
               HSN Code
             </label>
             <input
@@ -157,13 +161,13 @@ const AddItemModal = ({
               value={hsnCode}
               onChange={(e) => setHsnCode(e.target.value)}
               placeholder="e.g. 8544"
-              className={inputBase}
+              className={CONTROL}
               maxLength={12}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className={FIELD_LABEL}>
               Stock Group (parent)
             </label>
             <input
@@ -171,7 +175,7 @@ const AddItemModal = ({
               value={parent}
               onChange={(e) => setParent(e.target.value)}
               placeholder="Primary"
-              className={inputBase}
+              className={CONTROL}
             />
           </div>
         </div>
