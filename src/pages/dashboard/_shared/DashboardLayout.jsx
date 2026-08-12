@@ -68,21 +68,21 @@ const StatTile = ({ label, value, sublabel, icon, accent = "blue" }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-start gap-3">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex items-start gap-2.5">
       <span
-        className={`shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-md ring-1 ${accentMap[accent]}`}
+        className={`shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md ring-1 ${accentMap[accent]}`}
       >
-        <Icon icon={icon} className="text-base" />
+        <Icon icon={icon} className="text-sm" />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
           {label}
         </div>
-        <div className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight mt-0.5">
+        <div className="text-base font-bold tracking-tight text-slate-900 dark:text-white leading-tight mt-0.5">
           {value}
         </div>
         {sublabel && (
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
             {sublabel}
           </div>
         )}
@@ -128,25 +128,25 @@ const ModuleSummaryCard = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-2.5">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
         <span
-          className={`inline-flex w-9 h-9 items-center justify-center rounded-md ring-1 ${ringMap[accent]}`}
+          className={`inline-flex w-7 h-7 items-center justify-center rounded-md ring-1 ${ringMap[accent]}`}
         >
-          <Icon icon={icon} className="text-base" />
+          <Icon icon={icon} className="text-sm" />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[12px] font-bold text-slate-900 dark:text-white">
+          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
             {title}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="text-[10px] text-slate-500 dark:text-slate-400">
             {formatNumber(total)} total
           </div>
         </div>
       </div>
 
       <div className="flex items-baseline gap-2">
-        <div className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <div className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
           {formatNumber(total)}
         </div>
       </div>
@@ -191,7 +191,7 @@ const ModuleSummaryCard = ({
           <button
             type="button"
             onClick={primaryAction.onClick}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm shadow-orange-500/20 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm shadow-orange-500/20 ring-1 ring-orange-600/20 transition-all cursor-pointer"
           >
             <Icon icon={primaryAction.icon || "heroicons:arrow-up-tray"} className="text-sm" />
             {primaryAction.label}
@@ -201,7 +201,7 @@ const ModuleSummaryCard = ({
           <button
             type="button"
             onClick={secondaryAction.onClick}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-all cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-all cursor-pointer"
           >
             {secondaryAction.label}
             <Icon icon="heroicons:arrow-up-right" className="text-sm" />
@@ -265,7 +265,7 @@ const FunnelCard = ({ title, data, accent = "blue" }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span
@@ -342,7 +342,7 @@ const tooltipStyle = {
 /* ------------------------------------------------------------------ */
 
 const TrendsChart = ({ data, vendorLabel = "Vendor", expenseLabel = "Expense" }) => (
-  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 lg:col-span-2">
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 lg:col-span-2">
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
         <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
@@ -389,7 +389,7 @@ const TrendsChart = ({ data, vendorLabel = "Vendor", expenseLabel = "Expense" })
 );
 
 const FileDistribution = ({ pieData, vendorCount, expenseCount }) => (
-  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
     <div className="flex items-center gap-2 mb-3">
       <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
         <Icon icon="heroicons:document-duplicate" className="text-sm" />
@@ -467,8 +467,8 @@ const DashboardLayout = ({
   if (!selectedOrganization) {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+        <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           No workspace selected
@@ -507,8 +507,8 @@ const DashboardLayout = ({
   if (isError) {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center">
-        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+        <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+          <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           Failed to load dashboard
@@ -520,9 +520,9 @@ const DashboardLayout = ({
           <button
             type="button"
             onClick={refetchAll}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className="text-base" />
+            <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
           </button>
         )}
@@ -600,7 +600,7 @@ const DashboardLayout = ({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Top stat tiles */}
       <SectionHeader
         icon="heroicons:rectangle-group"
@@ -610,7 +610,7 @@ const DashboardLayout = ({
             <button
               type="button"
               onClick={refetchAll}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-all cursor-pointer"
             >
               <Icon icon="heroicons:arrow-path" className="text-sm" />
               Refresh

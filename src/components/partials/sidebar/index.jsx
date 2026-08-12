@@ -46,22 +46,22 @@ const Sidebar = () => {
         {/* Logo / brand. The collapse toggle deliberately lives in the header
             instead of here: a button inside the sidebar disappears the moment
             the sidebar collapses, so re-expanding would depend on hovering. */}
-        <div className="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="h-14 flex items-center px-3.5 border-b border-slate-200 dark:border-slate-800">
           <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group">
-            <div className="shrink-0 w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all">
-              <Icon icon="heroicons:document-text" className="text-lg text-white" />
+            <div className="shrink-0 w-8 h-8 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all">
+              <Icon icon="heroicons:document-text" className="text-base text-white" />
             </div>
             {isExpanded && (
-              <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+              <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">
                 Bill Munshi
               </span>
             )}
           </Link>
         </div>
 
-        {/* Menu */}
+        {/* Menu — `3.5rem` mirrors the brand row's `h-14` above. */}
         <SimpleBar
-          className="px-2.5 py-3 h-[calc(100%-4rem)]"
+          className="px-2 py-2.5 h-[calc(100%-3.5rem)]"
           scrollableNodeProps={{ ref: scrollableNodeRef }}
         >
           {modulesLoading ? (

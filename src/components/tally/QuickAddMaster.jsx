@@ -53,7 +53,7 @@ const QuickAddMaster = ({
         aria-label={label}
         className={`inline-flex shrink-0 items-center justify-center self-stretch -ml-px w-9 rounded-r-lg rounded-l-none border border-blue-300 dark:border-blue-900/70 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/70 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:z-10 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors ${className}`}
       >
-        <Icon icon="heroicons:plus" className="text-base" />
+        <Icon icon="heroicons:plus" className="text-sm" />
       </button>
 
       {kind === "vendor" && (

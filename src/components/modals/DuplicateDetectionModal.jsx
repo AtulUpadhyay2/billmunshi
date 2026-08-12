@@ -65,7 +65,7 @@ const DuplicateDetectionModal = ({ isOpen, onClose, duplicateData }) => {
             themeClass="bg-slate-900 dark:bg-slate-800 dark:border-b dark:border-slate-700"
             className="max-w-4xl"
         >
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Warning Banner */}
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                     <div className="flex items-start gap-3">

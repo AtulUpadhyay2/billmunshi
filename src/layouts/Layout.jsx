@@ -1,5 +1,5 @@
 import React, { Suspense, useRef } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "@/components/partials/header";
 import Sidebar from "@/components/partials/sidebar";
 import useWidth from "@/hooks/useWidth";
@@ -23,6 +23,7 @@ import { motion } from "framer-motion";
 const Layout = () => {
   const { width, breakpoints } = useWidth();
   const [collapsed] = useSidebar();
+  const location = useLocation();
 
   // Auto-refresh user profile data every 5 minutes
   useProfileRefresh(5);
@@ -51,11 +52,6 @@ const Layout = () => {
 
   return (
     <>
-      {/* `>=` matches the header's own `width >= breakpoints.xl` check. With
-          `>` here, a viewport of exactly 1280px rendered the collapse toggle
-          but no sidebar — and no mobile trigger either, so the menu was
-          unreachable at that exact width. */}
-      <Header className={width >= breakpoints.xl ? switchHeaderClass() : ""} />
       {menuType === "vertical" && width >= breakpoints.xl && !menuHidden && (
         <Sidebar />
       )}
@@ -74,54 +70,72 @@ const Layout = () => {
           onClick={() => setMobileMenu(false)}
         ></div>
       )}
+
+      {/* App shell. The shell owns the viewport height and never scrolls — the
+          content region below is the app's single scroll container. Without
+          this, header + page padding + footer added up to more than the
+          `h-full` pages reserved for themselves, so the *window* scrolled a
+          few dozen pixels and dragged the sticky header along with it.
+
+          `100dvh` (not `100vh`) so the mobile browser's collapsing URL bar
+          doesn't leave the footer cut off below the fold.
+
+          The margin lives here rather than on Header/Footer/content
+          separately: one offset for the whole column, so the three can never
+          disagree about how wide the sidebar is. */}
       <div
-        className={`content-wrapper transition-all duration-150 bg-slate-50 dark:bg-slate-950 min-h-screen ${
+        className={`flex flex-col h-[100dvh] overflow-hidden transition-all duration-150 ${
           width >= breakpoints.xl ? switchHeaderClass() : ""
         }`}
       >
-        <div className="page-min-height px-4 md:px-6 pt-4 md:pt-6 pb-4 md:pb-6">
+        {/* `>=` matches the header's own `width >= breakpoints.xl` check. With
+            `>` here, a viewport of exactly 1280px rendered the collapse toggle
+            but no sidebar — and no mobile trigger either, so the menu was
+            unreachable at that exact width. */}
+        <Header className="shrink-0" />
+
+        {/* Padding lives on the scroller itself so the chain down to the page
+            is as short as possible. Every level below is `h-full` — a plain
+            `height: 100%` — because a page that wants to fill the viewport
+            needs a *definite* height to resolve against, and `min-height`
+            does not provide one: with `min-h-full` the wrapper's `height`
+            stays `auto`, the page's own `h-full` collapses to `auto` too, and
+            the page grows to its content height, which is what made this
+            region scroll the whole page (header, toolbar and sticky table
+            head included) instead of just the table body. */}
+        <main className="content-wrapper flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-slate-50 dark:bg-slate-950 px-3.5 md:px-5 py-3.5 md:py-4 pb-24 md:pb-4">
           <div
-            className={
+            className={`h-full ${
               contentWidth === "boxed" ? "container mx-auto" : "max-w-400 mx-auto"
-            }
+            }`}
           >
             <Suspense fallback={<Loading />}>
+              {/* Opacity only — deliberately no `y` slide. An animated
+                  transform would make this element the containing block for
+                  `position: fixed`, which is how ConfirmDialog and the
+                  scanner overlays position themselves against the viewport. */}
               <motion.div
+                ref={nodeRef}
                 key={location.pathname}
-                initial="pageInitial"
-                animate="pageAnimate"
-                exit="pageExit"
-                variants={{
-                  pageInitial: {
-                    opacity: 0,
-                    y: 50,
-                  },
-                  pageAnimate: {
-                    opacity: 1,
-                    y: 0,
-                  },
-                  pageExit: {
-                    opacity: 0,
-                    y: -50,
-                  },
-                }}
-                transition={{
-                  type: "tween",
-                  ease: "easeInOut",
-                  duration: 0.5,
-                }}
+                className="h-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
               >
-                {/* <Breadcrumbs /> */}
                 {<Outlet />}
               </motion.div>
             </Suspense>
           </div>
-        </div>
+        </main>
+
+        {width >= breakpoints.md && <Footer className="shrink-0" />}
       </div>
+
+      {/* Fixed-position bottom nav — kept outside the shell column since it
+          overlays the content region rather than taking a row in it. The
+          content region's `pb-24` below `md` is what keeps the last row of a
+          table clear of it. */}
       {width < breakpoints.md && <MobileFooter />}
-      {width > breakpoints.md && (
-        <Footer className={width > breakpoints.xl ? switchHeaderClass() : ""} />
-      )}
     </>
   );
 };

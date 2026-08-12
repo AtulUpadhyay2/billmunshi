@@ -30,6 +30,7 @@ import { globalToast } from "@/utils/toast";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
+import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 /**
  * Number input that lets the user type freely.
@@ -99,7 +100,7 @@ const EditableTaxAmount = ({ value, disabled, onCommit }) => {
           e.currentTarget.blur();
         }
       }}
-      className="w-full px-2 py-1.5 text-xs font-mono text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+      className={CONTROL_NUM}
     />
   );
 };
@@ -1462,13 +1463,17 @@ const TallyVendorBillDetail = () => {
     // Check if we need to run matching logic
     // Skip if already matched AND taxLedgerOptions and tallyAnalysedData haven't changed
     if (productTaxMatchedRef.current && taxLedgerOptions.length > 0) {
-      // Check if any products have invalid or missing tax_ledger_id
+      // Check if any products have invalid or missing tax_ledger_id.
+      // Rows the user deliberately cleared are not "missing" — without this
+      // exclusion, clearing a Purchase Ledger re-triggers matching and the
+      // value the user just removed comes straight back.
       const needsReMatching = products.some(
         (product) =>
-          !product.tax_ledger_id ||
-          !taxLedgerOptions.find(
-            (ledger) => ledger.id === product.tax_ledger_id,
-          ),
+          !product.tax_ledger_cleared &&
+          (!product.tax_ledger_id ||
+            !taxLedgerOptions.find(
+              (ledger) => ledger.id === product.tax_ledger_id,
+            )),
       );
 
       if (!needsReMatching) {
@@ -1480,6 +1485,14 @@ const TallyVendorBillDetail = () => {
       let hasChanges = false;
 
       const updatedProducts = products.map((product, index) => {
+        // Leave rows the user cleared alone. The early-return above only
+        // skips the effect when NO row needs matching; once any other row
+        // triggers a pass, every row goes through this map, so the flag has
+        // to be honoured here too.
+        if (product.tax_ledger_cleared) {
+          return product;
+        }
+
         // If product already has a valid tax_ledger_id, don't override
         if (product.tax_ledger_id) {
           const isValidId = taxLedgerOptions.find(
@@ -1760,6 +1773,9 @@ const TallyVendorBillDetail = () => {
           ...updated[productIndex],
           tax_ledger: taxLedger.name,
           tax_ledger_id: taxLedger.id,
+          // An explicit pick releases the "user cleared this" hold, so
+          // auto-match may correct the row again on later data refreshes.
+          tax_ledger_cleared: false,
         };
         return updated;
       });
@@ -1767,6 +1783,13 @@ const TallyVendorBillDetail = () => {
   };
 
   // Handle tax ledger deselection
+  //
+  // ``tax_ledger_cleared`` is what makes the clear stick. The auto-match
+  // effect below re-runs on every ``products`` change (it has to — new rows
+  // need matching), and it treats "no tax_ledger_id" as "not matched yet", so
+  // it would immediately re-apply the ledger the user just removed. The flag
+  // lives on the row rather than in an index-keyed ref so it survives adding,
+  // deleting and reordering line items.
   const handleTaxLedgerClear = (productIndex) => {
     setProducts((prev) => {
       const updated = [...prev];
@@ -1774,6 +1797,7 @@ const TallyVendorBillDetail = () => {
         ...updated[productIndex],
         tax_ledger: "No Tax Ledger",
         tax_ledger_id: null,
+        tax_ledger_cleared: true,
       };
       return updated;
     });
@@ -2741,9 +2765,9 @@ const TallyVendorBillDetail = () => {
   // Show error state
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
-          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+          <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           Failed to load purchase voucher
@@ -2757,17 +2781,17 @@ const TallyVendorBillDetail = () => {
           <button
             type="button"
             onClick={handleBackClick}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Go back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className="text-base" />
+            <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
           </button>
         </div>
@@ -2778,9 +2802,9 @@ const TallyVendorBillDetail = () => {
   // Show message if no organization selected
   if (!selectedOrganization?.id) {
     return (
-      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           No workspace selected
@@ -2795,18 +2819,18 @@ const TallyVendorBillDetail = () => {
   return (
     <div className="space-y-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={handleBackClick}
-            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
             title="Back to purchase vouchers"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+            <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Vendor bill"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -2823,37 +2847,37 @@ const TallyVendorBillDetail = () => {
             type="button"
             onClick={() => navigate(`/tally/vendor-bill/${vendorBillData?.previous_bill}`)}
             disabled={!vendorBillData?.previous_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={vendorBillData?.previous_bill ? "Go to previous bill" : "No previous bill"}
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isFetching ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => navigate(`/tally/vendor-bill/${vendorBillData?.next_bill}`)}
             disabled={!vendorBillData?.next_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={vendorBillData?.next_bill ? "Go to next bill" : "No next bill"}
           >
             Next
-            <Icon icon="heroicons:arrow-right" className="text-base" />
+            <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
             onClick={handleSave}
             disabled={isVerifying || isVerified || hasValidationErrors()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={
               isVerifying
                 ? "Verifying…"
@@ -2864,14 +2888,14 @@ const TallyVendorBillDetail = () => {
                     : "Verify"
             }
           >
-            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-base ${isVerifying ? "animate-spin" : ""}`} />
+            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-sm ${isVerifying ? "animate-spin" : ""}`} />
             {isVerifying ? "Verifying…" : isVerified ? "Verified" : "Verify"}
           </button>
           <button
             type="button"
             onClick={handleSync}
             disabled={isSyncing || isVerified || billInfo?.status !== "Verified"}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             title={
               isSyncing
                 ? "Syncing…"
@@ -2882,7 +2906,7 @@ const TallyVendorBillDetail = () => {
                     : "Sync with Tally"
             }
           >
-            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-base ${isSyncing ? "animate-spin" : ""}`} />
+            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-sm ${isSyncing ? "animate-spin" : ""}`} />
             {isSyncing ? "Syncing…" : "Sync to Tally"}
           </button>
         </div>
@@ -2891,7 +2915,7 @@ const TallyVendorBillDetail = () => {
       {/* Sync status banner */}
       {billInfo?.tally_sync_message && (
         <div
-          className={`flex items-start gap-3 p-4 rounded-2xl border ${
+          className={`flex items-start gap-2.5 p-3 rounded-xl border ${
             billInfo?.tally_synced
               ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/60"
               : "bg-rose-50/60 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/60"
@@ -2899,7 +2923,7 @@ const TallyVendorBillDetail = () => {
         >
           <Icon
             icon={billInfo?.tally_synced ? "heroicons:check-circle" : "heroicons:x-circle"}
-            className={`text-xl shrink-0 mt-0.5 ${
+            className={`text-base shrink-0 mt-0.5 ${
               billInfo?.tally_synced
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
@@ -2930,7 +2954,7 @@ const TallyVendorBillDetail = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
         {/* Validation summary */}
         {hasValidationErrors() && !isVerified && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
@@ -2948,14 +2972,14 @@ const TallyVendorBillDetail = () => {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6 relative">
+        <div className="flex flex-col lg:flex-row gap-4 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                  <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
                     <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {billInfo.bill_munshi_name
                         ? `${billInfo.bill_munshi_name}`
@@ -3174,7 +3198,7 @@ const TallyVendorBillDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
               {/* Vendor Information Section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
@@ -3300,7 +3324,7 @@ const TallyVendorBillDetail = () => {
                         }
                         placeholder="Enter invoice number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
+                        className={`${CONTROL} ${
                           isVerified
                             ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
@@ -3328,7 +3352,7 @@ const TallyVendorBillDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
+                        className={`${CONTROL} `}
                         readOnly={
                           vendorForm.selectedVendor &&
                           vendorForm.selectedVendor.gst_in &&
@@ -3351,7 +3375,7 @@ const TallyVendorBillDetail = () => {
                         min="1900-01-01"
                         max="2100-12-31"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.dateIssued
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -3393,7 +3417,7 @@ const TallyVendorBillDetail = () => {
                         min="1900-01-01"
                         max="2100-12-31"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -3588,7 +3612,7 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="Enter item details..."
                                   disabled={isVerified}
-                                  className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
+                                  className={`${CONTROL_TEXTAREA} ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -3651,7 +3675,7 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`${CONTROL_NUM} ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -3675,7 +3699,7 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`${CONTROL_NUM} text-center ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -3699,7 +3723,7 @@ const TallyVendorBillDetail = () => {
                                   }
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`${CONTROL_NUM} ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -3728,18 +3752,12 @@ const TallyVendorBillDetail = () => {
                                       )
                                     }
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
+                                    className={`${CONTROL_SELECT} text-center ${
                                       isVerified
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
-                                    style={{
-                                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                                      backgroundPosition: "right 0.5rem center",
-                                      backgroundRepeat: "no-repeat",
-                                      backgroundSize: "1.25rem 1.25rem",
-                                      paddingRight: "2.5rem",
-                                    }}
+                                    style={CONTROL_SELECT_ARROW}
                                   >
                                     <option value="">Select GST</option>
                                     <option value="0%">0%</option>
@@ -3944,7 +3962,7 @@ const TallyVendorBillDetail = () => {
 
                   if (taxRateRollup.length === 0) {
                     return (
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 text-[12px] text-slate-500 dark:text-slate-400">
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-[12px] text-slate-500 dark:text-slate-400">
                         No line items added yet. Add line items above to see the
                         tax breakdown.
                       </div>
@@ -4306,7 +4324,7 @@ const TallyVendorBillDetail = () => {
                           tabIndex={-1}
                           placeholder="0.00"
                           title="Computed automatically from subtotal + taxes + adjustments"
-                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 border rounded-md focus:outline-none cursor-default select-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`${CONTROL_READONLY} font-mono tabular-nums font-bold text-blue-700 dark:text-blue-400 ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
@@ -4379,7 +4397,7 @@ const TallyVendorBillDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
+                    className={`${CONTROL_TEXTAREA} h-24 ${
                       isVerified
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""

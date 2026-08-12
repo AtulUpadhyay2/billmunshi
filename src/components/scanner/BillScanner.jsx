@@ -395,7 +395,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
           type="button"
           onClick={() => setShowOverlay((v) => !v)}
           disabled={!corners || isProcessing}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
             showOverlay
               ? "bg-blue-600 text-white ring-1 ring-blue-700"
               : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -409,7 +409,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
             type="button"
             onClick={handleApplyCrop}
             disabled={isProcessing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-md cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-md cursor-pointer"
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Re-enhance
@@ -448,7 +448,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
               type="button"
               onClick={onSkip}
               disabled={isProcessing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
             >
               Skip scan
             </button>
@@ -458,7 +458,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
               type="button"
               onClick={onCancel}
               disabled={isProcessing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>

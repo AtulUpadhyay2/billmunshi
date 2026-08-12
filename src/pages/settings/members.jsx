@@ -6,9 +6,19 @@ import TablePagination from "@/components/ui/TablePagination";
 import { useGetMembers } from "@/services/memberService";
 import { globalToast } from "@/utils/toast";
 import apiClient from "@/utils/apiClient";
+import { CONTROL_SEARCH } from "@/constants/ui";
 
-const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+const btnBase =
+  "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
+const btnNeutral =
+  `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
+const btnPrimary =
+  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20`;
+
+const thBase =
+  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+const tdBase = "px-3 py-1.5";
 
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
@@ -179,14 +189,14 @@ const Members = () => {
   );
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
             Members
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             {orgInfo?.name ? (
               <>
                 Manage who has access to{" "}
@@ -200,29 +210,29 @@ const Members = () => {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className={btnNeutral}
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => setIsInviteModalOpen(true)}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={btnPrimary}
           >
-            <Icon icon="heroicons:plus" className="text-base" />
+            <Icon icon="heroicons:plus" className="text-sm" />
             Invite member
           </button>
         </div>
       </div>
 
       {/* Compact stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
         {[
           { label: "Total members", value: stats.total, icon: "heroicons:users" },
           { label: "Active", value: stats.active, icon: "heroicons:check-badge" },
@@ -231,16 +241,16 @@ const Members = () => {
         ].map((s, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2.5 flex items-center gap-3"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 flex items-center gap-2"
           >
-            <span className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-              <Icon icon={s.icon} className="text-sm" />
+            <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+              <Icon icon={s.icon} className="text-xs" />
             </span>
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                 {s.label}
               </div>
-              <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
+              <div className="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
                 {isLoading ? "—" : s.value}
               </div>
             </div>
@@ -248,22 +258,22 @@ const Members = () => {
         ))}
       </div>
 
-      {/* Members card — fills remaining viewport */}
-      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      {/* Members card — the only thing on the page that scrolls */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="px-5 md:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-          <div className="relative w-full md:max-w-sm">
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+        <div className="px-3 md:px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2 shrink-0">
+          <div className="relative w-full md:max-w-xs">
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, email, or role…"
-              className={inputBase}
+              className={CONTROL_SEARCH}
             />
           </div>
 
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
             {[
               { value: "ALL", label: "All" },
               ...ROLE_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
@@ -274,7 +284,7 @@ const Members = () => {
                   key={tab.value}
                   type="button"
                   onClick={() => setRoleFilter(tab.value)}
-                  className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`inline-flex items-center px-2.5 h-7 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -290,26 +300,22 @@ const Members = () => {
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-auto">
           {isLoading ? (
-            <div className="px-5 md:px-6 py-4 space-y-3">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+            <div className="px-3 md:px-4 py-2.5 space-y-2">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
               ))}
             </div>
           ) : isError ? (
-            <div className="text-center py-16 px-6">
-              <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
-                <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+            <div className="text-center py-10 px-4">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2.5">
+                <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
               </div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Failed to load members</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">Failed to load members</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 mb-3">
                 There was an error loading the members data.
               </p>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-              >
-                <Icon icon="heroicons:arrow-path" className="text-base" />
+              <button type="button" onClick={() => refetch()} className={btnNeutral}>
+                <Icon icon="heroicons:arrow-path" className="text-sm" />
                 Try again
               </button>
             </div>
@@ -317,28 +323,28 @@ const Members = () => {
             <table className="min-w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Role</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Joined</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Last updated</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 w-20">Action</th>
+                  <th className={thBase}>Member</th>
+                  <th className={thBase}>Role</th>
+                  <th className={thBase}>Status</th>
+                  <th className={`${thBase} hidden md:table-cell`}>Joined</th>
+                  <th className={`${thBase} hidden lg:table-cell`}>Last updated</th>
+                  <th className={`${thBase} ltr:text-right rtl:text-left w-20`}>Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-3">
+                    <td colSpan={6} className="px-3 py-10 text-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-2.5">
                         <Icon
                           icon={searchQuery || roleFilter !== "ALL" ? "heroicons:magnifying-glass" : "heroicons:user-plus"}
-                          className="text-2xl"
+                          className="text-lg"
                         />
                       </div>
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {searchQuery || roleFilter !== "ALL" ? "No members match your filters" : "No members yet"}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                         {searchQuery || roleFilter !== "ALL"
                           ? "Try a different keyword or role."
                           : "Invite your first teammate to get started."}
@@ -347,9 +353,9 @@ const Members = () => {
                         <button
                           type="button"
                           onClick={() => setIsInviteModalOpen(true)}
-                          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                          className={`mt-3 ${btnPrimary}`}
                         >
-                          <Icon icon="heroicons:plus" className="text-base" />
+                          <Icon icon="heroicons:plus" className="text-sm" />
                           Invite member
                         </button>
                       )}
@@ -363,34 +369,34 @@ const Members = () => {
                         key={member.id}
                         className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                       >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="shrink-0 h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center">
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <td className={tdBase}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="shrink-0 h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
                                 {initials(member.user?.full_name)}
                               </span>
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                                   {member.user?.full_name || "—"}
                                 </span>
                                 {isOwner && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold">
-                                    <Icon icon="heroicons:star" className="text-[10px]" />
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[9px] font-bold">
+                                    <Icon icon="heroicons:star" className="text-[9px]" />
                                     Owner
                                   </span>
                                 )}
                               </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                                 {member.user?.email || ""}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={tdBase}>
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${roleStyle(
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${roleStyle(
                               member.role
                             )}`}
                           >
@@ -398,19 +404,19 @@ const Members = () => {
                               (member.role || "Member").slice(1).toLowerCase()}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={tdBase}>
                           <StatusBadge active={member.is_active} />
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <div className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-                            <Icon icon="heroicons:calendar" className="text-base text-slate-400" />
+                        <td className={`${tdBase} hidden md:table-cell`}>
+                          <div className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                            <Icon icon="heroicons:calendar" className="text-xs text-slate-400" />
                             {formatDate(member.created_at)}
                           </div>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-slate-600 dark:text-slate-400">
+                        <td className={`${tdBase} hidden lg:table-cell text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap`}>
                           {formatDate(member.updated_at)}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className={`${tdBase} ltr:text-right rtl:text-left`}>
                           {!isOwner ? (
                             <button
                               type="button"
@@ -418,13 +424,13 @@ const Members = () => {
                                 setDeletingMember(member);
                                 setDeleteModalOpen(true);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950/60 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all cursor-pointer"
                             >
-                              <Icon icon="heroicons:trash" className="text-xs" />
+                              <Icon icon="heroicons:trash" className="text-[10px]" />
                               Remove
                             </button>
                           ) : (
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">Owner</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">Owner</span>
                           )}
                         </td>
                       </tr>
@@ -458,59 +464,59 @@ const Members = () => {
           setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
         }}
       >
-        <form onSubmit={handleInviteMember} className="space-y-4">
+        <form onSubmit={handleInviteMember} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Email address <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <Icon icon="heroicons:envelope" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+              <Icon icon="heroicons:envelope" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
               <input
                 type="email"
                 required
                 value={inviteData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="member@company.com"
-                className={inputBase}
+                className={CONTROL_SEARCH}
               />
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3.5">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 First name
               </label>
               <div className="relative">
-                <Icon icon="heroicons:user" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+                <Icon icon="heroicons:user" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
                 <input
                   type="text"
                   value={inviteData.first_name}
                   onChange={(e) => handleInputChange("first_name", e.target.value)}
                   placeholder="First name"
-                  className={inputBase}
+                  className={CONTROL_SEARCH}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Last name
               </label>
               <div className="relative">
-                <Icon icon="heroicons:user" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+                <Icon icon="heroicons:user" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
                 <input
                   type="text"
                   value={inviteData.last_name}
                   onChange={(e) => handleInputChange("last_name", e.target.value)}
                   placeholder="Last name (optional)"
-                  className={inputBase}
+                  className={CONTROL_SEARCH}
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Role
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -534,41 +540,37 @@ const Members = () => {
             </div>
           </div>
 
-          <div className="flex gap-3 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-            <Icon icon="heroicons:information-circle" className="text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" />
-            <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+          <div className="flex gap-2.5 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <Icon icon="heroicons:information-circle" className="text-blue-600 dark:text-blue-400 text-base shrink-0 mt-0.5" />
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
               New users are created with default password{" "}
-              <code className="px-1.5 py-0.5 rounded font-mono text-[11px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+              <code className="px-1.5 py-0.5 rounded font-mono text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
                 Bill@2025
               </code>
               . They can change it after their first sign-in.
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-4">
+          <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-3">
             <button
               type="button"
               onClick={() => {
                 setIsInviteModalOpen(false);
                 setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
               }}
-              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+              className={btnNeutral}
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={inviteLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
-            >
+            <button type="submit" disabled={inviteLoading} className={btnPrimary}>
               {inviteLoading ? (
                 <>
-                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
                   Inviting…
                 </>
               ) : (
                 <>
-                  <Icon icon="heroicons:paper-airplane" className="text-base" />
+                  <Icon icon="heroicons:paper-airplane" className="text-sm" />
                   Send invite
                 </>
               )}
@@ -588,13 +590,13 @@ const Members = () => {
           setDeleteUserAccount(false);
         }}
       >
-        <div className="space-y-4">
-          <div className="flex gap-3 p-4 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/60">
+        <div className="space-y-3">
+          <div className="flex gap-2.5 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/60">
             <Icon
               icon="heroicons:exclamation-triangle"
-              className="text-rose-600 dark:text-rose-400 text-xl shrink-0 mt-0.5"
+              className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5"
             />
-            <div className="text-sm">
+            <div className="text-xs">
               <p className="font-semibold text-rose-800 dark:text-rose-300">This action cannot be undone</p>
               <p className="text-rose-700/80 dark:text-rose-400/80 mt-1">
                 Are you sure you want to remove{" "}
@@ -604,24 +606,24 @@ const Members = () => {
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+          <label className="flex items-start gap-2 cursor-pointer p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60">
             <input
               type="checkbox"
               checked={deleteUserAccount}
               onChange={(e) => setDeleteUserAccount(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 focus:ring-offset-0 cursor-pointer"
+              className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 focus:ring-offset-0 cursor-pointer"
             />
-            <div className="text-sm">
+            <div className="text-xs">
               <div className="font-semibold text-slate-900 dark:text-white">
                 Also delete user account permanently
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 The account will only be deleted if the user has no other active workspace memberships.
               </div>
             </div>
           </label>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-4">
+          <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-3">
             <button
               type="button"
               onClick={() => {
@@ -629,7 +631,7 @@ const Members = () => {
                 setDeletingMember(null);
                 setDeleteUserAccount(false);
               }}
-              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+              className={btnNeutral}
             >
               Cancel
             </button>
@@ -637,16 +639,16 @@ const Members = () => {
               type="button"
               onClick={handleDeleteMember}
               disabled={deleteLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-lg shadow-sm cursor-pointer"
+              className={`${btnBase} text-white bg-rose-600 hover:bg-rose-700 shadow-sm`}
             >
               {deleteLoading ? (
                 <>
-                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
                   Removing…
                 </>
               ) : (
                 <>
-                  <Icon icon="heroicons:trash" className="text-base" />
+                  <Icon icon="heroicons:trash" className="text-sm" />
                   Remove member
                 </>
               )}

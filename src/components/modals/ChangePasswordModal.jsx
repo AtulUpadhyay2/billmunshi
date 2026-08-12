@@ -163,7 +163,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {/* Current Password */}
         <div>
           <label className="form-label" htmlFor="old_password">

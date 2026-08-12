@@ -132,7 +132,7 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {/* Email Input */}
         <div>
           <label className="form-label" htmlFor="user_email">

@@ -22,6 +22,7 @@ import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
+import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 /**
  * Number input that lets the user type freely.
@@ -561,7 +562,11 @@ const TallyPaymentVoucherDetail = () => {
     return ledgers;
   };
 
-  const ledgerOptions = processLedgers();
+  // Memoised because the ledger-matching effects below take these arrays as
+  // dependencies. Rebuilt inline on every render they were a fresh array
+  // reference each time, so those effects fired after *every* state change
+  // instead of only when the ledger data actually arrived.
+  const ledgerOptions = useMemo(() => processLedgers(), [ledgersData]);
 
   // Process vendor ledgers data for dropdown
   const processVendorLedgers = () => {
@@ -587,7 +592,10 @@ const TallyPaymentVoucherDetail = () => {
     return vendors;
   };
 
-  const vendorOptions = processVendorLedgers();
+  const vendorOptions = useMemo(
+    () => processVendorLedgers(),
+    [vendorLedgersData],
+  );
 
   // Process CGST ledgers data for dropdown
   const processCgstLedgers = () => {
@@ -658,9 +666,18 @@ const TallyPaymentVoucherDetail = () => {
     return igstLedgers;
   };
 
-  const cgstLedgerOptions = processCgstLedgers();
-  const sgstLedgerOptions = processSgstLedgers();
-  const igstLedgerOptions = processIgstLedgers();
+  const cgstLedgerOptions = useMemo(
+    () => processCgstLedgers(),
+    [cgstLedgersData],
+  );
+  const sgstLedgerOptions = useMemo(
+    () => processSgstLedgers(),
+    [sgstLedgersData],
+  );
+  const igstLedgerOptions = useMemo(
+    () => processIgstLedgers(),
+    [igstLedgersData],
+  );
 
   // Update form when data is loaded
   useEffect(() => {
@@ -1065,6 +1082,11 @@ const TallyPaymentVoucherDetail = () => {
         : tallyAnalysedData?.products;
 
       const updatedItems = expenseItems.map((item, index) => {
+        // Leave rows the user cleared alone.
+        if (item.chart_of_accounts_cleared) {
+          return item;
+        }
+
         // If item already has chart_of_accounts_id selected and a proper name, don't override
         if (
           item.chart_of_accounts_id &&
@@ -1284,6 +1306,8 @@ const TallyPaymentVoucherDetail = () => {
           ...updated[itemIndex],
           chart_of_accounts: ledger.name,
           chart_of_accounts_id: ledger.id,
+          // An explicit pick releases the "user cleared this" hold.
+          chart_of_accounts_cleared: false,
         };
         return updated;
       });
@@ -1291,6 +1315,11 @@ const TallyPaymentVoucherDetail = () => {
   };
 
   // Handle Chart of Accounts deselection
+  //
+  // ``chart_of_accounts_cleared`` is what makes the clear stick — the
+  // auto-match effect reads a null id as "not matched yet" and would re-apply
+  // the ledger from the analysed bill. The flag lives on the row itself, not
+  // in an index-keyed ref, so it survives adding/removing/reordering rows.
   const handleChartOfAccountsClear = (itemIndex) => {
     setExpenseItems((prev) => {
       const updated = [...prev];
@@ -1298,6 +1327,7 @@ const TallyPaymentVoucherDetail = () => {
         ...updated[itemIndex],
         chart_of_accounts: "No COA Ledger",
         chart_of_accounts_id: null,
+        chart_of_accounts_cleared: true,
       };
       return updated;
     });
@@ -1988,9 +2018,9 @@ const TallyPaymentVoucherDetail = () => {
   // Show error state
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
-          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+          <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           Failed to load payment voucher
@@ -2004,17 +2034,17 @@ const TallyPaymentVoucherDetail = () => {
           <button
             type="button"
             onClick={handleBackClick}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Go back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className="text-base" />
+            <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
           </button>
         </div>
@@ -2025,9 +2055,9 @@ const TallyPaymentVoucherDetail = () => {
   // Show message if no organization selected
   if (!selectedOrganization?.id) {
     return (
-      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           No workspace selected
@@ -2042,18 +2072,18 @@ const TallyPaymentVoucherDetail = () => {
   return (
     <div className="space-y-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={handleBackClick}
-            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
             title="Back to journal entries"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+            <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Payment voucher"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -2070,37 +2100,37 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.previous_bill}`)}
             disabled={!expenseBillData?.previous_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={expenseBillData?.previous_bill ? "Go to previous bill" : "No previous bill"}
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isFetching ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.next_bill}`)}
             disabled={!expenseBillData?.next_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill"}
           >
             Next
-            <Icon icon="heroicons:arrow-right" className="text-base" />
+            <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
             onClick={handleSave}
             disabled={isVerifying || isVerified || hasValidationErrors()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={
               isVerifying
                 ? "Verifying…"
@@ -2111,14 +2141,14 @@ const TallyPaymentVoucherDetail = () => {
                     : "Verify"
             }
           >
-            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-base ${isVerifying ? "animate-spin" : ""}`} />
+            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-sm ${isVerifying ? "animate-spin" : ""}`} />
             {isVerifying ? "Verifying…" : isVerified ? "Verified" : "Verify"}
           </button>
           <button
             type="button"
             onClick={handleSync}
             disabled={isSyncing || isVerified || billInfo?.status !== "Verified"}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             title={
               isSyncing
                 ? "Syncing…"
@@ -2129,7 +2159,7 @@ const TallyPaymentVoucherDetail = () => {
                     : "Sync with Tally"
             }
           >
-            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-base ${isSyncing ? "animate-spin" : ""}`} />
+            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-sm ${isSyncing ? "animate-spin" : ""}`} />
             {isSyncing ? "Syncing…" : "Sync to Tally"}
           </button>
         </div>
@@ -2137,8 +2167,8 @@ const TallyPaymentVoucherDetail = () => {
 
       {/* Verification error alert */}
       {errorAlert.show && (
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
-          <Icon icon="heroicons:exclamation-triangle" className="text-rose-600 dark:text-rose-400 text-xl shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
+          <Icon icon="heroicons:exclamation-triangle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
           <div className="flex-1 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
             <p className="font-semibold text-rose-800 dark:text-rose-300">Verification error</p>
             <p className="mt-1 text-xs">{errorAlert.message}</p>
@@ -2162,7 +2192,7 @@ const TallyPaymentVoucherDetail = () => {
       {/* Sync status banner */}
       {billInfo?.tally_sync_message && (
         <div
-          className={`flex items-start gap-3 p-4 rounded-2xl border ${
+          className={`flex items-start gap-2.5 p-3 rounded-xl border ${
             billInfo?.tally_synced
               ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/60"
               : "bg-rose-50/60 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/60"
@@ -2170,7 +2200,7 @@ const TallyPaymentVoucherDetail = () => {
         >
           <Icon
             icon={billInfo?.tally_synced ? "heroicons:check-circle" : "heroicons:x-circle"}
-            className={`text-xl shrink-0 mt-0.5 ${
+            className={`text-base shrink-0 mt-0.5 ${
               billInfo?.tally_synced
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
@@ -2201,16 +2231,16 @@ const TallyPaymentVoucherDetail = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
 
-        <div className="flex flex-col lg:flex-row gap-6 relative">
+        <div className="flex flex-col lg:flex-row gap-4 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                  <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
                     <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {billInfo.bill_munshi_name
                         ? `${billInfo.bill_munshi_name}`
@@ -2421,7 +2451,7 @@ const TallyPaymentVoucherDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
               {/* Bill Information Section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
@@ -2593,7 +2623,7 @@ const TallyPaymentVoucherDetail = () => {
                         }
                         placeholder="Enter bill number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
+                        className={`${CONTROL} ${
                           isVerified
                             ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
@@ -2618,7 +2648,7 @@ const TallyPaymentVoucherDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
+                        className={`${CONTROL} `}
                         readOnly={
                           billForm.selectedVendor &&
                           billForm.selectedVendor.gst_in &&
@@ -2643,7 +2673,7 @@ const TallyPaymentVoucherDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.billDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -2687,7 +2717,7 @@ const TallyPaymentVoucherDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -2829,7 +2859,7 @@ const TallyPaymentVoucherDetail = () => {
                                       }
                                       placeholder="Enter item details..."
                                       disabled={isVerified}
-                                      className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
+                                      className={`${CONTROL_TEXTAREA} ${
                                         isVerified
                                           ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                           : ""
@@ -2895,7 +2925,7 @@ const TallyPaymentVoucherDetail = () => {
                                     }
                                     placeholder="0.00"
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                    className={`${CONTROL_NUM} ${
                                       isVerified
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
@@ -2917,18 +2947,12 @@ const TallyPaymentVoucherDetail = () => {
                                       )
                                     }
                                     disabled={isVerified}
-                                    className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ${
+                                    className={`${CONTROL_SELECT} text-center ${
                                       isVerified
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
-                                    style={{
-                                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                                      backgroundPosition: "right 0.5rem center",
-                                      backgroundRepeat: "no-repeat",
-                                      backgroundSize: "1.25rem 1.25rem",
-                                      paddingRight: "2.5rem",
-                                    }}
+                                    style={CONTROL_SELECT_ARROW}
                                   >
                                     <option value="debit">Debit</option>
                                     <option value="credit">Credit</option>
@@ -3489,7 +3513,7 @@ const TallyPaymentVoucherDetail = () => {
                           }
                           placeholder="0.00"
                           disabled={isVerified}
-                          className={`w-full px-2 py-1.5 text-left text-base font-bold font-mono text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-900 border rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
@@ -3560,7 +3584,7 @@ const TallyPaymentVoucherDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
+                    className={`${CONTROL_TEXTAREA} h-24 ${
                       isVerified
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""

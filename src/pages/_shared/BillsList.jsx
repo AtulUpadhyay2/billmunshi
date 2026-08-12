@@ -9,9 +9,26 @@ import FileViewerModal from "@/components/modals/FileViewerModal";
 import ConfirmDialog from "@/components/modals/ConfirmDialog";
 import { globalToast } from "@/utils/toast";
 import { notifyUploadResult, notifyUploadError } from "@/utils/uploadFeedback";
+import { CONTROL_SEARCH } from "@/constants/ui";
 
-const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+// One shared button scale for every toolbar in the app: a 28px control row
+// that lines up with the 28px icon buttons and the table's 32px rows.
+const btnBase =
+  "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
+const btnNeutral =
+  `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
+const btnPrimary =
+  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20`;
+// In-row action chips — one step down from the toolbar scale so a table row
+// stays 32px tall.
+const chipBase =
+  "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold";
+// Table head / body cell padding, shared so a column can never drift out of
+// alignment with its header.
+const thBase =
+  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+const tdBase = "px-3 py-1.5";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -59,7 +76,7 @@ const StatusBadge = ({ status }) => {
   const label = status === "Verified" ? "Verified · pending sync" : status;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${c.bg} ${c.txt} ${c.ring}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${c.bg} ${c.txt} ${c.ring}`}
       title={status}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
@@ -457,8 +474,8 @@ const BillsList = ({
     const { status } = bill;
     if (status === "Synced" && bill.tally_synced) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60">
-          <Icon icon="heroicons:check-circle" className="text-sm" />
+        <span className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60`}>
+          <Icon icon="heroicons:check-circle" className="text-xs" />
           Posted
         </span>
       );
@@ -468,9 +485,9 @@ const BillsList = ({
         <button
           type="button"
           onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
+          className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer`}
         >
-          <Icon icon="heroicons:check-badge" className="text-sm" /> Re-verify
+          <Icon icon="heroicons:check-badge" className="text-xs" /> Re-verify
         </button>
       );
     }
@@ -481,12 +498,12 @@ const BillsList = ({
           type="button"
           onClick={() => handleAction(bill.id, "analyse")}
           disabled={isAnalyzing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 rounded-md hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-60 disabled:cursor-wait cursor-pointer"
+          className={`${chipBase} text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-60 disabled:cursor-wait cursor-pointer`}
         >
           {isAnalyzing ? (
-            <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+            <Icon icon="heroicons:arrow-path" className="text-xs animate-spin" />
           ) : (
-            <Icon icon="heroicons:sparkles" className="text-sm" />
+            <Icon icon="heroicons:sparkles" className="text-xs" />
           )}
           {isAnalyzing ? "Analyzing…" : "Analyse"}
         </button>
@@ -497,9 +514,9 @@ const BillsList = ({
         <button
           type="button"
           onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-100 dark:ring-violet-900/60 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950/60 cursor-pointer"
+          className={`${chipBase} text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-100 dark:ring-violet-900/60 hover:bg-violet-100 dark:hover:bg-violet-950/60 cursor-pointer`}
         >
-          <Icon icon="heroicons:check-badge" className="text-sm" /> Verify
+          <Icon icon="heroicons:check-badge" className="text-xs" /> Verify
         </button>
       );
     }
@@ -510,47 +527,47 @@ const BillsList = ({
           type="button"
           onClick={() => handleAction(bill.id, "sync")}
           disabled={isSyncing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait cursor-pointer"
+          className={`${chipBase} text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait cursor-pointer`}
         >
-          <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-sm ${isSyncing ? "animate-spin" : ""}`} />
+          <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-xs ${isSyncing ? "animate-spin" : ""}`} />
           {isSyncing ? "Syncing…" : "Sync"}
         </button>
       );
     }
-    return <span className="text-xs text-slate-400">—</span>;
+    return <span className="text-[11px] text-slate-400">—</span>;
   };
 
   if (!selectedOrganization?.id) {
     return (
-      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-2.5">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
-        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No workspace selected</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Please select a client to view {copy.billLabel}s.</p>
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No workspace selected</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Please select a client to view {copy.billLabel}s.</p>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
             {copy.title}
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{copy.subtitle}</p>
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{copy.subtitle}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {selectedBills.size > 0 && (
             <>
               <button
                 type="button"
                 onClick={() => setIsMoveModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+                className={btnNeutral}
               >
-                <Icon icon="heroicons:arrow-right-circle" className="text-base" />
+                <Icon icon="heroicons:arrow-right-circle" className="text-sm" />
                 Move ({selectedBills.size})
               </button>
               {bulkSyncableIds.length > 0 && (
@@ -559,9 +576,9 @@ const BillsList = ({
                   onClick={() => setIsBulkSyncOpen(true)}
                   disabled={isBulkActing}
                   title="Sync selected Verified bills to Tally"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                  className={`${btnBase} text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:cursor-wait`}
                 >
-                  <Icon icon="heroicons:arrow-up-on-square" className="text-base" />
+                  <Icon icon="heroicons:arrow-up-on-square" className="text-sm" />
                   Sync ({bulkSyncableIds.length})
                 </button>
               )}
@@ -575,9 +592,9 @@ const BillsList = ({
                       ? `${bulkBlockedCount} selected bill(s) are already posted to Tally and will be skipped`
                       : "Move selected bills to Trash"
                   }
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                  className={`${btnBase} text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 disabled:cursor-wait`}
                 >
-                  <Icon icon="heroicons:trash" className="text-base" />
+                  <Icon icon="heroicons:trash" className="text-sm" />
                   Move to Trash ({bulkTrashableIds.length})
                 </button>
               )}
@@ -597,11 +614,11 @@ const BillsList = ({
                   ? `Export ${exportableIds.length} selected — ${unexportableCount} un-analysed will be skipped`
                   : `Export ${exportableIds.length} selected ${copy.billLabel}${exportableIds.length > 1 ? "s" : ""} as Excel`
               }
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-50 dark:disabled:hover:bg-emerald-950/40"
+              className={`${btnBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 disabled:cursor-not-allowed disabled:hover:bg-emerald-50 dark:disabled:hover:bg-emerald-950/40`}
             >
               <Icon
                 icon={isDownloadingReport ? "heroicons:arrow-path" : "heroicons:arrow-down-tray"}
-                className={`text-base ${isDownloadingReport ? "animate-spin" : ""}`}
+                className={`text-sm ${isDownloadingReport ? "animate-spin" : ""}`}
               />
               {isDownloadingReport
                 ? "Preparing…"
@@ -614,28 +631,28 @@ const BillsList = ({
             type="button"
             onClick={() => refetch()}
             disabled={isLoading || isFetching}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className={btnNeutral}
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${(isLoading || isFetching) ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${(isLoading || isFetching) ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => setIsUploadModalOpen(true)}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={btnPrimary}
           >
-            <Icon icon="heroicons:arrow-up-tray" className="text-base" />
+            <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
             Upload {copy.billLabel}
           </button>
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      {/* Table card — the only thing on the page that scrolls */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="px-5 md:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-          <div className="relative w-full md:max-w-sm">
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+        <div className="px-3 md:px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2 shrink-0">
+          <div className="relative w-full md:max-w-xs">
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
@@ -644,10 +661,10 @@ const BillsList = ({
                 setPage(1);
               }}
               placeholder="Search by name, status, uploader…"
-              className={inputBase}
+              className={CONTROL_SEARCH}
             />
           </div>
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
             {TABS.map((t) => {
               const isActive = activeTab === t.key;
               return (
@@ -655,7 +672,7 @@ const BillsList = ({
                   key={t.key}
                   type="button"
                   onClick={() => setActiveTab(t.key)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -663,7 +680,7 @@ const BillsList = ({
                 >
                   {t.label}
                   <span
-                    className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold ${
+                    className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-bold ${
                       isActive
                         ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60"
                         : "bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400"
@@ -680,28 +697,24 @@ const BillsList = ({
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-auto">
           {isLoading ? (
-            <div className="px-5 md:px-6 py-4 space-y-3">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+            <div className="px-3 md:px-4 py-2.5 space-y-2">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-16 px-6">
-              <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
-                <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+            <div className="text-center py-10 px-4">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2.5">
+                <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
               </div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">
                 Failed to load {copy.billLabel}s
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 mb-3">
                 {error?.data?.message || error?.message || "An error occurred while fetching bills."}
               </p>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-              >
-                <Icon icon="heroicons:arrow-path" className="text-base" />
+              <button type="button" onClick={() => refetch()} className={btnNeutral}>
+                <Icon icon="heroicons:arrow-path" className="text-sm" />
                 Try again
               </button>
             </div>
@@ -709,36 +722,36 @@ const BillsList = ({
             <table className="min-w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left w-10">
+                  <th className={`${thBase} w-8`}>
                     {selectableIds.length > 0 && (
                       <input
                         type="checkbox"
                         checked={allSelectablePicked}
                         onChange={toggleAll}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                        className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
                       />
                     )}
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 w-12">#</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Document</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Uploaded by</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Created</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Action</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 w-24">Control</th>
+                  <th className={`${thBase} w-10`}>#</th>
+                  <th className={thBase}>Document</th>
+                  <th className={thBase}>Status</th>
+                  <th className={`${thBase} hidden lg:table-cell`}>Uploaded by</th>
+                  <th className={`${thBase} hidden md:table-cell`}>Created</th>
+                  <th className={thBase}>Action</th>
+                  <th className={`${thBase} ltr:text-right rtl:text-left w-20`}>Control</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-16 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-3">
-                        <Icon icon={searchQuery ? "heroicons:magnifying-glass" : "heroicons:document-text"} className="text-2xl" />
+                    <td colSpan={8} className="px-3 py-10 text-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-2.5">
+                        <Icon icon={searchQuery ? "heroicons:magnifying-glass" : "heroicons:document-text"} className="text-lg" />
                       </div>
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {searchQuery ? "No bills match your search" : `No ${copy.billLabel}s yet`}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                         {searchQuery
                           ? "Try a different keyword or clear the search."
                           : `Upload your first ${copy.billLabel} to get started.`}
@@ -747,9 +760,9 @@ const BillsList = ({
                         <button
                           type="button"
                           onClick={() => setIsUploadModalOpen(true)}
-                          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                          className={`mt-3 ${btnPrimary}`}
                         >
-                          <Icon icon="heroicons:arrow-up-tray" className="text-base" />
+                          <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
                           Upload {copy.billLabel}
                         </button>
                       )}
@@ -772,29 +785,29 @@ const BillsList = ({
                             : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                         }`}
                       >
-                        <td className="px-4 py-3">
+                        <td className={tdBase}>
                           {canSelect && (
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleOne(bill.id)}
-                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                              className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
                             />
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs font-mono text-slate-400 dark:text-slate-500">
+                        <td className={`${tdBase} text-[11px] font-mono text-slate-400 dark:text-slate-500`}>
                           {String(serial).padStart(3, "0")}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="shrink-0 w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
-                              <Icon icon="heroicons:document-text" className="text-base" />
+                        <td className={tdBase}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="shrink-0 w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
+                              <Icon icon="heroicons:document-text" className="text-sm" />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                              <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                                 {getBillName(bill) || "—"}
                               </div>
-                              <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                              <div className="flex items-center flex-wrap gap-1 mt-0.5">
                                 {bill.file && (
                                   <button
                                     type="button"
@@ -868,27 +881,27 @@ const BillsList = ({
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3"><StatusBadge status={bill.status} /></td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-sm text-slate-700 dark:text-slate-300 truncate max-w-45">
+                        <td className={tdBase}><StatusBadge status={bill.status} /></td>
+                        <td className={`${tdBase} hidden lg:table-cell text-[11px] text-slate-700 dark:text-slate-300 truncate max-w-40`}>
                           {bill.uploaded_by_name || "—"}
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <div className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-                            <Icon icon="heroicons:calendar" className="text-base text-slate-400" />
+                        <td className={`${tdBase} hidden md:table-cell`}>
+                          <div className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                            <Icon icon="heroicons:calendar" className="text-xs text-slate-400" />
                             {formatDate(bill.created_at)}
                           </div>
                         </td>
-                        <td className="px-4 py-3"><ActionCell bill={bill} /></td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="inline-flex items-center gap-1">
+                        <td className={tdBase}><ActionCell bill={bill} /></td>
+                        <td className={`${tdBase} ltr:text-right rtl:text-left`}>
+                          <div className="inline-flex items-center gap-0.5">
                             {["Analysed", "Verified", "Synced"].includes(bill.status) && (
                               <button
                                 type="button"
                                 onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-700 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-700 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                 title="View bill details"
                               >
-                                <Icon icon="heroicons:eye" className="text-base" />
+                                <Icon icon="heroicons:eye" className="text-sm" />
                               </button>
                             )}
                             <button
@@ -899,8 +912,8 @@ const BillsList = ({
                               }
                               className={
                                 canTrashBill(bill)
-                                  ? "inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 disabled:opacity-50 transition-colors cursor-pointer"
-                                  : "inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                  ? "inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 disabled:opacity-50 transition-colors cursor-pointer"
+                                  : "inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-300 dark:text-slate-700 cursor-not-allowed"
                               }
                               title={
                                 canTrashBill(bill)
@@ -909,11 +922,11 @@ const BillsList = ({
                               }
                             >
                               {deletingBills.has(bill.id) ? (
-                                <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                                <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
                               ) : canTrashBill(bill) ? (
-                                <Icon icon="heroicons:trash" className="text-base" />
+                                <Icon icon="heroicons:trash" className="text-sm" />
                               ) : (
-                                <Icon icon="heroicons:lock-closed" className="text-base" />
+                                <Icon icon="heroicons:lock-closed" className="text-sm" />
                               )}
                             </button>
                           </div>
@@ -963,30 +976,30 @@ const BillsList = ({
         title={`Move to ${copy.moveTargetLabel}`}
         className="max-w-md"
       >
-        <div className="space-y-4 p-1">
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/60">
-            <Icon icon="heroicons:arrow-right-circle" className="text-blue-600 dark:text-blue-400 text-xl shrink-0 mt-0.5" />
-            <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+        <div className="space-y-3 p-1">
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/60">
+            <Icon icon="heroicons:arrow-right-circle" className="text-blue-600 dark:text-blue-400 text-base shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               You're about to move{" "}
               <span className="font-semibold">{selectedBills.size}</span> bill
               {selectedBills.size > 1 ? "s" : ""} to{" "}
               <span className="font-semibold">{copy.moveTargetLabel}</span>.
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setIsMoveModalOpen(false)}
-              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+              className={btnNeutral}
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleMoveSelected}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+              className={btnPrimary}
             >
-              <Icon icon="heroicons:arrow-right" className="text-base" />
+              <Icon icon="heroicons:arrow-right" className="text-sm" />
               Move {selectedBills.size} bill{selectedBills.size > 1 ? "s" : ""}
             </button>
           </div>
@@ -1001,10 +1014,10 @@ const BillsList = ({
         className="max-w-2xl"
       >
         {selectedDuplicateBill && (
-          <div className="space-y-4 p-1">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
-              <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-xl shrink-0 mt-0.5" />
-              <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+          <div className="space-y-3 p-1">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
+              <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
+              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 <p className="font-semibold text-amber-800 dark:text-amber-300">Possible duplicate</p>
                 <p className="mt-1">
                   Bill{" "}
@@ -1020,7 +1033,7 @@ const BillsList = ({
                 )}
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
               {canTrashBill(selectedDuplicateBill) && (
                 <button
                   type="button"
@@ -1028,7 +1041,7 @@ const BillsList = ({
                     setIsDuplicateModalOpen(false);
                     setDeleteConfirmBillId(selectedDuplicateBill.id);
                   }}
-                  className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
+                  className={`${btnBase} text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40`}
                 >
                   Move to Trash
                 </button>
@@ -1039,7 +1052,7 @@ const BillsList = ({
                   setIsDuplicateModalOpen(false);
                   navigate(`${copy.detailRoute}/${selectedDuplicateBill.id}`);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                className={btnPrimary}
               >
                 Proceed anyway
               </button>
@@ -1056,10 +1069,10 @@ const BillsList = ({
         className="max-w-2xl"
       >
         {selectedExternalBill && (
-          <div className="space-y-4 p-1">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
-              <Icon icon="heroicons:building-storefront" className="text-rose-600 dark:text-rose-400 text-xl shrink-0 mt-0.5" />
-              <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+          <div className="space-y-3 p-1">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
+              <Icon icon="heroicons:building-storefront" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
+              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 <p className="font-semibold text-rose-800 dark:text-rose-300">
                   This bill wasn't issued to your organization
                 </p>
@@ -1071,7 +1084,7 @@ const BillsList = ({
                 </p>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
               {canTrashBill(selectedExternalBill) && (
                 <button
                   type="button"
@@ -1079,7 +1092,7 @@ const BillsList = ({
                     setIsExternalBillModalOpen(false);
                     setDeleteConfirmBillId(selectedExternalBill.id);
                   }}
-                  className="px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
+                  className={`${btnBase} text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40`}
                 >
                   Move to Trash
                 </button>
@@ -1090,7 +1103,7 @@ const BillsList = ({
                   setIsExternalBillModalOpen(false);
                   navigate(`${copy.detailRoute}/${selectedExternalBill.id}`);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                className={btnPrimary}
               >
                 Proceed anyway
               </button>
@@ -1107,11 +1120,11 @@ const BillsList = ({
         className="max-w-xl"
       >
         {selectedSyncBill && (
-          <div className="space-y-4 p-1">
+          <div className="space-y-3 p-1">
             {getTallySyncState(selectedSyncBill) === "success" ? (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/60">
-                <Icon icon="heroicons:check-circle" className="text-emerald-600 dark:text-emerald-400 text-xl shrink-0 mt-0.5" />
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/60">
+                <Icon icon="heroicons:check-circle" className="text-emerald-600 dark:text-emerald-400 text-base shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   <p className="font-semibold text-emerald-800 dark:text-emerald-300">Synced successfully</p>
                   {selectedSyncBill.tally_sync_message && (
                     <p className="mt-1 text-xs whitespace-pre-wrap">
@@ -1121,9 +1134,9 @@ const BillsList = ({
                 </div>
               </div>
             ) : (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
-                <Icon icon="heroicons:x-circle" className="text-rose-600 dark:text-rose-400 text-xl shrink-0 mt-0.5" />
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
+                <Icon icon="heroicons:x-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   <p className="font-semibold text-rose-800 dark:text-rose-300">Sync failed</p>
                   <p className="mt-1 text-xs whitespace-pre-wrap">
                     {selectedSyncBill.tally_sync_message || "No error message provided by Tally."}
@@ -1131,11 +1144,11 @@ const BillsList = ({
                 </div>
               </div>
             )}
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsSyncStatusModalOpen(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                className={btnNeutral}
               >
                 Close
               </button>
@@ -1145,10 +1158,10 @@ const BillsList = ({
                   setIsSyncStatusModalOpen(false);
                   navigate(`${copy.detailRoute}/${selectedSyncBill.id}`);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                className={btnPrimary}
               >
                 Open bill
-                <Icon icon="heroicons:arrow-right" className="text-base" />
+                <Icon icon="heroicons:arrow-right" className="text-sm" />
               </button>
             </div>
           </div>

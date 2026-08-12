@@ -17,12 +17,15 @@ const Footer = ({ className = "custom-class" }) => {
   };
   return (
     <footer className={className + " " + footerclassName()}>
-      <div className="site-footer px-6 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 py-4">
+      {/* The footer is a permanent row of the app shell now, so it stays as
+          thin as it can while remaining legible — every pixel here is a pixel
+          the table body doesn't get. */}
+      <div className="site-footer px-3.5 md:px-5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 py-2">
         <div className="grid md:grid-cols-2 grid-cols-1 md:gap-5">
-          <div className="text-center md:ltr:text-start md:rtl:text-right text-sm">
+          <div className="text-center md:ltr:text-start md:rtl:text-right text-[11px]">
             COPYRIGHT &copy; {date.getFullYear()} Bill Munshi, All rights Reserved
           </div>
-          <div className="ltr:md:text-right rtl:md:text-end text-center text-sm">
+          <div className="ltr:md:text-right rtl:md:text-end text-center text-[11px]">
             <Link to="/privacy-policy" className="hover:text-slate-900 dark:hover:text-white mr-4">
               Privacy Policy
             </Link>

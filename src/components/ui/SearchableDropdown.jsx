@@ -3,30 +3,44 @@ import React, { useState, useRef, useEffect } from "react";
 /**
  * Trigger geometry per size.
  *
- * ``md`` is the original look — standalone form fields (vendor pickers,
- * ledger selects in the main forms) keep rendering exactly as before.
- *
- * ``sm`` matches the compact controls used inside the tax tables — the
- * amount inputs and native ``<select>``s there are all ``px-2 py-1.5
- * text-xs rounded-md`` (30px). Without this the dropdown stood ~8px
- * taller than everything beside it in the same row.
+ * Both sizes are the same 32px box now — the same box as `CONTROL` in
+ * `@/constants/ui` and as the toolbar buttons. `md` used to be
+ * `px-3 py-2 text-sm rounded-lg shadow-sm` (38px) while `sm` was 30px, so a
+ * form row that mixed a vendor picker, a ledger picker and an amount input
+ * showed three different control heights. `size` now only varies the icon
+ * scale; it is kept as a prop so the ~40 existing call sites don't have to
+ * change.
  */
 const SIZE_STYLES = {
   md: {
-    trigger: "px-3 py-2 text-sm rounded-lg shadow-sm",
     label: "pr-6",
-    icons: "pr-2",
-    chevron: "w-4 h-4",
+    icons: "pr-1.5",
+    chevron: "w-3.5 h-3.5",
     clear: "w-3 h-3",
   },
   sm: {
-    trigger: "px-2 py-1.5 text-xs rounded-md",
     label: "pr-5",
     icons: "pr-1.5",
-    chevron: "w-3.5 h-3.5",
+    chevron: "w-3 h-3",
     clear: "w-2.5 h-2.5",
   },
 };
+
+/**
+ * Trigger skin. Mirrors the `SKIN` constant in `@/constants/ui` — this
+ * component predates that module and is a `<button>`, not an `<input>`, so the
+ * disabled/placeholder states are spelled out rather than using the `disabled:`
+ * and `placeholder:` variants. Notably this used to be `border-gray-300` /
+ * `text-gray-900` with **no dark-mode colours at all**, which is why the
+ * dropdowns rendered as white boxes on the dark detail pages.
+ */
+const TRIGGER =
+  "w-full h-8 pl-2 flex items-center text-left text-xs rounded-md " +
+  "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 " +
+  "transition-colors hover:border-slate-300 dark:hover:border-slate-600 " +
+  "focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 " +
+  "disabled:cursor-not-allowed disabled:opacity-60 " +
+  "disabled:bg-slate-50 dark:disabled:bg-slate-800/60";
 
 const SearchableDropdown = ({
   options = [],
@@ -113,7 +127,8 @@ const SearchableDropdown = ({
   const calculateDropdownPosition = () => {
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
-      const dropdownHeight = 280; // Approximate dropdown height (search + options)
+      // Search row (48) + option list (max-h-55 = 220) + padding/border.
+      const dropdownHeight = 276;
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
 
@@ -190,8 +205,10 @@ const SearchableDropdown = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled || loading}
-        className={`w-full h-full flex items-center ${sizeStyle.trigger} text-left bg-white border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 focus:outline-none transition-all duration-200 hover:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed ${
-          selectedOption ? "text-gray-900" : "text-gray-500"
+        className={`${TRIGGER} ${
+          selectedOption
+            ? "text-slate-900 dark:text-white"
+            : "text-slate-400 dark:text-slate-500"
         } ${triggerClassName}`}
       >
         <span className={`flex-1 min-w-0 truncate ${sizeStyle.label}`}>
@@ -203,7 +220,7 @@ const SearchableDropdown = ({
           {selectedOption && !loading && (
             <div
               onClick={handleClear}
-              className="mr-1 p-0.5 rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              className="mr-1 p-0.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Clear selection"
             >
               <svg
@@ -228,7 +245,7 @@ const SearchableDropdown = ({
               ></div>
             ) : (
               <svg
-                className={`${sizeStyle.chevron} text-gray-400 transition-transform duration-200 ${
+                className={`${sizeStyle.chevron} text-slate-400 transition-transform duration-200 ${
                   isOpen ? "rotate-180" : ""
                 }`}
                 fill="none"
@@ -250,12 +267,12 @@ const SearchableDropdown = ({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute z-[999999] w-full bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden ${
+          className={`absolute z-[999999] w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-black/40 overflow-hidden ${
             openUpward ? "bottom-full mb-1" : "top-full mt-1"
           }`}
         >
           {/* Search Input */}
-          <div className="p-3 border-b border-gray-200">
+          <div className="p-2 border-b border-slate-200 dark:border-slate-700">
             <div className="relative">
               <input
                 ref={searchInputRef}
@@ -264,11 +281,11 @@ const SearchableDropdown = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
-                className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="w-full h-8 pl-7 pr-2 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
                 <svg
-                  className="w-4 h-4 text-gray-400"
+                  className="w-3.5 h-3.5 text-slate-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -285,9 +302,9 @@ const SearchableDropdown = ({
           </div>
 
           {/* Options List */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-55 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+              <div className="px-2 py-3 text-xs text-slate-500 dark:text-slate-400 text-center">
                 {searchTerm
                   ? `No results for "${searchTerm}"`
                   : noOptionsMessage}
@@ -303,19 +320,19 @@ const SearchableDropdown = ({
                     key={optionValue || index}
                     type="button"
                     onClick={() => handleOptionSelect(option)}
-                    className={`w-full px-4 py-3 text-sm text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors ${
+                    className={`w-full px-2 py-1.5 rounded-md text-xs text-left transition-colors focus:outline-none ${
                       isSelected
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-900"
+                        ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-semibold"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 focus:bg-slate-100 dark:focus:bg-slate-700/60"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="truncate">
                         {getOptionDisplay(option)}
                       </span>
                       {isSelected && (
                         <svg
-                          className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2"
+                          className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"

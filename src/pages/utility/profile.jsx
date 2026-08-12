@@ -23,7 +23,7 @@ const profile = () => {
   // Show error state
   if (error) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-4">
         <Card title="Error" noBorder>
           <div className="flex flex-col items-center justify-center py-8">
             <svg className="w-12 h-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,8 +63,8 @@ const profile = () => {
   };
   return (
     <div>
-      <div className="space-y-5 profile-page">
-        <div className="profiel-wrap px-[35px] pb-10 md:pt-[84px] pt-10 rounded-lg bg-white dark:bg-slate-800 lg:flex lg:space-y-0 space-y-6 justify-between items-end relative z-1">
+      <div className="space-y-4 profile-page">
+        <div className="profiel-wrap px-[35px] pb-10 md:pt-[84px] pt-10 rounded-lg bg-white dark:bg-slate-800 lg:flex lg:space-y-0 space-y-4 justify-between items-end relative z-1">
           <div className="bg-slate-900 dark:bg-slate-700 absolute left-0 top-0 md:h-1/2 h-[150px] w-full z-[-1] rounded-t-lg"></div>
           <div className="profile-box flex-none md:text-start text-center">
             <div className="md:flex items-end md:space-x-6 rtl:space-x-reverse">
@@ -126,7 +126,7 @@ const profile = () => {
             </div>
           </div>
 
-          <div className="profile-info-500 md:flex md:text-start text-center flex-1 max-w-[516px] md:space-y-0 space-y-4">
+          <div className="profile-info-500 md:flex md:text-start text-center flex-1 max-w-[516px] md:space-y-0 space-y-3">
             <div className="flex-1">
               <div className="text-base text-slate-900 dark:text-slate-300 font-medium mb-1">
                 {userProfile?.organizations?.length || 0}
@@ -156,7 +156,7 @@ const profile = () => {
           </div>
         </div>
         <div className="grid grid-cols-12 gap-6">
-          <div className="lg:col-span-6 col-span-12 space-y-6">
+          <div className="lg:col-span-6 col-span-12 space-y-4">
             <Card title="Personal Information">
               <ul className="list space-y-8">
                 <li className="flex space-x-3 rtl:space-x-reverse">
@@ -230,7 +230,7 @@ const profile = () => {
 
             {/* Account Status Card */}
             <Card title="Account Status">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -279,7 +279,7 @@ const profile = () => {
 
             {/* Security Settings Card */}
             <Card title="Security Settings">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -315,7 +315,7 @@ const profile = () => {
             </Card>
           </div>
           
-          <div className="lg:col-span-6 col-span-12 space-y-6">
+          <div className="lg:col-span-6 col-span-12 space-y-4">
             {/* Organizations Card */}
             {userProfile?.organizations && userProfile.organizations.length > 0 && (
               <Card title="Organizations" headerSlot={
@@ -323,7 +323,7 @@ const profile = () => {
                   {userProfile.organizations.length} organization{userProfile.organizations.length > 1 ? 's' : ''}
                 </span>
               }>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {userProfile.organizations.map((org, index) => (
                     <div key={org.id} className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-700 dark:to-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-600 hover:shadow-md transition-all duration-200">
                       <div className="flex items-start justify-between mb-4">
@@ -407,7 +407,7 @@ const profile = () => {
                     <p className="text-sm text-gray-600">Recent activity and account statistics</p>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-green-200">
                     <span className="text-sm font-medium text-gray-700">Last Active:</span>
                     <span className="text-sm font-semibold text-gray-900">

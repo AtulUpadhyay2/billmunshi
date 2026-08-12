@@ -7,9 +7,19 @@ import apiClient from "@/utils/apiClient";
 import Modal from "@/components/ui/Modal";
 import TablePagination from "@/components/ui/TablePagination";
 import { setSelectedOrganization } from "@/store/api/auth/authSlice";
+import { CONTROL_SEARCH } from "@/constants/ui";
 
-const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+const btnBase =
+  "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
+const btnNeutral =
+  `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
+const btnPrimary =
+  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20`;
+
+const thBase =
+  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+const tdBase = "px-3 py-1.5";
 
 const AVATAR_GRADIENTS = [
   "from-blue-500 to-blue-700",
@@ -122,7 +132,7 @@ const ClientList = () => {
     };
     const c = map[s] || { dot: "bg-slate-400", bg: "bg-slate-100 dark:bg-slate-800", txt: "text-slate-600 dark:text-slate-300", ring: "ring-slate-200 dark:ring-slate-700" };
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${c.bg} ${c.txt} ${c.ring}`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${c.bg} ${c.txt} ${c.ring}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`}></span>
         {s ? s.charAt(0) + s.slice(1).toLowerCase() : "—"}
       </span>
@@ -159,40 +169,40 @@ const ClientList = () => {
   }, [filtered, page, pageSize]);
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
             Clients
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             Manage all your client workspaces from one place.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => fetchClients(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className={btnNeutral}
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${refreshing ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={btnPrimary}
           >
-            <Icon icon="heroicons:plus" className="text-base" />
+            <Icon icon="heroicons:plus" className="text-sm" />
             Add new client
           </button>
         </div>
       </div>
 
       {/* Compact stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
         {[
           { label: "Total clients", value: stats.total, icon: "heroicons:building-office-2" },
           { label: "Active", value: stats.active, icon: "heroicons:check-badge" },
@@ -201,16 +211,16 @@ const ClientList = () => {
         ].map((s, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2.5 flex items-center gap-3"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 flex items-center gap-2"
           >
-            <span className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-              <Icon icon={s.icon} className="text-sm" />
+            <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+              <Icon icon={s.icon} className="text-xs" />
             </span>
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                 {s.label}
               </div>
-              <div className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
+              <div className="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-none mt-0.5">
                 {s.value}
               </div>
             </div>
@@ -218,22 +228,22 @@ const ClientList = () => {
         ))}
       </div>
 
-      {/* Table card — fills remaining viewport */}
-      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      {/* Table card — the only thing on the page that scrolls */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="px-5 md:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-          <div className="relative w-full md:max-w-sm">
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+        <div className="px-3 md:px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2 shrink-0">
+          <div className="relative w-full md:max-w-xs">
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search clients, owner, GSTIN…"
-              className={inputBase}
+              className={CONTROL_SEARCH}
             />
           </div>
 
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
             {[
               { value: "ALL", label: "All", count: stats.total },
               { value: "ACTIVE", label: "Active", count: stats.active },
@@ -246,7 +256,7 @@ const ClientList = () => {
                   key={tab.value}
                   type="button"
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -254,7 +264,7 @@ const ClientList = () => {
                 >
                   {tab.label}
                   <span
-                    className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold ${
+                    className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-bold ${
                       isActive
                         ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60"
                         : "bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400"
@@ -271,39 +281,39 @@ const ClientList = () => {
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-auto">
           {loading ? (
-            <div className="px-5 md:px-6 py-4 space-y-3">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+            <div className="px-3 md:px-4 py-2.5 space-y-2">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
               ))}
             </div>
           ) : (
             <table className="min-w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Client</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Unique ID</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">GSTIN</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden md:table-cell">Owner</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden xl:table-cell">Created by</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 hidden lg:table-cell">Created</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 w-20">Action</th>
+                  <th className={thBase}>Client</th>
+                  <th className={`${thBase} hidden md:table-cell`}>Unique ID</th>
+                  <th className={`${thBase} hidden lg:table-cell`}>GSTIN</th>
+                  <th className={`${thBase} hidden md:table-cell`}>Owner</th>
+                  <th className={thBase}>Status</th>
+                  <th className={`${thBase} hidden xl:table-cell`}>Created by</th>
+                  <th className={`${thBase} hidden lg:table-cell`}>Created</th>
+                  <th className={`${thBase} ltr:text-right rtl:text-left w-16`}>Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-16 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-3">
+                    <td colSpan={8} className="px-3 py-10 text-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-2.5">
                         <Icon
                           icon={searchQuery || statusFilter !== "ALL" ? "heroicons:magnifying-glass" : "heroicons:building-office-2"}
-                          className="text-2xl"
+                          className="text-lg"
                         />
                       </div>
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {searchQuery || statusFilter !== "ALL" ? "No clients match your filters" : "No clients yet"}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                         {searchQuery || statusFilter !== "ALL"
                           ? "Try a different keyword or change the filter."
                           : "Create your first client to get started."}
@@ -312,9 +322,9 @@ const ClientList = () => {
                         <button
                           type="button"
                           onClick={() => setShowCreateModal(true)}
-                          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+                          className={`mt-3 ${btnPrimary}`}
                         >
-                          <Icon icon="heroicons:plus" className="text-base" />
+                          <Icon icon="heroicons:plus" className="text-sm" />
                           Add new client
                         </button>
                       )}
@@ -328,80 +338,80 @@ const ClientList = () => {
                         key={client.id}
                         className="group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                       >
-                        <td className="px-4 py-3">
+                        <td className={tdBase}>
                           <button
                             type="button"
                             onClick={() => handleOrganizationClick(client)}
-                            className="flex items-center gap-3 group/link cursor-pointer min-w-0 text-left"
+                            className="flex items-center gap-2 group/link cursor-pointer min-w-0 text-left"
                           >
-                            <div className={`shrink-0 h-9 w-9 rounded-lg bg-linear-to-br ${grad} flex items-center justify-center shadow-sm ring-1 ring-black/5`}>
-                              <span className="text-white font-bold text-sm">
+                            <div className={`shrink-0 h-7 w-7 rounded-lg bg-linear-to-br ${grad} flex items-center justify-center shadow-sm ring-1 ring-black/5`}>
+                              <span className="text-white font-bold text-[11px]">
                                 {client.name?.charAt(0).toUpperCase() || "?"}
                               </span>
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 dark:text-white group-hover/link:text-blue-700 dark:group-hover/link:text-blue-400 truncate transition-colors">
+                              <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover/link:text-blue-700 dark:group-hover/link:text-blue-400 truncate transition-colors">
                                 {client.name}
                               </div>
-                              <div className="md:hidden text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                              <div className="md:hidden text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
                                 {client.unique_name}
                               </div>
                             </div>
                           </button>
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className="inline-flex items-center px-2 py-1 text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md ring-1 ring-slate-200 dark:ring-slate-700">
+                        <td className={`${tdBase} hidden md:table-cell`}>
+                          <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md ring-1 ring-slate-200 dark:ring-slate-700">
                             {client.unique_name}
                           </span>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
+                        <td className={`${tdBase} hidden lg:table-cell`}>
                           {client.gst_number ? (
-                            <span className="text-sm font-mono text-slate-700 dark:text-slate-300">
+                            <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300">
                               {client.gst_number}
                             </span>
                           ) : (
-                            <span className="text-xs italic text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] italic text-slate-400 dark:text-slate-500">
                               Not provided
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
+                        <td className={`${tdBase} hidden md:table-cell`}>
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-50">
+                            <div className="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-45">
                               {client.owner?.full_name || "—"}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-50">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-45">
                               {client.owner?.email || ""}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={tdBase}>
                           <StatusBadge status={client.status} />
                         </td>
-                        <td className="px-4 py-3 hidden xl:table-cell">
+                        <td className={`${tdBase} hidden xl:table-cell`}>
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-50">
+                            <div className="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-45">
                               {client.created_by?.full_name || "—"}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-50">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-45">
                               {client.created_by?.email || ""}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell">
-                          <div className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-                            <Icon icon="heroicons:calendar" className="text-base text-slate-400" />
+                        <td className={`${tdBase} hidden lg:table-cell`}>
+                          <div className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                            <Icon icon="heroicons:calendar" className="text-xs text-slate-400" />
                             {formatDate(client.created_at)}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className={`${tdBase} ltr:text-right rtl:text-left`}>
                           <button
                             type="button"
                             onClick={() => handleOrganizationClick(client)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/60 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 rounded-md hover:bg-blue-100 dark:hover:bg-blue-950/60 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                           >
                             Open
-                            <Icon icon="heroicons:arrow-right" className="text-xs" />
+                            <Icon icon="heroicons:arrow-right" className="text-[10px]" />
                           </button>
                         </td>
                       </tr>
@@ -435,45 +445,45 @@ const ClientList = () => {
           setFormData({ name: "", module: "tally", gst_number: "" });
         }}
       >
-        <form onSubmit={handleCreateClient} className="space-y-4">
+        <form onSubmit={handleCreateClient} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Client name <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <Icon icon="heroicons:building-office" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+              <Icon icon="heroicons:building-office" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter client / organization name"
                 required
-                className={inputBase}
+                className={CONTROL_SEARCH}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               GSTIN
             </label>
             <div className="relative">
-              <Icon icon="heroicons:receipt-percent" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+              <Icon icon="heroicons:receipt-percent" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
               <input
                 type="text"
                 value={formData.gst_number}
                 onChange={(e) => setFormData({ ...formData, gst_number: e.target.value })}
                 placeholder="Enter GSTIN (optional)"
-                className={inputBase}
+                className={CONTROL_SEARCH}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Module
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {moduleOptions.map((opt) => {
                 const isActive = formData.module === opt.value;
                 return (
@@ -481,14 +491,14 @@ const ClientList = () => {
                     key={opt.value}
                     type="button"
                     onClick={() => setFormData({ ...formData, module: opt.value })}
-                    className={`p-3 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${
+                    className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                       isActive
                         ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500/20"
                         : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      {isActive && <Icon icon="heroicons:check-circle" className="text-base" />}
+                    <div className="flex items-center justify-center gap-1.5">
+                      {isActive && <Icon icon="heroicons:check-circle" className="text-sm" />}
                       {opt.label}
                     </div>
                   </button>
@@ -497,30 +507,26 @@ const ClientList = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-4">
+          <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-3">
             <button
               type="button"
               onClick={() => {
                 setShowCreateModal(false);
                 setFormData({ name: "", module: "tally", gst_number: "" });
               }}
-              className="px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+              className={btnNeutral}
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={createLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
-            >
+            <button type="submit" disabled={createLoading} className={btnPrimary}>
               {createLoading ? (
                 <>
-                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
                   Creating…
                 </>
               ) : (
                 <>
-                  <Icon icon="heroicons:plus" className="text-base" />
+                  <Icon icon="heroicons:plus" className="text-sm" />
                   Create client
                 </>
               )}

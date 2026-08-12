@@ -83,8 +83,8 @@ const Dashboard = () => {
   if (modulesError) {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center">
-        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+        <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+          <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           Failed to load modules
@@ -103,8 +103,8 @@ const Dashboard = () => {
   if (enabledTabs.length === 0) {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-          <Icon icon="heroicons:adjustments-horizontal" className="text-2xl" />
+        <div className="w-10 h-10 mx-auto mb-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+          <Icon icon="heroicons:adjustments-horizontal" className="text-lg" />
         </div>
         <p className="text-base font-bold text-slate-900 dark:text-white">
           No modules enabled
@@ -121,14 +121,14 @@ const Dashboard = () => {
   /*  Header + tabs                                                      */
   /* ------------------------------------------------------------------ */
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
             Dashboard
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             {selectedOrganization?.name
               ? `Activity overview for ${selectedOrganization.name}.`
               : "Pick a workspace to view its bill activity overview."}
@@ -137,7 +137,7 @@ const Dashboard = () => {
 
         {/* Tab pills */}
         {enabledTabs.length > 1 && (
-          <div className="inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg shrink-0">
+          <div className="inline-flex items-center gap-0.5 p-0.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg shrink-0">
             {enabledTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -145,14 +145,14 @@ const Dashboard = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold rounded-md transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 shadow-sm"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/40"
                   }`}
                   aria-pressed={isActive}
                 >
-                  <Icon icon={tab.icon} className="text-sm" />
+                  <Icon icon={tab.icon} className="text-xs" />
                   {tab.label}
                 </button>
               );

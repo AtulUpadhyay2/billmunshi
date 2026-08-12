@@ -48,7 +48,7 @@ const FileViewerModal = ({ isOpen, onClose, fileUrl, fileName = "File" }) => {
     const renderFileContent = () => {
         if (isLoading) {
             return (
-                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     <span className="text-slate-600">Loading file...</span>
                 </div>
@@ -57,7 +57,7 @@ const FileViewerModal = ({ isOpen, onClose, fileUrl, fileName = "File" }) => {
 
         if (error) {
             return (
-                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
                     <svg className="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -118,8 +118,8 @@ const FileViewerModal = ({ isOpen, onClose, fileUrl, fileName = "File" }) => {
 
             case 'document':
                 return (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                        <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <div className="flex flex-col items-center space-y-3">
                             <svg className="w-16 h-16 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                             </svg>
@@ -151,8 +151,8 @@ const FileViewerModal = ({ isOpen, onClose, fileUrl, fileName = "File" }) => {
 
             default:
                 return (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                        <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <div className="flex flex-col items-center space-y-3">
                             <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>

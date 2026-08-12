@@ -239,7 +239,7 @@ const UploadBillModal = ({
       onClose={handleClose}
       className="max-w-3xl"
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Advanced per-file scanner (opens only when user asks to fine-tune) */}
         {activeTuneItem && activeTuneItem.kind === "image" ? (
           <div className="space-y-3">
@@ -271,7 +271,7 @@ const UploadBillModal = ({
             />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* File type toggle */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -283,7 +283,7 @@ const UploadBillModal = ({
                     key={f.value}
                     type="button"
                     onClick={() => setFileType(f.value)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
                       fileType === f.value
                         ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 shadow-sm"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -328,8 +328,8 @@ const UploadBillModal = ({
                 }`}
               >
                 <div className="flex flex-col items-center gap-2">
-                  <span className="inline-flex w-12 h-12 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:cloud-arrow-up" className="text-2xl" />
+                  <span className="inline-flex w-12 h-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon="heroicons:cloud-arrow-up" className="text-lg" />
                   </span>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {isDragOver ? "Drop files here" : "Drag & drop bill files here"}
@@ -403,7 +403,7 @@ const UploadBillModal = ({
                         className="flex items-center gap-3 px-3 py-2"
                       >
                         <span
-                          className={`inline-flex w-9 h-9 items-center justify-center rounded-md ring-1 shrink-0 ${
+                          className={`inline-flex w-7 h-7 items-center justify-center rounded-md ring-1 shrink-0 ${
                             tuned
                               ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
                               : it.kind === "pdf"
@@ -419,7 +419,7 @@ const UploadBillModal = ({
                                   ? "heroicons:document-text"
                                   : "heroicons:photo"
                             }
-                            className="text-base"
+                            className="text-sm"
                           />
                         </span>
                         <div className="flex-1 min-w-0">
@@ -451,7 +451,7 @@ const UploadBillModal = ({
                           className="inline-flex items-center justify-center w-7 h-7 rounded-md text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                           title="Remove"
                         >
-                          <Icon icon="heroicons:x-mark" className="text-base" />
+                          <Icon icon="heroicons:x-mark" className="text-sm" />
                         </button>
                       </div>
                     );
@@ -466,7 +466,7 @@ const UploadBillModal = ({
                 type="button"
                 onClick={handleClose}
                 disabled={isUploading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
@@ -474,7 +474,7 @@ const UploadBillModal = ({
                 type="button"
                 onClick={handleUpload}
                 disabled={items.length === 0 || isUploading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
               >
                 {isUploading ? (
                   <>
@@ -483,7 +483,7 @@ const UploadBillModal = ({
                   </>
                 ) : (
                   <>
-                    <Icon icon="heroicons:cloud-arrow-up" className="text-base" />
+                    <Icon icon="heroicons:cloud-arrow-up" className="text-sm" />
                     Upload {items.length || ""} {items.length === 1 ? "file" : items.length > 1 ? "files" : ""}
                   </>
                 )}

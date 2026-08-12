@@ -19,6 +19,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 const ZohoJournalEntryDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -789,9 +790,9 @@ const ZohoJournalEntryDetail = () => {
   // Show error state
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
-          <Icon icon="heroicons:exclamation-triangle" className="text-2xl" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+          <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           Failed to load journal entry
@@ -805,17 +806,17 @@ const ZohoJournalEntryDetail = () => {
           <button
             type="button"
             onClick={handleBackClick}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Go back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className="text-base" />
+            <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
           </button>
         </div>
@@ -826,9 +827,9 @@ const ZohoJournalEntryDetail = () => {
   // Show message if no organization selected
   if (!selectedOrganization?.id) {
     return (
-      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           No workspace selected
@@ -843,18 +844,18 @@ const ZohoJournalEntryDetail = () => {
   return (
     <div className="space-y-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={handleBackClick}
-            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
             title="Back to journal entries"
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+            <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
               {journalInfo?.bill_munshi_name || journalInfo?.billmunshiName || "Journal entry"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -867,37 +868,37 @@ const ZohoJournalEntryDetail = () => {
             type="button"
             onClick={() => navigate(`/zoho/journal-entry/${journalEntryData?.previous_bill}`)}
             disabled={!journalEntryData?.previous_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={journalEntryData?.previous_bill ? "Go to previous bill" : "No previous bill"}
           >
-            <Icon icon="heroicons:arrow-left" className="text-base" />
+            <Icon icon="heroicons:arrow-left" className="text-sm" />
             Back
           </button>
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isFetching ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             type="button"
             onClick={() => navigate(`/zoho/journal-entry/${journalEntryData?.next_bill}`)}
             disabled={!journalEntryData?.next_bill}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={journalEntryData?.next_bill ? "Go to next entry" : "No next entry"}
           >
             Next
-            <Icon icon="heroicons:arrow-right" className="text-base" />
+            <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
             onClick={handleSave}
             disabled={isVerifying || isVerified || hasValidationErrors()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={
               isVerifying
                 ? "Verifying…"
@@ -910,14 +911,14 @@ const ZohoJournalEntryDetail = () => {
                       : "Verify"
             }
           >
-            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-base ${isVerifying ? "animate-spin" : ""}`} />
+            <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-sm ${isVerifying ? "animate-spin" : ""}`} />
             {isVerifying ? "Verifying…" : journalInfo?.status === "Verified" ? "Re-verify" : "Verify"}
           </button>
           <button
             type="button"
             onClick={handleSync}
             disabled={isSyncing || isVerified || journalInfo?.status !== "Verified"}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             title={
               isSyncing
                 ? "Syncing…"
@@ -928,13 +929,13 @@ const ZohoJournalEntryDetail = () => {
                     : "Sync with Zoho"
             }
           >
-            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-base ${isSyncing ? "animate-spin" : ""}`} />
+            <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-sm ${isSyncing ? "animate-spin" : ""}`} />
             {isSyncing ? "Syncing…" : "Sync to Zoho"}
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
         {/* legacy-block-removed-start */}
         {false && (
           <div className="hidden">
@@ -1169,14 +1170,14 @@ const ZohoJournalEntryDetail = () => {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6 relative">
+        <div className="flex flex-col lg:flex-row gap-4 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
-            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-200px)] flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {journalInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
                   {/* Fixed Header - Always Visible */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+                  <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
                     <h3 className="text-base font-medium text-slate-900 dark:text-white truncate mr-2">
                       {journalInfo.billmunshiName
                         ? `${journalInfo.billmunshiName}`
@@ -1395,7 +1396,7 @@ const ZohoJournalEntryDetail = () => {
 
           {/* Scrollable Content Column */}
           <div className="lg:w-2/3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-visible">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
               {/* Bill Information Section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
@@ -1540,7 +1541,7 @@ const ZohoJournalEntryDetail = () => {
                         }
                         placeholder="Enter bill number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
+                        className={`${CONTROL} ${
                           isVerified
                             ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                             : ""
@@ -1568,7 +1569,7 @@ const ZohoJournalEntryDetail = () => {
                         }
                         placeholder="Enter GST number"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20`}
+                        className={`${CONTROL} `}
                         readOnly={
                           journalEntryForm.selectedVendor &&
                           journalEntryForm.selectedVendor.gstNo
@@ -1592,7 +1593,7 @@ const ZohoJournalEntryDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.entryDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -1636,7 +1637,7 @@ const ZohoJournalEntryDetail = () => {
                         max="2100-12-31"
                         placeholder="DD-MM-YYYY"
                         disabled={isVerified}
-                        className={`w-full px-2.5 py-1.5 text-sm border rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+                        className={`${CONTROL_VALIDATED} ${
                           dateErrors.dueDate
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                             : isVerified
@@ -1763,7 +1764,7 @@ const ZohoJournalEntryDetail = () => {
                                   }}
                                   placeholder="Enter item details..."
                                   disabled={isVerified}
-                                  className={`w-full px-2.5 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 resize-none ${
+                                  className={`${CONTROL_TEXTAREA} ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -1832,7 +1833,7 @@ const ZohoJournalEntryDetail = () => {
                                   }}
                                   placeholder="0.00"
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-right bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  className={`${CONTROL_NUM} ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -1855,7 +1856,7 @@ const ZohoJournalEntryDetail = () => {
                                     setJournalLineItems(newItems);
                                   }}
                                   disabled={isVerified}
-                                  className={`w-full px-3 py-2 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 hover:border-slate-300 ${
+                                  className={`${CONTROL} text-center ${
                                     isVerified
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
@@ -1965,7 +1966,7 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`${CONTROL} text-center ${
                             isVerified
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
@@ -1987,7 +1988,7 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`${CONTROL_NUM} ${
                               isVerified
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
@@ -2036,7 +2037,7 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`${CONTROL} text-center ${
                             isVerified
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
@@ -2058,7 +2059,7 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`${CONTROL_NUM} ${
                               isVerified
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
@@ -2107,7 +2108,7 @@ const ZohoJournalEntryDetail = () => {
                             )
                           }
                           disabled={isVerified}
-                          className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                          className={`${CONTROL} text-center ${
                             isVerified
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
@@ -2129,7 +2130,7 @@ const ZohoJournalEntryDetail = () => {
                             }
                             placeholder="0.00"
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            className={`${CONTROL_NUM} ${
                               isVerified
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
@@ -2198,7 +2199,7 @@ const ZohoJournalEntryDetail = () => {
                               )
                             }
                             disabled={isVerified}
-                            className={`w-full px-2 py-1 text-sm text-center bg-white border border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${
+                            className={`${CONTROL} text-center ${
                               isVerified
                                 ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                 : ""
@@ -2213,7 +2214,7 @@ const ZohoJournalEntryDetail = () => {
                             <span className="text-xs text-slate-500 dark:text-slate-400 mr-1.5">
                               ₹
                             </span>
-                            <div className="w-full px-2 py-1 text-right border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900/60 text-sm font-medium">
+                            <div className={`${CONTROL_READONLY} font-mono tabular-nums text-right`}>
                               {journalEntryForm.totalAmount
                                 ? parseFloat(
                                     journalEntryForm.totalAmount,
@@ -2250,7 +2251,7 @@ const ZohoJournalEntryDetail = () => {
                     }
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isVerified}
-                    className={`w-full h-24 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none ${
+                    className={`${CONTROL_TEXTAREA} h-24 ${
                       isVerified
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""

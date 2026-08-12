@@ -12,9 +12,17 @@ import {
   useDeleteTallyTrashItemForever,
   useEmptyTallyTrash,
 } from "@/services/tally/tallyTrashService";
+import { CONTROL_SEARCH } from "@/constants/ui";
 
-const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+const btnBase =
+  "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
+const btnNeutral =
+  `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
+
+const thBase =
+  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+const tdBase = "px-3 py-1.5";
 
 const formatDate = (d) =>
   d
@@ -41,15 +49,15 @@ const RetentionBadge = ({ days }) => {
       : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-slate-200 dark:ring-slate-700";
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${tone}`}>
-      <Icon icon="heroicons:clock" className="text-xs" />
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 whitespace-nowrap ${tone}`}>
+      <Icon icon="heroicons:clock" className="text-[10px]" />
       {days === 0 ? "Deleting today" : `${days} day${days > 1 ? "s" : ""} left`}
     </span>
   );
 };
 
 const TypeBadge = ({ label }) => (
-  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 whitespace-nowrap">
     {label}
   </span>
 );
@@ -167,33 +175,45 @@ const TallyTrash = () => {
 
   if (!organizationId) {
     return (
-      <div className="p-6 text-sm text-slate-500 dark:text-slate-400">
-        Select an organization to view its trash.
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-2.5">
+          <Icon icon="heroicons:building-office" className="text-lg" />
+        </div>
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          No workspace selected
+        </p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          Select an organization to view its trash.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    // Same shell as every other table section: the page itself never
+    // scrolls, only the row area inside the card does.
+    <div className="h-full flex flex-col gap-3">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Trash</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+            Trash
+          </h1>
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             Deleted documents stay here for {retentionDays} days, then are removed permanently.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer disabled:opacity-60"
+            className={btnNeutral}
           >
             <Icon
               icon="heroicons:arrow-path"
-              className={`text-base ${isFetching ? "animate-spin" : ""}`}
+              className={`text-sm ${isFetching ? "animate-spin" : ""}`}
             />
             Refresh
           </button>
@@ -202,40 +222,40 @@ const TallyTrash = () => {
             <button
               type="button"
               onClick={() => setIsEmptyOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer"
+              className={`${btnBase} text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60`}
             >
-              <Icon icon="heroicons:trash" className="text-base" />
+              <Icon icon="heroicons:trash" className="text-sm" />
               Empty Trash
             </button>
           )}
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
-        <div className="flex flex-wrap items-center gap-3 p-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
+      {/* Table card — the only thing on the page that scrolls */}
+      <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div className="flex flex-wrap items-center gap-2 px-3 md:px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Icon
               icon="heroicons:magnifying-glass"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"
             />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by document name…"
-              className={inputBase}
+              className={CONTROL_SEARCH}
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60">
             <button
               type="button"
               onClick={() => setTypeFilter("all")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 typeFilter === "all"
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               All
@@ -245,15 +265,17 @@ const TallyTrash = () => {
                 key={t.slug}
                 type="button"
                 onClick={() => setTypeFilter(t.slug)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 h-7 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   typeFilter === t.slug
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {t.label}
                 {countsByType[t.slug] ? (
-                  <span className="ml-1.5 text-xs opacity-70">{countsByType[t.slug]}</span>
+                  <span className="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-bold bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400">
+                    {countsByType[t.slug]}
+                  </span>
                 ) : null}
               </button>
             ))}
@@ -262,26 +284,35 @@ const TallyTrash = () => {
 
         {/* Body — dimmed while a filter switch refetches, since the rows on
             screen are the previous filter's until the new page lands. */}
-        <div className={isFetching && !isLoading ? "opacity-50 transition-opacity" : "transition-opacity"}>
+        <div
+          className={`flex-1 min-h-0 overflow-auto ${
+            isFetching && !isLoading ? "opacity-50 transition-opacity" : "transition-opacity"
+          }`}
+        >
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-slate-500 dark:text-slate-400">
-            <Icon icon="heroicons:arrow-path" className="text-2xl animate-spin mx-auto mb-2" />
-            Loading trash…
+          <div className="px-3 md:px-4 py-2.5 space-y-2">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+            ))}
           </div>
         ) : error ? (
-          <div className="p-12 text-center">
-            <Icon icon="heroicons:exclamation-triangle" className="text-3xl text-rose-500 mx-auto mb-2" />
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+          <div className="py-10 px-4 text-center">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2.5">
+              <Icon icon="heroicons:exclamation-triangle" className="text-lg" />
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {error?.response?.data?.message || error?.message || "Failed to load trash"}
             </p>
           </div>
         ) : items.length === 0 ? (
-          <div className="p-12 text-center">
-            <Icon icon="heroicons:trash" className="text-4xl text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+          <div className="py-10 px-4 text-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto mb-2.5">
+              <Icon icon="heroicons:trash" className="text-lg" />
+            </div>
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Trash is empty
             </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               {search
                 ? "No deleted documents match your search."
                 : "Documents you delete will appear here and stay recoverable."}
@@ -289,61 +320,61 @@ const TallyTrash = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-4 py-3">Document</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Deleted by</th>
-                  <th className="px-4 py-3">Deleted on</th>
-                  <th className="px-4 py-3">Auto-delete</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
+                <tr>
+                  <th className={thBase}>Document</th>
+                  <th className={thBase}>Type</th>
+                  <th className={thBase}>Deleted by</th>
+                  <th className={thBase}>Deleted on</th>
+                  <th className={thBase}>Auto-delete</th>
+                  <th className={`${thBase} ltr:text-right rtl:text-left`}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
                   <tr
                     key={`${item.type}-${item.id}`}
-                    className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                    className="group border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                          <Icon icon="heroicons:document" className="text-slate-500 text-base" />
+                    <td className={tdBase}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                          <Icon icon="heroicons:document" className="text-slate-500 text-sm" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-900 dark:text-white truncate">
+                          <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                             {item.name || "Untitled"}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                             {item.status} · uploaded {formatDate(item.created_at)}
                             {item.uploaded_by?.name ? ` by ${item.uploaded_by.name}` : ""}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdBase}>
                       <TypeBadge label={item.type_label} />
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    <td className={`${tdBase} text-[11px] text-slate-600 dark:text-slate-400`}>
                       {item.deleted_by?.name || "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    <td className={`${tdBase} text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap`}>
                       {formatDate(item.deleted_at)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdBase}>
                       <RetentionBadge days={item.days_until_purge} />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className={tdBase}>
+                      <div className="flex items-center justify-end gap-0.5">
                         {item.file && (
                           <button
                             type="button"
                             onClick={() => openFile(item)}
                             title="Preview document"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           >
-                            <Icon icon="heroicons:eye" className="text-base" />
+                            <Icon icon="heroicons:eye" className="text-sm" />
                           </button>
                         )}
 
@@ -352,7 +383,7 @@ const TallyTrash = () => {
                           onClick={() => handleRestore(item)}
                           disabled={restoringIds.has(item.id)}
                           title="Restore document"
-                          className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-50 transition-colors cursor-pointer"
                         >
                           <Icon
                             icon={
@@ -360,7 +391,7 @@ const TallyTrash = () => {
                                 ? "heroicons:arrow-path"
                                 : "heroicons:arrow-uturn-left"
                             }
-                            className={`text-base ${restoringIds.has(item.id) ? "animate-spin" : ""}`}
+                            className={`text-xs ${restoringIds.has(item.id) ? "animate-spin" : ""}`}
                           />
                           Restore
                         </button>
@@ -370,9 +401,9 @@ const TallyTrash = () => {
                             type="button"
                             onClick={() => setConfirmDelete(item)}
                             title="Delete permanently"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 transition-colors cursor-pointer"
                           >
-                            <Icon icon="heroicons:trash" className="text-base" />
+                            <Icon icon="heroicons:trash" className="text-sm" />
                           </button>
                         )}
                       </div>

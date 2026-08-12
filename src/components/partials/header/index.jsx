@@ -38,7 +38,7 @@ const Header = ({ className = "custom-class" }) => {
   return (
     <header className={`${className} ${navbarTypeClass()}`}>
       <div className="bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="px-3.5 md:px-5 h-14 flex items-center justify-between gap-3">
           {/* Left zone */}
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
             {menuType === "vertical" && (
@@ -49,7 +49,7 @@ const Header = ({ className = "custom-class" }) => {
                     type="button"
                     onClick={() => setMenuCollapsed(!collapsed)}
                     aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   >
                     <Icon
                       icon={
@@ -61,7 +61,7 @@ const Header = ({ className = "custom-class" }) => {
                             ? "heroicons:bars-3-bottom-left"
                             : "heroicons:bars-3-bottom-right"
                       }
-                      className="text-xl"
+                      className="text-lg"
                     />
                   </button>
                 )}
@@ -73,9 +73,9 @@ const Header = ({ className = "custom-class" }) => {
                     type="button"
                     onClick={() => setMobileMenu(!mobileMenu)}
                     aria-label="Toggle menu"
-                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   >
-                    <Icon icon="heroicons:bars-3" className="text-xl" />
+                    <Icon icon="heroicons:bars-3" className="text-lg" />
                   </button>
                 )}
               </>
@@ -89,9 +89,9 @@ const Header = ({ className = "custom-class" }) => {
                     type="button"
                     onClick={() => setMobileMenu(!mobileMenu)}
                     aria-label="Toggle menu"
-                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                    className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   >
-                    <Icon icon="heroicons:bars-3" className="text-xl" />
+                    <Icon icon="heroicons:bars-3" className="text-lg" />
                   </button>
                 )}
               </>
@@ -109,7 +109,7 @@ const Header = ({ className = "custom-class" }) => {
                 <OrgSwitcher />
               </div>
             )}
-            <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
+            <div className="hidden md:block w-px h-5 bg-slate-200 dark:bg-slate-800" />
             <SwitchDark />
             {width >= breakpoints.md && <Profile />}
             {/* `<` not `<=`: with `<=` this rendered at exactly 768px at the
@@ -120,9 +120,9 @@ const Header = ({ className = "custom-class" }) => {
                 type="button"
                 onClick={() => setMobileMenu(!mobileMenu)}
                 aria-label="Toggle menu"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
-                <Icon icon="heroicons:bars-3" className="text-xl" />
+                <Icon icon="heroicons:bars-3" className="text-lg" />
               </button>
             )}
           </div>

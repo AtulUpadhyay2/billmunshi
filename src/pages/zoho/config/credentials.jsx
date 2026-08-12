@@ -56,7 +56,7 @@ const CredentialField = ({ label, value, mask = false, mono = true }) => {
 
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
         {label}
       </div>
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
@@ -190,9 +190,9 @@ const ZohoCredentials = () => {
 
   if (!orgId) {
     return (
-      <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
-          <Icon icon="heroicons:building-office" className="text-2xl" />
+      <div className="h-full flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 ring-1 ring-slate-200 dark:ring-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mb-3">
+          <Icon icon="heroicons:building-office" className="text-lg" />
         </div>
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           No workspace selected
@@ -205,14 +205,14 @@ const ZohoCredentials = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
-          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
             Zoho Books integration
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
             Connect this workspace to Zoho Books with secure OAuth.
           </p>
         </div>
@@ -221,9 +221,9 @@ const ZohoCredentials = () => {
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
           >
-            <Icon icon="heroicons:arrow-path" className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+            <Icon icon="heroicons:arrow-path" className={`text-sm ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </button>
           {showConnect && (
@@ -231,9 +231,9 @@ const ZohoCredentials = () => {
               type="button"
               onClick={handleConnect}
               disabled={isInitiating || isHandlingCallback}
-              className="group inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+              className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             >
-              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:link"} className={`text-base ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
+              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:link"} className={`text-sm ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
               {isInitiating || isHandlingCallback
                 ? "Connecting…"
                 : credentials
@@ -245,8 +245,8 @@ const ZohoCredentials = () => {
       </div>
 
       {isLoading || isAutoSyncing ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mx-auto mb-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mx-auto mb-3">
             <Icon icon="heroicons:arrow-path" className="text-2xl animate-spin" />
           </div>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -260,12 +260,12 @@ const ZohoCredentials = () => {
         </div>
       ) : error?.response?.status === 404 || !credentials ? (
         // Not connected — connect-to-Zoho onboarding card
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 md:p-10">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 md:p-10">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
-              <Icon icon="heroicons:link" className="text-2xl" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
+              <Icon icon="heroicons:link" className="text-lg" />
             </div>
-            <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
               Connect your Zoho Books account
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -284,8 +284,8 @@ const ZohoCredentials = () => {
                   key={i}
                   className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col items-center gap-2"
                 >
-                  <span className="w-9 h-9 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon={f.icon} className="text-base" />
+                  <span className="w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                    <Icon icon={f.icon} className="text-sm" />
                   </span>
                   <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {f.label}
@@ -300,7 +300,7 @@ const ZohoCredentials = () => {
               disabled={isInitiating || isHandlingCallback}
               className="group mt-7 inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             >
-              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:link"} className={`text-base ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
+              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:link"} className={`text-sm ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
               {isInitiating || isHandlingCallback ? "Connecting…" : "Connect to Zoho Books"}
             </button>
 
@@ -314,9 +314,9 @@ const ZohoCredentials = () => {
         </div>
       ) : (
         // Connected state — show credentials grid
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Connection summary card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
                 <Icon icon="heroicons:check-badge" className="text-lg" />
@@ -339,10 +339,10 @@ const ZohoCredentials = () => {
           </div>
 
           {/* Credentials */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
             <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                <Icon icon="heroicons:key" className="text-base" />
+              <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                <Icon icon="heroicons:key" className="text-sm" />
               </span>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
@@ -366,7 +366,7 @@ const ZohoCredentials = () => {
           </div>
 
           {/* Actions */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 Need to refresh the connection?
@@ -379,9 +379,9 @@ const ZohoCredentials = () => {
               type="button"
               onClick={handleConnect}
               disabled={isInitiating || isHandlingCallback}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             >
-              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-base ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
+              <Icon icon={isInitiating || isHandlingCallback ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-sm ${isInitiating || isHandlingCallback ? "animate-spin" : ""}`} />
               {isInitiating || isHandlingCallback ? "Reconnecting…" : "Reconnect"}
             </button>
           </div>
