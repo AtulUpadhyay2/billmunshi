@@ -1,459 +1,465 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/Icon";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import { useGetProfileQuery } from "@/store/api/auth/authApiSlice";
 import Loading from "@/components/Loading";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 
+/**
+ * Profile page.
+ *
+ * Was the dashboard template's profile page: a 186px avatar over a 150px dark
+ * banner, `text-2xl` headings, `p-6` gradient panels and `space-y-8` lists —
+ * roughly double the scale of the rest of the app. It also had no dark-mode
+ * colours on any of the gradient panels (`from-blue-50`, `text-gray-900`,
+ * `bg-green-100 text-green-800`), so in dark mode they rendered as light boxes.
+ *
+ * Rebuilt on the same card + chip + 32px-control scale the Tally pages use.
+ * The template's `<Card>` is not used here any more — its `card-title` /
+ * `card-body p-6` come from the old SCSS and can't be brought down to this
+ * scale without changing the notifications page too.
+ */
+const CARD =
+  "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl";
+const CARD_HEAD =
+  "flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-800";
+const CARD_TITLE =
+  "text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300";
+const CHIP =
+  "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold";
+const ROW = "flex items-center justify-between gap-3 py-1.5";
+const ROW_LABEL = "text-[11px] text-slate-500 dark:text-slate-400";
+const ROW_VALUE = "text-xs font-semibold text-slate-900 dark:text-white";
+
+/** Chip palettes — every one carries a dark variant. */
+const CHIP_TONE = {
+  green:
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 ring-1 ring-emerald-100 dark:ring-emerald-900/60",
+  red: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 ring-1 ring-rose-100 dark:ring-rose-900/60",
+  blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60",
+  purple:
+    "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 ring-1 ring-purple-100 dark:ring-purple-900/60",
+  amber:
+    "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 ring-1 ring-amber-100 dark:ring-amber-900/60",
+  slate:
+    "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700",
+};
+
+const Chip = ({ tone = "slate", icon, children }) => (
+  <span className={`${CHIP} ${CHIP_TONE[tone]}`}>
+    {icon && <Icon icon={icon} className="text-[11px]" />}
+    {children}
+  </span>
+);
+
 const profile = () => {
   const { data: userProfile, error, isLoading } = useGetProfileQuery();
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
 
-  // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[300px]">
         <Loading />
       </div>
     );
   }
 
-  // Show error state
   if (error) {
     return (
-      <div className="space-y-4">
-        <Card title="Error" noBorder>
-          <div className="flex flex-col items-center justify-center py-8">
-            <svg className="w-12 h-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="text-red-600 text-center">
-              <p className="text-lg font-medium">Failed to load profile</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {error?.data?.message || error?.message || 'An error occurred while fetching profile data'}
-              </p>
-            </div>
+      <div className={`${CARD} p-6`}>
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2.5">
+            <Icon icon="heroicons:exclamation-circle" className="text-lg" />
           </div>
-        </Card>
+          <p className="text-xs font-semibold text-slate-900 dark:text-white">
+            Failed to load profile
+          </p>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+            {error?.data?.message ||
+              error?.message ||
+              "An error occurred while fetching profile data"}
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Format date joined
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-  };
 
-  // Format last active
   const formatLastActive = (dateString) => {
     const now = new Date();
     const lastActive = new Date(dateString);
     const diffInMinutes = Math.floor((now - lastActive) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
+
+    if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    if (diffInMinutes < 1440)
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
     return `${Math.floor(diffInMinutes / 1440)} days ago`;
   };
+
+  const initials =
+    (userProfile?.first_name?.charAt(0)?.toUpperCase() || "") +
+      (userProfile?.last_name?.charAt(0)?.toUpperCase() || "") || "U";
+
+  const stats = [
+    {
+      label: "Organizations",
+      value: userProfile?.organizations?.length || 0,
+    },
+    { label: "Last Active", value: formatLastActive(userProfile?.last_active) },
+    { label: "Member Since", value: formatDate(userProfile?.date_joined) },
+  ];
+
   return (
-    <div>
-      <div className="space-y-4 profile-page">
-        <div className="profiel-wrap px-[35px] pb-10 md:pt-[84px] pt-10 rounded-lg bg-white dark:bg-slate-800 lg:flex lg:space-y-0 space-y-4 justify-between items-end relative z-1">
-          <div className="bg-slate-900 dark:bg-slate-700 absolute left-0 top-0 md:h-1/2 h-[150px] w-full z-[-1] rounded-t-lg"></div>
-          <div className="profile-box flex-none md:text-start text-center">
-            <div className="md:flex items-end md:space-x-6 rtl:space-x-reverse">
-              <div className="flex-none">
-                <div className="md:h-[186px] md:w-[186px] h-[140px] w-[140px] md:ml-0 md:mr-0 ml-auto mr-auto md:mb-0 mb-4 rounded-full ring-4 ring-slate-100 relative">
-                  {userProfile?.profile_image ? (
-                    <img
-                      src={userProfile.profile_image}
-                      alt={userProfile.full_name || 'Profile'}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-slate-500 dark:bg-slate-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-4xl md:text-6xl font-bold">
-                        {((userProfile?.first_name?.charAt(0)?.toUpperCase() || '') + (userProfile?.last_name?.charAt(0)?.toUpperCase() || '')) || 'U'}
-                      </span>
-                    </div>
-                  )}
-                  <Link
-                    to="#"
-                    className="absolute right-2 h-8 w-8 bg-slate-50 text-slate-600 rounded-full shadow-xs flex flex-col items-center justify-center md:top-[140px] top-[100px]"
-                  >
-                    <Icon icon="heroicons:pencil-square" />
-                  </Link>
-                </div>
+    <div className="space-y-3">
+      {/* Identity header. The template had a 150px dark banner behind a 186px
+          avatar; the stats that used to sit in that banner are now a compact
+          row beside the name. */}
+      <div className={`${CARD} p-3.5 flex flex-col lg:flex-row lg:items-center gap-3.5`}>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="relative shrink-0">
+            {userProfile?.profile_image ? (
+              <img
+                src={userProfile.profile_image}
+                alt={userProfile.full_name || "Profile"}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-600 to-blue-700 ring-2 ring-blue-700/20 flex items-center justify-center">
+                <span className="text-white text-base font-bold">
+                  {initials}
+                </span>
               </div>
-              <div className="flex-1">
-                <div className="text-2xl font-medium text-slate-900 dark:text-slate-200 mb-[3px]">
-                  {userProfile?.full_name || 'Unknown User'}
-                </div>
-                <div className="text-sm font-light text-slate-600 dark:text-slate-400 mb-2">
-                  {userProfile?.bio || 'No bio available'}
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    userProfile?.is_active 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {userProfile?.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                  {userProfile?.email_verified && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Email Verified
-                    </span>
-                  )}
-                  {userProfile?.is_staff && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      Staff
-                    </span>
-                  )}
-                  {userProfile?.is_superuser && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                      Admin
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
+            <Link
+              to="#"
+              title="Edit profile picture"
+              className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors"
+            >
+              <Icon icon="heroicons:pencil-square" className="text-[11px]" />
+            </Link>
           </div>
 
-          <div className="profile-info-500 md:flex md:text-start text-center flex-1 max-w-[516px] md:space-y-0 space-y-3">
-            <div className="flex-1">
-              <div className="text-base text-slate-900 dark:text-slate-300 font-medium mb-1">
-                {userProfile?.organizations?.length || 0}
-              </div>
-              <div className="text-sm text-slate-600 font-light dark:text-slate-300">
-                Organizations
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="text-base text-slate-900 dark:text-slate-300 font-medium mb-1">
-                {formatLastActive(userProfile?.last_active)}
-              </div>
-              <div className="text-sm text-slate-600 font-light dark:text-slate-300">
-                Last Active
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="text-base text-slate-900 dark:text-slate-300 font-medium mb-1">
-                {formatDate(userProfile?.date_joined)}
-              </div>
-              <div className="text-sm text-slate-600 font-light dark:text-slate-300">
-                Member Since
-              </div>
+          <div className="min-w-0">
+            <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              {userProfile?.full_name || "Unknown User"}
+            </h1>
+            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              {userProfile?.bio || "No bio available"}
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+              <Chip tone={userProfile?.is_active ? "green" : "red"}>
+                {userProfile?.is_active ? "Active" : "Inactive"}
+              </Chip>
+              {userProfile?.email_verified && (
+                <Chip tone="blue" icon="heroicons:check-badge">
+                  Email Verified
+                </Chip>
+              )}
+              {userProfile?.is_staff && <Chip tone="purple">Staff</Chip>}
+              {userProfile?.is_superuser && <Chip tone="amber">Admin</Chip>}
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-12 gap-6">
-          <div className="lg:col-span-6 col-span-12 space-y-4">
-            <Card title="Personal Information">
-              <ul className="list space-y-8">
-                <li className="flex space-x-3 rtl:space-x-reverse">
-                  <div className="flex-none text-2xl text-slate-600 dark:text-slate-300">
-                    <Icon icon="heroicons:envelope" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="uppercase text-xs text-slate-500 dark:text-slate-300 mb-1 leading-[12px]">
-                      EMAIL
-                    </div>
-                    <a
-                      href={`mailto:${userProfile?.email}`}
-                      className="text-base text-slate-600 dark:text-slate-50"
-                    >
-                      {userProfile?.email || 'No email provided'}
-                    </a>
-                    <div className="flex items-center mt-1">
-                      {userProfile?.email_verified ? (
-                        <span className="inline-flex items-center text-xs text-green-600">
-                          <Icon icon="heroicons:check-circle" className="w-3 h-3 mr-1" />
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center text-xs text-red-600">
-                          <Icon icon="heroicons:x-circle" className="w-3 h-3 mr-1" />
-                          Not Verified
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </li>
 
-                <li className="flex space-x-3 rtl:space-x-reverse">
-                  <div className="flex-none text-2xl text-slate-600 dark:text-slate-300">
-                    <Icon icon="heroicons:phone-arrow-up-right" />
+        <div className="grid grid-cols-3 gap-2 lg:max-w-115 lg:w-full shrink-0">
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className="rounded-lg bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2 text-center"
+            >
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                {s.value}
+              </div>
+              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-3">
+        <div className="lg:col-span-6 col-span-12 space-y-3">
+          {/* Personal Information */}
+          <div className={CARD}>
+            <div className={CARD_HEAD}>
+              <span className={CARD_TITLE}>Personal Information</span>
+            </div>
+            <div className="p-3.5 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <span className="shrink-0 w-7 h-7 rounded-md bg-slate-50 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+                  <Icon icon="heroicons:envelope" className="text-sm" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+                    Email
                   </div>
-                  <div className="flex-1">
-                    <div className="uppercase text-xs text-slate-500 dark:text-slate-300 mb-1 leading-[12px]">
-                      PHONE
-                    </div>
-                    {userProfile?.phone_number ? (
-                      <a
-                        href={`tel:${userProfile.phone_number}`}
-                        className="text-base text-slate-600 dark:text-slate-50"
-                      >
-                        {userProfile.phone_number}
-                      </a>
+                  <a
+                    href={`mailto:${userProfile?.email}`}
+                    className="block text-xs font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors"
+                  >
+                    {userProfile?.email || "No email provided"}
+                  </a>
+                  <div className="mt-1">
+                    {userProfile?.email_verified ? (
+                      <Chip tone="green" icon="heroicons:check-circle">
+                        Verified
+                      </Chip>
                     ) : (
-                      <span className="text-base text-slate-400 dark:text-slate-500 italic">
-                        No phone number provided
-                      </span>
+                      <Chip tone="red" icon="heroicons:x-circle">
+                        Not Verified
+                      </Chip>
                     )}
                   </div>
-                </li>
-
-                <li className="flex space-x-3 rtl:space-x-reverse">
-                  <div className="flex-none text-2xl text-slate-600 dark:text-slate-300">
-                    <Icon icon="heroicons:calendar-days" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="uppercase text-xs text-slate-500 dark:text-slate-300 mb-1 leading-[12px]">
-                      MEMBER SINCE
-                    </div>
-                    <div className="text-base text-slate-600 dark:text-slate-50">
-                      {formatDate(userProfile?.date_joined)}
-                    </div>
-                  </div>
-                </li>
-              </ul>
-            </Card>
-
-            {/* Account Status Card */}
-            <Card title="Account Status">
-              <div className="space-y-3">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Icon icon="heroicons:user-circle" className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">User Privileges</h3>
-                      <p className="text-sm text-gray-600">Your account permissions and status</p>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Active Status:</span>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        userProfile?.is_active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {userProfile?.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Staff Member:</span>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        userProfile?.is_staff 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {userProfile?.is_staff ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Administrator:</span>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        userProfile?.is_superuser 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {userProfile?.is_superuser ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
-            </Card>
 
-            {/* Security Settings Card */}
-            <Card title="Security Settings">
-              <div className="space-y-3">
-                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Icon icon="heroicons:shield-check" className="w-5 h-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Password Security</h3>
-                        <p className="text-sm text-gray-600">Manage your account password</p>
-                      </div>
-                    </div>
-                    <Button
-                      text="Change Password"
-                      icon="heroicons:key"
-                      btnClass="btn-outline-dark btn-sm"
-                      onClick={() => setIsChangePasswordModalOpen(true)}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Password Protection:</span>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <Icon icon="heroicons:check-circle" className="w-3 h-3 mr-1" />
-                        Protected
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Keep your account secure by using a strong password and changing it regularly.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-          
-          <div className="lg:col-span-6 col-span-12 space-y-4">
-            {/* Organizations Card */}
-            {userProfile?.organizations && userProfile.organizations.length > 0 && (
-              <Card title="Organizations" headerSlot={
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {userProfile.organizations.length} organization{userProfile.organizations.length > 1 ? 's' : ''}
+              <div className="flex items-start gap-2.5">
+                <span className="shrink-0 w-7 h-7 rounded-md bg-slate-50 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+                  <Icon
+                    icon="heroicons:phone-arrow-up-right"
+                    className="text-sm"
+                  />
                 </span>
-              }>
-                <div className="space-y-3">
-                  {userProfile.organizations.map((org, index) => (
-                    <div key={org.id} className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-700 dark:to-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-600 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                            <span className="text-white text-lg font-bold">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+                    Phone
+                  </div>
+                  {userProfile?.phone_number ? (
+                    <a
+                      href={`tel:${userProfile.phone_number}`}
+                      className="block text-xs font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      {userProfile.phone_number}
+                    </a>
+                  ) : (
+                    <span className="block text-xs text-slate-400 dark:text-slate-500 italic">
+                      No phone number provided
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="shrink-0 w-7 h-7 rounded-md bg-slate-50 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center">
+                  <Icon icon="heroicons:calendar-days" className="text-sm" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+                    Member Since
+                  </div>
+                  <div className="text-xs font-medium text-slate-900 dark:text-white">
+                    {formatDate(userProfile?.date_joined)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Status */}
+          <div className={CARD}>
+            <div className={CARD_HEAD}>
+              <span className={CARD_TITLE}>Account Status</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Permissions
+              </span>
+            </div>
+            <div className="p-3.5 divide-y divide-slate-100 dark:divide-slate-800">
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Active status</span>
+                <Chip tone={userProfile?.is_active ? "green" : "red"}>
+                  {userProfile?.is_active ? "Active" : "Inactive"}
+                </Chip>
+              </div>
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Staff member</span>
+                <Chip tone={userProfile?.is_staff ? "purple" : "slate"}>
+                  {userProfile?.is_staff ? "Yes" : "No"}
+                </Chip>
+              </div>
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Administrator</span>
+                <Chip tone={userProfile?.is_superuser ? "amber" : "slate"}>
+                  {userProfile?.is_superuser ? "Yes" : "No"}
+                </Chip>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Settings */}
+          <div className={CARD}>
+            <div className={CARD_HEAD}>
+              <span className={CARD_TITLE}>Security</span>
+              <button
+                type="button"
+                onClick={() => setIsChangePasswordModalOpen(true)}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+              >
+                <Icon icon="heroicons:key" className="text-xs" />
+                Change Password
+              </button>
+            </div>
+            <div className="p-3.5">
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Password protection</span>
+                <Chip tone="green" icon="heroicons:shield-check">
+                  Protected
+                </Chip>
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Keep your account secure by using a strong password and changing
+                it regularly.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-6 col-span-12 space-y-3">
+          {/* Organizations */}
+          {userProfile?.organizations &&
+            userProfile.organizations.length > 0 && (
+              <div className={CARD}>
+                <div className={CARD_HEAD}>
+                  <span className={CARD_TITLE}>Organizations</span>
+                  <Chip tone="blue">
+                    {userProfile.organizations.length} organization
+                    {userProfile.organizations.length > 1 ? "s" : ""}
+                  </Chip>
+                </div>
+                <div className="p-3.5 space-y-2">
+                  {userProfile.organizations.map((org) => (
+                    <div
+                      key={org.id}
+                      className="rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 p-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="shrink-0 w-8 h-8 rounded-lg bg-linear-to-br from-blue-600 to-blue-700 ring-1 ring-blue-700/20 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">
                               {org.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-200 mb-1">
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                               {org.name}
                             </h4>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                               {org.unique_name}
                             </p>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col items-end gap-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            org.role === 'ADMIN' 
-                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'
-                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm'
-                          }`}>
-                            <Icon icon={org.role === 'ADMIN' ? 'heroicons:star' : 'heroicons:user'} className="w-3 h-3 mr-1" />
+
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Chip
+                            tone={org.role === "ADMIN" ? "purple" : "blue"}
+                            icon={
+                              org.role === "ADMIN"
+                                ? "heroicons:star"
+                                : "heroicons:user"
+                            }
+                          >
                             {org.role}
-                          </span>
-                          
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            org.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          }`}>
-                            <div className={`w-2 h-2 rounded-full mr-2 ${
-                              org.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'
-                            }`}></div>
+                          </Chip>
+                          <Chip
+                            tone={org.status === "ACTIVE" ? "green" : "red"}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                org.status === "ACTIVE"
+                                  ? "bg-emerald-500"
+                                  : "bg-rose-500"
+                              }`}
+                            />
                             {org.status}
-                          </span>
+                          </Chip>
                         </div>
                       </div>
-                      
-                      {/* Organization Stats */}
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-600">
-                        <div className="text-center">
-                          <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+
+                      <div className="grid grid-cols-2 gap-2 mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800">
+                        <div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
                             Role Level
                           </div>
-                          <div className={`text-sm font-semibold ${
-                            org.role === 'ADMIN' ? 'text-purple-600' : 'text-blue-600'
-                          }`}>
-                            {org.role === 'ADMIN' ? 'Administrator' : 'Member'}
+                          <div
+                            className={`mt-0.5 text-xs font-semibold ${
+                              org.role === "ADMIN"
+                                ? "text-purple-700 dark:text-purple-400"
+                                : "text-blue-700 dark:text-blue-400"
+                            }`}
+                          >
+                            {org.role === "ADMIN" ? "Administrator" : "Member"}
                           </div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                        <div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
                             Access Level
                           </div>
-                          <div className={`text-sm font-semibold ${
-                            org.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {org.status === 'ACTIVE' ? 'Full Access' : 'Limited'}
+                          <div
+                            className={`mt-0.5 text-xs font-semibold ${
+                              org.status === "ACTIVE"
+                                ? "text-emerald-700 dark:text-emerald-400"
+                                : "text-rose-700 dark:text-rose-400"
+                            }`}
+                          >
+                            {org.status === "ACTIVE"
+                              ? "Full Access"
+                              : "Limited"}
                           </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
             )}
 
-            {/* Activity Info Card */}
-            <Card title="Activity & Statistics">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Icon icon="heroicons:clock" className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">User Activity</h3>
-                    <p className="text-sm text-gray-600">Recent activity and account statistics</p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-sm font-medium text-gray-700">Last Active:</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {formatLastActive(userProfile?.last_active)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-sm font-medium text-gray-700">Organizations:</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {userProfile?.organizations?.length || 0} active
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200">
-                    <span className="text-sm font-medium text-gray-700">User ID:</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      #{userProfile?.id}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm font-medium text-gray-700">Account Type:</span>
-                    <div className="flex gap-1">
-                      {userProfile?.is_superuser && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                          Admin
-                        </span>
-                      )}
-                      {userProfile?.is_staff && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Staff
-                        </span>
-                      )}
-                      {!userProfile?.is_staff && !userProfile?.is_superuser && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          User
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          {/* Activity & Statistics */}
+          <div className={CARD}>
+            <div className={CARD_HEAD}>
+              <span className={CARD_TITLE}>Activity &amp; Statistics</span>
+            </div>
+            <div className="p-3.5 divide-y divide-slate-100 dark:divide-slate-800">
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Last active</span>
+                <span className={ROW_VALUE}>
+                  {formatLastActive(userProfile?.last_active)}
+                </span>
+              </div>
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Organizations</span>
+                <span className={ROW_VALUE}>
+                  {userProfile?.organizations?.length || 0} active
+                </span>
+              </div>
+              <div className={ROW}>
+                <span className={ROW_LABEL}>User ID</span>
+                <span className={`${ROW_VALUE} font-mono tabular-nums`}>
+                  #{userProfile?.id}
+                </span>
+              </div>
+              <div className={ROW}>
+                <span className={ROW_LABEL}>Account type</span>
+                <div className="flex items-center gap-1">
+                  {userProfile?.is_superuser && <Chip tone="amber">Admin</Chip>}
+                  {userProfile?.is_staff && <Chip tone="purple">Staff</Chip>}
+                  {!userProfile?.is_staff && !userProfile?.is_superuser && (
+                    <Chip tone="slate">User</Chip>
+                  )}
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Change Password Modal */}
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}

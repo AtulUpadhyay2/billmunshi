@@ -1,10 +1,78 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/Textinput";
 import { useChangePasswordMutation } from "@/store/api/auth/authApiSlice";
 import { toast } from "sonner";
 import Icon from "@/components/ui/Icon";
+import { CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
+
+/**
+ * One field, used three times.
+ *
+ * Defined at module scope on purpose: declared inside `ChangePasswordModal` it
+ * would be a new component type on every render, so React would unmount and
+ * remount the input on each keystroke and the field would lose focus.
+ *
+ * This replaces the template's `<Textinput>`, which shipped at `py-2.5
+ * text-sm` and rendered its own error text. The error is rendered here now —
+ * dropping `Textinput` without this would have silently removed the validation
+ * messages.
+ */
+const PasswordField = ({
+  label,
+  value,
+  onChange,
+  error,
+  show,
+  onToggle,
+  placeholder,
+  hint,
+  autoFocus,
+}) => (
+  <div>
+    <label className={FIELD_LABEL}>
+      {label} <span className="text-rose-500">*</span>
+    </label>
+    <div className="relative">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        // `CONTROL_VALIDATED` carries no border colour, so both branches name
+        // one — see the note in @/constants/ui.
+        className={`${CONTROL_VALIDATED} pr-8 ${
+          error
+            ? "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20"
+            : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
+        }`}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        tabIndex={-1}
+        aria-label={show ? "Hide password" : "Show password"}
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+      >
+        <Icon
+          icon={show ? "heroicons:eye-slash" : "heroicons:eye"}
+          className="text-xs"
+        />
+      </button>
+    </div>
+    {error ? (
+      <p className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+        {error}
+      </p>
+    ) : (
+      hint && (
+        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          {hint}
+        </p>
+      )
+    )}
+  </div>
+);
 
 const ChangePasswordModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -142,147 +210,83 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
   return (
     <Modal
       title="Change Password"
-      labelClass="btn-outline-dark"
       activeModal={isOpen}
       onClose={handleClose}
+      className="max-w-md"
       footerContent={
-        <div className="flex justify-end space-x-3">
-          <Button
-            text="Cancel"
-            btnClass="btn-outline-secondary"
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
             onClick={handleClose}
             disabled={isLoading}
-          />
-          <Button
-            text={isLoading ? "Changing..." : "Change Password"}
-            btnClass="btn-dark"
+            className="inline-flex items-center h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={isLoading}
-            isLoading={isLoading}
-          />
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+          >
+            {isLoading ? (
+              <>
+                <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+                Changing…
+              </>
+            ) : (
+              <>
+                <Icon icon="heroicons:key" className="text-sm" />
+                Change Password
+              </>
+            )}
+          </button>
         </div>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Current Password */}
-        <div>
-          <label className="form-label" htmlFor="old_password">
-            Current Password *
-          </label>
-          <div className="relative">
-            <Textinput
-              type={showPasswords.old_password ? "text" : "password"}
-              placeholder="Enter your current password"
-              value={formData.old_password}
-              onChange={(e) =>
-                handleInputChange("old_password", e.target.value)
-              }
-              error={
-                errors.old_password ? { message: errors.old_password } : null
-              }
-              className="pr-12"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              onClick={() => togglePasswordVisibility("old_password")}
-            >
-              <Icon
-                icon={
-                  showPasswords.old_password
-                    ? "heroicons:eye-slash"
-                    : "heroicons:eye"
-                }
-                className="w-5 h-5"
-              />
-            </button>
-          </div>
-        </div>
+        <PasswordField
+          label="Current Password"
+          placeholder="Enter your current password"
+          value={formData.old_password}
+          onChange={(e) => handleInputChange("old_password", e.target.value)}
+          error={errors.old_password}
+          show={showPasswords.old_password}
+          onToggle={() => togglePasswordVisibility("old_password")}
+          autoFocus
+        />
 
-        {/* New Password */}
-        <div>
-          <label className="form-label" htmlFor="new_password">
-            New Password *
-          </label>
-          <div className="relative">
-            <Textinput
-              type={showPasswords.new_password ? "text" : "password"}
-              placeholder="Enter your new password"
-              value={formData.new_password}
-              onChange={(e) =>
-                handleInputChange("new_password", e.target.value)
-              }
-              error={
-                errors.new_password ? { message: errors.new_password } : null
-              }
-              className="pr-12"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              onClick={() => togglePasswordVisibility("new_password")}
-            >
-              <Icon
-                icon={
-                  showPasswords.new_password
-                    ? "heroicons:eye-slash"
-                    : "heroicons:eye"
-                }
-                className="w-5 h-5"
-              />
-            </button>
-          </div>
-          <div className="text-xs text-slate-500 mt-1">
-            Password must be at least 8 characters long
-          </div>
-        </div>
+        <PasswordField
+          label="New Password"
+          placeholder="Enter your new password"
+          value={formData.new_password}
+          onChange={(e) => handleInputChange("new_password", e.target.value)}
+          error={errors.new_password}
+          show={showPasswords.new_password}
+          onToggle={() => togglePasswordVisibility("new_password")}
+          hint="Password must be at least 8 characters long"
+        />
 
-        {/* Confirm Password */}
-        <div>
-          <label className="form-label" htmlFor="confirm_password">
-            Confirm New Password *
-          </label>
-          <div className="relative">
-            <Textinput
-              type={showPasswords.confirm_password ? "text" : "password"}
-              placeholder="Confirm your new password"
-              value={formData.confirm_password}
-              onChange={(e) =>
-                handleInputChange("confirm_password", e.target.value)
-              }
-              error={
-                errors.confirm_password
-                  ? { message: errors.confirm_password }
-                  : null
-              }
-              className="pr-12"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              onClick={() => togglePasswordVisibility("confirm_password")}
-            >
-              <Icon
-                icon={
-                  showPasswords.confirm_password
-                    ? "heroicons:eye-slash"
-                    : "heroicons:eye"
-                }
-                className="w-5 h-5"
-              />
-            </button>
-          </div>
-        </div>
+        <PasswordField
+          label="Confirm New Password"
+          placeholder="Confirm your new password"
+          value={formData.confirm_password}
+          onChange={(e) => handleInputChange("confirm_password", e.target.value)}
+          error={errors.confirm_password}
+          show={showPasswords.confirm_password}
+          onToggle={() => togglePasswordVisibility("confirm_password")}
+        />
 
-        {/* Password Requirements */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">
-            Password Requirements:
+        {/* Requirements. Was `bg-blue-50 border-blue-200 text-blue-900` with no
+            dark variants, i.e. a light panel with dark text on the dark page. */}
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5">
+          <h4 className="text-[11px] font-semibold text-blue-800 dark:text-blue-300 mb-1">
+            Password requirements
           </h4>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• At least 8 characters long</li>
-            <li>• Different from your current password</li>
-            <li>• Should be strong and unique</li>
+          <ul className="text-[11px] text-blue-700 dark:text-blue-400 space-y-0.5 list-disc pl-4">
+            <li>At least 8 characters long</li>
+            <li>Different from your current password</li>
+            <li>Should be strong and unique</li>
           </ul>
         </div>
       </form>
