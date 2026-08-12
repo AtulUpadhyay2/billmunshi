@@ -37,23 +37,33 @@ export const notifyUploadResult = (result, successMessage) => {
     return false;
   }
 
-  // Nothing was created AND a warning explains why (usually
-  // exact-duplicate hash short-circuit). Surface the warning instead of
-  // the misleading "uploaded" success toast.
-  if (created === 0 && warnings.length) {
+  // Nothing new was created. Give the user a specific, human reason
+  // instead of the previous cryptic "accepted but no new bills"
+  // message the client reported as confusing.
+  if (created === 0) {
     const dupCount = warnings.filter(
       (w) => w?.warning_type === "exact_duplicate",
     ).length;
-    if (dupCount === warnings.length) {
-      const first = warnings[0];
+    if (dupCount && dupCount === warnings.length) {
+      const existing = warnings[0]?.existing_bill_name;
       globalToast.warning(
-        first?.message ||
-          `${dupCount} file${dupCount > 1 ? "s were" : " was"} identical to an existing bill and skipped.`,
+        dupCount === 1
+          ? `This bill is already in the system${
+              existing ? ` (as ${existing})` : ""
+            }. Nothing new was added — open the existing entry to continue.`
+          : `${dupCount} of the uploaded files are already in the system (byte-identical to existing bills). Nothing new was added.`,
       );
-    } else {
+    } else if (warnings.length) {
       globalToast.warning(
         warnings[0]?.message ||
-          "Upload accepted but no new bills were created.",
+          "This file couldn't be processed. Check the bill on the server logs.",
+      );
+    } else {
+      // No warnings, no rows — file was received but the server didn't
+      // save anything. Almost always the same-hash dedup case even when
+      // the warning is absent (older backend, or race).
+      globalToast.warning(
+        "This bill already exists in the system. Nothing new was added — open the existing entry to continue.",
       );
     }
     return false;

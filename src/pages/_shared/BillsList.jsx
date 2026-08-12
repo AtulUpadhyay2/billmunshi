@@ -161,12 +161,45 @@ const BillsList = ({
     isLoading,
     refetch,
     isFetching,
-  } = useGetBills(queryParams, { enabled: !!selectedOrganization?.id });
+  } = useGetBills(queryParams, {
+    enabled: !!selectedOrganization?.id,
+    // Auto-poll while any row on the current page is still being
+    // processed in the background (Draft / is_processing / Analysed but
+    // waiting on Tally confirmation). Otherwise a user just uploaded a
+    // bill and stares at "Draft" until they hit Refresh — the client
+    // reported that as confusing and hit the Analyse button instead.
+    refetchInterval: (q) => {
+      const rows = q?.state?.data?.results || [];
+      const stillProcessing = rows.some(
+        (b) =>
+          b?.is_processing === true ||
+          b?.status === "Draft" ||
+          (b?.status === "Synced" && b?.tally_synced === false),
+      );
+      return stillProcessing ? 5000 : false;
+    },
+    // Don't pause the poll when the tab is backgrounded — a photo can
+    // take 20-40s to process and the user is likely looking at another
+    // tab in the meantime.
+    refetchIntervalInBackground: true,
+  });
 
   // Counts for the tab badges. Only `count` is read, so ask for a single row
   // per status instead of pulling four full pages of bills on every render.
   const countQuery = { organizationId: selectedOrganization?.id, pageSize: 1 };
-  const countOpts = { enabled: !!selectedOrganization?.id };
+  // Also poll counts while anything is still processing so the tab
+  // badges (Draft / Analysed / Synced) update in-place.
+  const anyRowProcessing = (billsData?.results || []).some(
+    (b) =>
+      b?.is_processing === true ||
+      b?.status === "Draft" ||
+      (b?.status === "Synced" && b?.tally_synced === false),
+  );
+  const countOpts = {
+    enabled: !!selectedOrganization?.id,
+    refetchInterval: anyRowProcessing ? 5000 : false,
+    refetchIntervalInBackground: true,
+  };
 
   const { data: allCountData } = useGetBills(countQuery, countOpts);
   const { data: draftCountData } = useGetBills(
