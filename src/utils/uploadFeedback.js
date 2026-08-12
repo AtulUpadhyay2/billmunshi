@@ -37,31 +37,51 @@ export const notifyUploadResult = (result, successMessage) => {
     return false;
   }
 
-  // Nothing new was created. Give the user a specific, human reason
-  // instead of the previous cryptic "accepted but no new bills"
-  // message the client reported as confusing.
+  // Classify warnings so we can speak to the user in their language, not
+  // in DRF/warning-type jargon. Two shapes come from the backend:
+  //   - exact-duplicate (SHA-256 hash match)   -> warning_type === "exact_duplicate"
+  //   - filename / size similarity heuristic   -> no warning_type; has `warning` + `existing_bills`
+  const isExactDup = (w) => w?.warning_type === "exact_duplicate";
+  const isMaybeDup = (w) =>
+    !!w &&
+    !isExactDup(w) &&
+    (Array.isArray(w.existing_bills) || typeof w.warning === "string");
+  const exactDupCount = warnings.filter(isExactDup).length;
+  const maybeDupCount = warnings.filter(isMaybeDup).length;
+
+  const firstExactName = warnings.find(isExactDup)?.existing_bill_name;
+  const firstMaybeName =
+    warnings.find(isMaybeDup)?.existing_bills?.[0]?.bill_name;
+
+  const dedupMessage = () => {
+    // All warnings are hard dedup (hash) — no new rows.
+    if (exactDupCount && !maybeDupCount) {
+      return exactDupCount === 1
+        ? `This bill is already in the system${
+            firstExactName ? ` (as ${firstExactName})` : ""
+          }. Nothing new was added — open the existing entry to continue.`
+        : `${exactDupCount} of the uploaded files are already in the system (byte-identical to existing bills). Nothing new was added.`;
+    }
+    // All warnings are soft dedup (filename/size look-alike).
+    if (maybeDupCount && !exactDupCount) {
+      return maybeDupCount === 1
+        ? `This file looks like a duplicate of an existing bill${
+            firstMaybeName ? ` (${firstMaybeName})` : ""
+          } — review it before analysing.`
+        : `${maybeDupCount} uploaded file(s) look like duplicates of existing bills — review them before analysing.`;
+    }
+    // Mixed — some hash-dedup, some soft.
+    return `${warnings.length} uploaded file(s) match existing bills in this workspace. Review them before analysing.`;
+  };
+
+  // Nothing new was created. Give a specific, human reason instead of
+  // the previous cryptic message the client called out as confusing.
   if (created === 0) {
-    const dupCount = warnings.filter(
-      (w) => w?.warning_type === "exact_duplicate",
-    ).length;
-    if (dupCount && dupCount === warnings.length) {
-      const existing = warnings[0]?.existing_bill_name;
-      globalToast.warning(
-        dupCount === 1
-          ? `This bill is already in the system${
-              existing ? ` (as ${existing})` : ""
-            }. Nothing new was added — open the existing entry to continue.`
-          : `${dupCount} of the uploaded files are already in the system (byte-identical to existing bills). Nothing new was added.`,
-      );
-    } else if (warnings.length) {
-      globalToast.warning(
-        warnings[0]?.message ||
-          "This file couldn't be processed. Check the bill on the server logs.",
-      );
+    if (warnings.length) {
+      globalToast.warning(dedupMessage());
     } else {
-      // No warnings, no rows — file was received but the server didn't
-      // save anything. Almost always the same-hash dedup case even when
-      // the warning is absent (older backend, or race).
+      // Server accepted the request but saved nothing and gave no reason
+      // — almost always a race with the hash-dedup path.
       globalToast.warning(
         "This bill already exists in the system. Nothing new was added — open the existing entry to continue.",
       );
@@ -74,12 +94,9 @@ export const notifyUploadResult = (result, successMessage) => {
     return true;
   }
   if (warnings.length) {
-    // Some created, some warned — success + a heads-up.
+    // Some created, some just soft-flagged. Success + a helpful hint.
     globalToast.success(successMessage);
-    globalToast.info(
-      warnings[0]?.message ||
-        `${warnings.length} file${warnings.length > 1 ? "s" : ""} had a warning; check the list.`,
-    );
+    globalToast.info(dedupMessage());
     return true;
   }
   globalToast.success(successMessage);
