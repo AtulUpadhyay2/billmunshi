@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import Modal from "@/components/ui/Modal";
 import TablePagination from "@/components/ui/TablePagination";
 import UploadBillModal from "@/components/modals/UploadBillModal";
@@ -223,6 +224,9 @@ const BillsList = ({
   // UI state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  // Was a boolean toggle. Now an object `{to: 'vendor'|'expense'|'payment'}`
+  // so the shared MoveModal can send bills to any of the three voucher
+  // types (per the client-requested Move dropdown).
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [isExternalBillModalOpen, setIsExternalBillModalOpen] = useState(false);
@@ -405,14 +409,27 @@ const BillsList = ({
 
   const handleMoveSelected = async () => {
     if (selectedBills.size === 0) return;
+    // The dropdown now carries the chosen destination on the modal state
+    // object (`{to: 'vendor'|'expense'|'payment'}`); fall back to legacy
+    // `moveTo` prop when the modal was opened without an explicit choice.
+    const targetTo =
+      (isMoveModalOpen && typeof isMoveModalOpen === "object" && isMoveModalOpen.to) ||
+      moveTo;
+    const TARGET_LABELS = {
+      vendor: "Purchase Voucher",
+      expense: "Journal Voucher",
+      payment: "Payment Voucher",
+    };
     try {
       await moveBills({
         organizationId: selectedOrganization?.id,
         from: moveFrom,
-        to: moveTo,
+        to: targetTo,
         bill_ids: Array.from(selectedBills),
       });
-      globalToast.success(`${selectedBills.size} bill(s) moved to ${copy.moveTargetLabel}`);
+      globalToast.success(
+        `${selectedBills.size} bill(s) moved to ${TARGET_LABELS[targetTo] || copy.moveTargetLabel}`,
+      );
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
       refetch();
@@ -550,6 +567,10 @@ const BillsList = ({
   }
 
   return (
+    // Plain `h-full`, not a `calc(100dvh - chrome)` guess: the Layout shell is
+    // now viewport-locked and hands this page a definite height, so measuring
+    // the chrome here would subtract it twice and leave a dead gap under the
+    // card. The card body below is the only scroller.
     <div className="h-full flex flex-col gap-3">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
@@ -562,14 +583,91 @@ const BillsList = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           {selectedBills.size > 0 && (
             <>
-              <button
-                type="button"
-                onClick={() => setIsMoveModalOpen(true)}
-                className={btnNeutral}
-              >
-                <Icon icon="heroicons:arrow-right-circle" className="text-sm" />
-                Move ({selectedBills.size})
-              </button>
+              {/* Single Move dropdown — Journal / Payment / Trash — replaces
+                  the two-button pair per the client spec. Sync stays a
+                  standalone action alongside. Options shown depend on the
+                  current voucher (can't move to yourself).
+
+                  Styled through `btnNeutral` so it keeps the same 32px box as
+                  every other toolbar button instead of the 38px it shipped
+                  with. */}
+              <Menu as="div" className="relative">
+                <MenuButton className={btnNeutral}>
+                  <Icon icon="heroicons:arrow-right-circle" className="text-sm" />
+                  Move ({selectedBills.size})
+                  <Icon icon="heroicons:chevron-down" className="text-[10px] opacity-70" />
+                </MenuButton>
+                <MenuItems
+                  anchor="bottom end"
+                  className="mt-1 w-52 z-50 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg dark:shadow-black/40 focus:outline-none py-1"
+                >
+                  {moveFrom !== "vendor" && (
+                    <MenuItem>
+                      {({ focus }) => (
+                        <button
+                          type="button"
+                          onClick={() => setIsMoveModalOpen({ to: "vendor" })}
+                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
+                        >
+                          <Icon icon="heroicons:receipt-refund" className="text-sm text-blue-600" />
+                          Move to Purchase Voucher
+                        </button>
+                      )}
+                    </MenuItem>
+                  )}
+                  {moveFrom !== "expense" && (
+                    <MenuItem>
+                      {({ focus }) => (
+                        <button
+                          type="button"
+                          onClick={() => setIsMoveModalOpen({ to: "expense" })}
+                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
+                        >
+                          <Icon icon="heroicons:book-open" className="text-sm text-blue-600" />
+                          Move to Journal Voucher
+                        </button>
+                      )}
+                    </MenuItem>
+                  )}
+                  {moveFrom !== "payment" && (
+                    <MenuItem>
+                      {({ focus }) => (
+                        <button
+                          type="button"
+                          onClick={() => setIsMoveModalOpen({ to: "payment" })}
+                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
+                        >
+                          <Icon icon="heroicons:banknotes" className="text-sm text-blue-600" />
+                          Move to Payment Voucher
+                        </button>
+                      )}
+                    </MenuItem>
+                  )}
+                  {bulkTrashableIds.length > 0 && (
+                    <>
+                      <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                      <MenuItem>
+                        {({ focus }) => (
+                          <button
+                            type="button"
+                            onClick={() => setIsBulkDeleteOpen(true)}
+                            disabled={isBulkActing}
+                            title={
+                              bulkBlockedCount > 0
+                                ? `${bulkBlockedCount} selected bill(s) already posted to Tally will be skipped`
+                                : "Move selected bills to Trash"
+                            }
+                            className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-rose-50 dark:bg-rose-950/40" : ""} text-rose-700 dark:text-rose-400`}
+                          >
+                            <Icon icon="heroicons:trash" className="text-sm" />
+                            Move to Trash ({bulkTrashableIds.length})
+                          </button>
+                        )}
+                      </MenuItem>
+                    </>
+                  )}
+                </MenuItems>
+              </Menu>
               {bulkSyncableIds.length > 0 && (
                 <button
                   type="button"
@@ -582,22 +680,8 @@ const BillsList = ({
                   Sync ({bulkSyncableIds.length})
                 </button>
               )}
-              {bulkTrashableIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setIsBulkDeleteOpen(true)}
-                  disabled={isBulkActing}
-                  title={
-                    bulkBlockedCount > 0
-                      ? `${bulkBlockedCount} selected bill(s) are already posted to Tally and will be skipped`
-                      : "Move selected bills to Trash"
-                  }
-                  className={`${btnBase} text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 disabled:cursor-wait`}
-                >
-                  <Icon icon="heroicons:trash" className="text-sm" />
-                  Move to Trash ({bulkTrashableIds.length})
-                </button>
-              )}
+              {/* No standalone Trash button any more — Move to Trash lives in
+                  the Move dropdown above. */}
             </>
           )}
           {canDownloadReport && (
@@ -969,11 +1053,23 @@ const BillsList = ({
         fileName={selectedFile.name}
       />
 
-      {/* Move modal */}
+      {/* Move modal — target label reflects the destination chosen from
+          the dropdown ({to: 'vendor'|'expense'|'payment'}). */}
+      {(() => {
+        const TARGET_LABELS = {
+          vendor: "Purchase Voucher",
+          expense: "Journal Voucher",
+          payment: "Payment Voucher",
+        };
+        const chosenTo =
+          (isMoveModalOpen && typeof isMoveModalOpen === "object" && isMoveModalOpen.to) ||
+          moveTo;
+        const chosenLabel = TARGET_LABELS[chosenTo] || copy.moveTargetLabel;
+        return (
       <Modal
-        activeModal={isMoveModalOpen}
+        activeModal={!!isMoveModalOpen}
         onClose={() => setIsMoveModalOpen(false)}
-        title={`Move to ${copy.moveTargetLabel}`}
+        title={`Move to ${chosenLabel}`}
         className="max-w-md"
       >
         <div className="space-y-3 p-1">
@@ -983,7 +1079,7 @@ const BillsList = ({
               You're about to move{" "}
               <span className="font-semibold">{selectedBills.size}</span> bill
               {selectedBills.size > 1 ? "s" : ""} to{" "}
-              <span className="font-semibold">{copy.moveTargetLabel}</span>.
+              <span className="font-semibold">{chosenLabel}</span>.
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
@@ -1005,6 +1101,8 @@ const BillsList = ({
           </div>
         </div>
       </Modal>
+        );
+      })()}
 
       {/* Duplicate modal */}
       <Modal

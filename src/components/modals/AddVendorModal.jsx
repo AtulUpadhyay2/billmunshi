@@ -21,12 +21,18 @@ import { useSelector } from "react-redux";
 const inputBase =
   "w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
-const AddVendorModal = ({ isOpen, onClose, onCreated }) => {
+const AddVendorModal = ({
+  isOpen,
+  onClose,
+  onCreated,
+  defaultName = "",
+  defaultGstIn = "",
+}) => {
   const { selectedOrganization } = useSelector((state) => state.auth);
   const orgId = selectedOrganization?.id;
 
-  const [name, setName] = useState("");
-  const [gstIn, setGstIn] = useState("");
+  const [name, setName] = useState(defaultName || "");
+  const [gstIn, setGstIn] = useState((defaultGstIn || "").toUpperCase());
   const [parentName, setParentName] = useState("Sundry Creditors");
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,14 +47,20 @@ const AddVendorModal = ({ isOpen, onClose, onCreated }) => {
 
   const create = useQuickCreateVendor();
 
+  // On open, seed from the OCR-derived defaults (bill vendor name + GST).
+  // On close, reset — including clearing the seeds so the next open with
+  // different defaults doesn't inherit the stale ones.
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setName(defaultName || "");
+      setGstIn((defaultGstIn || "").toUpperCase());
+    } else {
       setName("");
       setGstIn("");
       setParentName("Sundry Creditors");
       setSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultName, defaultGstIn]);
 
   const gstInValid =
     !gstIn || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]{3}$/i.test(gstIn.trim());

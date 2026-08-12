@@ -115,7 +115,12 @@ const TallyVendorBillDetail = () => {
   // Refs to track if initial matching has been done
   const vendorMatchedRef = useRef(false);
   const stockItemsMatchedRef = useRef(false);
-  const taxLedgersMatchedRef = useRef(false);
+  // Two separate flags — name-based match effect and ID-based match
+  // effect each run once. Sharing a single ref meant whichever fired
+  // first blocked the other forever, so an ID-loaded backend response
+  // never let the name matcher retry (and vice-versa).
+  const taxLedgersMatchedRef = useRef(false);          // name-based effect
+  const taxLedgersByIdMatchedRef = useRef(false);      // id-based effect
   const productTaxMatchedRef = useRef(false);
   const stockItemsInitialMatchedRef = useRef(false);
 
@@ -184,6 +189,11 @@ const TallyVendorBillDetail = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // State for verification loading
+  // Synchronous re-entry guards. React batches setState so two rapid
+  // clicks both pass an `isVerifying === false` check; a ref set on the
+  // same tick blocks the second call before either state update flushes.
+  const verifyInFlightRef = useRef(false);
+  const syncInFlightRef = useRef(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // State for verification
@@ -462,22 +472,30 @@ const TallyVendorBillDetail = () => {
   // Like ``billTaxMatch``, this is informational only — it never blocks
   // verification, just surfaces drift so the operator can sanity-check.
   const billTotalMatch = useMemo(() => {
-    const TOL = 1; // ±₹1 — same as the tax tolerance
-    const billTotal = parseFloat(analysedData?.total);
-    const computedTotal = parseFloat(billSummaryForm.total);
-    if (!billTotal || Number.isNaN(billTotal)) {
+    // Paise-level tolerance — half a paisa, so genuine rupee-level drift
+    // (e.g. 13125.52 vs 13125.00) is never mistaken for a match, while
+    // float rounding noise (e.g. 13125.00 vs 13125.00499) still is.
+    const TOL = 0.005;
+    // Normalize both sides through the same fixed(2) rounding before
+    // comparing so trailing-float artifacts (0.1 + 0.2 style) can't flip
+    // the match either way.
+    const billTotalRaw = parseFloat(analysedData?.total);
+    const computedTotalRaw = parseFloat(billSummaryForm.total);
+    if (!billTotalRaw || Number.isNaN(billTotalRaw)) {
       return { hasBillValue: false };
     }
-    if (Number.isNaN(computedTotal)) {
+    if (Number.isNaN(computedTotalRaw)) {
       return { hasBillValue: false };
     }
+    const billTotal = parseFloat(billTotalRaw.toFixed(2));
+    const computedTotal = parseFloat(computedTotalRaw.toFixed(2));
     const diff = Number((computedTotal - billTotal).toFixed(2));
     return {
       hasBillValue: true,
       billTotal,
       computedTotal,
       diff,
-      isMatch: Math.abs(diff) <= TOL,
+      isMatch: Math.abs(diff) < TOL,
     };
   }, [analysedData?.total, billSummaryForm.total]);
 
@@ -873,6 +891,7 @@ const TallyVendorBillDetail = () => {
       vendorMatchedRef.current = false;
       stockItemsMatchedRef.current = false;
       taxLedgersMatchedRef.current = false;
+      taxLedgersByIdMatchedRef.current = false;
       productTaxMatchedRef.current = false;
       stockItemsInitialMatchedRef.current = false;
 
@@ -925,11 +944,15 @@ const TallyVendorBillDetail = () => {
         sgstLedgerId: tally?.sgst_taxes || null,
         igstLedgerId: tally?.igst_taxes || null,
         discount: discountAmount.toString(),
-        discountLedgerId: null,
+        // Seed adjustment ledger IDs from the analyzed bill so the
+        // Verify button doesn't spuriously report "ledger missing"
+        // during the window between initial render and the follow-up
+        // dropdown-load effect that used to fill these in.
+        discountLedgerId: tally?.discount_taxes || null,
         cess: cessAmount.toString(),
-        cessLedgerId: null,
+        cessLedgerId: tally?.cess_taxes || null,
         freight: freightAmount.toString(),
-        freightLedgerId: null,
+        freightLedgerId: tally?.freight_taxes || null,
         round_off: roundOffAmount.toString(),
         roundOffLedgerId: tally?.round_off_taxes || null,
       });
@@ -996,7 +1019,10 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: item.description || "",
-            tax_ledger: "No Purchase Ledger",
+            // Backend guard treats blank as "no change". A sentinel
+            // like "No Purchase Ledger" would round-trip and create
+            // a bogus ledger on the next verify.
+            tax_ledger: "",
             tax_ledger_id: null,
             price: item.price || "",
             quantity: item.quantity || "",
@@ -1015,7 +1041,10 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: null,
             item_details: "",
-            tax_ledger: "No Purchase Ledger",
+            // Backend guard treats blank as "no change". A sentinel
+            // like "No Purchase Ledger" would round-trip and create
+            // a bogus ledger on the next verify.
+            tax_ledger: "",
             tax_ledger_id: null,
             price: "",
             quantity: "",
@@ -1289,7 +1318,7 @@ const TallyVendorBillDetail = () => {
 
   // Handle tax ledger IDs when they are returned as IDs (not names) from backend
   useEffect(() => {
-    if (!tallyAnalysedData || taxLedgersMatchedRef.current) return;
+    if (!tallyAnalysedData || taxLedgersByIdMatchedRef.current) return;
 
     // Check if we have tax ledger IDs directly in the analyzed_bill data
     const { cgst_taxes, sgst_taxes, igst_taxes } = tallyAnalysedData;
@@ -1338,7 +1367,7 @@ const TallyVendorBillDetail = () => {
           ...prev,
           ...updates,
         }));
-        taxLedgersMatchedRef.current = true;
+        taxLedgersByIdMatchedRef.current = true;
       }
     }
   }, [
@@ -1430,12 +1459,13 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.roundOffLedgerId,
   ]);
 
-  // Auto-select freight ledger when discount amount > 0 and no freight
-  // ledger selected. Skipped if the user explicitly cleared freight in
-  // this session (same guard as the main auto-match effect above).
+  // Auto-select freight ledger when FREIGHT amount > 0 (not discount).
+  // Previous logic keyed off discount by mistake; discount and freight
+  // are independent adjustments and a bill can have one without the
+  // other. Skipped if the user cleared freight explicitly.
   useEffect(() => {
     if (
-      parseFloat(billSummaryForm.discount || 0) > 0 &&
+      parseFloat(billSummaryForm.freight || 0) > 0 &&
       !billSummaryForm.freightLedgerId &&
       !userClearedLedgersRef.current.has("freight") &&
       discountLedgerOptions.length > 0
@@ -1453,7 +1483,7 @@ const TallyVendorBillDetail = () => {
       }
     }
   }, [
-    billSummaryForm.discount,
+    billSummaryForm.freight,
     billSummaryForm.freightLedgerId,
     discountLedgerOptions,
   ]);
@@ -1795,7 +1825,7 @@ const TallyVendorBillDetail = () => {
       const updated = [...prev];
       updated[productIndex] = {
         ...updated[productIndex],
-        tax_ledger: "No Tax Ledger",
+        tax_ledger: "",
         tax_ledger_id: null,
         tax_ledger_cleared: true,
       };
@@ -1957,20 +1987,35 @@ const TallyVendorBillDetail = () => {
   // the OCR-extracted bill total. One-click balance when the operator
   // has corrected line items and needs the ledger to match the invoice.
   const handleAutoFillRoundOff = () => {
-    const billTotal = parseFloat(analysedData?.total);
-    if (!billTotal || Number.isNaN(billTotal)) {
+    const billTotalRaw = parseFloat(analysedData?.total);
+    if (!billTotalRaw || Number.isNaN(billTotalRaw)) {
       globalToast.error(
         "No bill total available from OCR — enter round-off manually.",
       );
       return;
     }
-    const subtotal = parseFloat(billSummaryForm.subtotal) || 0;
-    const cgst = parseFloat(billSummaryForm.cgst) || 0;
-    const sgst = parseFloat(billSummaryForm.sgst) || 0;
-    const igst = parseFloat(billSummaryForm.igst) || 0;
-    const cess = parseFloat(billSummaryForm.cess) || 0;
-    const freight = parseFloat(billSummaryForm.freight) || 0;
-    const discount = parseFloat(billSummaryForm.discount) || 0;
+    // Normalize to 2dp (paise) before any subtraction so trailing-float
+    // noise can't masquerade as a real round-off amount — same tolerance
+    // convention as ``billTotalMatch`` above.
+    const billTotal = parseFloat(billTotalRaw.toFixed(2));
+    // Recompute subtotal from live product state — `billSummaryForm.subtotal`
+    // was seeded from OCR at load time and doesn't track user edits to line
+    // amounts, so the button was balancing against a stale subtotal.
+    const subtotal = parseFloat(
+      products
+        .reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0)
+        .toFixed(2),
+    );
+    const cgst = parseFloat((parseFloat(billSummaryForm.cgst) || 0).toFixed(2));
+    const sgst = parseFloat((parseFloat(billSummaryForm.sgst) || 0).toFixed(2));
+    const igst = parseFloat((parseFloat(billSummaryForm.igst) || 0).toFixed(2));
+    const cess = parseFloat((parseFloat(billSummaryForm.cess) || 0).toFixed(2));
+    const freight = parseFloat(
+      (parseFloat(billSummaryForm.freight) || 0).toFixed(2),
+    );
+    const discount = parseFloat(
+      (parseFloat(billSummaryForm.discount) || 0).toFixed(2),
+    );
     const derived = billTotal - (subtotal + cgst + sgst + igst + cess + freight - discount);
     const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
     setBillSummaryForm((prev) => ({
@@ -2000,26 +2045,56 @@ const TallyVendorBillDetail = () => {
         Array.isArray(tally.consolidate_prod) &&
         tally.consolidate_prod.length > 0
       ) {
-        setProducts(
-          tally.consolidate_prod.map((item) => ({
-            id: item.id,
-            item_id: item.id,
-            item_name: item.item_name || null,
-            item_details: item.item_details || "",
-            tax_ledger: "No Tax Ledger",
-            tax_ledger_id: item.taxes || null,
-            price: item.price || item.rate || "",
-            quantity: item.quantity || "",
-            amount: item.amount || "",
-            gst: item.product_gst || "",
-            cgst_ledger: item.cgst_ledger || null,
-            sgst_ledger: item.sgst_ledger || null,
-            igst_ledger: item.igst_ledger || null,
-            igst: item.igst || 0.0,
-            cgst: item.cgst || 0.0,
-            sgst: item.sgst || 0.0,
-          })),
-        );
+        setProducts((prev) => {
+          // Preserve prior per-line picks so toggling into consolidate
+          // view doesn't wipe user selections. Backend consolidate_prod
+          // rows return `tax_ledger_id` (UUID). Legacy shapes may still
+          // carry `tax_ledger` (name); resolve name→id when only the
+          // name is available.
+          const prevByKey = new Map();
+          prev.forEach((row) => {
+            const key = row.item_id || row.item_details;
+            if (key) prevByKey.set(key, row);
+          });
+          const resolveTaxId = (item) => {
+            if (item.tax_ledger_id) return item.tax_ledger_id;
+            if (item.taxes) return item.taxes; // legacy key
+            if (item.tax_ledger) {
+              const match = taxLedgerOptions.find(
+                (o) => o.name === item.tax_ledger,
+              );
+              if (match) return match.id;
+            }
+            const prevRow = prevByKey.get(item.id || item.item_details);
+            return prevRow?.tax_ledger_id || null;
+          };
+          const resolveTaxName = (item, id) => {
+            if (item.tax_ledger) return item.tax_ledger;
+            const match = taxLedgerOptions.find((o) => o.id === id);
+            return match?.name || "";
+          };
+          return tally.consolidate_prod.map((item) => {
+            const taxId = resolveTaxId(item);
+            return {
+              id: item.id,
+              item_id: item.id,
+              item_name: item.item_name || null,
+              item_details: item.item_details || "",
+              tax_ledger: resolveTaxName(item, taxId),
+              tax_ledger_id: taxId,
+              price: item.price || item.rate || "",
+              quantity: item.quantity || "",
+              amount: item.amount || "",
+              gst: item.product_gst || "",
+              cgst_ledger: item.cgst_ledger || null,
+              sgst_ledger: item.sgst_ledger || null,
+              igst_ledger: item.igst_ledger || null,
+              igst: item.igst || 0.0,
+              cgst: item.cgst || 0.0,
+              sgst: item.sgst || 0.0,
+            };
+          });
+        });
       } else if (tally?.consolidated_product) {
         setProducts([
           {
@@ -2027,7 +2102,7 @@ const TallyVendorBillDetail = () => {
             item_id: null,
             item_name: tally.consolidated_product.item_name || null,
             item_details: tally.consolidated_product.item_details || "",
-            tax_ledger: "No Tax Ledger",
+            tax_ledger: "",
             tax_ledger_id: null,
             price: tally.consolidated_product.price || "",
             quantity: tally.consolidated_product.quantity || "",
@@ -2051,7 +2126,7 @@ const TallyVendorBillDetail = () => {
             item_id: item.item_id || null,
             item_name: item.item_name || null,
             item_details: item.item_details || "",
-            tax_ledger: item.tax_ledger || "No Tax Ledger",
+            tax_ledger: item.tax_ledger || "",
             tax_ledger_id: item.tax_ledger_id || null,
             price: item.price || "",
             quantity: item.quantity || "",
@@ -2220,7 +2295,7 @@ const TallyVendorBillDetail = () => {
         item_id: null,
         item_name: null,
         item_details: "",
-        tax_ledger: "No Tax Ledger",
+        tax_ledger: "",
         tax_ledger_id: null,
         price: "",
         quantity: "",
@@ -2241,6 +2316,7 @@ const TallyVendorBillDetail = () => {
 
   // Handle verification similar to Zoho
   const handleVerification = async () => {
+    if (verifyInFlightRef.current) return;
     if (hasValidationErrors()) {
       const errorMessages = getValidationErrorMessages();
       const errorText =
@@ -2251,6 +2327,7 @@ const TallyVendorBillDetail = () => {
       return;
     }
 
+    verifyInFlightRef.current = true;
     try {
       setIsVerifying(true);
       setVerificationStatus(null);
@@ -2314,7 +2391,7 @@ const TallyVendorBillDetail = () => {
       // amount rows lets the backend drop the FK cleanly.
       const _ledgerBlock = (amount, ledger) => ({
         amount: parseFloat(amount) || 0.0,
-        ledger: ledger?.name || "No Tax Ledger",
+        ledger: ledger?.name || "",
         ledger_id: ledger?.id || null,
       });
 
@@ -2328,20 +2405,13 @@ const TallyVendorBillDetail = () => {
             vendor_id: vendorForm.selectedVendor?.id || null,
           },
           bill_no: vendorForm.invoiceNumber || "",
-          bill_date: vendorForm.dateIssued
-            ? new Date(vendorForm.dateIssued)
-                .toLocaleDateString("en-GB")
-                .split("/")
-                .reverse()
-                .join("-")
-            : "",
-          due_date: vendorForm.dueDate
-            ? new Date(vendorForm.dueDate)
-                .toLocaleDateString("en-GB")
-                .split("/")
-                .reverse()
-                .join("-")
-            : "",
+          // Date fields are stored as `YYYY-MM-DD` strings by <input type="date">.
+          // A `new Date(str).toLocaleDateString("en-GB")` round-trip goes
+          // through UTC → local, so a value like `2024-03-31` reads as
+          // `2024-04-01` in IST after midnight — the payload silently
+          // shifted by a day. Ship the string verbatim.
+          bill_date: (vendorForm.dateIssued || "").slice(0, 10),
+          due_date: (vendorForm.dueDate || "").slice(0, 10),
           total_amount: parseFloat(billSummaryForm.total) || 0,
           consolidate: isConsolidated,
           // Notes were silently dropped before — backend reads
@@ -2368,9 +2438,8 @@ const TallyVendorBillDetail = () => {
                     item_id: product.id || null,
                     item_name: product.item_name || null,
                     item_details: product.item_details || "",
-                    tax_ledger: taxLedger?.name || "No Tax Ledger",
+                    tax_ledger: taxLedger?.name || "",
                     price: parseFloat(product.price) || 0,
-                    rate: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
@@ -2397,7 +2466,7 @@ const TallyVendorBillDetail = () => {
                     item_id: product.id || null,
                     item_name: product.item_name || null,
                     item_details: product.item_details || "",
-                    tax_ledger: taxLedger?.name || "No Tax Ledger",
+                    tax_ledger: taxLedger?.name || "",
                     price: parseFloat(product.price) || 0,
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
@@ -2595,6 +2664,7 @@ const TallyVendorBillDetail = () => {
       toast.error(error.message || "Failed to verify bill. Please try again.");
     } finally {
       setIsVerifying(false);
+      verifyInFlightRef.current = false;
     }
   };
 
@@ -2605,32 +2675,37 @@ const TallyVendorBillDetail = () => {
 
   // Sync function
   const handleSync = async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     try {
       setIsSyncing(true);
 
-      // Wrap the sync in the masters-guard helper: if backend returns
-      // 409 WAITING_FOR_MASTERS, poll the same call every 15s (up to
-      // 3 min) until Tally imports the pending records, then proceed.
-      // Zero XML change — see docs/tally-master-sync.md for the flow.
-      const outcome = await tallySyncWithMastersGuard(
-        () =>
-          syncVendorBill({
-            organizationId: selectedOrganization?.id,
-            billId,
-          }),
-        {
-          retryFn: async () => true, // keep polling until timeout
-        },
-      );
+      // Backend accepts the sync into BillMunshi's queue and returns
+      // 200 with `tally_sync_status` = "pending_tally" or "confirmed".
+      // Tally TCP eventually pulls the bill + any pending masters and
+      // posts a callback that flips `tally_synced` on the bill. The
+      // detail view re-reads `bill.tally_synced` / `.tally_sync_message`
+      // to show the final state.
+      const result = await syncVendorBill({
+        organizationId: selectedOrganization?.id,
+        billId,
+      });
+      const data = result?.data || result;
+      const state = data?.tally_sync_status || "pending_tally";
+      const pendingCount = data?.pending_masters_count || 0;
 
-      if (outcome.status === "success") {
-        globalToast.success("Bill synced to Tally successfully");
-        refetch();
-      } else if (outcome.status === "timeout") {
-        // Toast already shown by the helper — just make sure state is fresh.
-        refetch();
+      if (state === "confirmed") {
+        globalToast.success("Bill synced to Tally");
+      } else if (pendingCount > 0) {
+        globalToast.info(
+          `Bill queued. Tally will import ${pendingCount} pending master${pendingCount > 1 ? "s" : ""} on its next poll, then post the voucher.`,
+        );
+      } else {
+        globalToast.info(
+          "Bill queued for Tally. Waiting for Tally to confirm.",
+        );
       }
-      // "waiting" without retry never fires because retryFn returns true.
+      refetch();
     } catch (error) {
       console.error("Failed to sync vendor bill:", error);
       globalToast.error(
@@ -2641,6 +2716,7 @@ const TallyVendorBillDetail = () => {
       );
     } finally {
       setIsSyncing(false);
+      syncInFlightRef.current = false;
     }
   };
 
@@ -2833,9 +2909,23 @@ const TallyVendorBillDetail = () => {
             <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Vendor bill"}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {billInfo?.status ? `Status: ${billInfo.status}` : "Vendor bill detail"}
-              {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
+              <span>
+                {billInfo?.status ? `Status: ${billInfo.status}` : "Vendor bill detail"}
+                {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+              </span>
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <Icon icon="heroicons:check-circle" className="text-xs" />
+                  Synced to Tally
+                </span>
+              )}
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === false && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Icon icon="heroicons:clock" className="text-xs" />
+                  Waiting for Tally
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -2955,6 +3045,29 @@ const TallyVendorBillDetail = () => {
       )}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
+        {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
+            amount (Corrections 14 + 24). Sourced from the backend
+            sanity check stashed on analysedData._ocr_sanity. */}
+        {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
+          <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
+            <Icon
+              icon="heroicons:exclamation-circle"
+              className="text-rose-600 dark:text-rose-400 text-lg shrink-0 mt-0.5"
+            />
+            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
+              <p className="font-semibold text-rose-800 dark:text-rose-300 mb-1">
+                OCR check — verify large amounts
+              </p>
+              <p>{analysedData._ocr_sanity.message}</p>
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Most likely cause: OCR dropped the leading digit on a
+                7-8 digit figure. Cross-check the invoice image against
+                every amount field before verifying.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Validation summary */}
         {hasValidationErrors() && !isVerified && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
@@ -3223,6 +3336,12 @@ const TallyVendorBillDetail = () => {
                         kind="vendor"
                         disabled={isVerified}
                         title="Vendor not in the list? Create one"
+                        // Seed the New Vendor modal with what OCR parsed
+                        // from the bill so the user doesn't retype either.
+                        vendorDefaultName={analysedData?.from?.name || ""}
+                        vendorDefaultGstIn={
+                          analysedData?.from?.gst_number || ""
+                        }
                         className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3308,6 +3427,60 @@ const TallyVendorBillDetail = () => {
                             </div>
                           </div>
                         )}
+
+                      {/* Vendor GST match indicator. Green tick when the
+                          picked Tally vendor's GSTIN matches the bill GST;
+                          rose banner listing both values when they differ.
+                          Case- and whitespace-insensitive comparison. */}
+                      {(() => {
+                        const billGst = (
+                          analysedData?.from?.gst_number || ""
+                        )
+                          .trim()
+                          .toUpperCase();
+                        const tallyGst = (
+                          vendorForm.selectedVendor?.gst_in || ""
+                        )
+                          .trim()
+                          .toUpperCase();
+                        if (
+                          !vendorForm.selectedVendor ||
+                          !billGst ||
+                          !tallyGst
+                        ) {
+                          return null;
+                        }
+                        if (billGst === tallyGst) {
+                          return (
+                            <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60">
+                              <Icon
+                                icon="heroicons:check-circle"
+                                className="text-sm"
+                              />
+                              GSTIN matches Tally vendor
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-[12px] text-rose-800 dark:text-rose-300">
+                            <Icon
+                              icon="heroicons:exclamation-triangle"
+                              className="text-base shrink-0 mt-0.5"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-semibold">
+                                GSTIN from the invoice (GST:{" "}
+                                <span className="font-mono">{billGst}</span>
+                                ) doesn't match with Tally
+                              </div>
+                              <div className="mt-0.5">
+                                Tally vendor GST:{" "}
+                                <span className="font-mono">{tallyGst}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Invoice Number Field */}
@@ -3559,6 +3732,13 @@ const TallyVendorBillDetail = () => {
                                     kind="item"
                                     disabled={isVerified}
                                     title="Item not in the list? Create one"
+                                    // Seed the New Item modal with OCR-derived
+                                    // fields from this line so the user doesn't retype.
+                                    itemDefaultName={
+                                      product.item_name || product.item_details || ""
+                                    }
+                                    itemDefaultGstRate={product.gst || ""}
+                                    itemDefaultHsnCode={product.hsn_code || ""}
                                     className={`relative ${
                                       !product.item_id && !isVerified
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -3855,8 +4035,11 @@ const TallyVendorBillDetail = () => {
                     <Icon icon="heroicons:chart-pie" className="text-sm" />
                   </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Tax summary by rate
+                    GST Items
                   </h3>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    Verify GST amount and ledgers
+                  </span>
 
                   {/* Bill-image reconciliation badge — informational only.
                       Flags drift between the values printed on the original
@@ -4224,7 +4407,7 @@ const TallyVendorBillDetail = () => {
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                       </div>

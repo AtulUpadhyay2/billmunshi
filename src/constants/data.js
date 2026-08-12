@@ -147,6 +147,11 @@ export const menuItems = [
     icon: "heroicons-outline:user-group",
     link: "/clients",
   },
+  {
+    title: "Support",
+    icon: "heroicons-outline:chat-bubble-left-right",
+    link: "/support/tickets",
+  },
 ];
 
 export const topMenu = [

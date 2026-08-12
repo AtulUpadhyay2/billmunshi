@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
+import { apiFetch } from "@/utils/apiClient";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -111,6 +113,11 @@ const TallyPaymentVoucherDetail = () => {
     totalAmount: "",
     selectedVendor: null,
     vendorGST: "",
+    // Payment Mode — the Bank/Cash ledger the payment is actually made
+    // through (Correction 26). Distinct from `selectedVendor` above,
+    // which is now a plain vendor identification picker.
+    selectedPaymentMode: null,
+    paymentModeName: "",
   });
 
   // State for managing expense items
@@ -165,6 +172,8 @@ const TallyPaymentVoucherDetail = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // State for verification loading
+  const verifyInFlightRef = useRef(false);
+  const syncInFlightRef = useRef(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
   // State for error alert
@@ -176,6 +185,10 @@ const TallyPaymentVoucherDetail = () => {
 
   // State to track if user manually cleared vendor selection
   const [vendorManuallyCleared, setVendorManuallyCleared] = useState(false);
+  // Same guard for the Payment Mode dropdown (Correction 26) — mirrors
+  // the vendor-clear pattern so hydration never fights a manual clear.
+  const [paymentModeManuallyCleared, setPaymentModeManuallyCleared] =
+    useState(false);
 
   // State for sync operation
   const [isSyncing, setIsSyncing] = useState(false);
@@ -205,6 +218,23 @@ const TallyPaymentVoucherDetail = () => {
   // Fetch vendor ledgers for vendor selection dropdown
   const { data: vendorLedgersData, isLoading: vendorLedgersLoading } =
     useGetTallyVendorLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
+
+  // Fetch Payment Mode ledgers (Correction 26) — ledgers whose parent is
+  // in TallyConfig.payment_parents (Bank Accounts / Cash In Hand). Same
+  // generic `configs/ledgers/?parent_type=...` endpoint the other
+  // ledger dropdowns on this page use; called directly with apiFetch
+  // since a dedicated hook for this parent_type doesn't exist yet in
+  // tallyApiService.js.
+  const { data: paymentModeLedgersData, isLoading: paymentModeLedgersLoading } =
+    useQuery({
+      queryKey: ["tallyPaymentModeLedgers", selectedOrganization?.id],
+      queryFn: () =>
+        apiFetch(
+          `tally/org/${selectedOrganization.id}/configs/ledgers/?parent_type=payment_parents`,
+          { method: "GET", headers: { "Content-Type": "application/json" } },
+        ),
       enabled: !!selectedOrganization?.id,
     });
 
@@ -324,6 +354,9 @@ const TallyPaymentVoucherDetail = () => {
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
+  // Payment Mode (Correction 26) — required alongside Vendor for both
+  // verify and sync.
+  const isPaymentModeRequired = !billForm.selectedPaymentMode;
   const getItemsWithoutCOA = () =>
     expenseItems.filter((item) => !item.chart_of_accounts_id);
 
@@ -406,6 +439,7 @@ const TallyPaymentVoucherDetail = () => {
 
   const hasValidationErrors = () =>
     isVendorRequired ||
+    isPaymentModeRequired ||
     getItemsWithoutCOA().length > 0 ||
     expenseItems.length === 0 ||
     isCgstLedgerRequired() ||
@@ -420,7 +454,8 @@ const TallyPaymentVoucherDetail = () => {
   // Get specific validation error messages
   const getValidationErrorMessages = () => {
     const errors = [];
-    if (isVendorRequired) errors.push("Please select a Bank / Cash ledger");
+    if (isVendorRequired) errors.push("Please select a Vendor");
+    if (isPaymentModeRequired) errors.push("Please select a Payment Mode");
     if (getItemsWithoutCOA().length > 0) {
       errors.push(
         `${getItemsWithoutCOA().length} expense item(s) are missing Expense Ledger`,
@@ -597,6 +632,32 @@ const TallyPaymentVoucherDetail = () => {
     [vendorLedgersData],
   );
 
+  // Process Payment Mode ledgers data for dropdown (Correction 26).
+  const processPaymentModeLedgers = () => {
+    if (!paymentModeLedgersData?.grouped_ledgers) return [];
+
+    const modes = [];
+    Object.values(paymentModeLedgersData.grouped_ledgers).forEach((group) => {
+      if (group.ledgers && Array.isArray(group.ledgers)) {
+        group.ledgers.forEach((ledger) => {
+          modes.push({
+            id: ledger.id,
+            name: ledger.name,
+            gst_in: ledger.gst_in,
+            master_id: ledger.master_id,
+            alter_id: ledger.alter_id,
+            opening_balance: ledger.opening_balance,
+            company: ledger.company,
+            parent_name: group.parent_name,
+          });
+        });
+      }
+    });
+    return modes;
+  };
+
+  const paymentModeOptions = processPaymentModeLedgers();
+
   // Process CGST ledgers data for dropdown
   const processCgstLedgers = () => {
     if (!cgstLedgersData?.grouped_ledgers) return [];
@@ -688,25 +749,40 @@ const TallyPaymentVoucherDetail = () => {
       setBillForm({
         billNumber:
           tally?.bill_no || data?.invoiceNumber || data?.billNumber || "",
-        billDate: tally?.bill_date
-          ? new Date(tally?.bill_date).toISOString().split("T")[0]
-          : data?.dateIssued
-            ? new Date(data?.dateIssued).toISOString().split("T")[0]
-            : "",
-        dueDate: tally?.due_date
-          ? new Date(tally?.due_date).toISOString().split("T")[0]
-          : data?.dueDate
-            ? new Date(data?.dueDate).toISOString().split("T")[0]
-            : tally?.bill_date
-              ? new Date(tally?.bill_date).toISOString().split("T")[0]
-              : data?.dateIssued
-                ? new Date(data?.dateIssued).toISOString().split("T")[0]
-                : "",
+        // TZ-safe normalizer (see expense/vendor detail for rationale).
+        billDate: (() => {
+          const raw = tally?.bill_date || data?.dateIssued;
+          if (!raw) return "";
+          const s = String(raw);
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          const m = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+          if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return "";
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        })(),
+        dueDate: (() => {
+          const raw =
+            tally?.due_date ||
+            data?.dueDate ||
+            tally?.bill_date ||
+            data?.dateIssued;
+          if (!raw) return "";
+          const s = String(raw);
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+          const m = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+          if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return "";
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        })(),
         vendorName: tally?.vendor_name || data?.from?.name || "",
         companyId: tally?.company_id || "",
         totalAmount: tally?.total || data?.total || "",
         selectedVendor: null, // Will be set in the next useEffect
         vendorGST: "",
+        selectedPaymentMode: null, // Will be set in the payment-mode hydration effect
+        paymentModeName: tally?.payment_mode_name || tally?.payment_mode?.name || "",
       });
 
       // Initialize Tax Summary Form
@@ -898,7 +974,7 @@ const TallyPaymentVoucherDetail = () => {
           id: Date.now() + index,
           item_id: null,
           item_details: item.description || "",
-          chart_of_accounts: "No COA Ledger",
+          chart_of_accounts: "",
           chart_of_accounts_id: null,
           amount:
             item.amount != null
@@ -913,7 +989,7 @@ const TallyPaymentVoucherDetail = () => {
             id: Date.now(),
             item_id: null,
             item_details: "",
-            chart_of_accounts: "No COA Ledger",
+            chart_of_accounts: "",
             chart_of_accounts_id: null,
             amount: "",
             debit_or_credit: "debit",
@@ -925,8 +1001,9 @@ const TallyPaymentVoucherDetail = () => {
     }
   }, [expenseBillData, analysedData, tallyAnalysedData]);
 
-  // Payment vouchers: "Payable/Paid" slot holds a Bank/Cash ledger
-  // the operator picks explicitly. Auto-matching from analyzed data
+  // Payment vouchers: "Vendor" (Correction 26 — formerly labelled
+  // "Payable / Paid via (Bank / Cash)") holds a vendor ledger the
+  // operator picks explicitly. Auto-matching from analyzed data
   // (vendor name from OCR) would silently fill in the wrong ledger
   // and defeat the whole flow. Only rehydrate an existing saved
   // selection on reload; never guess from analysed data.
@@ -937,7 +1014,12 @@ const TallyPaymentVoucherDetail = () => {
       !billForm.selectedVendor &&
       !vendorManuallyCleared
     ) {
-      const savedId = tallyAnalysedData.vendor;
+      // Detail endpoint returns vendor as UUID string; verify endpoint
+      // returns it as {id, name, ...} — accept both shapes.
+      const savedId =
+        typeof tallyAnalysedData.vendor === "object"
+          ? tallyAnalysedData.vendor?.id
+          : tallyAnalysedData.vendor;
       const matchedVendor = vendorOptions.find((v) => v.id === savedId);
       if (matchedVendor) {
         setBillForm((prev) => ({
@@ -953,6 +1035,39 @@ const TallyPaymentVoucherDetail = () => {
     tallyAnalysedData,
     billForm.selectedVendor,
     vendorManuallyCleared,
+  ]);
+
+  // Payment Mode (Correction 26) — same rehydrate-only pattern as the
+  // Vendor effect above: only restore an existing saved selection on
+  // reload, never guess from analysed OCR data (there is no OCR source
+  // for this field anyway — it's purely a user pick).
+  useEffect(() => {
+    if (
+      paymentModeOptions.length > 0 &&
+      tallyAnalysedData?.payment_mode &&
+      !billForm.selectedPaymentMode &&
+      !paymentModeManuallyCleared
+    ) {
+      // Detail endpoint returns payment_mode as a UUID string; verify
+      // endpoint returns it as {id, name, ...} — accept both shapes.
+      const savedId =
+        typeof tallyAnalysedData.payment_mode === "object"
+          ? tallyAnalysedData.payment_mode?.id
+          : tallyAnalysedData.payment_mode;
+      const matchedMode = paymentModeOptions.find((m) => m.id === savedId);
+      if (matchedMode) {
+        setBillForm((prev) => ({
+          ...prev,
+          selectedPaymentMode: matchedMode,
+          paymentModeName: matchedMode.name || prev.paymentModeName,
+        }));
+      }
+    }
+  }, [
+    paymentModeOptions,
+    tallyAnalysedData,
+    billForm.selectedPaymentMode,
+    paymentModeManuallyCleared,
   ]);
 
   // Match tax ledgers from API response when both are available
@@ -1110,17 +1225,27 @@ const TallyPaymentVoucherDetail = () => {
           sourceProducts?.[index] ||
           sourceProducts?.find((p) => p.item_details === item.item_details);
 
-        if (analyzedItem && analyzedItem.chart_of_accounts) {
+        if (
+          analyzedItem &&
+          (analyzedItem.chart_of_accounts_id || analyzedItem.chart_of_accounts)
+        ) {
           let matchedLedger = null;
 
-          // First try to match by ID (if chart_of_accounts is a UUID)
-          if (analyzedItem.chart_of_accounts !== "No COA Ledger") {
-            // Check if it's a UUID by trying to match it as an ID first
+          // Prefer explicit UUID from the backend when available; only fall
+          // back to name matching for legacy rows.
+          if (analyzedItem.chart_of_accounts_id) {
+            matchedLedger = ledgerOptions.find(
+              (ledger) => ledger.id === analyzedItem.chart_of_accounts_id,
+            );
+          }
+          if (
+            !matchedLedger &&
+            analyzedItem.chart_of_accounts &&
+            analyzedItem.chart_of_accounts !== "No COA Ledger"
+          ) {
             matchedLedger = ledgerOptions.find(
               (ledger) => ledger.id === analyzedItem.chart_of_accounts,
             );
-
-            // If not found by ID, try to match by name directly
             if (!matchedLedger) {
               matchedLedger = ledgerOptions.find(
                 (ledger) => ledger.name === analyzedItem.chart_of_accounts,
@@ -1296,6 +1421,34 @@ const TallyPaymentVoucherDetail = () => {
     setVendorManuallyCleared(true); // Flag that user manually cleared vendor
   };
 
+  // Handle Payment Mode selection (Correction 26)
+  const handlePaymentModeSelect = (paymentModeId) => {
+    if (paymentModeId === null || paymentModeId === "") {
+      handlePaymentModeClear();
+      return;
+    }
+
+    const mode = paymentModeOptions.find((m) => m.id === paymentModeId);
+    if (mode) {
+      setBillForm((prev) => ({
+        ...prev,
+        selectedPaymentMode: mode,
+        paymentModeName: mode.name || "",
+      }));
+      setPaymentModeManuallyCleared(false);
+    }
+  };
+
+  // Handle Payment Mode deselection
+  const handlePaymentModeClear = () => {
+    setBillForm((prev) => ({
+      ...prev,
+      selectedPaymentMode: null,
+      paymentModeName: "",
+    }));
+    setPaymentModeManuallyCleared(true);
+  };
+
   // Handle Chart of Accounts selection
   const handleChartOfAccountsSelect = (itemIndex, ledgerId) => {
     const ledger = ledgerOptions.find((l) => l.id === ledgerId);
@@ -1325,7 +1478,7 @@ const TallyPaymentVoucherDetail = () => {
       const updated = [...prev];
       updated[itemIndex] = {
         ...updated[itemIndex],
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
         chart_of_accounts_cleared: true,
       };
@@ -1567,7 +1720,7 @@ const TallyPaymentVoucherDetail = () => {
         id: Date.now(),
         item_id: null,
         item_details: "",
-        chart_of_accounts: "No COA Ledger",
+        chart_of_accounts: "",
         chart_of_accounts_id: null,
         amount: "",
         debit_or_credit: "debit",
@@ -1581,14 +1734,48 @@ const TallyPaymentVoucherDetail = () => {
     }
   };
 
-  // Handle consolidate toggle
+  // Handle consolidate toggle — preserve prior COA picks so a toggle does
+  // not wipe user selections that never came from OCR.
+  //
+  // Correction 28: the toggle used to flip ``isConsolidated`` (and the
+  // "Consolidated" chip) unconditionally even when the target dataset
+  // — ``consolidate_prod`` when switching ON, ``products`` when
+  // switching OFF — was empty or missing. That left the chip/toggle
+  // switch out of sync with what was actually shown in the rows (the
+  // click "did nothing" visibly). Bail out before flipping state when
+  // there's nothing to switch to, so the button click reliably switches
+  // both the chip AND the rows together, or does neither.
   const handleConsolidateToggle = () => {
     const newConsolidateStatus = !isConsolidated;
-    setIsConsolidated(newConsolidateStatus);
-
     const tally = tallyAnalysedData;
 
-    // When toggling to consolidated, use consolidate_prod if available
+    if (
+      newConsolidateStatus &&
+      (!tally?.consolidate_prod || tally.consolidate_prod.length === 0)
+    ) {
+      return;
+    }
+    if (!newConsolidateStatus && (!tally?.products || tally.products.length === 0)) {
+      return;
+    }
+
+    setIsConsolidated(newConsolidateStatus);
+
+    const prevByKey = new Map();
+    expenseItems.forEach((row) => {
+      const key = row.item_id || row.item_details;
+      if (key) prevByKey.set(key, row);
+    });
+    const resolveCOA = (item) => {
+      const prev = prevByKey.get(item.id || item.item_details);
+      return {
+        chart_of_accounts:
+          prev?.chart_of_accounts || item.chart_of_accounts || "",
+        chart_of_accounts_id:
+          prev?.chart_of_accounts_id || item.chart_of_accounts_id || null,
+      };
+    };
+
     if (newConsolidateStatus) {
       if (tally?.consolidate_prod && tally.consolidate_prod.length > 0) {
         setExpenseItems(
@@ -1596,25 +1783,20 @@ const TallyPaymentVoucherDetail = () => {
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts || "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
         );
       }
     } else {
-      // When toggling to non-consolidated, use products if available
       if (tally?.products && tally.products.length > 0) {
         setExpenseItems(
           tally.products.map((item, index) => ({
             id: item.id || index,
             item_id: item.id || null,
             item_details: item.item_details || "",
-            chart_of_accounts: item.chart_of_accounts
-              ? item.chart_of_accounts
-              : "No COA Ledger",
-            chart_of_accounts_id: null,
+            ...resolveCOA(item),
             amount: item.amount || "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
@@ -1683,9 +1865,13 @@ const TallyPaymentVoucherDetail = () => {
       analyzed_bill: expenseBillData?.analyzed_bill?.id || null,
       analyzed_data: {
         name: billForm.vendorName || "Unknown",
-        // Explicit Bank/Cash ledger UUID — backend prefers this over
+        // Explicit vendor ledger UUID — backend prefers this over
         // name lookup (which could pick wrong ledger on collision).
         vendor_id: billForm.selectedVendor?.id || null,
+        // Payment Mode (Correction 26) — the Bank/Cash ledger actually
+        // used to pay this voucher; required for verify + sync and
+        // emitted as the DEBIT entry in the sync XML.
+        payment_mode_id: billForm.selectedPaymentMode?.id || null,
         voucher: billForm.billNumber || "",
         bill_no: billForm.billNumber || "",
         bill_date: billForm.billDate || "",
@@ -1714,7 +1900,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "IGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: igstLedger?.name || "No Tax Ledger",
+            ledger: igstLedger?.name || "",
             debit_or_credit: taxSummaryForm.igstDebitCredit || "debit",
           },
           cgst: {
@@ -1723,7 +1909,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "CGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: cgstLedger?.name || "No Tax Ledger",
+            ledger: cgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.cgstDebitCredit || "debit",
           },
           sgst: {
@@ -1732,7 +1918,7 @@ const TallyPaymentVoucherDetail = () => {
                 .filter((l) => l.tax_type === "SGST")
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
-            ledger: sgstLedger?.name || "No Tax Ledger",
+            ledger: sgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit",
           },
           // TDS is removed from payment vouchers. The key is still sent
@@ -1741,36 +1927,40 @@ const TallyPaymentVoucherDetail = () => {
           // ever posted to Tally.
           tds: {
             amount: "0.00",
-            ledger: "No Tax Ledger",
+            ledger: "",
             debit_or_credit: "debit",
           },
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
-            ledger: otherAdjustmentLedger?.name || "No Tax Ledger",
+            ledger: otherAdjustmentLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.other_adjustment_debit_or_credit || "debit",
           },
           round_off: {
             amount: formatDecimal(taxSummaryForm.round_off),
-            ledger: roundOffLedger?.name || "No Tax Ledger",
+            ledger: roundOffLedger?.name || "",
             debit_or_credit:
               taxSummaryForm.round_off_debit_or_credit || "debit",
           },
         },
-        expense_items: expenseItems.map((item) => {
+        // BE reads `payment_items`, not `expense_items` — the old key
+        // caused every individual-mode verify to silently drop line
+        // updates on the backend.
+        payment_items: expenseItems.map((item) => {
           const coaLedger = ledgerOptions.find(
             (ledger) => ledger.id === item.chart_of_accounts_id,
           );
           return {
             item_id: item.id,
             item_details: item.item_details || "",
-            chart_of_accounts: coaLedger?.name || "No COA Ledger",
+            // UUID first — backend prefers `chart_of_accounts_id` and only falls back to name.
+            chart_of_accounts_id: item.chart_of_accounts_id || null,
+            chart_of_accounts: coaLedger?.name || "",
             amount: formatDecimal(item.amount),
             debit_or_credit: item.debit_or_credit || "debit",
           };
         }),
         consolidate: isConsolidated,
-        // Add consolidate_prod array when consolidation is enabled
         ...(isConsolidated
           ? {
               consolidate_prod: expenseItems.map((item) => {
@@ -1779,7 +1969,8 @@ const TallyPaymentVoucherDetail = () => {
                 );
                 return {
                   item_details: item.item_details || "",
-                  chart_of_accounts: item.chart_of_accounts_id || null,
+                  chart_of_accounts_id: item.chart_of_accounts_id || null,
+                  chart_of_accounts: coaLedger?.name || "",
                   amount: formatDecimal(item.amount),
                   debit_or_credit: item.debit_or_credit || "debit",
                 };
@@ -1794,6 +1985,7 @@ const TallyPaymentVoucherDetail = () => {
 
   // Save function
   const handleSave = async () => {
+    if (verifyInFlightRef.current) return;
     try {
       // Validation before verification
       if (hasValidationErrors()) {
@@ -1806,6 +1998,7 @@ const TallyPaymentVoucherDetail = () => {
         return;
       }
 
+      verifyInFlightRef.current = true;
       setIsVerifying(true);
 
       // Transform data to the required API format
@@ -1872,27 +2065,36 @@ const TallyPaymentVoucherDetail = () => {
       });
     } finally {
       setIsVerifying(false);
+      verifyInFlightRef.current = false;
     }
   };
 
   // Sync function
   const handleSync = async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     try {
       setIsSyncing(true);
-      const outcome = await tallySyncWithMastersGuard(
-        () =>
-          syncExpenseBill({
-            organizationId: selectedOrganization?.id,
-            billId,
-          }),
-        { retryFn: async () => true },
-      );
-      if (outcome.status === "success") {
-        globalToast.success("Bill synced to Tally successfully");
-        refetch();
-      } else if (outcome.status === "timeout") {
-        refetch();
+      const result = await syncExpenseBill({
+        organizationId: selectedOrganization?.id,
+        billId,
+      });
+      const data = result?.data || result;
+      const state = data?.tally_sync_status || "pending_tally";
+      const pendingCount = data?.pending_masters_count || 0;
+
+      if (state === "confirmed") {
+        globalToast.success("Payment voucher synced to Tally");
+      } else if (pendingCount > 0) {
+        globalToast.info(
+          `Payment voucher queued. Tally will import ${pendingCount} pending master${pendingCount > 1 ? "s" : ""} on its next poll, then post the voucher.`,
+        );
+      } else {
+        globalToast.info(
+          "Payment voucher queued for Tally. Waiting for Tally to confirm.",
+        );
       }
+      refetch();
     } catch (error) {
       console.error("Failed to sync payment voucher:", error);
       globalToast.error(
@@ -1903,6 +2105,7 @@ const TallyPaymentVoucherDetail = () => {
       );
     } finally {
       setIsSyncing(false);
+      syncInFlightRef.current = false;
     }
   };
 
@@ -2086,9 +2289,23 @@ const TallyPaymentVoucherDetail = () => {
             <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
               {billInfo?.bill_munshi_name || "Payment voucher"}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {billInfo?.status ? `Status: ${billInfo.status}` : "Payment voucher detail"}
-              {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
+              <span>
+                {billInfo?.status ? `Status: ${billInfo.status}` : "Payment voucher detail"}
+                {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
+              </span>
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <Icon icon="heroicons:check-circle" className="text-xs" />
+                  Synced to Tally
+                </span>
+              )}
+              {billInfo?.status === "Synced" && billInfo?.tally_synced === false && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Icon icon="heroicons:clock" className="text-xs" />
+                  Waiting for Tally
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -2463,6 +2680,21 @@ const TallyPaymentVoucherDetail = () => {
                   </h3>
                 </div>
 
+                {/* OCR sanity banner — leading-digit miss on large amounts. */}
+                {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
+                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
+                    <Icon icon="heroicons:exclamation-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-rose-800 dark:text-rose-300 mb-1">
+                        OCR check — verify large amounts
+                      </p>
+                      <p className="text-[11px] text-rose-700/90 dark:text-rose-400/90">
+                        {analysedData._ocr_sanity.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Validation Summary */}
                 {!isVerified && hasValidationErrors() && (
                   <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
@@ -2473,6 +2705,9 @@ const TallyPaymentVoucherDetail = () => {
                       </p>
                       <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
                         {isVendorRequired && <li>Select a vendor</li>}
+                        {isPaymentModeRequired && (
+                          <li>Select a Payment Mode</li>
+                        )}
                         {expenseItems.length === 0 && (
                           <li>Add at least one expense item</li>
                         )}
@@ -2510,20 +2745,23 @@ const TallyPaymentVoucherDetail = () => {
 
                 {/* Bill Form Fields */}
                 <div className="space-y-3">
-                  {/* First Row: Vendor and Bill Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Payable/Paid via — Bank or Cash ledger. Payment
-                        voucher spec: user picks this manually, no auto-fill
+                  {/* First Row: Vendor, Payment Mode and Bill Number */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    {/* Vendor — plain vendor-ledger identification picker
+                        (Correction 26 renamed this from "Payable / Paid
+                        via (Bank / Cash)"). Its name/GST is never sent to
+                        Tally in the sync XML; the actual Bank/Cash
+                        posting ledger is the separate Payment Mode field
+                        below. User picks this manually, no auto-fill
                         from analysed vendor OCR. */}
                     <div className="relative">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Payable / Paid via (Bank / Cash){" "}
-                        <span className="text-rose-500">*</span>
+                        Vendor <span className="text-rose-500">*</span>
                       </label>
                       <QuickAddGroup
                         kind="vendor"
                         disabled={isVerified}
-                        title="Bank / Cash ledger not in the list? Create one"
+                        title="Vendor ledger not in the list? Create one"
                         className={`mb-2 ${
                           isVendorRequired && !isVerified
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -2607,6 +2845,49 @@ const TallyPaymentVoucherDetail = () => {
                           </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* Payment Mode — the actual Bank/Cash ledger this
+                        payment is made through (Correction 26). Options
+                        are scoped to TallyConfig.payment_parents. This
+                        is the ledger emitted as the DEBIT entry in the
+                        sync XML — required for verify + sync. */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Payment Mode <span className="text-rose-500">*</span>
+                      </label>
+                      <div
+                        className={
+                          isPaymentModeRequired && !isVerified
+                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                            : ""
+                        }
+                      >
+                        <SearchableDropdown
+                          options={paymentModeOptions}
+                          value={billForm.selectedPaymentMode?.id || null}
+                          onChange={handlePaymentModeSelect}
+                          onClear={handlePaymentModeClear}
+                          placeholder="Search and select payment mode..."
+                          searchPlaceholder="Type to search payment mode ledgers..."
+                          optionLabelKey="name"
+                          optionValueKey="id"
+                          loading={paymentModeLedgersLoading}
+                          disabled={isVerified}
+                          renderOption={(mode) => (
+                            <div className="flex flex-col py-1">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm">
+                                {mode.name}
+                              </div>
+                              {mode.parent_name && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  {mode.parent_name}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        />
+                      </div>
                     </div>
 
                     {/* Bill Number Field */}
@@ -2873,8 +3154,11 @@ const TallyPaymentVoucherDetail = () => {
                                   <QuickAddGroup
                                     kind="ledger"
                                     disabled={isVerified}
-                                    ledgerDefaultParent="Bank Accounts"
-                                    ledgerTitle="Add New Bank / Cash Ledger"
+                                    // Line-item column = Expense Ledger. Was
+                                    // wired to Bank / Cash by mistake so the
+                                    // + icon opened the wrong modal.
+                                    ledgerDefaultParent="Indirect Expenses"
+                                    ledgerTitle="Add New Expense Ledger"
                                     title="Ledger not in the list? Create one"
                                     className={`${
                                       !item.chart_of_accounts_id && !isVerified
@@ -3161,10 +3445,10 @@ const TallyPaymentVoucherDetail = () => {
                             <Icon icon="heroicons:list-bullet" className="text-[12px]" />
                           </span>
                           <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                            GST Lines
+                            GST Items
                           </h4>
                           <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                            One row per (rate, ledger) — supports multi-rate
+                            Verify GST amount and ledgers · one row per (rate, ledger)
                           </span>
                         </div>
                         <button
@@ -3396,7 +3680,7 @@ const TallyPaymentVoucherDetail = () => {
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tax type</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Type</span>

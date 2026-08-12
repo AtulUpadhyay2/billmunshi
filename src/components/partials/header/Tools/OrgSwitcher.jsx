@@ -121,10 +121,7 @@ const OrgSwitcher = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      {o.slug && (
-                        <div className="text-xs text-slate-400">@{o.slug}</div>
-                      )}
+                    <div className="flex items-center justify-end mt-1">
                       <div className="flex items-center space-x-2">
                         {o.role && (
                           <span

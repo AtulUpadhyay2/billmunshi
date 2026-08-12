@@ -165,12 +165,6 @@ const OrganizationSelectModal = ({
                     </div>
                   </div>
                   
-                  {org.slug && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      @{org.slug}
-                    </p>
-                  )}
-                  
                   {org.owner && (
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                       Owner: {org.owner.full_name || org.owner.email}

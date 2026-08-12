@@ -21,21 +21,42 @@ const inputBase =
 const GST_RATES = ["0%", "5%", "12%", "18%", "28%", "Exempted"];
 const COMMON_UNITS = ["Nos", "Pcs", "Kgs", "Ltrs", "Mtrs", "Box", "Set", "Pkt"];
 
-const AddItemModal = ({ isOpen, onClose, onCreated }) => {
+const AddItemModal = ({
+  isOpen,
+  onClose,
+  onCreated,
+  // OCR-derived defaults so the modal opens with the line item's parsed
+  // fields pre-filled — matches the AddVendorModal auto-fill pattern.
+  defaultName = "",
+  defaultUnit = "",
+  defaultGstRate = "",
+  defaultHsnCode = "",
+}) => {
   const { selectedOrganization } = useSelector((state) => state.auth);
   const orgId = selectedOrganization?.id;
 
-  const [name, setName] = useState("");
-  const [unit, setUnit] = useState("Nos");
-  const [gstRate, setGstRate] = useState("18%");
-  const [hsnCode, setHsnCode] = useState("");
+  const _initialGst = (defaultGstRate || "18%").toString();
+  const _normalizedGst = GST_RATES.includes(_initialGst)
+    ? _initialGst
+    : "18%";
+
+  const [name, setName] = useState(defaultName || "");
+  const [unit, setUnit] = useState(defaultUnit || "Nos");
+  const [gstRate, setGstRate] = useState(_normalizedGst);
+  const [hsnCode, setHsnCode] = useState(defaultHsnCode || "");
   const [parent, setParent] = useState("Primary");
   const [submitting, setSubmitting] = useState(false);
 
   const create = useQuickCreateItem();
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setName(defaultName || "");
+      setUnit(defaultUnit || "Nos");
+      const seeded = (defaultGstRate || "18%").toString();
+      setGstRate(GST_RATES.includes(seeded) ? seeded : "18%");
+      setHsnCode(defaultHsnCode || "");
+    } else {
       setName("");
       setUnit("Nos");
       setGstRate("18%");
@@ -43,7 +64,7 @@ const AddItemModal = ({ isOpen, onClose, onCreated }) => {
       setParent("Primary");
       setSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultName, defaultUnit, defaultGstRate, defaultHsnCode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

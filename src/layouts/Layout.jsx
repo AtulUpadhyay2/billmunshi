@@ -11,6 +11,7 @@ import useProfileRefresh from "@/hooks/useProfileRefresh";
 import usePageTitle from "@/hooks/usePageTitle";
 import useNoIndex from "@/hooks/useNoIndex";
 import Footer from "@/components/partials/footer";
+import SupportWidget from "@/components/support/SupportWidget";
 import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import MobileFooter from "@/components/partials/footer/MobileFooter";
@@ -131,10 +132,12 @@ const Layout = () => {
         {width >= breakpoints.md && <Footer className="shrink-0" />}
       </div>
 
-      {/* Fixed-position bottom nav — kept outside the shell column since it
-          overlays the content region rather than taking a row in it. The
+      {/* Both of these are fixed-position and deliberately sit outside the
+          shell column — they overlay the content region rather than taking a
+          row in it, so the shell's `overflow-hidden` never clips them. The
           content region's `pb-24` below `md` is what keeps the last row of a
-          table clear of it. */}
+          table clear of the bottom nav. */}
+      <SupportWidget />
       {width < breakpoints.md && <MobileFooter />}
     </>
   );

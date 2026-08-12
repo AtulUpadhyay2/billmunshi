@@ -199,7 +199,6 @@ const SelectOrganization = () => {
     return (
       o.name?.toLowerCase().includes(q) ||
       o.unique_name?.toLowerCase().includes(q) ||
-      o.slug?.toLowerCase().includes(q) ||
       o.owner?.full_name?.toLowerCase().includes(q) ||
       o.owner?.email?.toLowerCase().includes(q)
     );

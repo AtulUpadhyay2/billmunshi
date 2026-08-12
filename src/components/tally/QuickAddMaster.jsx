@@ -34,6 +34,16 @@ const QuickAddMaster = ({
   title,
   disabled = false,
   className = "",
+  // Vendor-only: seed the AddVendorModal with OCR-derived defaults
+  // (vendor name + GSTIN from the bill) so the user doesn't retype.
+  vendorDefaultName = "",
+  vendorDefaultGstIn = "",
+  // Item-only: seed the AddItemModal with OCR-derived defaults from
+  // the line row (item name, unit, GST rate, HSN).
+  itemDefaultName = "",
+  itemDefaultUnit = "",
+  itemDefaultGstRate = "",
+  itemDefaultHsnCode = "",
 }) => {
   const [open, setOpen] = useState(false);
   const label = title || KIND_TITLES[kind] || "Create new";
@@ -61,6 +71,8 @@ const QuickAddMaster = ({
           isOpen={open}
           onClose={close}
           onCreated={handleCreated}
+          defaultName={vendorDefaultName}
+          defaultGstIn={vendorDefaultGstIn}
         />
       )}
       {kind === "ledger" && (
@@ -73,7 +85,15 @@ const QuickAddMaster = ({
         />
       )}
       {kind === "item" && (
-        <AddItemModal isOpen={open} onClose={close} onCreated={handleCreated} />
+        <AddItemModal
+          isOpen={open}
+          onClose={close}
+          onCreated={handleCreated}
+          defaultName={itemDefaultName}
+          defaultUnit={itemDefaultUnit}
+          defaultGstRate={itemDefaultGstRate}
+          defaultHsnCode={itemDefaultHsnCode}
+        />
       )}
     </>
   );

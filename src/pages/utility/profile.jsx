@@ -338,7 +338,7 @@ const profile = () => {
                               {org.name}
                             </h4>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {org.slug}
+                              {org.unique_name}
                             </p>
                           </div>
                         </div>
