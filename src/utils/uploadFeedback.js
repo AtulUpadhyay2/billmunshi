@@ -25,13 +25,51 @@ const describe = (rejected) =>
  */
 export const notifyUploadResult = (result, successMessage) => {
   const rejected = result?.rejected_files || [];
+  const warnings = result?.upload_warnings || [];
+  // API returns `bills_created` or (older shape) an array of bills.
+  const created =
+    result?.bills_created ??
+    (Array.isArray(result?.bills) ? result.bills.length : undefined);
 
-  if (rejected.length && !result?.bills_created) {
+  // All files rejected upfront — hard error.
+  if (rejected.length && created === 0) {
     globalToast.error(describe(rejected));
     return false;
   }
+
+  // Nothing was created AND a warning explains why (usually
+  // exact-duplicate hash short-circuit). Surface the warning instead of
+  // the misleading "uploaded" success toast.
+  if (created === 0 && warnings.length) {
+    const dupCount = warnings.filter(
+      (w) => w?.warning_type === "exact_duplicate",
+    ).length;
+    if (dupCount === warnings.length) {
+      const first = warnings[0];
+      globalToast.warning(
+        first?.message ||
+          `${dupCount} file${dupCount > 1 ? "s were" : " was"} identical to an existing bill and skipped.`,
+      );
+    } else {
+      globalToast.warning(
+        warnings[0]?.message ||
+          "Upload accepted but no new bills were created.",
+      );
+    }
+    return false;
+  }
+
   if (rejected.length) {
     globalToast.warning(describe(rejected));
+    return true;
+  }
+  if (warnings.length) {
+    // Some created, some warned — success + a heads-up.
+    globalToast.success(successMessage);
+    globalToast.info(
+      warnings[0]?.message ||
+        `${warnings.length} file${warnings.length > 1 ? "s" : ""} had a warning; check the list.`,
+    );
     return true;
   }
   globalToast.success(successMessage);
