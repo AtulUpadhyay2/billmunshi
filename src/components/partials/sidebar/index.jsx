@@ -69,7 +69,7 @@ const Sidebar = () => {
               {[...Array(7)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-9 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse"
+                  className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse"
                 />
               ))}
             </div>

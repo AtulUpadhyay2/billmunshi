@@ -38,7 +38,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
               <div className="mx-2 h-px bg-slate-200 dark:bg-slate-800" />
             </li>
           ) : (
-            <li key={i} className="px-3 pt-4 pb-1.5">
+            <li key={i} className="px-2.5 pt-3.5 pb-1">
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
                 {item.title}
               </span>
@@ -56,14 +56,14 @@ const Navmenu = ({ menus, collapsed = false }) => {
               <NavLink
                 to={item.link}
                 className={({ isActive: navActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${
                     navActive || isActive
                       ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
                   } ${collapsed ? "justify-center" : ""}`
                 }
               >
-                <Icon icon={item.icon} className="text-lg shrink-0" />
+                <Icon icon={item.icon} className="text-base shrink-0" />
                 {!collapsed && (
                   <span className="flex-1 truncate">{item.title}</span>
                 )}
@@ -76,7 +76,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
 
               {/* Tooltip for collapsed mode */}
               {collapsed && (
-                <span className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-medium shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <span className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-slate-900 text-white text-[11px] font-medium shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
                   {item.title}
                 </span>
               )}
@@ -91,19 +91,19 @@ const Navmenu = ({ menus, collapsed = false }) => {
             <button
               type="button"
               onClick={() => toggleSubmenu(i)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                 isParentActive
                   ? "bg-slate-100 dark:bg-slate-800/60 text-slate-900 dark:text-white"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
               } ${collapsed ? "justify-center" : ""}`}
             >
-              <Icon icon={item.icon} className="text-lg shrink-0" />
+              <Icon icon={item.icon} className="text-base shrink-0" />
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left truncate">{item.title}</span>
                   <Icon
                     icon="heroicons:chevron-right"
-                    className={`text-sm text-slate-400 transition-transform duration-200 ${
+                    className={`text-xs text-slate-400 transition-transform duration-200 ${
                       open ? "rotate-90" : ""
                     }`}
                   />
@@ -120,7 +120,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
                       <NavLink
                         to={sub.childlink}
                         className={({ isActive: navActive }) =>
-                          `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150 ${
+                          `flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150 ${
                             navActive
                               ? "text-blue-700 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30"
                               : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60"
@@ -149,7 +149,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
             {/* Hover-popout submenu when collapsed */}
             {collapsed && (
               <div className="pointer-events-none absolute left-full ml-2 top-0 min-w-55 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-2 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
-                <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
                   {item.title}
                 </div>
                 <ul className="space-y-0.5">
@@ -158,7 +158,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
                       <NavLink
                         to={sub.childlink}
                         className={({ isActive: navActive }) =>
-                          `flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-all ${
+                          `flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
                             navActive
                               ? "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60"
