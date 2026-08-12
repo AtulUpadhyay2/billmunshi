@@ -139,8 +139,10 @@ const UploadBillModal = ({
 }) => {
   // each item: { id, originalFile, tunedFile: null | File, kind: "image"|"pdf" }
   const [items, setItems] = useState([]);
-  // Only single-invoice uploads are supported; the old "Multiple
-  // Invoice/File" batch mode has been removed.
+  // The "Multiple Invoice/File" MODE (one PDF split per page into many
+  // bills) is hidden per client spec — fileType is hard-locked to SINGLE.
+  // Multi-FILE SELECTION (browse or drop several files at once, each one
+  // becomes its own SINGLE-mode bill) stays enabled.
   const fileType = "Single Invoice/File";
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -305,6 +307,7 @@ const UploadBillModal = ({
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept={[...ACCEPTED_IMAGE_EXT, ...ACCEPTED_PDF_EXT].join(",")}
                 onChange={handleFileInputChange}
                 className="hidden"
@@ -333,7 +336,7 @@ const UploadBillModal = ({
                     <Icon icon="heroicons:cloud-arrow-up" className="text-lg" />
                   </span>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {isDragOver ? "Drop file here" : "Drag & drop a bill file here"}
+                    {isDragOver ? "Drop files here" : "Drag & drop bill files here"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     or <span className="text-blue-700 dark:text-blue-400 font-semibold">click to browse</span>
