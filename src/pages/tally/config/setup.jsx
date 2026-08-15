@@ -302,24 +302,38 @@ const TallySetup = () => {
       enabled: !!selectedOrganization?.id,
     });
   const allLedgerOptions = useMemo(() => {
-    // The ledgers endpoint has been returned in several shapes over
-    // time — raw array, `{results: [...]}`, `{success, data: [...]}`.
-    // Walk every known shape before falling back to []; a non-array
-    // reaching `.map` here crashes the whole setup page.
+    // The Tally ledgers endpoint returns a grouped shape:
+    //   { grouped_ledgers: { "<parent_id>": { parent_name, ledgers: [...] } } }
+    // — used by the Chart of Accounts page. Also handle legacy raw-array
+    // / `results` / `data` shapes defensively so any future shape shift
+    // doesn't crash the setup page.
     const d = allLedgersData;
-    const rows = Array.isArray(d)
-      ? d
-      : Array.isArray(d?.results)
-      ? d.results
-      : Array.isArray(d?.data)
-      ? d.data
-      : Array.isArray(d?.data?.results)
-      ? d.data.results
-      : [];
+    const rows = [];
+
+    if (d?.grouped_ledgers && typeof d.grouped_ledgers === "object") {
+      Object.values(d.grouped_ledgers).forEach((group) => {
+        const parentName = group?.parent_name || "";
+        (group?.ledgers || []).forEach((l) => {
+          rows.push({ ...l, parent_name: parentName });
+        });
+      });
+    } else if (Array.isArray(d)) {
+      rows.push(...d);
+    } else if (Array.isArray(d?.results)) {
+      rows.push(...d.results);
+    } else if (Array.isArray(d?.data)) {
+      rows.push(...d.data);
+    } else if (Array.isArray(d?.data?.results)) {
+      rows.push(...d.data.results);
+    }
+
     return rows.map((l) => ({
       value: l.id,
       label: l.name || l.ledger_name || "(unnamed)",
-      parent: l.parent_name || (typeof l.parent === "string" ? l.parent : ""),
+      parent:
+        l.parent_name ||
+        (typeof l.parent === "string" ? l.parent : "") ||
+        "",
     }));
   }, [allLedgersData]);
 
@@ -883,7 +897,7 @@ const TallySetup = () => {
                   Adjustment
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  Ledger (Chart of Accounts)
+                  Ledger
                 </span>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
