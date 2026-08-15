@@ -1246,7 +1246,12 @@ const BillsList = ({
       {/* Sync status modal */}
       <Modal
         activeModal={isSyncStatusModalOpen}
-        onClose={() => setIsSyncStatusModalOpen(false)}
+        onClose={() => {
+          setIsSyncStatusModalOpen(false);
+          // Clear the payload so the next open on a different bill
+          // never flashes the previous bill's error message.
+          setSelectedSyncBill(null);
+        }}
         title="Tally sync status"
         className="max-w-xl"
       >
@@ -1269,16 +1274,46 @@ const BillsList = ({
                 <Icon icon="heroicons:x-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
                 <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   <p className="font-semibold text-rose-800 dark:text-rose-300">Sync failed</p>
-                  <p className="mt-1 text-xs whitespace-pre-wrap">
-                    {selectedSyncBill.tally_sync_message || "No error message provided by Tally."}
-                  </p>
+                  {/* Tally callback often echoes the same error message
+                      multiple times when one ledger is referenced from
+                      several rows. Split → trim → dedupe so the user
+                      sees each distinct reason once. */}
+                  {(() => {
+                    const raw = selectedSyncBill.tally_sync_message || "";
+                    const seen = new Set();
+                    const lines = raw
+                      .split(/\r?\n/)
+                      .map((l) => l.trim())
+                      .filter((l) => {
+                        if (!l || seen.has(l)) return false;
+                        seen.add(l);
+                        return true;
+                      });
+                    if (lines.length === 0) {
+                      return (
+                        <p className="mt-1 text-xs">
+                          No error message provided by Tally.
+                        </p>
+                      );
+                    }
+                    return (
+                      <ul className="mt-1 text-xs list-disc pl-4 space-y-0.5">
+                        {lines.map((l, i) => (
+                          <li key={i}>{l}</li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </div>
               </div>
             )}
             <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setIsSyncStatusModalOpen(false)}
+                onClick={() => {
+                  setIsSyncStatusModalOpen(false);
+                  setSelectedSyncBill(null);
+                }}
                 className={btnNeutral}
               >
                 Close
@@ -1286,8 +1321,10 @@ const BillsList = ({
               <button
                 type="button"
                 onClick={() => {
+                  const target = `${copy.detailRoute}/${selectedSyncBill.id}`;
                   setIsSyncStatusModalOpen(false);
-                  navigate(`${copy.detailRoute}/${selectedSyncBill.id}`);
+                  setSelectedSyncBill(null);
+                  navigate(target);
                 }}
                 className={btnPrimary}
               >

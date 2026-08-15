@@ -10,6 +10,7 @@ import {
   useGetTallyConfig,
   useCreateOrUpdateTallyConfig,
   useGetParentLedgers,
+  useGetTallyLedgers,
   useGetGstRateLedgerMappings,
   useUpsertGstRateLedgerMappings,
   useGetTallyCgstLedgers,
@@ -45,15 +46,61 @@ const ACCOUNT_FIELDS = [
   { key: "payment_parents", display: "payment_parent_names", label: "Payment ledgers", icon: "heroicons:banknotes" },
 ];
 
-// "Additional Adjustments Mapping" table — Cess / Discount / Freight Charges /
-// Round Off / TDS parent-ledger mappings, editable inline below the Tax Mapping table.
+// "Additional Adjustments Mapping" — Cess / Discount / Freight / Round Off / TDS
+// each pick ONE concrete Ledger from the org's Chart of Accounts (not a
+// parent). Backend fields: `cess_ledger`, `discount_ledger`, etc.
 const ADDITIONAL_ADJUSTMENT_FIELDS = [
-  { key: "cess_parents", display: "cess_parent_names", label: "Cess", icon: "heroicons:receipt-percent" },
-  { key: "discount_parents", display: "discount_parent_names", label: "Discount", icon: "heroicons:tag" },
-  { key: "freight_parents", display: "freight_parent_names", label: "Freight Charges", icon: "heroicons:truck" },
-  { key: "round_off_parents", display: "round_off_parent_names", label: "Round Off", icon: "heroicons:calculator" },
-  { key: "tds_parents", display: "tds_parent_names", label: "TDS", icon: "heroicons:document-currency-rupee" },
+  {
+    key: "cess_ledger",
+    display: "cess_ledger_name",
+    label: "Cess",
+    hint: "Ledger stamped on lines flagged as Cess.",
+    icon: "heroicons:receipt-percent",
+    color: "amber",
+  },
+  {
+    key: "discount_ledger",
+    display: "discount_ledger_name",
+    label: "Discount",
+    hint: "Ledger stamped when the bill carries a discount line.",
+    icon: "heroicons:tag",
+    color: "rose",
+  },
+  {
+    key: "freight_ledger",
+    display: "freight_ledger_name",
+    label: "Freight Charges",
+    hint: "Ledger stamped on freight / delivery / shipping lines.",
+    icon: "heroicons:truck",
+    color: "blue",
+  },
+  {
+    key: "round_off_ledger",
+    display: "round_off_ledger_name",
+    label: "Round Off",
+    hint: "Ledger used for the paise-adjustment entry that balances the voucher.",
+    icon: "heroicons:calculator",
+    color: "violet",
+  },
+  {
+    key: "tds_ledger",
+    display: "tds_ledger_name",
+    label: "TDS",
+    hint: "Ledger applied when TDS is deducted at source.",
+    icon: "heroicons:document-currency-rupee",
+    color: "emerald",
+  },
 ];
+
+// Small colour palette for the per-row icon chip. Keeps the enhanced UI
+// readable in both themes without pulling in a full design-system.
+const ADJUSTMENT_COLOR_CLASSES = {
+  amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-100 dark:ring-amber-900/60",
+  rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-rose-100 dark:ring-rose-900/60",
+  blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-blue-100 dark:ring-blue-900/60",
+  violet: "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 ring-violet-100 dark:ring-violet-900/60",
+  emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60",
+};
 
 const EMPTY_CONFIG = {
   tally_product_allow_sync: false,
@@ -69,6 +116,12 @@ const EMPTY_CONFIG = {
   cess_parents: [],
   discount_parents: [],
   freight_parents: [],
+  // Additional Adjustments Mapping — single Ledger FK per adjustment.
+  cess_ledger: null,
+  discount_ledger: null,
+  freight_ledger: null,
+  round_off_ledger: null,
+  tds_ledger: null,
 };
 
 /* ------------------------------------------------------------------ */
@@ -193,29 +246,31 @@ const TallySetup = () => {
   }, [rateMapState]);
 
   // ---------- Additional Adjustments Mapping (Cess / Discount / Freight / Round Off / TDS) ----------
+  // Every adjustment is a SINGLE Ledger FK (picked from the org's full
+  // Chart of Accounts), NOT a set of ParentLedgers.
   const [additionalAdjustmentsState, setAdditionalAdjustmentsState] = useState(() =>
-    ADDITIONAL_ADJUSTMENT_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: [] }), {})
+    ADDITIONAL_ADJUSTMENT_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: null }), {})
   );
 
   useEffect(() => {
     if (config) {
       setAdditionalAdjustmentsState(
         ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-          (acc, f) => ({ ...acc, [f.key]: config[f.key] || [] }),
+          (acc, f) => ({ ...acc, [f.key]: config[f.key] || null }),
           {}
         )
       );
     }
   }, [config]);
 
-  const handleAdditionalAdjustmentChange = (fieldKey, values) => {
-    setAdditionalAdjustmentsState((prev) => ({ ...prev, [fieldKey]: values }));
+  const handleAdditionalAdjustmentChange = (fieldKey, value) => {
+    setAdditionalAdjustmentsState((prev) => ({ ...prev, [fieldKey]: value || null }));
   };
 
   const handleSaveAdditionalAdjustments = async () => {
     try {
       const payload = ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-        (acc, f) => ({ ...acc, [f.key]: additionalAdjustmentsState[f.key] || [] }),
+        (acc, f) => ({ ...acc, [f.key]: additionalAdjustmentsState[f.key] || null }),
         {}
       );
       await createOrUpdateConfigMutation.mutateAsync({
@@ -236,10 +291,24 @@ const TallySetup = () => {
   const additionalAdjustmentsConfigured = useMemo(() => {
     if (!config) return 0;
     return ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-      (sum, f) => sum + (config[f.display]?.length || 0),
+      (sum, f) => sum + (config[f.key] ? 1 : 0),
       0
     );
   }, [config]);
+
+  // Full Chart of Accounts for the Additional Adjustments dropdowns.
+  const { data: allLedgersData, isLoading: isLoadingAllLedgers } =
+    useGetTallyLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
+  const allLedgerOptions = useMemo(() => {
+    const rows = allLedgersData?.results || allLedgersData || [];
+    return rows.map((l) => ({
+      value: l.id,
+      label: l.name || l.ledger_name || "(unnamed)",
+      parent: l.parent_name || (typeof l.parent === "string" ? l.parent : ""),
+    }));
+  }, [allLedgersData]);
 
   const parentLedgerOptions = useMemo(
     () =>
@@ -762,7 +831,7 @@ const TallySetup = () => {
                   Additional Adjustments Mapping
                 </h2>
                 <Tooltip
-                  content="Map the parent ledger(s) Tally should use when posting Cess, Discount, Freight Charges, Round Off and TDS adjustments."
+                  content="Pick the specific Tally ledger to use whenever a bill has a Cess, Discount, Freight, Round Off or TDS adjustment. Options list every ledger in this org's Chart of Accounts."
                   placement="right"
                   arrow
                 >
@@ -778,7 +847,7 @@ const TallySetup = () => {
                 <button
                   type="button"
                   onClick={handleSaveAdditionalAdjustments}
-                  disabled={createOrUpdateConfigMutation.isPending || isLoadingParentLedgers}
+                  disabled={createOrUpdateConfigMutation.isPending || isLoadingAllLedgers}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-md shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
                 >
                   {createOrUpdateConfigMutation.isPending ? (
@@ -796,50 +865,80 @@ const TallySetup = () => {
               </div>
             </div>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-              <div className="hidden md:grid grid-cols-[220px_1fr] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+              <div className="hidden md:grid grid-cols-[240px_1fr] gap-4 px-5 py-2.5 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  Item
+                  Adjustment
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  Ledger
+                  Ledger (Chart of Accounts)
                 </span>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {ADDITIONAL_ADJUSTMENT_FIELDS.map((f) => (
-                  <div
-                    key={f.key}
-                    className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 px-4 py-3 items-center"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon icon={f.icon} className="text-blue-600 dark:text-blue-400 text-sm" />
-                      <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
-                        {f.label}
-                      </span>
+                {ADDITIONAL_ADJUSTMENT_FIELDS.map((f) => {
+                  const chipCls =
+                    ADJUSTMENT_COLOR_CLASSES[f.color] ||
+                    ADJUSTMENT_COLOR_CLASSES.blue;
+                  const currentId = additionalAdjustmentsState[f.key] || null;
+                  const currentOption =
+                    allLedgerOptions.find((o) => o.value === currentId) || null;
+                  return (
+                    <div
+                      key={f.key}
+                      className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 px-5 py-4 items-start md:items-center hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span
+                          className={`inline-flex w-9 h-9 items-center justify-center rounded-lg ring-1 shrink-0 ${chipCls}`}
+                        >
+                          <Icon icon={f.icon} className="text-base" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                            {f.label}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                            {f.hint}
+                          </div>
+                        </div>
+                      </div>
+                      {isLoadingAllLedgers ? (
+                        <div className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                      ) : (
+                        <ReactSelect
+                          options={allLedgerOptions}
+                          value={currentOption}
+                          onChange={(selected) =>
+                            handleAdditionalAdjustmentChange(
+                              f.key,
+                              selected ? selected.value : null,
+                            )
+                          }
+                          placeholder={`Select ledger for ${f.label.toLowerCase()}…`}
+                          isClearable
+                          isSearchable
+                          styles={selectStyles}
+                          menuPlacement="auto"
+                          menuPosition="fixed"
+                          formatOptionLabel={(o) => (
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-[13px] text-slate-900 dark:text-white">
+                                {o.label}
+                              </span>
+                              {o.parent && (
+                                <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                                  under {o.parent}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          noOptionsMessage={() =>
+                            "No ledgers in this org yet. Import from Tally or create one under Ledgers."
+                          }
+                        />
+                      )}
                     </div>
-                    {isLoadingParentLedgers ? (
-                      <div className="h-11 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
-                    ) : (
-                      <ReactSelect
-                        isMulti
-                        options={parentLedgerOptions}
-                        value={parentLedgerOptions.filter((o) =>
-                          (additionalAdjustmentsState[f.key] || []).includes(o.value)
-                        )}
-                        onChange={(selected) => {
-                          const vals = Array.isArray(selected) ? selected.map((s) => s.value) : [];
-                          handleAdditionalAdjustmentChange(f.key, vals);
-                        }}
-                        placeholder={`Select parent ledger(s) for ${f.label.toLowerCase()}…`}
-                        isSearchable
-                        closeMenuOnSelect={false}
-                        hideSelectedOptions={false}
-                        styles={reactSelectStyles}
-                        menuPlacement="auto"
-                        menuPosition="fixed"
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
