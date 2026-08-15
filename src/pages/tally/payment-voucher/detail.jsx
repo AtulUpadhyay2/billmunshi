@@ -640,28 +640,32 @@ const TallyPaymentVoucherDetail = () => {
     [vendorLedgersData],
   );
 
-  // Process Payment Mode ledgers data for dropdown (Correction 26).
+  // Process Payment Mode ledgers into TWO simple options: Bank / Cash.
+  // The client asked for a plain-terms 2-option dropdown ("HDFC walle
+  // ka sense nahi hai") rather than a long list of specific ledgers.
+  // Each option's `id` = the first ledger under the corresponding
+  // parent group in this org — that ledger is what's actually posted
+  // to Tally. Categorisation is by parent-group name (bank / cash).
   const processPaymentModeLedgers = () => {
     if (!paymentModeLedgersData?.grouped_ledgers) return [];
 
-    const modes = [];
+    const byCategory = { Bank: null, Cash: null };
     Object.values(paymentModeLedgersData.grouped_ledgers).forEach((group) => {
-      if (group.ledgers && Array.isArray(group.ledgers)) {
-        group.ledgers.forEach((ledger) => {
-          modes.push({
-            id: ledger.id,
-            name: ledger.name,
-            gst_in: ledger.gst_in,
-            master_id: ledger.master_id,
-            alter_id: ledger.alter_id,
-            opening_balance: ledger.opening_balance,
-            company: ledger.company,
-            parent_name: group.parent_name,
-          });
-        });
-      }
+      const parentName = (group?.parent_name || "").toLowerCase();
+      let cat = null;
+      if (parentName.includes("bank")) cat = "Bank";
+      else if (parentName.includes("cash")) cat = "Cash";
+      if (!cat) return;
+      const firstLedger = (group.ledgers || [])[0];
+      if (!firstLedger || byCategory[cat]) return;
+      byCategory[cat] = {
+        id: firstLedger.id,
+        name: cat,
+        parent_name: group.parent_name,
+        underlying_ledger_name: firstLedger.name,
+      };
     });
-    return modes;
+    return [byCategory.Bank, byCategory.Cash].filter(Boolean);
   };
 
   const paymentModeOptions = processPaymentModeLedgers();
