@@ -302,7 +302,20 @@ const TallySetup = () => {
       enabled: !!selectedOrganization?.id,
     });
   const allLedgerOptions = useMemo(() => {
-    const rows = allLedgersData?.results || allLedgersData || [];
+    // The ledgers endpoint has been returned in several shapes over
+    // time — raw array, `{results: [...]}`, `{success, data: [...]}`.
+    // Walk every known shape before falling back to []; a non-array
+    // reaching `.map` here crashes the whole setup page.
+    const d = allLedgersData;
+    const rows = Array.isArray(d)
+      ? d
+      : Array.isArray(d?.results)
+      ? d.results
+      : Array.isArray(d?.data)
+      ? d.data
+      : Array.isArray(d?.data?.results)
+      ? d.data.results
+      : [];
     return rows.map((l) => ({
       value: l.id,
       label: l.name || l.ledger_name || "(unnamed)",
