@@ -95,6 +95,51 @@ const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
   );
 };
 
+/** Sum of every Credit/Debit item amount — the taxable base for the GST rows. */
+const sumItemAmounts = (items) =>
+  (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+/**
+ * The share of the subtotal a single GST row posts.
+ *
+ * A CGST or SGST row carries the *combined* slab in its `rate` column — an 18%
+ * bill books 9% as CGST and 9% as SGST — so those halve, while IGST takes the
+ * whole slab. Matches the invoice arithmetic: 34565.37 x 9% = 3110.88.
+ */
+const effectiveGstRate = (line) => {
+  const match = String(line?.rate || "").match(/([\d.]+)/);
+  const rate = match ? Number(match[1]) : 0;
+  if (!rate) return 0;
+  return line.tax_type === "IGST" ? rate / 100 : rate / 200;
+};
+
+/**
+ * Re-derive the GST rows after the items subtotal moves.
+ *
+ * With a single slab on the bill the amount is recomputed outright from
+ * (subtotal x rate), which is exact and also repairs a slab whose OCR figure
+ * never agreed with its own rate. With more than one slab there is no per-slab
+ * taxable column in this model to recompute from, so the existing split is
+ * carried forward proportionally rather than guessed at.
+ */
+const recalcGstLinesForSubtotal = (lines, newSubtotal, oldSubtotal) => {
+  if (!lines?.length) return lines;
+  const singleSlab =
+    new Set(lines.map((line) => String(line.rate || ""))).size === 1;
+
+  return lines.map((line) => {
+    const rate = effectiveGstRate(line);
+    if (!rate) return line;
+    if (singleSlab) {
+      return { ...line, amount: (newSubtotal * rate).toFixed(2) };
+    }
+    if (!oldSubtotal) return line;
+    const scaled =
+      (parseFloat(line.amount) || 0) * (newSubtotal / oldSubtotal);
+    return { ...line, amount: scaled.toFixed(2) };
+  });
+};
+
 const TallyExpenseBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
   const [collapsed, setMenuCollapsed] = useSidebar();
@@ -315,16 +360,36 @@ const TallyExpenseBillDetail = () => {
   // OCR-extracted invoice total against the user-edited total. Like
   // ``billTaxMatch``, this is informational only — it never blocks
   // verification, just surfaces drift so the operator can sanity-check.
+  // Correction 44: what the invoice total is checked against.
+  //
+  //   Line item subtotal + GST subtotal + Round off + Other Adjustment
+  //     = Total Invoice Amount
+  //
+  // Note TDS is deliberately absent: it is withheld from the payment, not from
+  // the invoice, so it separates Payable/Paid from the invoice total rather
+  // than forming part of it.
+  //
+  // This used to compare `billForm.totalAmount` against `analysedData.total`.
+  // Since the total is now pinned to the OCR figure (the sync effect that
+  // dragged it toward the vendor amount is gone), that comparison was a value
+  // against itself and reported "matches bill total" unconditionally — which is
+  // what the screenshot shows next to a total that plainly did not add up.
   const billTotalMatch = useMemo(() => {
-    const TOL = 1; // ±₹1 — same as the tax tolerance
-    const billTotal = parseFloat(analysedData?.total);
-    const currentTotal = parseFloat(billForm.totalAmount);
+    const TOL = 0.01; // paise-accurate; Round Off (auto) closes the gap
+    const billTotal = parseFloat(billForm.totalAmount);
     if (!billTotal || Number.isNaN(billTotal)) {
       return { hasBillValue: false };
     }
-    if (Number.isNaN(currentTotal)) {
-      return { hasBillValue: false };
-    }
+    const computed =
+      sumItemAmounts(expenseItems) +
+      (gstLines || []).reduce(
+        (sum, line) => sum + (parseFloat(line.amount) || 0),
+        0,
+      ) +
+      (parseFloat(taxSummaryForm.round_off) || 0) +
+      (parseFloat(taxSummaryForm.other_adjustment) || 0);
+
+    const currentTotal = Number(computed.toFixed(2));
     const diff = Number((currentTotal - billTotal).toFixed(2));
     return {
       hasBillValue: true,
@@ -333,7 +398,13 @@ const TallyExpenseBillDetail = () => {
       diff,
       isMatch: Math.abs(diff) <= TOL,
     };
-  }, [analysedData?.total, billForm.totalAmount]);
+  }, [
+    billForm.totalAmount,
+    expenseItems,
+    gstLines,
+    taxSummaryForm.round_off,
+    taxSummaryForm.other_adjustment,
+  ]);
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
@@ -415,8 +486,11 @@ const TallyExpenseBillDetail = () => {
       if (!amt) continue;
       (line.debit_or_credit === "credit" ? (tCr += amt) : (tDr += amt));
     }
+    // Signed, matching the vendor-amount computation above — if this used
+    // absolute values while that one used signed ones, a negative round-off
+    // would make the two disagree and raise a phantom "does not balance".
     const push = (v, dc) => {
-      const a = Math.abs(parseFloat(v || 0));
+      const a = parseFloat(v || 0) || 0;
       if (!a) return;
       (dc === "credit" ? (tCr += a) : (tDr += a));
     };
@@ -427,20 +501,13 @@ const TallyExpenseBillDetail = () => {
     return Math.abs(debit + tDr - credit - tCr) > 0.01;
   };
 
-  // Correction 34: the total shown must agree with the amount the voucher
-  // actually settles against the vendor.
-  //
-  // `isBalanceOff` above never looked at `totalAmount`, and the vendor amount
-  // is auto-computed to balance the journal, so the DR/CR equation is balanced
-  // by construction — editing either figure produced no warning at all. Paise
-  // drift below ₹1 is absorbed by the sync effect further down, so only a
-  // genuine disagreement is reported here.
-  const isTotalOutOfBalance = () => {
-    const total = parseFloat(billForm.totalAmount);
-    const settled = parseFloat(taxSummaryForm.vendorAmount);
-    if (!Number.isFinite(total) || !Number.isFinite(settled)) return false;
-    return Math.abs(total - settled) > 0.01;
-  };
+  // Corrections 34 + 44: the invoice total must agree with the parts that make
+  // it up. The first pass at this compared the total against Payable/Paid,
+  // which is wrong whenever TDS is present — TDS is withheld from the payment,
+  // so the two are *supposed* to differ by exactly that much. `billTotalMatch`
+  // now holds the correct comparison and this reads it.
+  const isTotalOutOfBalance = () =>
+    billTotalMatch.hasBillValue && !billTotalMatch.isMatch;
 
   const hasValidationErrors = () =>
     isVendorRequired ||
@@ -510,11 +577,10 @@ const TallyExpenseBillDetail = () => {
       );
     if (isTotalOutOfBalance())
       errors.push(
-        `Total balance doesn't agree — total amount (₹${parseFloat(
-          billForm.totalAmount || 0,
-        ).toFixed(2)}) differs from Payable / Paid (₹${parseFloat(
-          taxSummaryForm.vendorAmount || 0,
-        ).toFixed(2)})`,
+        `Invoice total doesn't agree — line items + GST + round off + other ` +
+          `adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, ` +
+          `but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} ` +
+          `(off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)})`,
       );
     if (isSubtotalGreaterThanTotal()) {
       const subtotal = expenseItems.reduce(
@@ -1324,10 +1390,17 @@ const TallyExpenseBillDetail = () => {
       }
     }
 
-    // Other adjustment — was omitted; unbalanced vendor amount when
-    // user set non-zero adjustment.
-    if (taxSummaryForm.other_adjustment) {
-      const otherAmt = Math.abs(parseFloat(taxSummaryForm.other_adjustment || 0));
+    // Other adjustment and round-off.
+    //
+    // Correction 44: these used to be run through `Math.abs()`, which flipped
+    // the sign of every negative entry. A round-off of -0.28 booked on the
+    // debit side landed as +0.28, moving Payable/Paid by twice the figure —
+    // 41236.00 rendered as 41236.56 in the reported bill. The debit/credit
+    // selector already carries the direction, so the amount is taken as typed.
+    const signedAdjustment = (value) => parseFloat(value || 0) || 0;
+
+    const otherAmt = signedAdjustment(taxSummaryForm.other_adjustment);
+    if (otherAmt) {
       if (taxSummaryForm.other_adjustment_debit_or_credit === "credit") {
         totalTaxCredit += otherAmt;
       } else {
@@ -1335,9 +1408,8 @@ const TallyExpenseBillDetail = () => {
       }
     }
 
-    // Round-off — was omitted; sub-rupee mismatch when user set round-off.
-    if (taxSummaryForm.round_off) {
-      const roundAmt = Math.abs(parseFloat(taxSummaryForm.round_off || 0));
+    const roundAmt = signedAdjustment(taxSummaryForm.round_off);
+    if (roundAmt) {
       if (taxSummaryForm.round_off_debit_or_credit === "credit") {
         totalTaxCredit += roundAmt;
       } else {
@@ -1403,19 +1475,14 @@ const TallyExpenseBillDetail = () => {
     );
   }, [expenseItems, taxSummaryForm.tdsRate]);
 
-  // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
-  // the total absorbs the rounding so that all debits = all credits.
-  useEffect(() => {
-    const computed = parseFloat(taxSummaryForm.vendorAmount) || 0;
-    const current = parseFloat(billForm.totalAmount) || 0;
-    const diff = Math.abs(computed - current);
-    if (diff > 0 && diff < 1) {
-      setBillForm((prev) => ({
-        ...prev,
-        totalAmount: computed.toFixed(2),
-      }));
-    }
-  }, [taxSummaryForm.vendorAmount]);
+  // Correction 44: the total is the invoice's own figure and stays put.
+  //
+  // This slot used to hold an effect that pulled `totalAmount` toward the
+  // auto-balanced vendor amount whenever the two were within ₹1, on the theory
+  // that the total was absorbing a rounding difference. But the journal is
+  // balanced by the vendor amount, not by the total, so all that did was walk
+  // the total away from the invoice and make the mismatch impossible to see.
+  // Paise differences belong in Round Off, which has an (auto) button for it.
 
   // Handle form input changes
   const handleFormChange = (name, value) => {
@@ -1780,11 +1847,23 @@ const TallyExpenseBillDetail = () => {
 
   // Expense item manipulation functions
   const handleExpenseItemChange = (index, field, value) => {
-    setExpenseItems((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+    const updated = expenseItems.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item,
+    );
+    setExpenseItems(updated);
+
+    // Editing a Credit/Debit amount moves the GST Items with it, the way the
+    // purchase voucher already does. There the tax is derived from each line's
+    // own GST rate, so it followed automatically; here the GST rows are
+    // independent records that nothing was recomputing, so the tax silently
+    // stayed at the old bill's figure while the items changed underneath it.
+    if (field === "amount" && !isVerified) {
+      const before = sumItemAmounts(expenseItems);
+      const after = sumItemAmounts(updated);
+      if (Math.abs(after - before) > 0.001) {
+        setGstLines((prev) => recalcGstLinesForSubtotal(prev, after, before));
+      }
+    }
   };
 
   const addExpenseItem = () => {
@@ -1804,7 +1883,13 @@ const TallyExpenseBillDetail = () => {
 
   const removeExpenseItem = (index) => {
     if (expenseItems.length > 1) {
-      setExpenseItems((prev) => prev.filter((_, i) => i !== index));
+      const updated = expenseItems.filter((_, i) => i !== index);
+      const before = sumItemAmounts(expenseItems);
+      const after = sumItemAmounts(updated);
+      setExpenseItems(updated);
+      if (!isVerified && Math.abs(after - before) > 0.001) {
+        setGstLines((prev) => recalcGstLinesForSubtotal(prev, after, before));
+      }
     }
   };
 
@@ -3106,8 +3191,7 @@ const TallyExpenseBillDetail = () => {
                           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
                             <tr>
                               <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
-                                Item Details{" "}
-                                <span className="text-red-500">*</span>
+                                Item Details
                               </th>
                               <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                                 Expense Ledger{" "}
@@ -3132,13 +3216,9 @@ const TallyExpenseBillDetail = () => {
                               >
                                 {/* Item Details */}
                                 <td className="px-3 py-2">
-                                  <div
-                                    className={`${
-                                      !item.item_details && !isVerified
-                                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                                        : ""
-                                    }`}
-                                  >
+                                  {/* Correction 41: item details are
+                                      optional — no required ring. */}
+                                  <div>
                                     <textarea
                                       value={item.item_details}
                                       onChange={(e) =>
@@ -3378,25 +3458,20 @@ const TallyExpenseBillDetail = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[12px] font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
-                          Heads-up: tax values differ from the bill image
+                          Heads-up: GST line totals doesn't match with Bill. Please
+                          verify before proceeding further.
                         </div>
-                        <div className="text-[11px] text-amber-700 dark:text-amber-400 mb-1.5">
-                          This is informational only — you can still verify
-                          and save. Confirm the tax values are intentional
-                          before proceeding.
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-[11px]">
-                          {["cgst", "sgst", "igst"].map((k) => {
-                            const drifted =
-                              billTaxMatch.mismatches.includes(k);
+                        {/* Correction 45: only the tax types that actually differ.
+                            A row like "IGST Line ₹0.00 · Bill ₹0.00" is
+                            not a discrepancy and reading it as one
+                            sent people hunting for a problem that
+                            was never there. */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-[11px]">
+                          {billTaxMatch.mismatches.map((k) => {
                             return (
                               <div
                                 key={k}
-                                className={`rounded-md px-2 py-1.5 ring-1 ${
-                                  drifted
-                                    ? "bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
-                                    : "bg-white/40 dark:bg-slate-900/40 ring-slate-200 dark:ring-slate-800"
-                                }`}
+                                className="rounded-md px-2 py-1.5 ring-1 bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
                               >
                                 <div className="font-bold uppercase text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
                                   {k}
@@ -3405,12 +3480,10 @@ const TallyExpenseBillDetail = () => {
                                   Edited ₹{billTaxMatch.editedValues[k].toFixed(2)} · Bill ₹
                                   {billTaxMatch.billValues[k].toFixed(2)}
                                 </div>
-                                {drifted && (
-                                  <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
-                                    Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
-                                    {billTaxMatch.diffs[k].toFixed(2)}
-                                  </div>
-                                )}
+                                <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
+                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                  {billTaxMatch.diffs[k].toFixed(2)}
+                                </div>
                               </div>
                             );
                           })}
@@ -3693,7 +3766,7 @@ const TallyExpenseBillDetail = () => {
                     // getting clipped.
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
                       {/* Header */}
-                      <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
+                      <div className="hidden md:grid grid-cols-[140px_180px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
@@ -3710,7 +3783,7 @@ const TallyExpenseBillDetail = () => {
                             <select> and the computed-amount display so the
                             row still lines up under the shared 4-column
                             grid used by the other rows. */}
-                        <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 items-center">
+                        <div className="grid grid-cols-[140px_180px_1fr_120px] gap-3 px-3 py-2 items-center">
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                             TDS
                             {parseFloat(taxSummaryForm.tds || 0) > 0 && (
@@ -3725,7 +3798,7 @@ const TallyExpenseBillDetail = () => {
                               }
                               disabled={isVerified}
                               title="TDS rate — amount is auto-computed as Items Subtotal × rate"
-                              className="w-16 shrink-0 px-1.5 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                              className="w-14 shrink-0 px-1 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
                             >
                               {tdsRateOptions.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
@@ -3807,7 +3880,7 @@ const TallyExpenseBillDetail = () => {
                         {rows.map((r) => (
                           <div
                             key={r.key}
-                            className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 items-center"
+                            className="grid grid-cols-[140px_180px_1fr_120px] gap-3 px-3 py-2 items-center"
                           >
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                               {r.label}
@@ -3908,7 +3981,7 @@ const TallyExpenseBillDetail = () => {
                         ))}
 
                         {/* Payable / Paid (vendor) row */}
-                        <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 items-center bg-blue-50/40 dark:bg-blue-950/20">
+                        <div className="grid grid-cols-[140px_180px_1fr_120px] gap-3 px-3 py-2 items-center bg-blue-50/40 dark:bg-blue-950/20">
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                             Payable / Paid
                           </label>
@@ -3989,7 +4062,7 @@ const TallyExpenseBillDetail = () => {
                       </div>
 
                       {/* Total row */}
-                      <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
+                      <div className="grid grid-cols-[140px_180px_1fr_120px] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
                         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
                           Total amount
                         </span>
@@ -4022,13 +4095,13 @@ const TallyExpenseBillDetail = () => {
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span
                               className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Current total ₹${billTotalMatch.currentTotal.toFixed(2)} differs from the invoice total on the bill (₹${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
+                              title={`Line items + GST + round off + other adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} — off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. Adjust Round Off or Other Adjustment so the two agree.`}
                             >
                               <Icon
                                 icon="heroicons:information-circle"
                                 className="text-[12px]"
                               />
-                              Differs from bill total
+                              Invoice total doesn't agree
                             </span>
                             <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
                               Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
@@ -4042,7 +4115,7 @@ const TallyExpenseBillDetail = () => {
                               icon="heroicons:check-circle"
                               className="text-[12px]"
                             />
-                            Matches bill total
+                            Agrees with invoice total
                           </span>
                         ) : (
                           <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">

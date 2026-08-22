@@ -384,7 +384,24 @@ const TallySetup = () => {
     return ACCOUNT_FIELDS.reduce((sum, f) => sum + (config[f.display]?.length || 0), 0);
   }, [config]);
 
-  const handleOpenModal = () => {
+  // Correction 43: which single card the modal was opened from. `null` means
+  // the header's "Edit configuration" button, i.e. show every field.
+  const [focusFieldKey, setFocusFieldKey] = useState(null);
+
+  // Correction 43: when the modal is opened from a single card, show only that
+  // card's field; the header button leaves `focusFieldKey` null and shows all.
+  // Save still submits the whole `configData`, so the untouched fields are
+  // written back exactly as they were read.
+  const focusedField = focusFieldKey
+    ? [...TAX_FIELDS, ...ACCOUNT_FIELDS].find((f) => f.key === focusFieldKey)
+    : null;
+  const visibleInModal = (field) =>
+    !focusFieldKey || field.key === focusFieldKey;
+  const showTaxBlock = TAX_FIELDS.some(visibleInModal);
+  const showAccountBlock = ACCOUNT_FIELDS.some(visibleInModal);
+
+  const handleOpenModal = (fieldKey = null) => {
+    setFocusFieldKey(typeof fieldKey === "string" ? fieldKey : null);
     if (config) {
       setConfigData({
         tally_product_allow_sync: config.tally_product_allow_sync || false,
@@ -408,6 +425,7 @@ const TallySetup = () => {
   };
 
   const handleCloseModal = () => {
+    setFocusFieldKey(null);
     setIsConfigModalOpen(false);
     setConfigData(EMPTY_CONFIG);
   };
@@ -438,7 +456,7 @@ const TallySetup = () => {
 
   /* ----- Renderers ----- */
 
-  const renderLedgerList = (names = [], title, icon) => (
+  const renderLedgerList = (names = [], title, icon, fieldKey = null) => (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col">
       <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <span className="w-8 h-8 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
@@ -452,6 +470,20 @@ const TallySetup = () => {
             {names.length} {names.length === 1 ? "ledger" : "ledgers"} configured
           </div>
         </div>
+        {/* Correction 43: edit this one mapping without going through the
+            whole-configuration modal. */}
+        {fieldKey && config && (
+          <button
+            type="button"
+            onClick={() => handleOpenModal(fieldKey)}
+            title={`Edit ${title}`}
+            aria-label={`Edit ${title}`}
+            className="shrink-0 inline-flex items-center gap-1 h-7 px-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+          >
+            <Icon icon="heroicons:pencil-square" className="text-xs" />
+            Edit
+          </button>
+        )}
       </div>
       {names.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
@@ -691,44 +723,14 @@ const TallySetup = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {TAX_FIELDS.map((f) => (
                 <React.Fragment key={f.key}>
-                  {renderLedgerList(config[f.display] || [], f.label, f.icon)}
+                  {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}
                 </React.Fragment>
               ))}
             </div>
-          </section>
 
-          {/* Account ledgers section */}
-          <section>
-            <div className="flex items-center justify-between mb-2 px-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Account ledgers
-                </h2>
-                <Tooltip
-                  content="Select ledgers for vendors, purchase, expenses and payments."
-                  placement="right"
-                  arrow
-                >
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
-                    <Icon icon="heroicons:question-mark-circle" className="text-xs" />
-                  </span>
-                </Tooltip>
-              </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {accountConfigured} mapped
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {ACCOUNT_FIELDS.map((f) => (
-                <React.Fragment key={f.key}>
-                  {renderLedgerList(config[f.display] || [], f.label, f.icon)}
-                </React.Fragment>
-              ))}
-            </div>
-          </section>
-
-          {/* Tax & Adjustments section */}
-          <section>
+            {/* Correction 43: the rate-to-ledger mapping lives with the tax
+                parent-ledger cards above, so both halves of the tax setup are
+                configured in one place instead of two sections apart. */}
             <div className="flex items-center justify-between mb-2 px-0.5">
               <div className="flex items-center gap-2">
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
@@ -849,6 +851,37 @@ const TallySetup = () => {
               </div>
             </div>
           </section>
+
+          {/* Account ledgers section */}
+          <section>
+            <div className="flex items-center justify-between mb-2 px-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                  Account ledgers
+                </h2>
+                <Tooltip
+                  content="Select ledgers for vendors, purchase, expenses and payments."
+                  placement="right"
+                  arrow
+                >
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
+                    <Icon icon="heroicons:question-mark-circle" className="text-xs" />
+                  </span>
+                </Tooltip>
+              </div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {accountConfigured} mapped
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {ACCOUNT_FIELDS.map((f) => (
+                <React.Fragment key={f.key}>
+                  {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}
+                </React.Fragment>
+              ))}
+            </div>
+          </section>
+
 
           {/* Additional Adjustments Mapping section */}
           <section>
@@ -974,7 +1007,11 @@ const TallySetup = () => {
 
       {/* Configuration Modal */}
       <Modal
-        title={`${config ? "Edit" : "Create"} Tally configuration`}
+        title={
+          focusedField
+            ? `Edit ${focusedField.label}`
+            : `${config ? "Edit" : "Create"} Tally configuration`
+        }
         labelclassName="btn-outline-dark"
         activeModal={isConfigModalOpen}
         onClose={handleCloseModal}
@@ -982,6 +1019,7 @@ const TallySetup = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Inventory toggle */}
+          {!focusedField && (
           <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
@@ -1006,8 +1044,10 @@ const TallySetup = () => {
               <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-focus:ring-2 peer-focus:ring-blue-500/20" />
             </label>
           </div>
+          )}
 
           {/* Tax section */}
+          {showTaxBlock && (
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
               <Icon icon="heroicons:receipt-percent" className="text-blue-600 dark:text-blue-400 text-sm" />
@@ -1016,13 +1056,15 @@ const TallySetup = () => {
               </h3>
             </div>
             <div className="p-3 space-y-3">
-              {TAX_FIELDS.map((f) => (
+              {TAX_FIELDS.filter(visibleInModal).map((f) => (
                 <React.Fragment key={f.key}>{renderMultiSelect(f)}</React.Fragment>
               ))}
             </div>
           </div>
+          )}
 
           {/* Account section */}
+          {showAccountBlock && (
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
               <Icon icon="heroicons:book-open" className="text-blue-600 dark:text-blue-400 text-sm" />
@@ -1031,11 +1073,12 @@ const TallySetup = () => {
               </h3>
             </div>
             <div className="p-3 space-y-3">
-              {ACCOUNT_FIELDS.map((f) => (
+              {ACCOUNT_FIELDS.filter(visibleInModal).map((f) => (
                 <React.Fragment key={f.key}>{renderMultiSelect(f)}</React.Fragment>
               ))}
             </div>
           </div>
+          )}
 
           {/* Footer actions */}
           <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">

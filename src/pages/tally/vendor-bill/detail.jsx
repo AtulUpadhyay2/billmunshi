@@ -4240,25 +4240,20 @@ const TallyVendorBillDetail = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[12px] font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
-                          Heads-up: line totals differ from the bill image
+                          Heads-up: GST line totals doesn't match with Bill. Please
+                          verify before proceeding further.
                         </div>
-                        <div className="text-[11px] text-amber-700 dark:text-amber-400 mb-1.5">
-                          This is informational only — you can still verify
-                          and save. Confirm the line values are intentional
-                          before proceeding.
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-[11px]">
-                          {["cgst", "sgst", "igst"].map((k) => {
-                            const drifted =
-                              billTaxMatch.mismatches.includes(k);
+                        {/* Correction 45: only the tax types that actually differ.
+                            A row like "IGST Line ₹0.00 · Bill ₹0.00" is
+                            not a discrepancy and reading it as one
+                            sent people hunting for a problem that
+                            was never there. */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-[11px]">
+                          {billTaxMatch.mismatches.map((k) => {
                             return (
                               <div
                                 key={k}
-                                className={`rounded-md px-2 py-1.5 ring-1 ${
-                                  drifted
-                                    ? "bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
-                                    : "bg-white/40 dark:bg-slate-900/40 ring-slate-200 dark:ring-slate-800"
-                                }`}
+                                className="rounded-md px-2 py-1.5 ring-1 bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
                               >
                                 <div className="font-bold uppercase text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
                                   {k}
@@ -4267,12 +4262,10 @@ const TallyVendorBillDetail = () => {
                                   Line ₹{lineTaxTotals[k].toFixed(2)} · Bill ₹
                                   {billTaxMatch.billValues[k].toFixed(2)}
                                 </div>
-                                {drifted && (
-                                  <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
-                                    Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
-                                    {billTaxMatch.diffs[k].toFixed(2)}
-                                  </div>
-                                )}
+                                <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
+                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                  {billTaxMatch.diffs[k].toFixed(2)}
+                                </div>
                               </div>
                             );
                           })}
@@ -4626,11 +4619,6 @@ const TallyVendorBillDetail = () => {
                                     <div className="font-medium text-slate-900 dark:text-white text-sm">
                                       {ledger.name}
                                     </div>
-                                    {ledger.type && (
-                                      <div className="text-[11px] text-blue-600 dark:text-blue-400">
-                                        {ledger.type} Ledger
-                                      </div>
-                                    )}
                                   </div>
                                 )}
                                 className="text-xs"
