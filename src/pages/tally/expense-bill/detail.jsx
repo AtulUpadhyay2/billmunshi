@@ -454,14 +454,12 @@ const TallyExpenseBillDetail = () => {
     return roundOffAmount !== 0 && !taxSummaryForm.round_off_taxes;
   };
 
-  const isSubtotalGreaterThanTotal = () => {
-    const subtotal = expenseItems.reduce(
-      (sum, item) => sum + parseFloat(item.amount || 0),
-      0,
-    );
-    const total = parseFloat(billForm.totalAmount || 0);
-    return subtotal > total && total > 0;
-  };
+  // Removed: a "subtotal cannot exceed total" guard.
+  //
+  // `isTotalOutOfBalance` already enforces the exact identity
+  // (line items + GST + round off + other adjustment = invoice total), which
+  // is strictly stronger. All the inequality added on top was a false positive
+  // whenever the adjustments were net negative — a legitimate discount.
 
   // Multi-rate GST lines with amount > 0 must have a ledger picked;
   // otherwise the sync payload emits ``No Tax Ledger`` and Tally rejects.
@@ -521,8 +519,7 @@ const TallyExpenseBillDetail = () => {
     isRoundOffLedgerRequired() ||
     getGstLinesWithoutLedger().length > 0 ||
     isBalanceOff() ||
-    isTotalOutOfBalance() ||
-    isSubtotalGreaterThanTotal();
+    isTotalOutOfBalance();
 
   // Get specific validation error messages
   const getValidationErrorMessages = () => {
@@ -582,15 +579,6 @@ const TallyExpenseBillDetail = () => {
           `but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} ` +
           `(off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)})`,
       );
-    if (isSubtotalGreaterThanTotal()) {
-      const subtotal = expenseItems.reduce(
-        (sum, item) => sum + parseFloat(item.amount || 0),
-        0,
-      );
-      errors.push(
-        `Subtotal (₹${subtotal.toFixed(2)}) cannot be greater than total amount (₹${billForm.totalAmount})`,
-      );
-    }
     return errors;
   };
 
@@ -1828,9 +1816,9 @@ const TallyExpenseBillDetail = () => {
       0,
     );
     const otherAdjustment = parseFloat(taxSummaryForm.other_adjustment) || 0;
-    const discount = 0; // no discount concept on the JE / expense-bill form
-    const derived =
-      billTotal - (subtotal + sumOfGstLines + otherAdjustment - discount);
+    // No discount field on this form — a hard-coded `discount = 0` used to be
+    // subtracted here, which read like a real term but never did anything.
+    const derived = billTotal - (subtotal + sumOfGstLines + otherAdjustment);
     const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
     setTaxSummaryForm((prev) => ({
       ...prev,
@@ -2858,20 +2846,6 @@ const TallyExpenseBillDetail = () => {
                         {isTdsLedgerRequired() && <li>Select TDS ledger</li>}
                         {isOtherAdjustmentLedgerRequired() && (
                           <li>Select other-adjustment ledger</li>
-                        )}
-                        {isSubtotalGreaterThanTotal() && (
-                          <li>
-                            Subtotal (₹
-                            {expenseItems
-                              .reduce(
-                                (sum, item) =>
-                                  sum + parseFloat(item.amount || 0),
-                                0,
-                              )
-                              .toFixed(2)}
-                            ) cannot be greater than total amount (₹
-                            {billForm.totalAmount})
-                          </li>
                         )}
                       </ul>
                     </div>

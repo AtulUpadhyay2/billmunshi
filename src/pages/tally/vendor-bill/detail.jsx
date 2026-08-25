@@ -660,7 +660,10 @@ const TallyVendorBillDetail = () => {
     return `Select a ${taxType.toUpperCase()} ledger${where} in the Tax by rate table`;
   };
   const isDiscountLedgerRequired = () =>
-    parseFloat(billSummaryForm.discount || 0) > 0 &&
+    // Non-zero, not "> 0": a discount that reduces the bill is negative under
+    // the signed convention, and `> 0` would have quietly stopped asking for
+    // its ledger.
+    parseFloat(billSummaryForm.discount || 0) !== 0 &&
     !billSummaryForm.discountLedgerId;
   const isCessLedgerRequired = () =>
     parseFloat(billSummaryForm.cess || 0) > 0 && !billSummaryForm.cessLedgerId;
@@ -672,11 +675,14 @@ const TallyVendorBillDetail = () => {
   const isRoundOffLedgerRequired = () =>
     parseFloat(billSummaryForm.round_off || 0) !== 0 &&
     !billSummaryForm.roundOffLedgerId;
-  const isSubtotalGreaterThanTotal = () => {
-    const subtotal = parseFloat(billSummaryForm.subtotal || 0);
-    const total = parseFloat(billSummaryForm.total || 0);
-    return subtotal > total && total > 0;
-  };
+  // Removed: a "subtotal cannot exceed total" guard.
+  //
+  // The total is derived as subtotal + GST + cess + discount + freight +
+  // round_off, so subtotal > total is only possible when those adjustments are
+  // net negative — which is exactly what a discount is. On a 0%-GST bill with
+  // any discount at all the guard fired every time (subtotal 6922 vs total
+  // 6840) and blocked verification on a perfectly valid voucher. Nothing is
+  // lost: the arithmetic above already guarantees the identity holds.
   const hasValidationErrors = () =>
     isVendorRequired ||
     (productSync && getProductsWithoutItemName().length > 0) ||
@@ -688,8 +694,7 @@ const TallyVendorBillDetail = () => {
     isDiscountLedgerRequired() ||
     isCessLedgerRequired() ||
     isFreightLedgerRequired() ||
-    isRoundOffLedgerRequired() ||
-    isSubtotalGreaterThanTotal();
+    isRoundOffLedgerRequired();
 
   // Get specific validation error messages
   const getValidationErrorMessages = () => {
@@ -714,18 +719,13 @@ const TallyVendorBillDetail = () => {
     if (isSgstLedgerRequired()) errors.push(missingTaxLedgerMessage("sgst"));
     if (isIgstLedgerRequired()) errors.push(missingTaxLedgerMessage("igst"));
     if (isDiscountLedgerRequired())
-      errors.push("Discount ledger is required when discount amount > 0");
+      errors.push("Discount ledger is required when a discount amount is entered");
     if (isCessLedgerRequired())
       errors.push("Cess ledger is required when cess amount > 0");
     if (isFreightLedgerRequired())
       errors.push("Freight ledger is required when freight amount > 0");
     if (isRoundOffLedgerRequired())
       errors.push("Round-off ledger is required when round-off amount is set");
-    if (isSubtotalGreaterThanTotal()) {
-      errors.push(
-        `Subtotal (₹${billSummaryForm.subtotal}) cannot be greater than total amount (₹${billSummaryForm.total})`,
-      );
-    }
     return errors;
   };
 
@@ -1863,7 +1863,15 @@ const TallyVendorBillDetail = () => {
     }
   }, [products, billSummaryForm.subtotal]);
 
-  // Invoice math: total = subtotal + taxes + cess + freight - discount + round_off.
+  // Invoice math:
+  //   subtotal + GST + cess + discount + freight + round_off = total
+  //
+  // Every adjustment is added exactly as it is entered. `discount` used to be
+  // subtracted, which meant a positive 82 in the box quietly reduced the
+  // total while the identical-looking Cess and Freight boxes increased it —
+  // three controls that looked the same behaving two different ways. A
+  // discount that reduces a bill is now a negative number, the same rule
+  // `round_off` has always followed.
   // ``total`` is derived — recomputed live whenever any input moves.
   // ``round_off`` is user-editable (some invoices print an explicit
   // rounding amount that doesn't come from arithmetic; user should be
@@ -1884,7 +1892,7 @@ const TallyVendorBillDetail = () => {
     const roundOff = parseFloat(billSummaryForm.round_off) || 0;
 
     const nextTotal = (
-      subtotal + cgst + sgst + igst + cess + freight - discount + roundOff
+      subtotal + cgst + sgst + igst + cess + discount + freight + roundOff
     ).toFixed(2);
 
     setBillSummaryForm((prev) =>
@@ -2163,7 +2171,10 @@ const TallyVendorBillDetail = () => {
     const discount = parseFloat(
       (parseFloat(billSummaryForm.discount) || 0).toFixed(2),
     );
-    const derived = billTotal - (subtotal + cgst + sgst + igst + cess + freight - discount);
+    // Same convention as the total above — if this still subtracted the
+    // discount, the auto round-off would silently absorb twice the discount.
+    const derived =
+      billTotal - (subtotal + cgst + sgst + igst + cess + discount + freight);
     const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
     setBillSummaryForm((prev) => ({
       ...prev,
@@ -4534,7 +4545,7 @@ const TallyVendorBillDetail = () => {
                   // editable here.
                   const rows = [
                     { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
-                    { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) > 0, missing: parseFloat(billSummaryForm.discount || 0) > 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
+                    { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) !== 0, missing: parseFloat(billSummaryForm.discount || 0) !== 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
                     { key: "freight", label: "Freight / Delivery", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
                     { key: "round_off", label: "Round off", required: parseFloat(billSummaryForm.round_off || 0) !== 0, missing: parseFloat(billSummaryForm.round_off || 0) !== 0 && !billSummaryForm.roundOffLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
                   ];

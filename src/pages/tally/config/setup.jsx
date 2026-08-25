@@ -400,28 +400,53 @@ const TallySetup = () => {
   const showTaxBlock = TAX_FIELDS.some(visibleInModal);
   const showAccountBlock = ACCOUNT_FIELDS.some(visibleInModal);
 
+  // Every field the config API round-trips. Shared by the modal and by the
+  // inventory toggle so a partial payload can never silently blank a mapping
+  // the other path knows about.
+  const configPayloadFrom = (source) => ({
+    tally_product_allow_sync: source.tally_product_allow_sync || false,
+    igst_parents: source.igst_parents || [],
+    cgst_parents: source.cgst_parents || [],
+    sgst_parents: source.sgst_parents || [],
+    tds_parents: source.tds_parents || [],
+    vendor_parents: source.vendor_parents || [],
+    chart_of_accounts_parents: source.chart_of_accounts_parents || [],
+    chart_of_accounts_expense_parents:
+      source.chart_of_accounts_expense_parents || [],
+    payment_parents: source.payment_parents || [],
+    round_off_parents: source.round_off_parents || [],
+    cess_parents: source.cess_parents || [],
+    discount_parents: source.discount_parents || [],
+    freight_parents: source.freight_parents || [],
+  });
+
   const handleOpenModal = (fieldKey = null) => {
     setFocusFieldKey(typeof fieldKey === "string" ? fieldKey : null);
-    if (config) {
-      setConfigData({
-        tally_product_allow_sync: config.tally_product_allow_sync || false,
-        igst_parents: config.igst_parents || [],
-        cgst_parents: config.cgst_parents || [],
-        sgst_parents: config.sgst_parents || [],
-        tds_parents: config.tds_parents || [],
-        vendor_parents: config.vendor_parents || [],
-        chart_of_accounts_parents: config.chart_of_accounts_parents || [],
-        chart_of_accounts_expense_parents: config.chart_of_accounts_expense_parents || [],
-        payment_parents: config.payment_parents || [],
-        round_off_parents: config.round_off_parents || [],
-        cess_parents: config.cess_parents || [],
-        discount_parents: config.discount_parents || [],
-        freight_parents: config.freight_parents || [],
-      });
-    } else {
-      setConfigData(EMPTY_CONFIG);
-    }
+    setConfigData(config ? configPayloadFrom(config) : EMPTY_CONFIG);
     setIsConfigModalOpen(true);
+  };
+
+  // Correction 43: inventory sync is switched straight from its stat card.
+  // It used to be reachable only through the configuration modal, which this
+  // correction removes from the header.
+  const handleToggleInventorySync = async () => {
+    if (!config || createOrUpdateConfigMutation.isPending) return;
+    const next = !config.tally_product_allow_sync;
+    try {
+      await createOrUpdateConfigMutation.mutateAsync({
+        organizationId: selectedOrganization.id,
+        ...configPayloadFrom(config),
+        tally_product_allow_sync: next,
+      });
+      globalToast.success(`Inventory sync turned ${next ? "on" : "off"}`);
+      refetch();
+    } catch (err) {
+      globalToast.error(
+        err.response?.data?.message ||
+          err.response?.data?.detail ||
+          "Failed to update inventory sync",
+      );
+    }
   };
 
   const handleCloseModal = () => {
@@ -603,15 +628,21 @@ const TallySetup = () => {
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </button>
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            disabled={isLoading}
-            className={btnPrimary}
-          >
-            <Icon icon={config ? "heroicons:pencil-square" : "heroicons:plus"} className="text-sm" />
-            {config ? "Edit configuration" : "Create configuration"}
-          </button>
+          {/* Correction 43: the whole-configuration "Edit" entry point is gone
+              — each card carries its own Edit, and inventory sync is switched
+              from its stat card. The button stays only for first-time setup,
+              since an organisation with no config has nothing to edit yet. */}
+          {!config && (
+            <button
+              type="button"
+              onClick={handleOpenModal}
+              disabled={isLoading}
+              className={btnPrimary}
+            >
+              <Icon icon="heroicons:plus" className="text-sm" />
+              Create configuration
+            </button>
+          )}
         </div>
       </div>
 
@@ -637,6 +668,7 @@ const TallySetup = () => {
             label: "Inventory sync",
             value: config?.tally_product_allow_sync ? "On" : "Off",
             icon: "heroicons:cube",
+            toggle: true,
           },
         ].map((s, i) => (
           <div
@@ -646,7 +678,7 @@ const TallySetup = () => {
             <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
               <Icon icon={s.icon} className="text-xs" />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                 {s.label}
               </div>
@@ -654,6 +686,29 @@ const TallySetup = () => {
                 {isLoading ? "—" : s.value}
               </div>
             </div>
+            {s.toggle && config && (
+              <label
+                className={`relative inline-flex items-center shrink-0 ${
+                  createOrUpdateConfigMutation.isPending
+                    ? "cursor-wait opacity-60"
+                    : "cursor-pointer"
+                }`}
+                title={
+                  config.tally_product_allow_sync
+                    ? "Turn inventory sync off"
+                    : "Turn inventory sync on"
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={!!config.tally_product_allow_sync}
+                  onChange={handleToggleInventorySync}
+                  disabled={createOrUpdateConfigMutation.isPending}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4.5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-focus:ring-2 peer-focus:ring-blue-500/20" />
+              </label>
+            )}
           </div>
         ))}
       </div>
@@ -699,42 +754,19 @@ const TallySetup = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Tax ledgers section */}
+          {/* Tax Ledger Mapping section.
+
+              Correction 43: the four tax parent-ledger cards (IGST input,
+              CGST input, SGST input, TDS payable) are gone. Tax ledgers are
+              chosen per GST slab in the table below, which made the cards a
+              second, competing place to configure the same thing. The stored
+              parent fields are untouched — the backend still falls back to
+              them when a slab has no explicit mapping. */}
           <section>
             <div className="flex items-center justify-between mb-2 px-0.5">
               <div className="flex items-center gap-2">
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Tax ledgers
-                </h2>
-                <Tooltip
-                  content="Select GST (CGST / SGST / IGST) input ledgers and TDS payable ledgers from Tally."
-                  placement="right"
-                  arrow
-                >
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-help">
-                    <Icon icon="heroicons:question-mark-circle" className="text-xs" />
-                  </span>
-                </Tooltip>
-              </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {taxConfigured} mapped
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {TAX_FIELDS.map((f) => (
-                <React.Fragment key={f.key}>
-                  {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}
-                </React.Fragment>
-              ))}
-            </div>
-
-            {/* Correction 43: the rate-to-ledger mapping lives with the tax
-                parent-ledger cards above, so both halves of the tax setup are
-                configured in one place instead of two sections apart. */}
-            <div className="flex items-center justify-between mb-2 px-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Tax Mapping
+                  Tax Ledger Mapping
                 </h2>
                 <Tooltip
                   content="For mixed-rate bills, map each GST slab (5/12/18/28) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."
@@ -857,7 +889,7 @@ const TallySetup = () => {
             <div className="flex items-center justify-between mb-2 px-0.5">
               <div className="flex items-center gap-2">
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Account ledgers
+                  Select Parent Ledgers
                 </h2>
                 <Tooltip
                   content="Select ledgers for vendors, purchase, expenses and payments."
@@ -888,7 +920,7 @@ const TallySetup = () => {
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-                  Additional Adjustments Mapping
+                  Additional Mapping
                 </h2>
                 <Tooltip
                   content="Pick the specific Tally ledger to use whenever a bill has a Cess, Discount, Freight, Round Off or TDS adjustment. Options list every ledger in this org's Chart of Accounts."

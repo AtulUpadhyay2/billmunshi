@@ -336,29 +336,48 @@ const TallyPaymentVoucherDetail = () => {
     gstLines,
   ]);
 
-  // Invoice-total reconciliation for the Payment voucher. Compares the
-  // OCR-extracted invoice total against the user-edited total. Like
-  // ``billTaxMatch``, this is informational only — it never blocks
-  // verification, just surfaces drift so the operator can sanity-check.
+  // Invoice-total reconciliation for the Payment voucher.
+  //
+  // Correction 46: what the invoice total is checked against. Note this one
+  // DOES block verification — unlike `billTaxMatch`, which stays advisory.
+  //
+  //   Line item subtotal + GST subtotal + Round off + Other Adjustment
+  //     = Total Invoice Amount
+  //
+  // No TDS term — payment vouchers don't deduct tax at source (Correction 20),
+  // which is the one way this differs from the journal-entry formula.
+  //
+  // This used to compare `billForm.totalAmount` against `analysedData.total`.
+  // With the total pinned to the OCR figure that is a value against itself, so
+  // it reported "matches bill total" no matter what the rows added up to.
+  // The figure the voucher actually settles through the Bank/Cash ledger.
+  //
+  // This is the balancing amount the double-entry effect below maintains,
+  // which for the default sides works out to exactly the formula above:
+  // line items + GST + round off + other adjustment. Reading it from there
+  // rather than recomputing the sum keeps the Amount Paid row, the invoice
+  // check and the `vendor_amount` that gets posted from ever disagreeing —
+  // a plain "+" of its own would drift the moment someone flipped a row to
+  // the credit side.
+  const amountPaidComputed = Number(
+    (parseFloat(taxSummaryForm.vendorAmount) || 0).toFixed(2),
+  );
+
   const billTotalMatch = useMemo(() => {
-    const TOL = 1; // ±₹1 — same as the tax tolerance
-    const billTotal = parseFloat(analysedData?.total);
-    const currentTotal = parseFloat(billForm.totalAmount);
+    const TOL = 0.01; // paise-accurate; Round Off (auto) closes the gap
+    const billTotal = parseFloat(billForm.totalAmount);
     if (!billTotal || Number.isNaN(billTotal)) {
       return { hasBillValue: false };
     }
-    if (Number.isNaN(currentTotal)) {
-      return { hasBillValue: false };
-    }
-    const diff = Number((currentTotal - billTotal).toFixed(2));
+    const diff = Number((amountPaidComputed - billTotal).toFixed(2));
     return {
       hasBillValue: true,
       billTotal,
-      currentTotal,
+      currentTotal: amountPaidComputed,
       diff,
       isMatch: Math.abs(diff) <= TOL,
     };
-  }, [analysedData?.total, billForm.totalAmount]);
+  }, [billForm.totalAmount, amountPaidComputed]);
 
   // Validation helper functions
   const isVendorRequired = !billForm.selectedVendor;
@@ -406,14 +425,12 @@ const TallyPaymentVoucherDetail = () => {
     return roundOffAmount !== 0 && !taxSummaryForm.round_off_taxes;
   };
 
-  const isSubtotalGreaterThanTotal = () => {
-    const subtotal = expenseItems.reduce(
-      (sum, item) => sum + parseFloat(item.amount || 0),
-      0,
-    );
-    const total = parseFloat(billForm.totalAmount || 0);
-    return subtotal > total && total > 0;
-  };
+  // Removed: a "subtotal cannot exceed total" guard.
+  //
+  // `isTotalOutOfBalance` already enforces the exact identity
+  // (line items + GST + round off + other adjustment = invoice total), which
+  // is strictly stronger. All the inequality added on top was a false positive
+  // whenever the adjustments were net negative — a legitimate discount.
 
   const getGstLinesWithoutLedger = () =>
     (gstLines || []).filter(
@@ -434,8 +451,10 @@ const TallyPaymentVoucherDetail = () => {
       if (!amt) continue;
       (line.debit_or_credit === "credit" ? (tCr += amt) : (tDr += amt));
     }
+    // Signed, matching the vendor-amount computation — mismatched conventions
+    // would raise a phantom "does not balance" on any negative round-off.
     const push = (v, dc) => {
-      const a = Math.abs(parseFloat(v || 0));
+      const a = parseFloat(v || 0) || 0;
       if (!a) return;
       (dc === "credit" ? (tCr += a) : (tDr += a));
     };
@@ -444,6 +463,10 @@ const TallyPaymentVoucherDetail = () => {
     push(taxSummaryForm.vendorAmount, taxSummaryForm.vendorDebitCredit);
     return Math.abs(debit + tDr - credit - tCr) > 0.01;
   };
+
+  // Correction 46: the invoice total must agree with the parts that make it up.
+  const isTotalOutOfBalance = () =>
+    billTotalMatch.hasBillValue && !billTotalMatch.isMatch;
 
   const hasValidationErrors = () =>
     isVendorRequired ||
@@ -457,7 +480,7 @@ const TallyPaymentVoucherDetail = () => {
     isRoundOffLedgerRequired() ||
     getGstLinesWithoutLedger().length > 0 ||
     isBalanceOff() ||
-    isSubtotalGreaterThanTotal();
+    isTotalOutOfBalance();
 
   // Get specific validation error messages
   const getValidationErrorMessages = () => {
@@ -509,15 +532,13 @@ const TallyPaymentVoucherDetail = () => {
       errors.push(
         "Total debits and credits do not balance — check line amounts, taxes, adjustments and Bank/Cash amount",
       );
-    if (isSubtotalGreaterThanTotal()) {
-      const subtotal = expenseItems.reduce(
-        (sum, item) => sum + parseFloat(item.amount || 0),
-        0,
-      );
+    if (isTotalOutOfBalance())
       errors.push(
-        `Subtotal (₹${subtotal.toFixed(2)}) cannot be greater than total amount (₹${billForm.totalAmount})`,
+        `Invoice total doesn't agree — line items + GST + round off + other ` +
+          `adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, ` +
+          `but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} ` +
+          `(off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)})`,
       );
-    }
     return errors;
   };
 
@@ -1321,8 +1342,14 @@ const TallyPaymentVoucherDetail = () => {
     // TDS no longer participates in the balance — the row is gone and the
     // payload sends a hard zero.
 
-    if (taxSummaryForm.other_adjustment) {
-      const otherAmt = Math.abs(parseFloat(taxSummaryForm.other_adjustment || 0));
+    // Correction 46: signed, not absolute. `Math.abs()` here flipped every
+    // negative entry — a round-off of -0.28 on the debit side landed as
+    // +0.28, moving the paid amount by twice the figure. The debit/credit
+    // selector already carries the direction.
+    const signedAdjustment = (value) => parseFloat(value || 0) || 0;
+
+    const otherAmt = signedAdjustment(taxSummaryForm.other_adjustment);
+    if (otherAmt) {
       if (taxSummaryForm.other_adjustment_debit_or_credit === "credit") {
         totalTaxCredit += otherAmt;
       } else {
@@ -1330,8 +1357,8 @@ const TallyPaymentVoucherDetail = () => {
       }
     }
 
-    if (taxSummaryForm.round_off) {
-      const roundAmt = Math.abs(parseFloat(taxSummaryForm.round_off || 0));
+    const roundAmt = signedAdjustment(taxSummaryForm.round_off);
+    if (roundAmt) {
       if (taxSummaryForm.round_off_debit_or_credit === "credit") {
         totalTaxCredit += roundAmt;
       } else {
@@ -1379,19 +1406,9 @@ const TallyPaymentVoucherDetail = () => {
     taxSummaryForm.vendorDebitCredit,
   ]);
 
-  // Sync total amount with auto-balanced vendor amount; if difference < Rs.1,
-  // the total absorbs the rounding so that all debits = all credits.
-  useEffect(() => {
-    const computed = parseFloat(taxSummaryForm.vendorAmount) || 0;
-    const current = parseFloat(billForm.totalAmount) || 0;
-    const diff = Math.abs(computed - current);
-    if (diff > 0 && diff < 1) {
-      setBillForm((prev) => ({
-        ...prev,
-        totalAmount: computed.toFixed(2),
-      }));
-    }
-  }, [taxSummaryForm.vendorAmount]);
+  // Correction 46: the total is the invoice's own figure and stays put.
+  // An effect here used to drag it toward the auto-balanced vendor amount,
+  // which walked it away from the invoice and made a mismatch invisible.
 
   // Handle form input changes
   const handleFormChange = (name, value) => {
@@ -2766,20 +2783,6 @@ const TallyPaymentVoucherDetail = () => {
                         {isOtherAdjustmentLedgerRequired() && (
                           <li>Select other-adjustment ledger</li>
                         )}
-                        {isSubtotalGreaterThanTotal() && (
-                          <li>
-                            Subtotal (₹
-                            {expenseItems
-                              .reduce(
-                                (sum, item) =>
-                                  sum + parseFloat(item.amount || 0),
-                                0,
-                              )
-                              .toFixed(2)}
-                            ) cannot be greater than total amount (₹
-                            {billForm.totalAmount})
-                          </li>
-                        )}
                       </ul>
                     </div>
                   </div>
@@ -3703,6 +3706,40 @@ const TallyPaymentVoucherDetail = () => {
                       loading: ledgersLoading,
                       placeholder: "Round-off ledger",
                     },
+                    {
+                      // Correction 46 — the Bank/Cash side of the voucher.
+                      // Amount is derived, never typed:
+                      //   line items + GST + round off + other adjustment
+                      key: "amount_paid",
+                      label: "Amount Paid",
+                      hint: "auto",
+                      hintTitle:
+                        "Line item subtotal + GST subtotal + Round off + Other Adjustment.",
+                      readOnlyAmount: amountPaidComputed.toFixed(2),
+                      // The real posting side, not a field of its own — a
+                      // separate one would render a control that changed
+                      // nothing. Already defaults to credit: money leaves the
+                      // bank or cash ledger.
+                      typeField: "vendorDebitCredit",
+                      defaultType: "credit",
+                      missing: isPaymentModeRequired,
+                      required: true,
+                      options: paymentModeOptions,
+                      // Same ledger as the Payment Mode picker at the top of
+                      // the form — one bank/cash line, shown where the money
+                      // actually leaves.
+                      ledgerId: billForm.selectedPaymentMode?.id || null,
+                      onSelect: handlePaymentModeSelect,
+                      onClear: handlePaymentModeClear,
+                      loading: paymentModeLedgersLoading,
+                      placeholder: "Bank / Cash ledger",
+                      // No "+" here. `paymentModeOptions` is a fixed two-entry
+                      // Bank/Cash roster, so a freshly created ledger could
+                      // never appear in it — the button would look live and
+                      // do nothing. The Payment Mode picker at the top has no
+                      // quick-add for the same reason.
+                      noQuickAdd: true,
+                    },
                   ];
 
                   return (
@@ -3737,31 +3774,29 @@ const TallyPaymentVoucherDetail = () => {
                                 </span>
                               )}
                             </label>
-                            <EditableTaxAmount
-                              value={taxSummaryForm[r.amountField]}
-                              disabled={isVerified}
-                              onCommit={(v) =>
-                                handleTaxSummaryChange(r.amountField, v)
-                              }
-                              className={amountCls}
-                            />
-                            <QuickAddGroup
-                              kind="ledger"
-                              disabled={isVerified}
-                              ledgerDefaultParent={r.quickAddParent || "Indirect Expenses"}
-                              ledgerTitle={`Add New ${r.label} Ledger`}
-                              title="Ledger not in the list? Create one"
-                              onCreated={(ledger) =>
-                                ledger?.id && r.onSelect(ledger.id)
-                              }
-                              className={`relative ${
-                                r.missing && !isVerified
-                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                                  : ""
-                              }`}
-                            >
+                            {r.readOnlyAmount !== undefined ? (
+                              <span
+                                className={`${amountCls} inline-flex items-center bg-slate-50 dark:bg-slate-900/60 cursor-default`}
+                                title={r.hintTitle}
+                              >
+                                {r.readOnlyAmount}
+                              </span>
+                            ) : (
+                              <EditableTaxAmount
+                                value={taxSummaryForm[r.amountField]}
+                                disabled={isVerified}
+                                onCommit={(v) =>
+                                  handleTaxSummaryChange(r.amountField, v)
+                                }
+                                className={amountCls}
+                              />
+                            )}
+                            {(() => {
+                              const picker = (
                               <SearchableDropdown
-                                triggerClassName="rounded-r-none"
+                                triggerClassName={
+                                  r.noQuickAdd ? "" : "rounded-r-none"
+                                }
                                 options={r.options}
                                 value={r.ledgerId || null}
                                 onChange={r.onSelect}
@@ -3783,7 +3818,31 @@ const TallyPaymentVoucherDetail = () => {
                                 )}
                                 size="sm"
                               />
-                            </QuickAddGroup>
+                              );
+                              const ringed =
+                                r.missing && !isVerified
+                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                                  : "";
+                              return r.noQuickAdd ? (
+                                <div className={ringed}>{picker}</div>
+                              ) : (
+                                <QuickAddGroup
+                                  kind="ledger"
+                                  disabled={isVerified}
+                                  ledgerDefaultParent={
+                                    r.quickAddParent || "Indirect Expenses"
+                                  }
+                                  ledgerTitle={`Add New ${r.label} Ledger`}
+                                  title="Ledger not in the list? Create one"
+                                  onCreated={(ledger) =>
+                                    ledger?.id && r.onSelect(ledger.id)
+                                  }
+                                  className={`relative ${ringed}`}
+                                >
+                                  {picker}
+                                </QuickAddGroup>
+                              );
+                            })()}
                             <select
                               value={taxSummaryForm[r.typeField] || r.defaultType}
                               onChange={(e) =>
@@ -3821,38 +3880,34 @@ const TallyPaymentVoucherDetail = () => {
                           Total amount
                         </span>
                         <input
-                          type="number"
+                          type="text"
                           name="totalAmount"
                           value={billForm.totalAmount}
-                          onChange={(e) =>
-                            handleFormChange("totalAmount", e.target.value)
-                          }
+                          readOnly
+                          tabIndex={-1}
+                          title="The invoice total as read from the bill — not directly editable."
                           placeholder="0.00"
-                          disabled={isVerified}
-                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 ${
+                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 cursor-default select-text ${
                             billTotalMatch.hasBillValue && !billTotalMatch.isMatch
                               ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
                               : "border-blue-200 dark:border-blue-900/60"
                           }`}
-                          min="0"
-                          step="0.01"
                         />
-                        {/* Caption — switches to an amber heads-up when
-                            the current total drifts from the OCR-extracted
-                            invoice total by more than ±₹1. Informational
-                            only; does not block verification. */}
+                        {/* Correction 46 — amber when the rows don't add up to
+                            the invoice total. Unlike before, this does block
+                            verification: the figures have to agree. */}
                         {billTotalMatch.hasBillValue &&
                         !billTotalMatch.isMatch ? (
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span
                               className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Current total ₹${billTotalMatch.currentTotal.toFixed(2)} differs from the invoice total on the bill (₹${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
+                              title={`Line items + GST + round off + other adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} — off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. Adjust Round Off or Other Adjustment so the two agree.`}
                             >
                               <Icon
                                 icon="heroicons:information-circle"
                                 className="text-[12px]"
                               />
-                              Differs from bill total
+                              Invoice total doesn't agree
                             </span>
                             <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
                               Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
@@ -3866,7 +3921,7 @@ const TallyPaymentVoucherDetail = () => {
                               icon="heroicons:check-circle"
                               className="text-[12px]"
                             />
-                            Matches bill total
+                            Agrees with invoice total
                           </span>
                         ) : (
                           <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
