@@ -95,6 +95,20 @@ const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
   );
 };
 
+/**
+ * An adjustment's contribution, signed by the side it posts to.
+ *
+ * Debit increases what the invoice comes to, credit reduces it. Correction 47:
+ * this rule lived in two places that drifted apart — the invoice-total check
+ * added every figure at face value while the balance check respected the
+ * sides, so a Round Off of 10.00 on the credit side read as +10 in one and
+ * -10 in the other. One definition, used by both.
+ */
+const sidedAmount = (value, side) => {
+  const amount = parseFloat(value) || 0;
+  return side === "credit" ? -amount : amount;
+};
+
 /** Sum of every Credit/Debit item amount — the taxable base for the GST rows. */
 const sumItemAmounts = (items) =>
   (items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -380,14 +394,32 @@ const TallyExpenseBillDetail = () => {
     if (!billTotal || Number.isNaN(billTotal)) {
       return { hasBillValue: false };
     }
+    // Correction 47: an adjustment's debit/credit side decides its direction.
+    //
+    // Both were previously added at face value, so a Round Off of 10.00 on the
+    // CREDIT side was added instead of subtracted. On the reported bill that
+    // put the running total 20.00 above an invoice total it actually matched
+    // exactly (Other Adjustment 10.00 debit + Round Off 10.00 credit should
+    // cancel), and the voucher was blocked with "invoice total doesn't agree"
+    // pointing at figures that did agree.
+    //
+    // Debit increases what the invoice comes to, credit reduces it — the same
+    // rule `isBalanceOff` and the vendor-amount effect already follow.
     const computed =
       sumItemAmounts(expenseItems) +
       (gstLines || []).reduce(
-        (sum, line) => sum + (parseFloat(line.amount) || 0),
+        (sum, line) =>
+          sum + sidedAmount(line.amount, line.debit_or_credit),
         0,
       ) +
-      (parseFloat(taxSummaryForm.round_off) || 0) +
-      (parseFloat(taxSummaryForm.other_adjustment) || 0);
+      sidedAmount(
+        taxSummaryForm.round_off,
+        taxSummaryForm.round_off_debit_or_credit,
+      ) +
+      sidedAmount(
+        taxSummaryForm.other_adjustment,
+        taxSummaryForm.other_adjustment_debit_or_credit,
+      );
 
     const currentTotal = Number(computed.toFixed(2));
     const diff = Number((currentTotal - billTotal).toFixed(2));
@@ -403,7 +435,9 @@ const TallyExpenseBillDetail = () => {
     expenseItems,
     gstLines,
     taxSummaryForm.round_off,
+    taxSummaryForm.round_off_debit_or_credit,
     taxSummaryForm.other_adjustment,
+    taxSummaryForm.other_adjustment_debit_or_credit,
   ]);
 
   // Validation helper functions
@@ -422,7 +456,7 @@ const TallyExpenseBillDetail = () => {
     (gstLines || []).filter(
       (line) =>
         line.tax_type === taxType &&
-        parseFloat(line.amount || 0) > 0 &&
+        parseFloat(line.amount || 0) !== 0 &&
         !line.ledger_id &&
         !line.ledger,
     );
@@ -445,7 +479,9 @@ const TallyExpenseBillDetail = () => {
     const otherAdjustmentAmount = parseFloat(
       taxSummaryForm.other_adjustment || 0,
     );
-    return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
+    // Non-zero, not "> 0" — a negative adjustment posts to a ledger exactly
+    // like a positive one, and `> 0` quietly stopped asking for it.
+    return otherAdjustmentAmount !== 0 && !taxSummaryForm.other_adjustment_taxes;
   };
 
   // Round-off ledger required whenever round_off != 0 (can be negative).
@@ -466,7 +502,7 @@ const TallyExpenseBillDetail = () => {
   const getGstLinesWithoutLedger = () =>
     (gstLines || []).filter(
       (line) =>
-        parseFloat(line.amount || 0) > 0 && !line.ledger_id && !line.ledger,
+        parseFloat(line.amount || 0) !== 0 && !line.ledger_id && !line.ledger,
     );
 
   // DR == CR must balance before verify — backend also enforces but
@@ -1811,18 +1847,31 @@ const TallyExpenseBillDetail = () => {
       (sum, row) => sum + (parseFloat(row.amount) || 0),
       0,
     );
-    const sumOfGstLines = (gstLines || []).reduce(
-      (sum, line) => sum + (parseFloat(line.amount) || 0),
-      0,
-    );
-    const otherAdjustment = parseFloat(taxSummaryForm.other_adjustment) || 0;
+    // Correction 47: the residual has to be worked out with the same
+    // debit/credit arithmetic the invoice-total check uses, and the round-off
+    // has to be written back on the side that actually closes the gap.
+    // Summing at face value here while the check respected the sides would
+    // have made Auto-fill produce a figure the check then rejected — a button
+    // that reports success and leaves the voucher blocked.
+    //
     // No discount field on this form — a hard-coded `discount = 0` used to be
     // subtracted here, which read like a real term but never did anything.
+    const sumOfGstLines = (gstLines || []).reduce(
+      (sum, line) => sum + sidedAmount(line.amount, line.debit_or_credit),
+      0,
+    );
+    const otherAdjustment = sidedAmount(
+      taxSummaryForm.other_adjustment,
+      taxSummaryForm.other_adjustment_debit_or_credit,
+    );
     const derived = billTotal - (subtotal + sumOfGstLines + otherAdjustment);
     const rounded = Math.abs(derived) < 0.005 ? 0 : Number(derived.toFixed(2));
+    // Keep the amount positive and let the side carry the direction, matching
+    // how the rest of the adjustments read on screen.
     setTaxSummaryForm((prev) => ({
       ...prev,
-      round_off: rounded.toFixed(2),
+      round_off: Math.abs(rounded).toFixed(2),
+      round_off_debit_or_credit: rounded < 0 ? "credit" : "debit",
     }));
     if (rounded === 0) {
       globalToast.success("Already balanced — no round-off needed.");
@@ -3535,8 +3584,15 @@ const TallyExpenseBillDetail = () => {
                           <div className="divide-y divide-slate-100 dark:divide-slate-800">
                             {gstLines.map((line) => {
                               const amountVal = parseFloat(line.amount || 0);
+                              // Must use the same non-zero test as
+                              // `getGstLinesWithoutLedger`. A ring that
+                              // disagrees with the gate is how Correction 47
+                              // happened: blocked on verify, nothing on screen
+                              // pointing at the field to fix.
                               const missingLedger =
-                                amountVal > 0 && !line.ledger_id && !isVerified;
+                                amountVal !== 0 &&
+                                !line.ledger_id &&
+                                !isVerified;
                               return (
                                 <div
                                   key={line.id}
@@ -3706,7 +3762,8 @@ const TallyExpenseBillDetail = () => {
                       typeField: "other_adjustment_debit_or_credit",
                       defaultType: "debit",
                       missing: isOtherAdjustmentLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.other_adjustment || 0) > 0,
+                      required:
+                        parseFloat(taxSummaryForm.other_adjustment || 0) !== 0,
                       options: ledgerOptions,
                       ledgerId: taxSummaryForm.other_adjustment_taxes,
                       onSelect: handleOtherAdjustmentLedgerSelect,
@@ -3723,8 +3780,13 @@ const TallyExpenseBillDetail = () => {
                       amountField: "round_off",
                       typeField: "round_off_debit_or_credit",
                       defaultType: "debit",
-                      missing: false,
-                      required: false,
+                      // Correction 47: `isRoundOffLedgerRequired()` has always
+                      // blocked verification, but this row was hard-coded to
+                      // `false` — so the ledger was mandatory with nothing on
+                      // screen saying so. No ring, no asterisk, just a blocked
+                      // Verify button and no clue which field to fix.
+                      missing: isRoundOffLedgerRequired(),
+                      required: parseFloat(taxSummaryForm.round_off || 0) !== 0,
                       options: ledgerOptions,
                       ledgerId: taxSummaryForm.round_off_taxes,
                       onSelect: handleRoundOffLedgerSelect,

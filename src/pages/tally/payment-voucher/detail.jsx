@@ -398,7 +398,7 @@ const TallyPaymentVoucherDetail = () => {
     (gstLines || []).filter(
       (line) =>
         line.tax_type === taxType &&
-        parseFloat(line.amount || 0) > 0 &&
+        parseFloat(line.amount || 0) !== 0 &&
         !line.ledger_id &&
         !line.ledger,
     );
@@ -416,7 +416,9 @@ const TallyPaymentVoucherDetail = () => {
     const otherAdjustmentAmount = parseFloat(
       taxSummaryForm.other_adjustment || 0,
     );
-    return otherAdjustmentAmount > 0 && !taxSummaryForm.other_adjustment_taxes;
+    // Non-zero, not "> 0" — a negative adjustment posts to a ledger exactly
+    // like a positive one, and `> 0` quietly stopped asking for it.
+    return otherAdjustmentAmount !== 0 && !taxSummaryForm.other_adjustment_taxes;
   };
 
   // Round-off ledger required whenever round_off != 0 (can be negative).
@@ -435,7 +437,7 @@ const TallyPaymentVoucherDetail = () => {
   const getGstLinesWithoutLedger = () =>
     (gstLines || []).filter(
       (line) =>
-        parseFloat(line.amount || 0) > 0 && !line.ledger_id && !line.ledger,
+        parseFloat(line.amount || 0) !== 0 && !line.ledger_id && !line.ledger,
     );
 
   const isBalanceOff = () => {
@@ -3516,8 +3518,15 @@ const TallyPaymentVoucherDetail = () => {
                           <div className="divide-y divide-slate-100 dark:divide-slate-800">
                             {gstLines.map((line) => {
                               const amountVal = parseFloat(line.amount || 0);
+                              // Must use the same non-zero test as
+                              // `getGstLinesWithoutLedger`. A ring that
+                              // disagrees with the gate is how Correction 47
+                              // happened: blocked on verify, nothing on screen
+                              // pointing at the field to fix.
                               const missingLedger =
-                                amountVal > 0 && !line.ledger_id && !isVerified;
+                                amountVal !== 0 &&
+                                !line.ledger_id &&
+                                !isVerified;
                               return (
                                 <div
                                   key={line.id}
@@ -3680,7 +3689,8 @@ const TallyPaymentVoucherDetail = () => {
                       typeField: "other_adjustment_debit_or_credit",
                       defaultType: "debit",
                       missing: isOtherAdjustmentLedgerRequired(),
-                      required: parseFloat(taxSummaryForm.other_adjustment || 0) > 0,
+                      required:
+                        parseFloat(taxSummaryForm.other_adjustment || 0) !== 0,
                       options: ledgerOptions,
                       ledgerId: taxSummaryForm.other_adjustment_taxes,
                       onSelect: handleOtherAdjustmentLedgerSelect,
@@ -3697,8 +3707,13 @@ const TallyPaymentVoucherDetail = () => {
                       amountField: "round_off",
                       typeField: "round_off_debit_or_credit",
                       defaultType: "debit",
-                      missing: false,
-                      required: false,
+                      // Correction 47: `isRoundOffLedgerRequired()` has always
+                      // blocked verification, but this row was hard-coded to
+                      // `false` — so the ledger was mandatory with nothing on
+                      // screen saying so. No ring, no asterisk, just a blocked
+                      // Verify button and no clue which field to fix.
+                      missing: isRoundOffLedgerRequired(),
+                      required: parseFloat(taxSummaryForm.round_off || 0) !== 0,
                       options: ledgerOptions,
                       ledgerId: taxSummaryForm.round_off_taxes,
                       onSelect: handleRoundOffLedgerSelect,
