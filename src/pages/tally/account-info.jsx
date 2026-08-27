@@ -2,7 +2,100 @@ import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
-import { useGetHelpData, useGetTallySetupGuide } from "@/services/tally/tallyApiService";
+import {
+  useGetHelpData,
+  useGetTallySetupGuide,
+  useGetTallyHealthStatus,
+} from "@/services/tally/tallyApiService";
+
+// Short "8 min ago" / "just now" style stamp for the health badge tooltip.
+const formatSincePing = (seconds) => {
+  if (seconds == null) return "never";
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+};
+
+// Tally TCP bridge connectivity pill. Green when a ping arrived within
+// the server-side threshold, red otherwise. Tooltips carry the exact
+// "last ping" timestamp so a client can screenshot it if support asks.
+const TallyHealthBadge = ({ organizationId }) => {
+  const { data, isLoading, isError, refetch, isFetching } = useGetTallyHealthStatus(
+    organizationId
+  );
+
+  if (!organizationId) return null;
+
+  if (isLoading) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700"
+        title="Checking Tally TCP status…"
+      >
+        <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+        TCP…
+      </span>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <button
+        type="button"
+        onClick={() => refetch()}
+        className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+        title="Health check failed — click to retry"
+      >
+        <Icon icon="heroicons:question-mark-circle" className="text-sm" />
+        TCP status unknown
+      </button>
+    );
+  }
+
+  const { connected, last_ping_at, seconds_since_ping } = data;
+  const stamp = last_ping_at
+    ? new Date(last_ping_at).toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "never";
+  const tooltip = last_ping_at
+    ? `Last ping: ${stamp} (${formatSincePing(seconds_since_ping)})`
+    : "Tally TCP bridge has never pinged this workspace.";
+
+  return (
+    <button
+      type="button"
+      onClick={() => refetch()}
+      title={tooltip}
+      className={
+        connected
+          ? "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
+          : "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-1 ring-rose-200 dark:ring-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 cursor-pointer"
+      }
+    >
+      <span
+        className={
+          "inline-block w-1.5 h-1.5 rounded-full " +
+          (connected
+            ? "bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+            : "bg-rose-500 dark:bg-rose-400 shadow-[0_0_0_3px_rgba(244,63,94,0.15)]")
+        }
+      />
+      {connected ? "TCP Connected" : "TCP Offline"}
+      {isFetching && (
+        <Icon icon="heroicons:arrow-path" className="text-[11px] animate-spin opacity-70" />
+      )}
+    </button>
+  );
+};
 
 const formatDate = (d) => {
   if (!d) return "—";
@@ -129,9 +222,14 @@ const TallyAccountInfo = () => {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-            Account information
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+              Account information
+            </h1>
+            {/* Tally TCP connectivity badge. The bridge pings every 10 min;
+                badge flips red if no ping arrived within the 15-min window. */}
+            <TallyHealthBadge organizationId={selectedOrganization?.id} />
+          </div>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             Your Tally integration key, API base URL, and account details.
           </p>

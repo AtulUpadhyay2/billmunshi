@@ -420,6 +420,35 @@ export const useGetHelpData = (organizationId, options = {}) => {
 };
 
 /**
+ * Poll the Tally TCP bridge health status. Returns whether the last
+ * ping from the connector arrived within the server-side threshold
+ * (currently 15 min = 10 min interval + 5 min grace). Refetched
+ * automatically so the Account Info badge reflects reality without
+ * a page reload.
+ *
+ * Response shape:
+ *   { connected: boolean, last_ping_at: string|null,
+ *     seconds_since_ping: number|null, threshold_seconds: number,
+ *     ping_interval_seconds: number, message: string }
+ */
+export const useGetTallyHealthStatus = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallyHealth', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(`tally/org/${organizationId}/health/`, {
+        method: 'GET',
+      });
+      return response;
+    },
+    enabled: !!organizationId,
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
+    staleTime: 30 * 1000,
+    ...options,
+  });
+};
+
+/**
  * Get the admin-managed Tally setup guide steps.
  * Returns: { steps: [{ id, step_number, title, description, image_url, image_alt, order }] }
  */
