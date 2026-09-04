@@ -663,35 +663,43 @@ const TallyPaymentVoucherDetail = () => {
     [vendorLedgersData],
   );
 
-  // Process Payment Mode ledgers into TWO simple options: Bank / Cash.
-  // The client asked for a plain-terms 2-option dropdown ("HDFC walle
-  // ka sense nahi hai") rather than a long list of specific ledgers.
-  // Each option's `id` = the first ledger under the corresponding
-  // parent group in this org — that ledger is what's actually posted
-  // to Tally. Categorisation is by parent-group name (bank / cash).
+  // Process Payment Mode ledgers — the real bank / cash ledgers the org
+  // has configured (HDFC Bank, ICICI Bank, Petty Cash …), grouped under
+  // their parent (Bank Accounts / Bank OD A/c / Cash-in-Hand).
+  //
+  // An earlier revision collapsed this to a fixed two-entry "Bank / Cash"
+  // dropdown and posted whichever ledger happened to be first under each
+  // group. That silently picked the wrong bank account on any org with
+  // more than one, so the operator now picks the exact ledger again.
+  // The plain-terms Bank/Cash *category* is still derived server-side
+  // from the chosen ledger's parent group for the sync payload's
+  // <payment_mode> tag — see _classify_payment_mode in payment_bills.py.
   const processPaymentModeLedgers = () => {
     if (!paymentModeLedgersData?.grouped_ledgers) return [];
 
-    const byCategory = { Bank: null, Cash: null };
+    const modes = [];
     Object.values(paymentModeLedgersData.grouped_ledgers).forEach((group) => {
-      const parentName = (group?.parent_name || "").toLowerCase();
-      let cat = null;
-      if (parentName.includes("bank")) cat = "Bank";
-      else if (parentName.includes("cash")) cat = "Cash";
-      if (!cat) return;
-      const firstLedger = (group.ledgers || [])[0];
-      if (!firstLedger || byCategory[cat]) return;
-      byCategory[cat] = {
-        id: firstLedger.id,
-        name: cat,
-        parent_name: group.parent_name,
-        underlying_ledger_name: firstLedger.name,
-      };
+      if (group.ledgers && Array.isArray(group.ledgers)) {
+        group.ledgers.forEach((ledger) => {
+          modes.push({
+            id: ledger.id,
+            name: ledger.name,
+            master_id: ledger.master_id,
+            alter_id: ledger.alter_id,
+            opening_balance: ledger.opening_balance,
+            company: ledger.company,
+            parent_name: group.parent_name,
+          });
+        });
+      }
     });
-    return [byCategory.Bank, byCategory.Cash].filter(Boolean);
+    return modes;
   };
 
-  const paymentModeOptions = processPaymentModeLedgers();
+  const paymentModeOptions = useMemo(
+    () => processPaymentModeLedgers(),
+    [paymentModeLedgersData],
+  );
 
   // Process CGST ledgers data for dropdown
   const processCgstLedgers = () => {
@@ -2933,6 +2941,11 @@ const TallyPaymentVoucherDetail = () => {
                               <div className="font-medium text-slate-900 dark:text-white text-sm">
                                 {mode.name}
                               </div>
+                              {mode.parent_name && (
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  {mode.parent_name}
+                                </div>
+                              )}
                             </div>
                           )}
                         />
@@ -3748,11 +3761,15 @@ const TallyPaymentVoucherDetail = () => {
                       onClear: handlePaymentModeClear,
                       loading: paymentModeLedgersLoading,
                       placeholder: "Bank / Cash ledger",
-                      // No "+" here. `paymentModeOptions` is a fixed two-entry
-                      // Bank/Cash roster, so a freshly created ledger could
-                      // never appear in it — the button would look live and
-                      // do nothing. The Payment Mode picker at the top has no
-                      // quick-add for the same reason.
+                      // No "+" here. This roster is scoped to the Payment
+                      // parent ledgers configured in Settings → Tally
+                      // Integration (Bank Accounts / Bank OD A/c /
+                      // Cash-in-Hand). A ledger quick-added from this screen
+                      // would land under a different parent and never show
+                      // up in the list. New bank/cash accounts are added in
+                      // Tally (or Chart of Accounts) and sync in. The Payment
+                      // Mode picker at the top has no quick-add for the same
+                      // reason.
                       noQuickAdd: true,
                     },
                   ];
