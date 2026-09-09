@@ -1936,7 +1936,7 @@ const TallyPaymentVoucherDetail = () => {
         vendor_id: billForm.selectedVendor?.id || null,
         // Payment Mode (Correction 26) — the Bank/Cash ledger actually
         // used to pay this voucher; required for verify + sync and
-        // emitted as the DEBIT entry in the sync XML.
+        // emitted as the Bank/Cash posting in the sync XML.
         payment_mode_id: billForm.selectedPaymentMode?.id || null,
         voucher: billForm.billNumber || "",
         bill_no: billForm.billNumber || "",
@@ -2912,7 +2912,7 @@ const TallyPaymentVoucherDetail = () => {
                     {/* Payment Mode — the actual Bank/Cash ledger this
                         payment is made through (Correction 26). Options
                         are scoped to TallyConfig.payment_parents. This
-                        is the ledger emitted as the DEBIT entry in the
+                        is the ledger emitted as the Bank/Cash posting in the
                         sync XML — required for verify + sync. */}
                     <div className="relative">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
