@@ -14,10 +14,12 @@ import AddItemModal from "@/components/modals/AddItemModal";
  * adjacent. Use ``QuickAddGroup`` below rather than placing this by hand
  * — it wires up the flex row and the shared edge.
  *
- * On success the modals invalidate the react-query caches for ledgers /
- * stock items, so the neighbouring dropdown picks the new row up on the
- * next render. ``onCreated`` is optional and lets a parent additionally
- * auto-select the row it just created.
+ * On success the modals refresh the react-query caches for ledgers /
+ * stock items, wait for that refetch, then call ``onCreated(record)``.
+ * Wire it on every picker so the row the user just created is selected
+ * straight away. The callback runs from a closure captured before the
+ * refetch, so a handler that looks the id up in its options list should
+ * fall back to ``record`` when the lookup misses.
  */
 
 const KIND_TITLES = {

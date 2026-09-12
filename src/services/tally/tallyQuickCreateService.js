@@ -6,10 +6,32 @@ import { apiFetch } from "@/utils/apiClient";
  * bill detail view and standalone Ledgers / Items pages.
  *
  * Each mutation returns the newly-created row so the caller can push
- * it straight into a dropdown as the selected value. React Query
- * caches for the corresponding list endpoint are invalidated so the
- * next dropdown open shows the fresh entry.
+ * it straight into a dropdown as the selected value.
+ *
+ * ``onSuccess`` *returns* the invalidation promise, so ``mutateAsync``
+ * only resolves once the affected dropdown lists have refetched. That is
+ * what lets the modal hand the new row to ``onCreated`` and have the
+ * picker beside it show it as selected immediately, rather than holding
+ * an id with no matching option until the next page load.
  */
+
+// Every ledger picker on the voucher pages reads its own
+// ``configs/ledgers/?parent_type=…`` query (vendor, purchase, expense, tax,
+// CGST/SGST/IGST, payment mode …), and a new ledger can belong to any of
+// them depending on the parent it was created under. Refresh the whole
+// family instead of a hand-picked subset — the old subset missed the
+// purchase / tax / GST lists, so a ledger created from those pickers never
+// appeared in them. ``parentLedgers`` too: the modal creates a missing
+// parent on the fly.
+const LEDGER_LIST_KEY = /^tally\w*Ledgers$/;
+
+const refreshLedgerLists = (qc, organizationId) =>
+  qc.invalidateQueries({
+    predicate: ({ queryKey: [key, orgId] }) =>
+      orgId === organizationId &&
+      (key === "parentLedgers" ||
+        (typeof key === "string" && LEDGER_LIST_KEY.test(key))),
+  });
 
 // ----- Vendor ---------------------------------------------------------
 
@@ -28,11 +50,8 @@ export const useQuickCreateVendor = () => {
         }),
       });
     },
-    onSuccess: (_data, vars) => {
-      // Ledger + vendor dropdowns share the same backing store.
-      qc.invalidateQueries({ queryKey: ["tallyVendorLedgers", vars.organizationId] });
-      qc.invalidateQueries({ queryKey: ["tallyLedgers", vars.organizationId] });
-    },
+    // Vendors are ledgers — same backing store as every other picker.
+    onSuccess: (_data, vars) => refreshLedgerLists(qc, vars.organizationId),
   });
 };
 
@@ -52,13 +71,7 @@ export const useQuickCreateLedger = () => {
         }),
       });
     },
-    onSuccess: (_data, vars) => {
-      // Purchase / Expense COA dropdowns hit these two query keys.
-      qc.invalidateQueries({
-        queryKey: ["tallyExpenseChartOfAccountsLedgers", vars.organizationId],
-      });
-      qc.invalidateQueries({ queryKey: ["tallyLedgers", vars.organizationId] });
-    },
+    onSuccess: (_data, vars) => refreshLedgerLists(qc, vars.organizationId),
   });
 };
 
@@ -84,8 +97,11 @@ export const useQuickCreateItem = () => {
         }),
       });
     },
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["tallyStockItems", vars.organizationId] });
-    },
+    onSuccess: (_data, vars) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["tallyStockItems", vars.organizationId] }),
+        // The vendor-bill item picker reads stock items off the masters payload.
+        qc.invalidateQueries({ queryKey: ["tallyMasters", vars.organizationId] }),
+      ]),
   });
 };

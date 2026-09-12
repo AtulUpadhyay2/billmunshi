@@ -82,7 +82,11 @@ const StatTile = ({ label, value, sublabel, icon, accent = "blue" }) => {
           {value}
         </div>
         {sublabel && (
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+          // `title` so a sublabel truncated by a narrow tile is still readable on hover.
+          <div
+            className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate"
+            title={sublabel}
+          >
             {sublabel}
           </div>
         )}
@@ -92,7 +96,7 @@ const StatTile = ({ label, value, sublabel, icon, accent = "blue" }) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Module summary card (one per module: Vendor / Expense)            */
+/*  Module summary card (one per module: Vendor / Expense / Payment)  */
 /* ------------------------------------------------------------------ */
 
 const ModuleSummaryCard = ({
@@ -220,7 +224,7 @@ const ModuleSummaryCard = ({
 /*  Funnel card                                                       */
 /* ------------------------------------------------------------------ */
 
-const FunnelCard = ({ title, data, accent = "blue" }) => {
+const FunnelCard = ({ title, data, accent = "blue", className = "" }) => {
   if (!data) return null;
   const {
     total_uploaded = 0,
@@ -262,10 +266,12 @@ const FunnelCard = ({ title, data, accent = "blue" }) => {
     blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-blue-100 dark:ring-blue-900/60",
     violet:
       "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 ring-violet-100 dark:ring-violet-900/60",
+    amber:
+      "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-100 dark:ring-amber-900/60",
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span
@@ -341,7 +347,20 @@ const tooltipStyle = {
 /*  Charts                                                            */
 /* ------------------------------------------------------------------ */
 
-const TrendsChart = ({ data, vendorLabel = "Vendor", expenseLabel = "Expense" }) => (
+// Series colours, shared by the trend bars, the pie and its legend chips.
+const SERIES_COLORS = {
+  vendor: "#2563eb",
+  expense: "#7c3aed",
+  payment: "#d97706",
+};
+
+const TrendsChart = ({
+  data,
+  vendorLabel = "Vendor",
+  expenseLabel = "Expense",
+  // Only the Tally dashboard has payment vouchers; omit to hide the series.
+  paymentLabel,
+}) => (
   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 lg:col-span-2">
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
@@ -378,8 +397,11 @@ const TrendsChart = ({ data, vendorLabel = "Vendor", expenseLabel = "Expense" })
             iconType="circle"
             wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
           />
-          <Bar dataKey="vendor" name={vendorLabel} fill="#2563eb" radius={[3, 3, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="expense" name={expenseLabel} fill="#7c3aed" radius={[3, 3, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="vendor" name={vendorLabel} fill={SERIES_COLORS.vendor} radius={[3, 3, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="expense" name={expenseLabel} fill={SERIES_COLORS.expense} radius={[3, 3, 0, 0]} maxBarSize={28} />
+          {paymentLabel && (
+            <Bar dataKey="payment" name={paymentLabel} fill={SERIES_COLORS.payment} radius={[3, 3, 0, 0]} maxBarSize={28} />
+          )}
           <Bar dataKey="analysed" name="Analysed" fill="#0891b2" radius={[3, 3, 0, 0]} maxBarSize={28} />
           <Bar dataKey="synced" name="Synced" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
         </BarChart>
@@ -388,7 +410,26 @@ const TrendsChart = ({ data, vendorLabel = "Vendor", expenseLabel = "Expense" })
   </div>
 );
 
-const FileDistribution = ({ pieData, vendorCount, expenseCount }) => (
+const FILE_CHIP_TONES = {
+  vendor: {
+    chip: "bg-blue-50 dark:bg-blue-950/40 ring-blue-100 dark:ring-blue-900/60",
+    text: "text-blue-700 dark:text-blue-400",
+    dot: "bg-blue-600",
+  },
+  expense: {
+    chip: "bg-violet-50 dark:bg-violet-950/40 ring-violet-100 dark:ring-violet-900/60",
+    text: "text-violet-700 dark:text-violet-400",
+    dot: "bg-violet-600",
+  },
+  payment: {
+    chip: "bg-amber-50 dark:bg-amber-950/40 ring-amber-100 dark:ring-amber-900/60",
+    text: "text-amber-700 dark:text-amber-400",
+    dot: "bg-amber-600",
+  },
+};
+
+// ``slices`` — [{ key: "vendor" | "expense" | "payment", name, value }]
+const FileDistribution = ({ slices }) => (
   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
     <div className="flex items-center gap-2 mb-3">
       <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
@@ -402,7 +443,7 @@ const FileDistribution = ({ pieData, vendorCount, expenseCount }) => (
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={pieData}
+            data={slices}
             cx="50%"
             cy="50%"
             innerRadius={42}
@@ -412,33 +453,31 @@ const FileDistribution = ({ pieData, vendorCount, expenseCount }) => (
             stroke="white"
             strokeWidth={2}
           >
-            {pieData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+            {slices.map((entry) => (
+              <Cell key={`cell-${entry.key}`} fill={SERIES_COLORS[entry.key]} />
             ))}
           </Pie>
           <Tooltip contentStyle={tooltipStyle} />
         </PieChart>
       </ResponsiveContainer>
     </div>
-    <div className="grid grid-cols-2 gap-2 mt-2">
-      <div className="rounded-md bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 px-2.5 py-1.5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-          Vendor
-        </div>
-        <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-          {formatNumber(vendorCount)}
-        </div>
-      </div>
-      <div className="rounded-md bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-100 dark:ring-violet-900/60 px-2.5 py-1.5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />
-          Expense
-        </div>
-        <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-          {formatNumber(expenseCount)}
-        </div>
-      </div>
+    <div className={`grid gap-2 mt-2 ${slices.length > 2 ? "grid-cols-3" : "grid-cols-2"}`}>
+      {slices.map((s) => {
+        const tone = FILE_CHIP_TONES[s.key];
+        return (
+          <div key={s.key} className={`rounded-md ring-1 px-2.5 py-1.5 min-w-0 ${tone.chip}`}>
+            <div
+              className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide ${tone.text}`}
+            >
+              <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${tone.dot}`} />
+              <span className="truncate">{s.name}</span>
+            </div>
+            <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
+              {formatNumber(s.value)}
+            </div>
+          </div>
+        );
+      })}
     </div>
   </div>
 );
@@ -446,6 +485,13 @@ const FileDistribution = ({ pieData, vendorCount, expenseCount }) => (
 /* ------------------------------------------------------------------ */
 /*  Main layout                                                       */
 /* ------------------------------------------------------------------ */
+
+const TREND_PERIODS = [
+  ["Today", "today"],
+  ["Week", "week"],
+  ["Month", "month"],
+  ["Quarter", "quarter"],
+];
 
 const DashboardLayout = ({
   module = "tally",
@@ -459,10 +505,12 @@ const DashboardLayout = ({
   refetchAll,
   onVendorUpload,
   onExpenseUpload,
+  onPaymentUpload,
 }) => {
   const navigate = useNavigate();
   const [isVendorOpen, setIsVendorOpen] = React.useState(false);
   const [isExpenseOpen, setIsExpenseOpen] = React.useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = React.useState(false);
 
   if (!selectedOrganization) {
     return (
@@ -540,53 +588,55 @@ const DashboardLayout = ({
   const recent = overviewData?.recent_activity || {};
   const vendorCount = overviewData?.vendor_count || 0;
 
+  // Payment vouchers are Tally-only — the backend adds ``payment_bills``
+  // to the Tally overview and leaves it off the Zoho one, so its presence
+  // decides whether the payment tile / card / series are rendered.
+  const hasPayments = !!overviewData?.payment_bills;
+  const pBills = overviewData?.payment_bills || {};
+
   const vendorPct =
     vBills.total_count > 0 ? (vBills.synced_count / vBills.total_count) * 100 : 0;
   const expensePct =
     eBills.total_count > 0 ? (eBills.synced_count / eBills.total_count) * 100 : 0;
+  const paymentPct =
+    pBills.total_count > 0 ? (pBills.synced_count / pBills.total_count) * 100 : 0;
 
-  const trendData = usageData?.usage_by_period
-    ? [
-        {
-          name: "Today",
-          vendor: usageData.usage_by_period.today.vendor_bills_uploaded,
-          expense: usageData.usage_by_period.today.expense_bills_uploaded,
-          analysed: usageData.usage_by_period.today.bills_analysed,
-          synced: usageData.usage_by_period.today.bills_synced,
-        },
-        {
-          name: "Week",
-          vendor: usageData.usage_by_period.week.vendor_bills_uploaded,
-          expense: usageData.usage_by_period.week.expense_bills_uploaded,
-          analysed: usageData.usage_by_period.week.bills_analysed,
-          synced: usageData.usage_by_period.week.bills_synced,
-        },
-        {
-          name: "Month",
-          vendor: usageData.usage_by_period.month.vendor_bills_uploaded,
-          expense: usageData.usage_by_period.month.expense_bills_uploaded,
-          analysed: usageData.usage_by_period.month.bills_analysed,
-          synced: usageData.usage_by_period.month.bills_synced,
-        },
-        {
-          name: "Quarter",
-          vendor: usageData.usage_by_period.quarter.vendor_bills_uploaded,
-          expense: usageData.usage_by_period.quarter.expense_bills_uploaded,
-          analysed: usageData.usage_by_period.quarter.bills_analysed,
-          synced: usageData.usage_by_period.quarter.bills_synced,
-        },
-      ]
+  const periods = usageData?.usage_by_period;
+  const trendData = periods
+    ? TREND_PERIODS.map(([name, key]) => ({
+        name,
+        vendor: periods[key].vendor_bills_uploaded,
+        expense: periods[key].expense_bills_uploaded,
+        payment: periods[key].payment_bills_uploaded || 0,
+        analysed: periods[key].bills_analysed,
+        synced: periods[key].bills_synced,
+      }))
     : [];
 
   const vendorFiles = usageData?.file_statistics?.total_vendor_files || 0;
   const expenseFiles = usageData?.file_statistics?.total_expense_files || 0;
-  const pieData = [
-    { name: "Vendor", value: vendorFiles, color: "#2563eb" },
-    { name: "Expense", value: expenseFiles, color: "#7c3aed" },
+  const paymentFiles = usageData?.file_statistics?.total_payment_files || 0;
+  const fileSlices = [
+    { key: "vendor", name: "Vendor", value: vendorFiles },
+    { key: "expense", name: "Expense", value: expenseFiles },
+    ...(hasPayments ? [{ key: "payment", name: "Payment", value: paymentFiles }] : []),
   ];
 
   const expenseLabel = module === "tally" ? "Journal entry" : "Expense";
   const vendorLabel = module === "tally" ? "Purchase voucher" : "Vendor bill";
+  const paymentLabel = "Payment voucher";
+
+  const amountBreakdown = [
+    `Vendor ${formatCurrency(fin.total_vendor_amount)}`,
+    `${expenseLabel} ${formatCurrency(fin.total_expense_amount)}`,
+    ...(hasPayments ? [`Payment ${formatCurrency(fin.total_payment_amount)}`] : []),
+  ].join(" · ");
+
+  const recentBreakdown = [
+    `Last 7d · V ${formatNumber(recent.vendor_bills_last_7_days)}`,
+    `E ${formatNumber(recent.expense_bills_last_7_days)}`,
+    ...(hasPayments ? [`P ${formatNumber(recent.payment_bills_last_7_days)}`] : []),
+  ].join(" · ");
 
   // ---------------- handlers ------------------------------------------
 
@@ -597,6 +647,10 @@ const DashboardLayout = ({
   const handleExpenseUpload = async (formData) => {
     if (!onExpenseUpload) return;
     await onExpenseUpload(formData);
+  };
+  const handlePaymentUpload = async (formData) => {
+    if (!onPaymentUpload) return;
+    await onPaymentUpload(formData);
   };
 
   return (
@@ -618,13 +672,15 @@ const DashboardLayout = ({
           )
         }
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${
+          hasPayments ? "lg:grid-cols-3 xl:grid-cols-5" : "lg:grid-cols-4"
+        }`}
+      >
         <StatTile
           label="Total amount"
           value={formatCurrency(fin.combined_amount)}
-          sublabel={`Vendor ${formatCurrency(fin.total_vendor_amount)} · ${expenseLabel} ${formatCurrency(
-            fin.total_expense_amount,
-          )}`}
+          sublabel={amountBreakdown}
           icon="heroicons:banknotes"
           accent="emerald"
         />
@@ -642,24 +698,35 @@ const DashboardLayout = ({
           icon="heroicons:document-currency-rupee"
           accent="violet"
         />
+        {hasPayments && (
+          <StatTile
+            label="Payment vouchers"
+            value={formatNumber(pBills.total_count)}
+            sublabel={`Analysed ${formatNumber(pBills.analysed_count)} · Synced ${formatNumber(pBills.synced_count)}`}
+            icon="heroicons:credit-card"
+            accent="amber"
+          />
+        )}
         <StatTile
           label="Vendors"
           value={formatNumber(vendorCount)}
-          sublabel={`Last 7d · V ${formatNumber(
-            recent.vendor_bills_last_7_days,
-          )} · E ${formatNumber(recent.expense_bills_last_7_days)}`}
+          sublabel={recentBreakdown}
           icon="heroicons:building-storefront"
           accent="amber"
         />
       </div>
 
-      {/* Module summaries — vendor + expense */}
+      {/* Module summaries — vendor + expense (+ payment on Tally) */}
       <SectionHeader
         icon="heroicons:square-3-stack-3d"
         title="Modules"
         hint="Open lists or upload bills directly"
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div
+        className={`grid grid-cols-1 gap-3 ${
+          hasPayments ? "lg:grid-cols-3" : "lg:grid-cols-2"
+        }`}
+      >
         <ModuleSummaryCard
           title="Vendor bills"
           icon="heroicons:document-text"
@@ -704,6 +771,30 @@ const DashboardLayout = ({
             onClick: () => navigate(`${baseRoute}/${expenseRoute}`),
           }}
         />
+        {hasPayments && (
+          <ModuleSummaryCard
+            title="Payment vouchers"
+            icon="heroicons:credit-card"
+            accent="amber"
+            total={pBills.total_count || 0}
+            rows={[
+              { label: "Analysed", value: pBills.analysed_count || 0 },
+              { label: "Synced", value: pBills.synced_count || 0 },
+              { label: "Last 7d", value: recent.payment_bills_last_7_days || 0 },
+              { label: "Files", value: paymentFiles || 0 },
+            ]}
+            progress={paymentPct}
+            primaryAction={{
+              label: "Upload",
+              icon: "heroicons:cloud-arrow-up",
+              onClick: () => setIsPaymentOpen(true),
+            }}
+            secondaryAction={{
+              label: "View list",
+              onClick: () => navigate(`${baseRoute}/payment-voucher`),
+            }}
+          />
+        )}
       </div>
 
       {/* Usage trends + file distribution */}
@@ -717,12 +808,9 @@ const DashboardLayout = ({
           data={trendData}
           vendorLabel="Vendor"
           expenseLabel={expenseLabel}
+          paymentLabel={hasPayments ? paymentLabel : undefined}
         />
-        <FileDistribution
-          pieData={pieData}
-          vendorCount={vendorFiles}
-          expenseCount={expenseFiles}
-        />
+        <FileDistribution slices={fileSlices} />
       </div>
 
       {/* Funnels */}
@@ -744,6 +832,14 @@ const DashboardLayout = ({
               data={funnelData.expense_bills_funnel}
               accent="violet"
             />
+            {/* Third funnel spans the row — three side by side leave the
+                four stage boxes too narrow for their labels. */}
+            <FunnelCard
+              title="Payment vouchers funnel"
+              data={funnelData.payment_bills_funnel}
+              accent="amber"
+              className="lg:col-span-2"
+            />
           </div>
         </>
       )}
@@ -764,6 +860,15 @@ const DashboardLayout = ({
         title={`Upload ${expenseLabel.toLowerCase()}`}
         module={module}
       />
+      {hasPayments && (
+        <UploadBillModal
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          onUpload={handlePaymentUpload}
+          title={`Upload ${paymentLabel.toLowerCase()}s`}
+          module={module}
+        />
+      )}
     </div>
   );
 };

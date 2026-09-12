@@ -1429,14 +1429,18 @@ const TallyPaymentVoucherDetail = () => {
   };
 
   // Handle vendor selection
-  const handleVendorSelect = (vendorId) => {
+  // ``createdVendor`` is the row the "+" quick-add just created. The modal
+  // calls back through a closure from before the vendor list refetched, so
+  // ``vendorOptions`` here may not contain it yet — fall back to the row.
+  const handleVendorSelect = (vendorId, createdVendor = null) => {
     if (vendorId === null || vendorId === "") {
       // If null/empty value is passed via onChange, treat as clear
       handleVendorClear();
       return;
     }
 
-    const vendor = vendorOptions.find((v) => v.id === vendorId);
+    const vendor =
+      vendorOptions.find((v) => v.id === vendorId) || createdVendor;
     if (vendor) {
       setBillForm((prev) => ({
         ...prev,
@@ -1488,8 +1492,10 @@ const TallyPaymentVoucherDetail = () => {
   };
 
   // Handle Chart of Accounts selection
-  const handleChartOfAccountsSelect = (itemIndex, ledgerId) => {
-    const ledger = ledgerOptions.find((l) => l.id === ledgerId);
+  // ``createdLedger`` — quick-add fallback, see ``handleVendorSelect``.
+  const handleChartOfAccountsSelect = (itemIndex, ledgerId, createdLedger = null) => {
+    const ledger =
+      ledgerOptions.find((l) => l.id === ledgerId) || createdLedger;
     if (ledger) {
       setExpenseItems((prev) => {
         const updated = [...prev];
@@ -2817,6 +2823,9 @@ const TallyPaymentVoucherDetail = () => {
                         kind="vendor"
                         disabled={isVerified}
                         title="Vendor ledger not in the list? Create one"
+                        onCreated={(vendor) =>
+                          vendor?.id && handleVendorSelect(vendor.id, vendor)
+                        }
                         // Correction 30: seed from the bill's OCR data, not
                         // from `billForm.vendorName` — that holds the matched
                         // Tally vendor once one is selected.
@@ -3217,6 +3226,14 @@ const TallyPaymentVoucherDetail = () => {
                                     ledgerDefaultParent="Indirect Expenses"
                                     ledgerTitle="Add New Expense Ledger"
                                     title="Ledger not in the list? Create one"
+                                    onCreated={(ledger) =>
+                                      ledger?.id &&
+                                      handleChartOfAccountsSelect(
+                                        index,
+                                        ledger.id,
+                                        ledger,
+                                      )
+                                    }
                                     className={`${
                                       !item.chart_of_accounts_id && !isVerified
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"

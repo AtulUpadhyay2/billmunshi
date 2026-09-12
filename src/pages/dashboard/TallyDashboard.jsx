@@ -7,6 +7,7 @@ import {
 } from "@/services/tally/tallyDashboardService";
 import { useUploadTallyVendorBills } from "@/services/tally/tallyVendorBillService";
 import { useUploadTallyExpenseBills } from "@/services/tally/tallyExpenseBillService";
+import { useUploadTallyPaymentVouchers } from "@/services/tally/tallyPaymentVoucherService";
 import { globalToast } from "@/utils/toast";
 import { notifyUploadResult, notifyUploadError } from "@/utils/uploadFeedback";
 import DashboardLayout from "./_shared/DashboardLayout";
@@ -42,6 +43,7 @@ const TallyDashboard = () => {
 
   const { mutateAsync: uploadVendorBills } = useUploadTallyVendorBills();
   const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
+  const { mutateAsync: uploadPaymentVouchers } = useUploadTallyPaymentVouchers();
 
   const refetchAll = () => {
     refetchFunnel();
@@ -75,6 +77,19 @@ const TallyDashboard = () => {
     }
   };
 
+  const handlePaymentUpload = async (formData) => {
+    try {
+      const result = await uploadPaymentVouchers({
+        organizationId: selectedOrganization?.id,
+        formData,
+      });
+      notifyUploadResult(result, "Payment vouchers uploaded successfully");
+      refetchAll();
+    } catch (error) {
+      notifyUploadError(error, "Failed to upload payment vouchers");
+    }
+  };
+
   return (
     <DashboardLayout
       module="tally"
@@ -88,6 +103,7 @@ const TallyDashboard = () => {
       refetchAll={refetchAll}
       onVendorUpload={handleVendorUpload}
       onExpenseUpload={handleExpenseUpload}
+      onPaymentUpload={handlePaymentUpload}
     />
   );
 };

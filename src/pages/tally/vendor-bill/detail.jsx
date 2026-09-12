@@ -1918,14 +1918,18 @@ const TallyVendorBillDetail = () => {
   };
 
   // Handle vendor selection
-  const handleVendorSelect = (vendorId) => {
+  // ``createdVendor`` is the row the "+" quick-add just created. The modal
+  // calls back through a closure from before the vendor list refetched, so
+  // ``vendorOptions`` here may not contain it yet — fall back to the row.
+  const handleVendorSelect = (vendorId, createdVendor = null) => {
     if (vendorId === null || vendorId === "") {
       // If null/empty value is passed via onChange, treat as clear
       handleVendorClear();
       return;
     }
 
-    const vendor = vendorOptions.find((v) => v.id === vendorId);
+    const vendor =
+      vendorOptions.find((v) => v.id === vendorId) || createdVendor;
     if (vendor) {
       setVendorForm((prev) => ({
         ...prev,
@@ -1949,8 +1953,10 @@ const TallyVendorBillDetail = () => {
   };
 
   // Handle tax ledger selection
-  const handleTaxLedgerSelect = (productIndex, taxLedgerId) => {
-    const taxLedger = taxLedgerOptions.find((tl) => tl.id === taxLedgerId);
+  // ``createdLedger`` — quick-add fallback, see ``handleVendorSelect``.
+  const handleTaxLedgerSelect = (productIndex, taxLedgerId, createdLedger = null) => {
+    const taxLedger =
+      taxLedgerOptions.find((tl) => tl.id === taxLedgerId) || createdLedger;
     if (taxLedger) {
       setProducts((prev) => {
         const updated = [...prev];
@@ -1989,8 +1995,10 @@ const TallyVendorBillDetail = () => {
   };
 
   // Handle item name selection
-  const handleItemNameSelect = (productIndex, itemId) => {
-    const stockItem = stockItemOptions.find((item) => item.id === itemId);
+  // ``createdItem`` — quick-add fallback, see ``handleVendorSelect``.
+  const handleItemNameSelect = (productIndex, itemId, createdItem = null) => {
+    const stockItem =
+      stockItemOptions.find((item) => item.id === itemId) || createdItem;
     if (stockItem) {
       setProducts((prev) => {
         const updated = [...prev];
@@ -3493,6 +3501,9 @@ const TallyVendorBillDetail = () => {
                         kind="vendor"
                         disabled={isVerified}
                         title="Vendor not in the list? Create one"
+                        onCreated={(vendor) =>
+                          vendor?.id && handleVendorSelect(vendor.id, vendor)
+                        }
                         // Seed the New Vendor modal with what OCR parsed
                         // from the bill so the user doesn't retype either.
                         vendorDefaultName={analysedData?.from?.name || ""}
@@ -3889,6 +3900,10 @@ const TallyVendorBillDetail = () => {
                                     kind="item"
                                     disabled={isVerified}
                                     title="Item not in the list? Create one"
+                                    onCreated={(item) =>
+                                      item?.id &&
+                                      handleItemNameSelect(index, item.id, item)
+                                    }
                                     // Seed the New Item modal with OCR-derived
                                     // fields from this line so the user doesn't retype.
                                     itemDefaultName={
@@ -3966,6 +3981,10 @@ const TallyVendorBillDetail = () => {
                                   ledgerDefaultParent="Purchase Accounts"
                                   ledgerTitle="Add New Purchase Ledger"
                                   title="Ledger not in the list? Create one"
+                                  onCreated={(ledger) =>
+                                    ledger?.id &&
+                                    handleTaxLedgerSelect(index, ledger.id, ledger)
+                                  }
                                   className={`relative ${
                                     !product.tax_ledger_id && !isVerified
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
