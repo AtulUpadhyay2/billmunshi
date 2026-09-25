@@ -9,6 +9,7 @@ import useMenulayout from "@/hooks/useMenulayout";
 import Logo from "./Tools/Logo";
 import Profile from "./Tools/Profile";
 import OrgSwitcher from "./Tools/OrgSwitcher";
+import { SupportChatHeaderButton } from "@/components/support/SupportChat";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
 
@@ -110,6 +111,8 @@ const Header = ({ className = "custom-class" }) => {
               </div>
             )}
             <div className="hidden md:block w-px h-5 bg-slate-200 dark:bg-slate-800" />
+            {/* Correction 51: support chat (name / email / message). */}
+            <SupportChatHeaderButton />
             <SwitchDark />
             {width >= breakpoints.md && <Profile />}
             {/* `<` not `<=`: with `<=` this rendered at exactly 768px at the

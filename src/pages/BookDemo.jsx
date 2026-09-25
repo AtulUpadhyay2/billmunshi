@@ -79,7 +79,12 @@ const BookDemo = () => {
                 recaptcha_token: captchaToken,
             }).unwrap();
 
-            toast.success(response?.message || 'Thank you! We will contact you shortly to schedule your demo.');
+            // Correction 57: the message asks the visitor to verify their
+            // email — keep it on screen long enough to read.
+            toast.success(
+                response?.message || 'Thank you! Please verify your email — we will contact you shortly to schedule your demo.',
+                { duration: 10000 },
+            );
             setFormData({ fullName: '', organization: '', software: '', email: '', phone: '' });
             setErrors({});
             captchaRef.current?.reset();

@@ -6,7 +6,17 @@ export const authApi = apiSlice.injectEndpoints({
       // The signup form collects a single "Full name" and "phone", but the
       // API takes first_name/last_name/phone_number and a confirm_password,
       // so the payload is reshaped here rather than in the form.
-      query: ({ name, email, password, phone, recaptcha_token }) => {
+      query: ({
+        name,
+        email,
+        password,
+        phone,
+        recaptcha_token,
+        organizationName,
+        organizationGst,
+        designation,
+        accountingSoftware,
+      }) => {
         // Split on the first space: "Snashank Sharma" -> "Snashank" + "Sharma",
         // and a double-barrelled surname stays intact. last_name accepts a
         // blank value, which is what a mononym lands on.
@@ -25,6 +35,11 @@ export const authApi = apiSlice.injectEndpoints({
             first_name: split === -1 ? fullName : fullName.slice(0, split),
             last_name: split === -1 ? "" : fullName.slice(split + 1).trim(),
             phone_number: phone,
+            // Correction 56: organisation details from the signup form.
+            organization_name: (organizationName || "").trim(),
+            organization_gst_number: (organizationGst || "").trim().toUpperCase(),
+            designation: designation || "",
+            accounting_software: accountingSoftware || "",
             recaptcha_token,
           },
         };

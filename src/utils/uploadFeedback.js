@@ -13,6 +13,15 @@ import { globalToast } from "@/utils/toast";
  *   - every file rejected  -> HTTP 400, `rejected_files` in the error body
  */
 
+// Client Correction 53: upload popups stay 15s longer than sonner's 4s
+// default and always carry a "N uploaded · N failed" count.
+const UPLOAD_TOAST_DURATION = 19000;
+
+const plural = (n) => `${n} file${n === 1 ? "" : "s"}`;
+
+const countSummary = (uploaded, failed) =>
+  `${plural(uploaded)} uploaded · ${plural(failed)} failed`;
+
 const describe = (rejected) =>
   rejected.length === 1
     ? rejected[0].message
@@ -31,12 +40,6 @@ export const notifyUploadResult = (result, successMessage) => {
     result?.bills_created ??
     (Array.isArray(result?.bills) ? result.bills.length : undefined);
 
-  // All files rejected upfront — hard error.
-  if (rejected.length && created === 0) {
-    globalToast.error(describe(rejected));
-    return false;
-  }
-
   // Classify warnings so we can speak to the user in their language, not
   // in DRF/warning-type jargon. Two shapes come from the backend:
   //   - exact-duplicate (SHA-256 hash match)   -> warning_type === "exact_duplicate"
@@ -48,6 +51,31 @@ export const notifyUploadResult = (result, successMessage) => {
     (Array.isArray(w.existing_bills) || typeof w.warning === "string");
   const exactDupCount = warnings.filter(isExactDup).length;
   const maybeDupCount = warnings.filter(isMaybeDup).length;
+
+  // All files rejected upfront — hard error.
+  if (rejected.length && created === 0) {
+    globalToast.error(describe(rejected), {
+      description: countSummary(0, rejected.length + exactDupCount),
+      duration: UPLOAD_TOAST_DURATION,
+    });
+    return false;
+  }
+
+  // Counted per FILE, not per bill — a multi-bill PDF creates several bills
+  // from one file. `files_uploaded` = files that passed screening (exact
+  // duplicates included, but those were skipped, so they count as failed).
+  const filesRejected = result?.files_rejected ?? rejected.length;
+  const filesAccepted = result?.files_uploaded;
+  const summaryOptions =
+    typeof filesAccepted === "number"
+      ? {
+          description: countSummary(
+            Math.max(filesAccepted - exactDupCount, 0),
+            filesRejected + exactDupCount,
+          ),
+          duration: UPLOAD_TOAST_DURATION,
+        }
+      : { duration: UPLOAD_TOAST_DURATION };
 
   const firstExactName = warnings.find(isExactDup)?.existing_bill_name;
   const firstMaybeName =
@@ -78,28 +106,29 @@ export const notifyUploadResult = (result, successMessage) => {
   // the previous cryptic message the client called out as confusing.
   if (created === 0) {
     if (warnings.length) {
-      globalToast.warning(dedupMessage());
+      globalToast.warning(dedupMessage(), summaryOptions);
     } else {
       // Server accepted the request but saved nothing and gave no reason
       // — almost always a race with the hash-dedup path.
       globalToast.warning(
         "This bill already exists in the system. Nothing new was added — open the existing entry to continue.",
+        summaryOptions,
       );
     }
     return false;
   }
 
   if (rejected.length) {
-    globalToast.warning(describe(rejected));
+    globalToast.warning(describe(rejected), summaryOptions);
     return true;
   }
   if (warnings.length) {
     // Some created, some just soft-flagged. Success + a helpful hint.
-    globalToast.success(successMessage);
-    globalToast.info(dedupMessage());
+    globalToast.success(successMessage, summaryOptions);
+    globalToast.info(dedupMessage(), { duration: UPLOAD_TOAST_DURATION });
     return true;
   }
-  globalToast.success(successMessage);
+  globalToast.success(successMessage, summaryOptions);
   return true;
 };
 
@@ -109,10 +138,14 @@ export const notifyUploadError = (err, fallbackMessage) => {
   const rejected = data?.rejected_files || [];
 
   if (rejected.length) {
-    globalToast.error(describe(rejected));
+    globalToast.error(describe(rejected), {
+      description: countSummary(0, data?.files_rejected ?? rejected.length),
+      duration: UPLOAD_TOAST_DURATION,
+    });
     return;
   }
   globalToast.error(
     data?.message || data?.detail || err?.message || fallbackMessage,
+    { duration: UPLOAD_TOAST_DURATION },
   );
 };

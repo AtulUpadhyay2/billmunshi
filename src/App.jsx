@@ -103,6 +103,14 @@ function App() {
           }
         />
         <Route
+          path="/book-demo/verify"
+          element={
+            <Suspense fallback={<Loading />}>
+              <VerifyEmail mode="demo" />
+            </Suspense>
+          }
+        />
+        <Route
           path="/terms"
           element={
             <Suspense fallback={<Loading />}>

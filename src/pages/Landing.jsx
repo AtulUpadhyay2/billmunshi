@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import Seo from '@/components/Seo';
 import { CookieSettingsLink } from '@/components/cookies';
 import { PAGE_SEO, buildFaqSchema } from '@/config/seo';
+import { SupportChatLauncher } from '@/components/support/SupportChat';
 
 const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -757,6 +758,9 @@ const Landing = () => {
                     </div>
                 </div>
             </footer>
+
+            {/* Correction 51: support chat for website visitors. */}
+            <SupportChatLauncher />
         </div>
     );
 };

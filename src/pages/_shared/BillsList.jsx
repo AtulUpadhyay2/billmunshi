@@ -66,19 +66,38 @@ const formatDate = (d) => {
   });
 };
 
-const StatusBadge = ({ status }) => {
+// `syncPending` — Tally only: the bill was sent to Tally (status "Synced")
+// but the connector hasn't confirmed the voucher yet (tally_synced false).
+// `syncFailed` — Tally answered with an error (tally_sync_message set).
+const StatusBadge = ({ status, syncPending = false, syncFailed = false }) => {
   const map = {
     Draft: { bg: "bg-amber-50 dark:bg-amber-950/40", txt: "text-amber-700 dark:text-amber-400", ring: "ring-amber-100 dark:ring-amber-900/60", dot: "bg-amber-500" },
     Analysed: { bg: "bg-blue-50 dark:bg-blue-950/40", txt: "text-blue-700 dark:text-blue-400", ring: "ring-blue-100 dark:ring-blue-900/60", dot: "bg-blue-500" },
     Verified: { bg: "bg-violet-50 dark:bg-violet-950/40", txt: "text-violet-700 dark:text-violet-400", ring: "ring-violet-100 dark:ring-violet-900/60", dot: "bg-violet-500" },
     Synced: { bg: "bg-emerald-50 dark:bg-emerald-950/40", txt: "text-emerald-700 dark:text-emerald-400", ring: "ring-emerald-100 dark:ring-emerald-900/60", dot: "bg-emerald-500" },
+    SyncPending: { bg: "bg-orange-50 dark:bg-orange-950/40", txt: "text-orange-700 dark:text-orange-400", ring: "ring-orange-100 dark:ring-orange-900/60", dot: "bg-orange-500" },
+    SyncFailed: { bg: "bg-rose-50 dark:bg-rose-950/40", txt: "text-rose-700 dark:text-rose-400", ring: "ring-rose-100 dark:ring-rose-900/60", dot: "bg-rose-500" },
   };
-  const c = map[status] || { bg: "bg-slate-100 dark:bg-slate-800", txt: "text-slate-600 dark:text-slate-400", ring: "ring-slate-200 dark:ring-slate-700", dot: "bg-slate-400" };
-  const label = status === "Verified" ? "Verified · pending sync" : status;
+  const isSyncFailed = status === "Synced" && syncFailed;
+  const isSyncPending = status === "Synced" && syncPending && !isSyncFailed;
+  const c = map[isSyncFailed ? "SyncFailed" : isSyncPending ? "SyncPending" : status] || { bg: "bg-slate-100 dark:bg-slate-800", txt: "text-slate-600 dark:text-slate-400", ring: "ring-slate-200 dark:ring-slate-700", dot: "bg-slate-400" };
+  const label = status === "Verified"
+    ? "Verified · pending sync"
+    : isSyncFailed
+      ? "Tally sync failed"
+      : isSyncPending
+        ? "Sync pending in Tally"
+        : status;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${c.bg} ${c.txt} ${c.ring}`}
-      title={status}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 whitespace-nowrap ${c.bg} ${c.txt} ${c.ring}`}
+      title={
+        isSyncFailed
+          ? "Tally rejected this entry — open the bill to see why, fix it and re-verify"
+          : isSyncPending
+            ? "Sent to Tally — waiting for the entry to be created in Tally"
+            : status
+      }
     >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {label}
@@ -385,7 +404,11 @@ const BillsList = ({
         setSyncingBills((p) => new Set([...p, billId]));
         try {
           await syncBill({ organizationId: selectedOrganization?.id, billId });
-          globalToast.success("Bill synced to Tally");
+          globalToast.success(
+            module === "tally"
+              ? "Bill sent to Tally — sync pending in Tally"
+              : "Bill synced",
+          );
           refetch();
         } finally {
           setSyncingBills((p) => {
@@ -998,7 +1021,17 @@ const BillsList = ({
                             </div>
                           </div>
                         </td>
-                        <td className={tdBase}><StatusBadge status={bill.status} /></td>
+                        <td className={tdBase}>
+                          <StatusBadge
+                            status={bill.status}
+                            syncPending={module === "tally" && bill.tally_synced === false}
+                            syncFailed={
+                              module === "tally" &&
+                              bill.tally_synced === false &&
+                              !!bill.tally_sync_message
+                            }
+                          />
+                        </td>
                         <td className={`${tdBase} hidden lg:table-cell text-[11px] text-slate-700 dark:text-slate-300 truncate max-w-40`}>
                           {bill.uploaded_by_name || "—"}
                         </td>

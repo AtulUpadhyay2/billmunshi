@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import ReactSelect from "react-select";
@@ -91,6 +91,59 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
     color: "emerald",
   },
 ];
+
+// Client Correction 54: when an adjustment has no ledger yet, pre-select the
+// first org ledger whose name contains one of these phrases (checked in
+// order). Names are compared lower-cased with punctuation collapsed, so
+// "Round-Off" matches "round off". The user still confirms via Save.
+const ADDITIONAL_ADJUSTMENT_AUTO_RULES = {
+  cess_ledger: ["cess"],
+  discount_ledger: ["discount received", "purchase discount", "discount credit"],
+  freight_ledger: [
+    "freight inward",
+    "freight expenses",
+    "freight expense",
+    "freight on purchase",
+  ],
+  round_off_ledger: ["rounding difference", "round off", "round diff"],
+  tds_ledger: ["tds payable"],
+};
+
+const normalizeLedgerName = (name) =>
+  String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const findAutoLedger = (fieldKey, options) => {
+  const keywords = ADDITIONAL_ADJUSTMENT_AUTO_RULES[fieldKey] || [];
+  for (const kw of keywords) {
+    // Whole words only — "cess" must not match "Processing Charges".
+    const hit = options.find((o) =>
+      ` ${normalizeLedgerName(o.label)} `.includes(` ${kw} `),
+    );
+    if (hit) return hit.value;
+  }
+  return null;
+};
+
+// Once the user has saved this section for an org, stop auto-filling it —
+// a field they deliberately left empty must stay empty on later visits.
+const autoPickDoneKey = (orgId) => `bm_adj_autopick_done_${orgId}`;
+const isAutoPickDone = (orgId) => {
+  try {
+    return localStorage.getItem(autoPickDoneKey(orgId)) === "1";
+  } catch {
+    return false;
+  }
+};
+const markAutoPickDone = (orgId) => {
+  try {
+    localStorage.setItem(autoPickDoneKey(orgId), "1");
+  } catch {
+    /* storage unavailable — auto-pick simply runs again next visit */
+  }
+};
 
 // Small colour palette for the per-row icon chip. Keeps the enhanced UI
 // readable in both themes without pulling in a full design-system.
@@ -263,7 +316,14 @@ const TallySetup = () => {
     }
   }, [config]);
 
+  // Fields pre-filled by the Correction 54 keyword rules (not yet saved),
+  // and fields the user changed by hand — those are never auto-filled again.
+  const [autoSelectedAdjustments, setAutoSelectedAdjustments] = useState({});
+  const userTouchedAdjustmentsRef = useRef(new Set());
+
   const handleAdditionalAdjustmentChange = (fieldKey, value) => {
+    userTouchedAdjustmentsRef.current.add(fieldKey);
+    setAutoSelectedAdjustments((prev) => ({ ...prev, [fieldKey]: false }));
     setAdditionalAdjustmentsState((prev) => ({ ...prev, [fieldKey]: value || null }));
   };
 
@@ -275,9 +335,13 @@ const TallySetup = () => {
       );
       await createOrUpdateConfigMutation.mutateAsync({
         organizationId: selectedOrganization.id,
+        // No `tally_product_allow_sync` here on purpose: the save endpoint
+        // leaves inventory sync untouched when the flag isn't sent.
         ...payload,
       });
       globalToast.success("Additional Adjustments Mapping saved");
+      setAutoSelectedAdjustments({});
+      markAutoPickDone(selectedOrganization.id);
       refetch();
     } catch (err) {
       const errorMessage =
@@ -336,6 +400,33 @@ const TallySetup = () => {
         "",
     }));
   }, [allLedgersData]);
+
+  // Correction 54: pre-select ledgers for adjustments that are still empty
+  // (never overrides a saved value or a manual pick/clear).
+  useEffect(() => {
+    if (!config || !allLedgerOptions.length) return;
+    if (isAutoPickDone(selectedOrganization?.id)) return;
+    const picks = {};
+    ADDITIONAL_ADJUSTMENT_FIELDS.forEach((f) => {
+      if (config[f.key] || userTouchedAdjustmentsRef.current.has(f.key)) return;
+      const ledgerId = findAutoLedger(f.key, allLedgerOptions);
+      if (ledgerId) picks[f.key] = ledgerId;
+    });
+    if (!Object.keys(picks).length) return;
+    setAdditionalAdjustmentsState((prev) => {
+      const next = { ...prev };
+      Object.entries(picks).forEach(([key, ledgerId]) => {
+        if (!next[key]) next[key] = ledgerId;
+      });
+      return next;
+    });
+    setAutoSelectedAdjustments((prev) => ({
+      ...prev,
+      ...Object.fromEntries(Object.keys(picks).map((k) => [k, true])),
+    }));
+  }, [config, allLedgerOptions, selectedOrganization?.id]);
+
+  const hasUnsavedAutoSelections = Object.values(autoSelectedAdjustments).some(Boolean);
 
   const parentLedgerOptions = useMemo(
     () =>
@@ -932,7 +1023,13 @@ const TallySetup = () => {
                   </span>
                 </Tooltip>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {hasUnsavedAutoSelections && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                    <Icon icon="heroicons:sparkles" className="text-xs" />
+                    Auto-selected — review &amp; save
+                  </span>
+                )}
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   {additionalAdjustmentsConfigured} mapped
                 </span>
@@ -985,8 +1082,13 @@ const TallySetup = () => {
                           <Icon icon={f.icon} className="text-base" />
                         </span>
                         <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                          <div className="flex items-center gap-1.5 flex-wrap text-[13px] font-semibold text-slate-900 dark:text-white">
                             {f.label}
+                            {autoSelectedAdjustments[f.key] && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-100 dark:ring-amber-900/60">
+                                Auto-selected
+                              </span>
+                            )}
                           </div>
                           <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                             {f.hint}

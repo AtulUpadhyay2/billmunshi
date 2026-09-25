@@ -8,30 +8,47 @@ import { apiFetch } from "@/utils/apiClient";
  * welcome / verification email:
  *   /verify-email?uidb64=<b64>&token=<token>
  *
- * On mount it POSTs (once) to the backend verify endpoint. Three
+ * With ``mode="demo"`` (Correction 57) it confirms a demo-request email
+ * instead: /book-demo/verify?token=<signed token>.
+ *
+ * On mount it calls (once) the backend verify endpoint. Three
  * terminal states: verifying / success / error.
  */
-const VerifyEmail = () => {
+const VerifyEmail = ({ mode = "account" }) => {
+  const isDemo = mode === "demo";
   const [params] = useSearchParams();
   const uidb64 = params.get("uidb64");
   const token = params.get("token");
-  const [state, setState] = useState(uidb64 && token ? "verifying" : "error");
+  const hasParams = isDemo ? !!token : !!(uidb64 && token);
+  const [state, setState] = useState(hasParams ? "verifying" : "error");
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    if (!uidb64 || !token) return;
+    if (!hasParams) return;
     let cancelled = false;
     (async () => {
       try {
-        await apiFetch(`auth/verify-email/${uidb64}/${token}/`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!cancelled) setState("success");
+        const res = isDemo
+          ? await apiFetch("book-demo/verify/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token }),
+            })
+          : await apiFetch(`auth/verify-email/${uidb64}/${token}/`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+        if (!cancelled) {
+          setSuccessMsg(res?.message || "");
+          setState("success");
+        }
       } catch (err) {
         if (cancelled) return;
         setErrorMsg(
-          err?.response?.data?.detail ||
+          err?.data?.message ||
+            err?.data?.detail ||
+            err?.response?.data?.detail ||
             "This verification link is invalid or has expired.",
         );
         setState("error");
@@ -40,7 +57,7 @@ const VerifyEmail = () => {
     return () => {
       cancelled = true;
     };
-  }, [uidb64, token]);
+  }, [isDemo, hasParams, uidb64, token]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-10">
@@ -79,14 +96,16 @@ const VerifyEmail = () => {
               Email verified 🎉
             </h1>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              Your Bill Munshi account is fully set up. You can sign in and
-              start scanning bills right away.
+              {isDemo
+                ? successMsg ||
+                  "Thanks! Our team will contact you shortly to schedule your demo."
+                : "Your Bill Munshi account is fully set up. You can sign in and start scanning bills right away."}
             </p>
             <Link
-              to="/auth/login"
+              to={isDemo ? "/" : "/auth/login"}
               className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20"
             >
-              Sign in
+              {isDemo ? "Back to home" : "Sign in"}
               <Icon icon="heroicons:arrow-right" className="text-base" />
             </Link>
           </>
@@ -104,10 +123,10 @@ const VerifyEmail = () => {
               {errorMsg || "This verification link is invalid or has expired."}
             </p>
             <Link
-              to="/auth/login"
+              to={isDemo ? "/" : "/auth/login"}
               className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"
             >
-              Back to sign in
+              {isDemo ? "Back to home" : "Back to sign in"}
             </Link>
           </>
         )}

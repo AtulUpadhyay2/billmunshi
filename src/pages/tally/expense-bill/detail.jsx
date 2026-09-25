@@ -21,9 +21,17 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { findVendorOption } from "@/utils/vendorMatch";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+
+// Client Correction 49: always show amounts with both paise digits
+// (62816.10, not 62816.1). Falls back when the value isn't numeric.
+const toMoneyString = (value, fallback) => {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n.toFixed(2) : fallback;
+};
 
 /**
  * Number input that lets the user type freely.
@@ -1027,7 +1035,7 @@ const TallyExpenseBillDetail = () => {
             item_details: item.item_details || "",
             chart_of_accounts: chartOfAccountsName,
             chart_of_accounts_id: chartOfAccountsId,
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           };
         });
@@ -1063,7 +1071,7 @@ const TallyExpenseBillDetail = () => {
             item_details: item.item_details || "",
             chart_of_accounts: chartOfAccountsName,
             chart_of_accounts_id: chartOfAccountsId,
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           };
         });
@@ -1134,11 +1142,22 @@ const TallyExpenseBillDetail = () => {
         );
       }
 
-      // If not found by name, try matching from analysed_data.from
-      if (!matchedVendor && analysedData?.from?.name) {
-        matchedVendor = vendorOptions.find(
-          (vendor) => vendor.name === analysedData.from.name,
-        );
+      // Correction 50: saved vendor id, then the bill's GSTIN / name —
+      // compared case-insensitively ("ASHISH FURNISHERS" = "Ashish Furnishers").
+      if (!matchedVendor) {
+        matchedVendor = findVendorOption(vendorOptions, {
+          id:
+            typeof tallyAnalysedData?.vendor === "string"
+              ? tallyAnalysedData.vendor
+              : tallyAnalysedData?.vendor?.id,
+          name: tallyAnalysedData?.vendor_name,
+        });
+      }
+      if (!matchedVendor) {
+        matchedVendor = findVendorOption(vendorOptions, {
+          name: analysedData?.from?.name,
+          gst: analysedData?.from?.gst_number,
+        });
       }
 
       if (matchedVendor) {
@@ -1535,6 +1554,28 @@ const TallyExpenseBillDetail = () => {
       setVendorManuallyCleared(false); // Reset flag when vendor is manually selected
     }
   };
+
+  // Correction 50: select a vendor returned by the "Add vendor" modal —
+  // freshly created, or the existing one when the name already exists.
+  // Only ledgers that are in the vendor list get selected; a new ledger
+  // shows up there once the list refetches, so wait for it.
+  const [pendingVendorId, setPendingVendorId] = useState(null);
+  const handleVendorCreated = (ledger) => {
+    if (ledger?.id) setPendingVendorId(ledger.id);
+  };
+  useEffect(() => {
+    if (!pendingVendorId) return;
+    const vendor = vendorOptions.find((v) => v.id === pendingVendorId);
+    if (!vendor) return;
+    setBillForm((prev) => ({
+      ...prev,
+      selectedVendor: vendor,
+      vendorName: vendor.name || "",
+      vendorGST: vendor.gst_in || "",
+    }));
+    setVendorManuallyCleared(false);
+    setPendingVendorId(null);
+  }, [pendingVendorId, vendorOptions]);
 
   // Handle vendor deselection
   const handleVendorClear = () => {
@@ -1963,7 +2004,7 @@ const TallyExpenseBillDetail = () => {
             item_id: item.id || null,
             item_details: item.item_details || "",
             ...resolveCOA(item),
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
         );
@@ -1976,7 +2017,7 @@ const TallyExpenseBillDetail = () => {
             item_id: item.id || null,
             item_details: item.item_details || "",
             ...resolveCOA(item),
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           })),
         );
@@ -2465,7 +2506,7 @@ const TallyExpenseBillDetail = () => {
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
               <span>
-                {billInfo?.status ? `Status: ${billInfo.status}` : "Expense bill detail"}
+                {billInfo?.status ? `Status: ${billInfo.status === "Synced" && billInfo?.tally_synced === false ? (billInfo?.tally_sync_message ? "Tally sync failed" : "Sync pending in Tally") : billInfo.status}` : "Expense bill detail"}
                 {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
               </span>
               {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
@@ -2912,6 +2953,7 @@ const TallyExpenseBillDetail = () => {
                       </label>
                       <QuickAddGroup
                         kind="vendor"
+                        onCreated={handleVendorCreated}
                         disabled={isVerified}
                         title="Vendor not in the list? Create one"
                         // Correction 30: seed the New Vendor modal from the
@@ -4044,9 +4086,7 @@ const TallyExpenseBillDetail = () => {
                             vendorDefaultGstIn={
                               analysedData?.from?.gst_number || ""
                             }
-                            onCreated={(vendor) =>
-                              vendor?.id && handleVendorSelect(vendor.id)
-                            }
+                            onCreated={handleVendorCreated}
                             className="relative"
                           >
                           <SearchableDropdown

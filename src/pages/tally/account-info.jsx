@@ -70,30 +70,42 @@ const TallyHealthBadge = ({ organizationId }) => {
     ? `Last ping: ${stamp} (${formatSincePing(seconds_since_ping)})`
     : "Tally TCP bridge has never pinged this workspace.";
 
+  // Client Correction 55: show the last-online time next to the pill, not
+  // only in the hover tooltip.
+  const lastOnline = last_ping_at
+    ? `Last online: ${stamp} (${formatSincePing(seconds_since_ping)})`
+    : "Last online: never";
+
   return (
-    <button
-      type="button"
-      onClick={() => refetch()}
-      title={tooltip}
-      className={
-        connected
-          ? "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
-          : "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-1 ring-rose-200 dark:ring-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 cursor-pointer"
-      }
-    >
-      <span
+    <span className="inline-flex items-center gap-2 flex-wrap">
+      <button
+        type="button"
+        onClick={() => refetch()}
+        title={tooltip}
         className={
-          "inline-block w-1.5 h-1.5 rounded-full " +
-          (connected
-            ? "bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
-            : "bg-rose-500 dark:bg-rose-400 shadow-[0_0_0_3px_rgba(244,63,94,0.15)]")
+          connected
+            ? "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
+            : "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-1 ring-rose-200 dark:ring-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 cursor-pointer"
         }
-      />
-      {connected ? "TCP Connected" : "TCP Offline"}
-      {isFetching && (
-        <Icon icon="heroicons:arrow-path" className="text-[11px] animate-spin opacity-70" />
-      )}
-    </button>
+      >
+        <span
+          className={
+            "inline-block w-1.5 h-1.5 rounded-full " +
+            (connected
+              ? "bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+              : "bg-rose-500 dark:bg-rose-400 shadow-[0_0_0_3px_rgba(244,63,94,0.15)]")
+          }
+        />
+        {connected ? "TCP Connected" : "TCP Offline"}
+        {isFetching && (
+          <Icon icon="heroicons:arrow-path" className="text-[11px] animate-spin opacity-70" />
+        )}
+      </button>
+      <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+        <Icon icon="heroicons:clock" className="text-xs" />
+        {lastOnline}
+      </span>
+    </span>
   );
 };
 

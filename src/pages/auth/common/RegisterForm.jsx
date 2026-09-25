@@ -4,17 +4,28 @@ import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useRegisterUserMutation } from "@/store/api/auth/authApiSlice";
 import Modal from "@/components/ui/Modal";
 import ReCaptcha from "@/components/ReCaptcha";
 import { isRecaptchaConfigured } from "@/config/recaptcha";
+import VerifyEmailNotice from "@/components/auth/VerifyEmailNotice";
 
 const schema = yup
   .object({
     name: yup.string().required("Full Name is Required"),
     organizationName: yup.string().required("Organization Name is Required"),
+    // Correction 56 — optional (not every business is GST-registered), but
+    // must be a valid 15-character GSTIN when filled in.
+    organizationGst: yup
+      .string()
+      .transform((v) => (v || "").trim().toUpperCase())
+      .test(
+        "gstin",
+        "Enter a valid 15-character GST No. (e.g. 22AAAAA0000A1Z5)",
+        (v) => !v || /^[0-9]{2}[A-Z0-9]{13}$/.test(v),
+      ),
     designation: yup.string().required("Designation is Required"),
     accountingSoftware: yup
       .string()
@@ -53,6 +64,9 @@ const RegForm = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  // Correction 57: after signup the user has to verify their email before
+  // logging in — show that instead of bouncing them to the landing page.
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const captchaRef = useRef(null);
 
   const handleCaptchaChange = (token) => {
@@ -102,8 +116,6 @@ const RegForm = () => {
     else setPasswordStrength("Strong");
   }, [password]);
 
-  const navigate = useNavigate();
-
   const onSubmit = async (data) => {
     if (!checked) {
       toast.error("Please accept the Terms and Conditions and Privacy Policy");
@@ -121,8 +133,8 @@ const RegForm = () => {
       reset();
       setCaptchaToken("");
       captchaRef.current?.reset();
-      navigate("/");
-      toast.success("Account created successfully");
+      setRegisteredEmail((data.email || "").trim().toLowerCase());
+      toast.success("Account created — please verify your email");
     } catch (error) {
       // Google spends a token the moment the server verifies it, so a
       // failed attempt always leaves a dead one in the widget.
@@ -184,6 +196,21 @@ const RegForm = () => {
       ? "bg-amber-500"
       : "bg-emerald-500";
 
+  if (registeredEmail) {
+    return (
+      <div className="space-y-4">
+        <VerifyEmailNotice email={registeredEmail} title="Account created — verify your email" />
+        <Link
+          to="/auth/login"
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all"
+        >
+          Go to login
+          <Icon icon="heroicons:arrow-right" className="text-base" />
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
       <div className="grid sm:grid-cols-2 gap-3.5">
@@ -212,6 +239,21 @@ const RegForm = () => {
           />
         </Field>
       </div>
+
+      <Field
+        label="Organization GST No."
+        error={errors.organizationGst}
+        icon="heroicons:identification"
+      >
+        <input
+          type="text"
+          placeholder="15-character GSTIN (optional)"
+          maxLength={15}
+          autoComplete="off"
+          {...register("organizationGst")}
+          className={`${inputBase} uppercase placeholder:normal-case ${errors.organizationGst ? inputError : ""}`}
+        />
+      </Field>
 
       <div className="grid sm:grid-cols-2 gap-3.5">
         <Field

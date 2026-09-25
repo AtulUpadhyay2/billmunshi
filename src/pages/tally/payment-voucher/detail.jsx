@@ -22,9 +22,17 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { findVendorOption } from "@/utils/vendorMatch";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+
+// Client Correction 49: always show amounts with both paise digits
+// (62816.10, not 62816.1). Falls back when the value isn't numeric.
+const toMoneyString = (value, fallback) => {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n.toFixed(2) : fallback;
+};
 
 /**
  * Number input that lets the user type freely.
@@ -966,7 +974,7 @@ const TallyPaymentVoucherDetail = () => {
             item_details: item.item_details || "",
             chart_of_accounts: chartOfAccountsName,
             chart_of_accounts_id: chartOfAccountsId,
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           };
         });
@@ -1002,7 +1010,7 @@ const TallyPaymentVoucherDetail = () => {
             item_details: item.item_details || "",
             chart_of_accounts: chartOfAccountsName,
             chart_of_accounts_id: chartOfAccountsId,
-            amount: item.amount || "",
+            amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
             debit_or_credit: item.debit_or_credit || "debit",
           };
         });
@@ -1044,25 +1052,29 @@ const TallyPaymentVoucherDetail = () => {
   }, [expenseBillData, analysedData, tallyAnalysedData]);
 
   // Payment vouchers: "Vendor" (Correction 26 — formerly labelled
-  // "Payable / Paid via (Bank / Cash)") holds a vendor ledger the
-  // operator picks explicitly. Auto-matching from analyzed data
-  // (vendor name from OCR) would silently fill in the wrong ledger
-  // and defeat the whole flow. Only rehydrate an existing saved
-  // selection on reload; never guess from analysed data.
+  // "Payable / Paid via (Bank / Cash)") holds a vendor ledger; Bank/Cash
+  // now lives in the separate Payment Mode field. Rehydrate a saved
+  // selection first. Correction 50: with nothing saved, pick the vendor
+  // whose GSTIN or name (case-insensitive, exact — no fuzzy guessing)
+  // matches the bill, so an existing vendor isn't reported as missing.
   useEffect(() => {
     if (
       vendorOptions.length > 0 &&
-      tallyAnalysedData?.vendor &&  // backend-echoed picked ledger UUID
       !billForm.selectedVendor &&
       !vendorManuallyCleared
     ) {
       // Detail endpoint returns vendor as UUID string; verify endpoint
       // returns it as {id, name, ...} — accept both shapes.
       const savedId =
-        typeof tallyAnalysedData.vendor === "object"
+        typeof tallyAnalysedData?.vendor === "object"
           ? tallyAnalysedData.vendor?.id
-          : tallyAnalysedData.vendor;
-      const matchedVendor = vendorOptions.find((v) => v.id === savedId);
+          : tallyAnalysedData?.vendor;
+      const matchedVendor = savedId
+        ? vendorOptions.find((v) => v.id === savedId)
+        : findVendorOption(vendorOptions, {
+            name: analysedData?.from?.name,
+            gst: analysedData?.from?.gst_number,
+          });
       if (matchedVendor) {
         setBillForm((prev) => ({
           ...prev,
@@ -1075,6 +1087,7 @@ const TallyPaymentVoucherDetail = () => {
   }, [
     vendorOptions,
     tallyAnalysedData,
+    analysedData,
     billForm.selectedVendor,
     vendorManuallyCleared,
   ]);
@@ -1447,6 +1460,28 @@ const TallyPaymentVoucherDetail = () => {
       setVendorManuallyCleared(false); // Reset flag when vendor is manually selected
     }
   };
+
+  // Correction 50: select a vendor returned by the "Add vendor" modal —
+  // freshly created, or the existing one when the name already exists.
+  // Only ledgers that are in the vendor list get selected; a new ledger
+  // shows up there once the list refetches, so wait for it.
+  const [pendingVendorId, setPendingVendorId] = useState(null);
+  const handleVendorCreated = (ledger) => {
+    if (ledger?.id) setPendingVendorId(ledger.id);
+  };
+  useEffect(() => {
+    if (!pendingVendorId) return;
+    const vendor = vendorOptions.find((v) => v.id === pendingVendorId);
+    if (!vendor) return;
+    setBillForm((prev) => ({
+      ...prev,
+      selectedVendor: vendor,
+      vendorName: vendor.name || "",
+      vendorGST: vendor.gst_in || "",
+    }));
+    setVendorManuallyCleared(false);
+    setPendingVendorId(null);
+  }, [pendingVendorId, vendorOptions]);
 
   // Handle vendor deselection
   const handleVendorClear = () => {
@@ -1852,7 +1887,7 @@ const TallyPaymentVoucherDetail = () => {
       item_id: item.id || null,
       item_details: item.item_details || "",
       ...resolveCOA(item),
-      amount: item.amount || "",
+      amount: item.amount ? toMoneyString(item.amount, item.amount) : "",
       debit_or_credit: item.debit_or_credit || "debit",
     });
 
@@ -2360,7 +2395,7 @@ const TallyPaymentVoucherDetail = () => {
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
               <span>
-                {billInfo?.status ? `Status: ${billInfo.status}` : "Payment voucher detail"}
+                {billInfo?.status ? `Status: ${billInfo.status === "Synced" && billInfo?.tally_synced === false ? (billInfo?.tally_sync_message ? "Tally sync failed" : "Sync pending in Tally") : billInfo.status}` : "Payment voucher detail"}
                 {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
               </span>
               {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
@@ -2815,6 +2850,7 @@ const TallyPaymentVoucherDetail = () => {
                       </label>
                       <QuickAddGroup
                         kind="vendor"
+                        onCreated={handleVendorCreated}
                         disabled={isVerified}
                         title="Vendor ledger not in the list? Create one"
                         // Correction 30: seed from the bill's OCR data, not

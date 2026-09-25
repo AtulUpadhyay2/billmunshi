@@ -11,6 +11,7 @@ import {
 } from "@/store/api/auth/authApiSlice";
 import { toast } from "sonner";
 import { handleApiError } from "@/utils/apiErrorHandler";
+import VerifyEmailNotice from "@/components/auth/VerifyEmailNotice";
 
 const schema = yup
   .object({
@@ -39,10 +40,19 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [checked, setChecked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Correction 57: set when the server refuses login until the signup
+  // email is verified — shows the resend panel instead of a bare error.
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
   const onSubmit = async (data) => {
+    setUnverifiedEmail("");
     try {
       const response = await login(data);
+      if (response.error?.data?.code === "email_not_verified") {
+        setUnverifiedEmail(response.error.data.email || data.email);
+        toast.warning(response.error.data.message || "Please verify your email before logging in.");
+        return;
+      }
       if (response.error) {
         handleApiError(response.error, "Login failed. Please check your credentials.");
         return;
@@ -78,6 +88,9 @@ const LoginForm = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {unverifiedEmail && (
+        <VerifyEmailNotice email={unverifiedEmail} title="Please verify your email to log in" />
+      )}
       <div>
         <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
           Email <span className="text-rose-500">*</span>

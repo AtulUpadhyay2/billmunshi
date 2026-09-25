@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { useQuickCreateVendor } from "@/services/tally/tallyQuickCreateService";
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import { CONTROL, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 
 /**
@@ -44,6 +45,7 @@ const AddVendorModal = ({
   );
 
   const create = useQuickCreateVendor();
+  const queryClient = useQueryClient();
 
   // On open, seed from the OCR-derived defaults (bill vendor name + GST).
   // On close, reset — including clearing the seeds so the next open with
@@ -78,6 +80,16 @@ const AddVendorModal = ({
       onCreated?.(ledger);
       onClose?.();
     } catch (err) {
+      // Correction 50: the vendor is already there — select it instead of
+      // leaving the user stuck on "already exists".
+      const existing = err?.data?.existing_ledger;
+      if (err?.data?.error === "DUPLICATE_LEDGER" && existing?.id) {
+        toast.info(`"${existing.name}" already exists — using the existing ledger`);
+        queryClient.invalidateQueries({ queryKey: ["tallyVendorLedgers", orgId] });
+        onCreated?.(existing);
+        onClose?.();
+        return;
+      }
       toast.error(err?.data?.message || err?.message || "Failed to create vendor");
     } finally {
       setSubmitting(false);

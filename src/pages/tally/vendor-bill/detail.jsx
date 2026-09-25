@@ -27,10 +27,18 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { findVendorOption } from "@/utils/vendorMatch";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
 import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+
+// Client Correction 49: always show amounts with both paise digits
+// (62816.10, not 62816.1). Falls back when the value isn't numeric.
+const toMoneyString = (value, fallback) => {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n.toFixed(2) : fallback;
+};
 
 /**
  * Correction 39: quantity defaults to 1 when the invoice doesn't state one.
@@ -71,7 +79,7 @@ const reconcileLine = (rawPrice, rawQty, rawAmount) => {
     return {
       price: (amount / qty).toFixed(2),
       quantity,
-      amount: String(rawAmount),
+      amount: toMoneyString(rawAmount, String(rawAmount)),
     };
   }
 
@@ -1199,6 +1207,25 @@ const TallyVendorBillDetail = () => {
         );
       }
 
+      // Correction 50: the detail endpoint sends `vendor` as a plain UUID,
+      // and the backend match can miss a vendor added after analysis — fall
+      // back to the saved id, then the bill's GSTIN / name (case-insensitive).
+      if (!matchedVendor) {
+        matchedVendor = findVendorOption(vendorOptions, {
+          id:
+            typeof tallyAnalysedData.vendor === "string"
+              ? tallyAnalysedData.vendor
+              : null,
+          name: tallyAnalysedData.vendor_name,
+        });
+      }
+      if (!matchedVendor) {
+        matchedVendor = findVendorOption(vendorOptions, {
+          name: analysedData?.from?.name,
+          gst: analysedData?.from?.gst_number,
+        });
+      }
+
       if (matchedVendor) {
         setVendorForm((prev) => ({
           ...prev,
@@ -1212,6 +1239,7 @@ const TallyVendorBillDetail = () => {
   }, [
     vendorOptions,
     tallyAnalysedData,
+    analysedData,
     vendorForm.selectedVendor,
     vendorManuallyCleared,
   ]);
@@ -1937,6 +1965,28 @@ const TallyVendorBillDetail = () => {
     }
   };
 
+  // Correction 50: select a vendor returned by the "Add vendor" modal —
+  // freshly created, or the existing one when the name already exists.
+  // Only ledgers that are in the vendor list get selected; a new ledger
+  // shows up there once the list refetches, so wait for it.
+  const [pendingVendorId, setPendingVendorId] = useState(null);
+  const handleVendorCreated = (ledger) => {
+    if (ledger?.id) setPendingVendorId(ledger.id);
+  };
+  useEffect(() => {
+    if (!pendingVendorId) return;
+    const vendor = vendorOptions.find((v) => v.id === pendingVendorId);
+    if (!vendor) return;
+    setVendorForm((prev) => ({
+      ...prev,
+      selectedVendor: vendor,
+      vendorName: vendor.name || "",
+      vendorGST: vendor.gst_in || "",
+    }));
+    setVendorManuallyCleared(false);
+    setPendingVendorId(null);
+  }, [pendingVendorId, vendorOptions]);
+
   // Handle vendor deselection
   const handleVendorClear = () => {
     setVendorForm((prev) => ({
@@ -2331,7 +2381,7 @@ const TallyVendorBillDetail = () => {
           field === "quantity"
             ? parseFloat(value) || 0
             : parseFloat(updated[index].quantity) || 0;
-        updated[index].amount = (price * quantity).toString();
+        updated[index].amount = (price * quantity).toFixed(2);
       }
 
       // When the GST rate changes, auto-fill the per-line CGST/SGST/IGST ledger
@@ -2773,7 +2823,7 @@ const TallyVendorBillDetail = () => {
                 price:
                   product.price?.toString() || product.rate?.toString() || "0",
                 quantity: product.quantity?.toString() || "1",
-                amount: product.amount?.toString() || "0",
+                amount: toMoneyString(product.amount, "0"),
                 gst: product.product_gst,
                 igst: product.igst?.toString() || "0",
                 cgst: product.cgst?.toString() || "0",
@@ -2801,7 +2851,7 @@ const TallyVendorBillDetail = () => {
               tax_ledger_id: productTaxLedger?.id || null,
               price: product.price?.toString() || "0",
               quantity: product.quantity?.toString() || "1",
-              amount: product.amount?.toString() || "0",
+              amount: toMoneyString(product.amount, "0"),
               gst: product.product_gst,
               igst: product.igst?.toString() || "0",
               cgst: product.cgst?.toString() || "0",
@@ -3068,7 +3118,7 @@ const TallyVendorBillDetail = () => {
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-2 flex-wrap">
               <span>
-                {billInfo?.status ? `Status: ${billInfo.status}` : "Vendor bill detail"}
+                {billInfo?.status ? `Status: ${billInfo.status === "Synced" && billInfo?.tally_synced === false ? (billInfo?.tally_sync_message ? "Tally sync failed" : "Sync pending in Tally") : billInfo.status}` : "Vendor bill detail"}
                 {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
               </span>
               {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
@@ -3491,6 +3541,7 @@ const TallyVendorBillDetail = () => {
                       </label>
                       <QuickAddGroup
                         kind="vendor"
+                        onCreated={handleVendorCreated}
                         disabled={isVerified}
                         title="Vendor not in the list? Create one"
                         // Seed the New Vendor modal with what OCR parsed
