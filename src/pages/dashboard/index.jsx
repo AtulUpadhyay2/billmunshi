@@ -11,7 +11,7 @@ const ALL_TABS = [
     module: "tally",
     label: "Tally",
     icon: "heroicons:cube-transparent",
-    description: "Vendor bills & journal entries",
+    description: "Purchase, journal & payment vouchers",
   },
   {
     id: "zoho",

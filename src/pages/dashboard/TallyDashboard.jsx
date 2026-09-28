@@ -57,7 +57,7 @@ const TallyDashboard = () => {
         organizationId: selectedOrganization?.id,
         formData,
       });
-      notifyUploadResult(result, "Vendor bills uploaded successfully");
+      notifyUploadResult(result, "Purchase vouchers uploaded successfully");
       refetchAll();
     } catch (error) {
       notifyUploadError(error, "Failed to upload purchase vouchers");
@@ -70,10 +70,10 @@ const TallyDashboard = () => {
         organizationId: selectedOrganization?.id,
         formData,
       });
-      notifyUploadResult(result, "Journal entries uploaded successfully");
+      notifyUploadResult(result, "Journal vouchers uploaded successfully");
       refetchAll();
     } catch (error) {
-      notifyUploadError(error, "Failed to upload journal entries");
+      notifyUploadError(error, "Failed to upload journal vouchers");
     }
   };
 

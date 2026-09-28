@@ -224,7 +224,9 @@ const ModuleSummaryCard = ({
 /*  Funnel card                                                       */
 /* ------------------------------------------------------------------ */
 
-const FunnelCard = ({ title, data, accent = "blue", className = "" }) => {
+// `dense`: the card shares its row with two others, so the four stage boxes
+// go 2×2 at the widths where four across would squeeze their labels.
+const FunnelCard = ({ title, data, accent = "blue", className = "", dense = false }) => {
   if (!data) return null;
   const {
     total_uploaded = 0,
@@ -272,24 +274,30 @@ const FunnelCard = ({ title, data, accent = "blue", className = "" }) => {
 
   return (
     <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 ${className}`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`inline-flex w-7 h-7 items-center justify-center rounded-md ring-1 ${accentRing[accent]}`}
+            className={`inline-flex w-7 h-7 shrink-0 items-center justify-center rounded-md ring-1 ${accentRing[accent]}`}
           >
             <Icon icon="heroicons:funnel" className="text-sm" />
           </span>
-          <h3 className="text-[12px] font-bold text-slate-900 dark:text-white tracking-tight">
+          <h3 className="text-[12px] font-bold text-slate-900 dark:text-white tracking-tight truncate">
             {title}
           </h3>
         </div>
-        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 rounded-md px-2 py-0.5">
+        <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 rounded-md px-2 py-0.5">
           <Icon icon="heroicons:chart-bar" className="text-xs" />
           {completion.toFixed(1)}% complete
         </span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+      <div
+        className={`grid gap-2 mb-4 ${
+          dense
+            ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4"
+            : "grid-cols-2 lg:grid-cols-4"
+        }`}
+      >
         {stages.map((s) => (
           <div
             key={s.key}
@@ -613,29 +621,39 @@ const DashboardLayout = ({
       }))
     : [];
 
+  // Client Correction 52: the Tally dashboard speaks Tally's voucher
+  // names — Purchase Voucher / Journal Voucher / Payment Voucher. Zoho keeps
+  // its own terms (Vendor bill / Expense).
+  const isTally = module === "tally";
+  const vendorLabel = isTally ? "Purchase voucher" : "Vendor bill";
+  const vendorTitle = isTally ? "Purchase vouchers" : "Vendor bills";
+  const expenseLabel = isTally ? "Journal voucher" : "Expense";
+  const expenseTitle = isTally ? "Journal vouchers" : "Expense";
+  const paymentLabel = "Payment voucher";
+  // Short forms for the one-line tile sublabels and the file split.
+  const vendorShort = isTally ? "Purchase" : "Vendor";
+  const expenseShort = isTally ? "Journal" : "Expense";
+
   const vendorFiles = usageData?.file_statistics?.total_vendor_files || 0;
   const expenseFiles = usageData?.file_statistics?.total_expense_files || 0;
   const paymentFiles = usageData?.file_statistics?.total_payment_files || 0;
   const fileSlices = [
-    { key: "vendor", name: "Vendor", value: vendorFiles },
-    { key: "expense", name: "Expense", value: expenseFiles },
+    { key: "vendor", name: vendorShort, value: vendorFiles },
+    { key: "expense", name: expenseShort, value: expenseFiles },
     ...(hasPayments ? [{ key: "payment", name: "Payment", value: paymentFiles }] : []),
   ];
 
-  const expenseLabel = module === "tally" ? "Journal entry" : "Expense";
-  const vendorLabel = module === "tally" ? "Purchase voucher" : "Vendor bill";
-  const paymentLabel = "Payment voucher";
-
   const amountBreakdown = [
-    `Vendor ${formatCurrency(fin.total_vendor_amount)}`,
-    `${expenseLabel} ${formatCurrency(fin.total_expense_amount)}`,
+    `${vendorShort} ${formatCurrency(fin.total_vendor_amount)}`,
+    `${isTally ? expenseShort : expenseLabel} ${formatCurrency(fin.total_expense_amount)}`,
     ...(hasPayments ? [`Payment ${formatCurrency(fin.total_payment_amount)}`] : []),
   ].join(" · ");
 
+  // Tally's own voucher abbreviations (Pur / Jrnl / Pymt); Zoho keeps V / E.
   const recentBreakdown = [
-    `Last 7d · V ${formatNumber(recent.vendor_bills_last_7_days)}`,
-    `E ${formatNumber(recent.expense_bills_last_7_days)}`,
-    ...(hasPayments ? [`P ${formatNumber(recent.payment_bills_last_7_days)}`] : []),
+    `Last 7d · ${isTally ? "Pur" : "V"} ${formatNumber(recent.vendor_bills_last_7_days)}`,
+    `${isTally ? "Jrnl" : "E"} ${formatNumber(recent.expense_bills_last_7_days)}`,
+    ...(hasPayments ? [`${isTally ? "Pymt" : "P"} ${formatNumber(recent.payment_bills_last_7_days)}`] : []),
   ].join(" · ");
 
   // ---------------- handlers ------------------------------------------
@@ -654,7 +672,10 @@ const DashboardLayout = ({
   };
 
   return (
-    <div className="space-y-3">
+    // pb-6: the page sits in an `h-full` wrapper, so the scroller's own
+    // bottom padding doesn't apply — without this the Pipeline cards run
+    // straight into the footer.
+    <div className="space-y-3 pb-6">
       {/* Top stat tiles */}
       <SectionHeader
         icon="heroicons:rectangle-group"
@@ -685,14 +706,14 @@ const DashboardLayout = ({
           accent="emerald"
         />
         <StatTile
-          label="Vendor bills"
+          label={vendorTitle}
           value={formatNumber(vBills.total_count)}
           sublabel={`Analysed ${formatNumber(vBills.analysed_count)} · Synced ${formatNumber(vBills.synced_count)}`}
           icon="heroicons:document-text"
           accent="blue"
         />
         <StatTile
-          label={expenseLabel}
+          label={expenseTitle}
           value={formatNumber(eBills.total_count)}
           sublabel={`Draft ${formatNumber(eBills.draft_count)} · Synced ${formatNumber(eBills.synced_count)}`}
           icon="heroicons:document-currency-rupee"
@@ -728,7 +749,7 @@ const DashboardLayout = ({
         }`}
       >
         <ModuleSummaryCard
-          title="Vendor bills"
+          title={vendorTitle}
           icon="heroicons:document-text"
           accent="blue"
           total={vBills.total_count || 0}
@@ -745,12 +766,12 @@ const DashboardLayout = ({
             onClick: () => setIsVendorOpen(true),
           }}
           secondaryAction={{
-            label: "View bills",
+            label: isTally ? "View list" : "View bills",
             onClick: () => navigate(`${baseRoute}/vendor-bill`),
           }}
         />
         <ModuleSummaryCard
-          title={expenseLabel}
+          title={expenseTitle}
           icon="heroicons:document-currency-rupee"
           accent="violet"
           total={eBills.total_count || 0}
@@ -806,7 +827,7 @@ const DashboardLayout = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <TrendsChart
           data={trendData}
-          vendorLabel="Vendor"
+          vendorLabel={isTally ? vendorLabel : "Vendor"}
           expenseLabel={expenseLabel}
           paymentLabel={hasPayments ? paymentLabel : undefined}
         />
@@ -821,26 +842,33 @@ const DashboardLayout = ({
             title="Pipeline"
             hint="Upload → Analysed → Verified → Synced"
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <FunnelCard
-              title="Vendor bills funnel"
-              data={funnelData.vendor_bills_funnel}
-              accent="blue"
-            />
-            <FunnelCard
-              title={`${expenseLabel} funnel`}
-              data={funnelData.expense_bills_funnel}
-              accent="violet"
-            />
-            {/* Third funnel spans the row — three side by side leave the
-                four stage boxes too narrow for their labels. */}
-            <FunnelCard
-              title="Payment vouchers funnel"
-              data={funnelData.payment_bills_funnel}
-              accent="amber"
-              className="lg:col-span-2"
-            />
-          </div>
+          {(() => {
+            // All funnels share one row (Tally: 3, Zoho: 2). With three,
+            // each card's stage boxes switch to 2×2 so labels still fit.
+            const funnels = [
+              { key: "vendor", title: `${vendorTitle} funnel`, data: funnelData.vendor_bills_funnel, accent: "blue" },
+              { key: "expense", title: `${expenseTitle} funnel`, data: funnelData.expense_bills_funnel, accent: "violet" },
+              { key: "payment", title: "Payment vouchers funnel", data: funnelData.payment_bills_funnel, accent: "amber" },
+            ].filter((f) => f.data);
+            const dense = funnels.length >= 3;
+            return (
+              <div
+                className={`grid grid-cols-1 gap-3 ${
+                  dense ? "lg:grid-cols-3" : "lg:grid-cols-2"
+                }`}
+              >
+                {funnels.map((f) => (
+                  <FunnelCard
+                    key={f.key}
+                    title={f.title}
+                    data={f.data}
+                    accent={f.accent}
+                    dense={dense}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -850,14 +878,14 @@ const DashboardLayout = ({
         isOpen={isVendorOpen}
         onClose={() => setIsVendorOpen(false)}
         onUpload={handleVendorUpload}
-        title={`Upload ${vendorLabel.toLowerCase()}s`}
+        title={`Upload ${vendorTitle.toLowerCase()}`}
         module={module}
       />
       <UploadBillModal
         isOpen={isExpenseOpen}
         onClose={() => setIsExpenseOpen(false)}
         onUpload={handleExpenseUpload}
-        title={`Upload ${expenseLabel.toLowerCase()}`}
+        title={`Upload ${expenseTitle.toLowerCase()}`}
         module={module}
       />
       {hasPayments && (
