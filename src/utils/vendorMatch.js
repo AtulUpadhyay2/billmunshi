@@ -46,7 +46,15 @@ export const findVendorOption = (options, { id, name, gst } = {}) => {
   }
 
   if (wanted) {
-    const byName = options.find((v) => normalizeVendorName(v.name) === wanted);
+    // A same-name ledger registered under a DIFFERENT business (other PAN)
+    // is not this vendor — e.g. OCR put the customer's name next to the
+    // supplier's GSTIN. Same PAN in another state is still fine.
+    const billPan = gstin.length === 15 ? gstin.slice(2, 12) : "";
+    const byName = options.find((v) => {
+      if (normalizeVendorName(v.name) !== wanted) return false;
+      const ledgerGst = normalizeGst(v.gst_in);
+      return !(billPan && ledgerGst.length === 15 && ledgerGst.slice(2, 12) !== billPan);
+    });
     if (byName) return byName;
   }
 

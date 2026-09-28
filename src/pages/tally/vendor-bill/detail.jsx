@@ -28,6 +28,7 @@ import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import { findVendorOption } from "@/utils/vendorMatch";
+import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
@@ -3255,6 +3256,31 @@ const TallyVendorBillDetail = () => {
         {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
             amount (Corrections 14 + 24). Sourced from the backend
             sanity check stashed on analysedData._ocr_sanity. */}
+        {/* Rate / qty the backend corrected from the printed line amount */}
+        {Array.isArray(analysedData?._ocr_line_fixes) &&
+          analysedData._ocr_line_fixes.length > 0 && (
+            <div className="mb-5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/30 px-3 py-2.5 flex items-start gap-2">
+              <Icon
+                icon="heroicons:information-circle"
+                className="text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5"
+              />
+              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
+                <p className="font-semibold text-blue-800 dark:text-blue-300 mb-0.5">
+                  Line rate / quantity corrected from the printed amount
+                </p>
+                {analysedData._ocr_line_fixes.map((f) => (
+                  <p key={f.index} className="break-words">
+                    Line {Number(f.index) + 1}
+                    {f.description ? ` (${f.description})` : ""}: OCR read{" "}
+                    {f.from?.price} × {f.from?.quantity || 0}, but the bill
+                    prints {f.amount} — set to {f.to?.price} × {f.to?.quantity}.
+                    Please confirm rate and quantity against the bill.
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
         {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
             <Icon
@@ -3267,9 +3293,10 @@ const TallyVendorBillDetail = () => {
               </p>
               <p>{analysedData._ocr_sanity.message}</p>
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Most likely cause: OCR dropped the leading digit on a
-                7-8 digit figure. Cross-check the invoice image against
-                every amount field before verifying.
+                Most likely cause: OCR missed or added a digit (e.g. a
+                leading digit dropped on a large amount, or "425/-" read
+                as 4250). Cross-check the invoice image against every
+                amount field before verifying.
               </p>
             </div>
           </div>
@@ -3635,6 +3662,12 @@ const TallyVendorBillDetail = () => {
                             </div>
                           </div>
                         )}
+
+                      {/* OCR vendor cross-check (name vs GSTIN, vendor vs customer) */}
+                      <OcrVendorWarnings
+                        analysedData={analysedData}
+                        organization={selectedOrganization}
+                      />
 
                       {/* Vendor GST match indicator. Green tick when the
                           picked Tally vendor's GSTIN matches the bill GST;

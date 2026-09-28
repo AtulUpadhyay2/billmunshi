@@ -7,6 +7,7 @@ import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
 import { CONTROL, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
+import { gstinNameInitial, nameMatchesGstin } from "@/utils/gstin";
 
 /**
  * AddVendorModal — creates a Tally vendor ledger in one shot.
@@ -64,6 +65,9 @@ const AddVendorModal = ({
 
   const gstInValid =
     !gstIn || /^[0-9]{2}[A-Z0-9]{10}[A-Z0-9]{3}$/i.test(gstIn.trim());
+  // Advisory: OCR sometimes pairs the supplier's GSTIN with another party's
+  // name (the customer, or the software that generated the invoice).
+  const nameGstMismatch = nameMatchesGstin(name, gstIn) === false;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,6 +123,13 @@ const AddVendorModal = ({
             className={CONTROL}
             autoFocus
           />
+          {nameGstMismatch && (
+            <p className="mt-1 text-[11px] leading-snug text-amber-700 dark:text-amber-400">
+              This GSTIN belongs to a business whose name starts with
+              "{gstinNameInitial(gstIn)}". Check the vendor name on the bill —
+              OCR may have picked the customer or the invoice software's name.
+            </p>
+          )}
         </div>
 
         <div>

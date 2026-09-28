@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import { findVendorOption } from "@/utils/vendorMatch";
+import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
@@ -2943,6 +2944,12 @@ const TallyPaymentVoucherDetail = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* OCR vendor cross-check (name vs GSTIN, vendor vs customer) */}
+                      <OcrVendorWarnings
+                        analysedData={analysedData}
+                        organization={selectedOrganization}
+                      />
                     </div>
 
                     {/* Payment Mode — the actual Bank/Cash ledger this
