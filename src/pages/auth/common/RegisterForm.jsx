@@ -106,6 +106,9 @@ const RegForm = () => {
   // Correction 57: after signup the user has to verify their email before
   // logging in — show that instead of bouncing them to the landing page.
   const [registeredEmail, setRegisteredEmail] = useState("");
+  // Whether the server actually got the verification mail out. The panel
+  // below must not promise an inbox link the provider refused to send.
+  const [verificationSent, setVerificationSent] = useState(true);
   const captchaRef = useRef(null);
 
   const handleCaptchaChange = (token) => {
@@ -171,12 +174,28 @@ const RegForm = () => {
     }
 
     try {
-      await registerUser({ ...data, recaptcha_token: captchaToken }).unwrap();
+      const res = await registerUser({
+        ...data,
+        recaptcha_token: captchaToken,
+      }).unwrap();
       reset();
       setCaptchaToken("");
       captchaRef.current?.reset();
       setRegisteredEmail((data.email || "").trim().toLowerCase());
-      toast.success("Account created — please verify your email");
+
+      // Older builds of the API don't return this flag; treat its absence
+      // as success so nothing regresses into a false alarm.
+      const mailSent = res?.verification_email_sent !== false;
+      setVerificationSent(mailSent);
+
+      if (mailSent) {
+        toast.success("Account created — please verify your email");
+      } else {
+        toast.warning(
+          res?.message ||
+            "Account created, but the verification email could not be sent.",
+        );
+      }
     } catch (error) {
       // Google spends a token the moment the server verifies it, so a
       // failed attempt always leaves a dead one in the widget.
@@ -225,7 +244,11 @@ const RegForm = () => {
   if (registeredEmail) {
     return (
       <div className="space-y-4">
-        <VerifyEmailNotice email={registeredEmail} title="Account created — verify your email" />
+        <VerifyEmailNotice
+          email={registeredEmail}
+          title="Account created — verify your email"
+          sent={verificationSent}
+        />
         <Link
           to="/auth/login"
           className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all"
