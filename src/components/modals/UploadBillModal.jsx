@@ -86,6 +86,18 @@ function loadImageFromFile(file) {
 const MAX_DIMENSION = 2000;
 const SKIP_ENHANCE_BELOW_BYTES = 400 * 1024;
 
+/*
+ * Upload limits. These mirror BILL_MAX_UPLOAD_* in the backend settings —
+ * the server is the authority and rejects anything over, but catching it
+ * here means the operator finds out immediately instead of after pushing
+ * 240 MB up a slow line and getting a 413 back.
+ *
+ * Keep in sync with config/settings/base.py.
+ */
+const MAX_FILES = 15;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 60 * 1024 * 1024;
+
 async function safeAutoEnhance(file) {
   if (!isAcceptedImage(file)) return file;
   // Small files: skip the whole enhance pass.
@@ -139,6 +151,13 @@ const UploadBillModal = ({
 }) => {
   // each item: { id, originalFile, tunedFile: null | File, kind: "image"|"pdf" }
   const [items, setItems] = useState([]);
+
+  // Bytes actually going up: the auto-enhanced copy when there is one,
+  // since that is what gets sent, not the original the user picked.
+  const stagedBytes = items.reduce(
+    (sum, it) => sum + (it.tunedFile || it.originalFile).size,
+    0,
+  );
   // The "Multiple Invoice/File" MODE (one PDF split per page into many
   // bills) is hidden per client spec — fileType is hard-locked to SINGLE.
   // Multi-FILE SELECTION (browse or drop several files at once, each one
@@ -165,25 +184,49 @@ const UploadBillModal = ({
     const list = Array.from(incoming);
     const accepted = [];
     const rejectedNow = [];
+
+    // Running totals start from what is already staged, so the limits hold
+    // across several drops rather than per drop.
+    let runningCount = items.length;
+    let runningBytes = items.reduce(
+      (sum, it) => sum + (it.tunedFile || it.originalFile).size,
+      0,
+    );
+
     list.forEach((f) => {
-      if (isAcceptedImage(f)) {
-        accepted.push({
-          id: `${f.name}-${f.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          originalFile: f,
-          tunedFile: null,
-          kind: "image",
-        });
-      } else if (isAcceptedPdf(f)) {
-        accepted.push({
-          id: `${f.name}-${f.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          originalFile: f,
-          tunedFile: null,
-          kind: "pdf",
-        });
-      } else {
-        rejectedNow.push(f.name);
+      const mk = (kind) => ({
+        id: `${f.name}-${f.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        originalFile: f,
+        tunedFile: null,
+        kind,
+      });
+
+      if (!isAcceptedImage(f) && !isAcceptedPdf(f)) {
+        rejectedNow.push(`${f.name} — not a PDF or image`);
+        return;
       }
+      if (f.size > MAX_FILE_BYTES) {
+        rejectedNow.push(
+          `${f.name} — ${bytesToMb(f.size)} MB, over the ${bytesToMb(MAX_FILE_BYTES)} MB per-file limit`,
+        );
+        return;
+      }
+      if (runningCount >= MAX_FILES) {
+        rejectedNow.push(`${f.name} — more than ${MAX_FILES} files in one upload`);
+        return;
+      }
+      if (runningBytes + f.size > MAX_TOTAL_BYTES) {
+        rejectedNow.push(
+          `${f.name} — would take this batch over the ${bytesToMb(MAX_TOTAL_BYTES)} MB total`,
+        );
+        return;
+      }
+
+      accepted.push(mk(isAcceptedImage(f) ? "image" : "pdf"));
+      runningCount += 1;
+      runningBytes += f.size;
     });
+
     if (accepted.length) setItems((prev) => [...prev, ...accepted]);
     if (rejectedNow.length) setRejected((prev) => [...prev, ...rejectedNow]);
   };
@@ -366,15 +409,30 @@ const UploadBillModal = ({
                     icon="heroicons:exclamation-triangle"
                     className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
                   />
-                  <div className="text-[12px] text-amber-800 dark:text-amber-300">
+                  {/* Each entry now carries its own reason — unsupported
+                      type, over the per-file size, or past the batch
+                      count/total. A single blanket line would be wrong for
+                      most of them. */}
+                  <div className="text-[12px] text-amber-800 dark:text-amber-300 min-w-0">
                     <span className="font-semibold">
-                      {rejected.length} file{rejected.length > 1 ? "s" : ""} skipped:
-                    </span>{" "}
-                    only JPG / JPEG / PNG / PDF are supported.
+                      {rejected.length} file{rejected.length > 1 ? "s" : ""} skipped
+                    </span>
+                    <ul className="mt-0.5 space-y-0.5 list-disc list-inside">
+                      {rejected.slice(0, 5).map((r, i) => (
+                        <li key={i} className="break-words">
+                          {r}
+                        </li>
+                      ))}
+                      {rejected.length > 5 && (
+                        <li className="list-none opacity-80">
+                          …and {rejected.length - 5} more
+                        </li>
+                      )}
+                    </ul>
                     <button
                       type="button"
                       onClick={() => setRejected([])}
-                      className="ml-1 underline hover:no-underline"
+                      className="mt-1 underline hover:no-underline"
                     >
                       Dismiss
                     </button>
@@ -387,8 +445,19 @@ const UploadBillModal = ({
             {items.length > 0 && (
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-800">
+                  {/* Show the batch against its budget. Without this the
+                      only way to discover the limit is to hit it. */}
                   <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Ready to upload · {items.length}
+                    Ready to upload · {items.length}/{MAX_FILES}
+                    <span
+                      className={`ml-2 font-semibold normal-case tracking-normal ${
+                        stagedBytes > MAX_TOTAL_BYTES * 0.8
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
+                      {bytesToMb(stagedBytes)} / {bytesToMb(MAX_TOTAL_BYTES)} MB
+                    </span>
                   </h4>
                   <button
                     type="button"

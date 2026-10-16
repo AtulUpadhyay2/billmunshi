@@ -57,6 +57,56 @@ const trashBlockedReason = (bill) =>
 // Mirrors the server, which skips bills with no analysed header.
 const EXPORTABLE_STATUSES = new Set(["Analysed", "Verified", "Synced"]);
 
+/*
+ * Progress of the upload -> analysis pipeline.
+ *
+ * The percentage comes from the API (`processing_progress`), derived from
+ * the stage the background job last recorded, so the bar moves on real
+ * events rather than a timer. Labels live here because they are display
+ * copy; the stage keys are the contract.
+ */
+const STAGE_LABELS = {
+  queued: "Queued",
+  screening: "Checking document",
+  analysing: "Reading bill",
+  duplicate_check: "Checking duplicates",
+  done: "Done",
+  failed: "Failed",
+};
+
+const stageLabel = (bill) =>
+  STAGE_LABELS[bill?.processing_stage] || "Analysing…";
+
+/*
+ * A real bar for a bill the queue is working on.
+ *
+ * Shown instead of a bare spinner because a spinner says only "something
+ * is happening" — which is exactly what left operators pressing Analyse
+ * on rows that were already running. Falls back to an indeterminate
+ * shimmer if the API has not reported a percentage yet (older rows).
+ */
+const ProcessingBar = ({ bill }) => {
+  const pct = bill?.processing_progress;
+  const known = typeof pct === "number" && pct > 0;
+
+  return (
+    <div className="mt-1 w-full max-w-[180px]">
+      <div className="h-1 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+        <div
+          className={`h-full rounded-full bg-blue-500 dark:bg-blue-400 ${
+            known ? "transition-all duration-700 ease-out" : "animate-pulse w-1/3"
+          }`}
+          style={known ? { width: `${Math.min(pct, 100)}%` } : undefined}
+        />
+      </div>
+      <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+        {stageLabel(bill)}
+        {known ? ` · ${pct}%` : ""}
+      </div>
+    </div>
+  );
+};
+
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", {
@@ -192,7 +242,11 @@ const BillsList = ({
       const stillProcessing = rows.some(
         (b) =>
           b?.is_processing === true ||
-          b?.status === "Draft" ||
+          // A Draft only counts as in-flight while nothing has gone
+          // wrong. A Draft that already carries an error is terminal
+          // until someone presses Retry — polling it every 5s forever
+          // was pure load for a row that cannot change on its own.
+          (b?.status === "Draft" && !b?.processing_error) ||
           (b?.status === "Synced" && b?.tally_synced === false),
       );
       return stillProcessing ? 5000 : false;
@@ -208,10 +262,12 @@ const BillsList = ({
   const countQuery = { organizationId: selectedOrganization?.id, pageSize: 1 };
   // Also poll counts while anything is still processing so the tab
   // badges (Draft / Analysed / Synced) update in-place.
+  // Same in-flight test as the list poll above — kept identical so the
+  // tab badges and the rows never disagree about whether work is running.
   const anyRowProcessing = (billsData?.results || []).some(
     (b) =>
       b?.is_processing === true ||
-      b?.status === "Draft" ||
+      (b?.status === "Draft" && !b?.processing_error) ||
       (b?.status === "Synced" && b?.tally_synced === false),
   );
   const countOpts = {
@@ -287,6 +343,8 @@ const BillsList = ({
   const [selectedDuplicateBill, setSelectedDuplicateBill] = useState(null);
   const [selectedExternalBill, setSelectedExternalBill] = useState(null);
   const [selectedSyncBill, setSelectedSyncBill] = useState(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [selectedErrorBill, setSelectedErrorBill] = useState(null);
   const [analyzingBills, setAnalyzingBills] = useState(new Set());
   const [syncingBills, setSyncingBills] = useState(new Set());
   const [deletingBills, setDeletingBills] = useState(new Set());
@@ -565,20 +623,47 @@ const BillsList = ({
       );
     }
     if (status === "Draft") {
-      const isAnalyzing = analyzingBills.has(bill.id);
+      // Three different Draft states used to render the same live
+      // "Analyse" button, because the only signal consulted was
+      // `analyzingBills` — a local Set that knows about clicks made in
+      // THIS tab, in THIS session. A bill already being worked on by the
+      // queue looked idle, so operators clicked it again and queued a
+      // duplicate run. The server's own `is_processing` is the truth.
+      const clickedHere = analyzingBills.has(bill.id);
+      const busy = clickedHere || bill.is_processing === true;
+      const failed = Boolean(bill.processing_error) && !busy;
+
+      if (busy) {
+        // Disabled on purpose: uploads auto-analyse, so there is nothing
+        // for the operator to do here but wait. The progress bar under
+        // the document name shows how far along it is.
+        return (
+          <span
+            className={`${chipBase} text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 cursor-default`}
+            title={stageLabel(bill)}
+          >
+            <Icon icon="heroicons:arrow-path" className="text-xs animate-spin" />
+            {stageLabel(bill)}
+          </span>
+        );
+      }
+
       return (
         <button
           type="button"
           onClick={() => handleAction(bill.id, "analyse")}
-          disabled={isAnalyzing}
-          className={`${chipBase} text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-60 disabled:cursor-wait cursor-pointer`}
+          title={failed ? bill.processing_error : undefined}
+          className={`${chipBase} ${
+            failed
+              ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60"
+              : "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60"
+          } cursor-pointer`}
         >
-          {isAnalyzing ? (
-            <Icon icon="heroicons:arrow-path" className="text-xs animate-spin" />
-          ) : (
-            <Icon icon="heroicons:sparkles" className="text-xs" />
-          )}
-          {isAnalyzing ? "Analyzing…" : "Analyse"}
+          <Icon
+            icon={failed ? "heroicons:arrow-path" : "heroicons:sparkles"}
+            className="text-xs"
+          />
+          {failed ? "Retry" : "Analyse"}
         </button>
       );
     }
@@ -1009,15 +1094,35 @@ const BillsList = ({
                                     <Icon icon="heroicons:x-mark" className="text-[11px]" /> Tally
                                   </button>
                                 )}
+                                {/* Clickable, like every badge beside it.
+                                    This was a bare <span>: the reason was
+                                    already in `processing_error` and sent
+                                    down by the API, but there was no way
+                                    to read it, so "Error" told the
+                                    operator nothing they could act on. */}
                                 {bill.processing_error &&
                                   !["Analysed", "Verified", "Synced"].includes(
                                     bill.status,
                                   ) && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedErrorBill(bill);
+                                        setIsErrorModalOpen(true);
+                                      }}
+                                      title={bill.processing_error}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/60 cursor-pointer"
+                                    >
                                       <Icon icon="heroicons:exclamation-circle" className="text-[11px]" /> Error
-                                    </span>
+                                    </button>
                                   )}
                               </div>
+                              {/* Progress for a bill the queue is actively
+                                  working on. Sits under the badges so the
+                                  row grows only while something is running. */}
+                              {bill.is_processing === true && (
+                                <ProcessingBar bill={bill} />
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1270,6 +1375,66 @@ const BillsList = ({
                 className={btnPrimary}
               >
                 Proceed anyway
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Analysis error modal.
+          The reason a bill stopped was always stored and always sent to
+          the browser — it just had nowhere to be read. Retry re-runs the
+          same action the Analyse button triggers, so a transient failure
+          (queue down, model timeout) is one click to recover from. */}
+      <Modal
+        activeModal={isErrorModalOpen}
+        onClose={() => {
+          setIsErrorModalOpen(false);
+          setSelectedErrorBill(null);
+        }}
+        title="Why this bill stopped"
+        className="max-w-xl"
+      >
+        {selectedErrorBill && (
+          <div className="space-y-3 p-1">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/60">
+              <Icon
+                icon="heroicons:exclamation-circle"
+                className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5"
+              />
+              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
+                <p className="font-semibold text-rose-800 dark:text-rose-300">
+                  {selectedErrorBill.bill_munshi_name || "This bill"}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words">
+                  {selectedErrorBill.processing_error}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsErrorModalOpen(false);
+                  setSelectedErrorBill(null);
+                }}
+                className="h-8 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = selectedErrorBill.id;
+                  setIsErrorModalOpen(false);
+                  setSelectedErrorBill(null);
+                  handleAction(id, "analyse");
+                }}
+                className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm shadow-orange-500/30 cursor-pointer"
+              >
+                <Icon icon="heroicons:arrow-path" className="text-sm" />
+                Retry analysis
               </button>
             </div>
           </div>
