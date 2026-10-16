@@ -13,9 +13,21 @@ import { globalToast } from "@/utils/toast";
  *   - every file rejected  -> HTTP 400, `rejected_files` in the error body
  */
 
-// Client Correction 53: upload popups stay 15s longer than sonner's 4s
-// default and always carry a "N uploaded · N failed" count.
+// Client Correction 53 asked for upload popups to stay well past sonner's
+// 4s default and always carry a "N uploaded · N failed" count. That is
+// right for anything the operator has to READ and act on — a rejection, a
+// duplicate, a partial failure.
+//
+// It is wrong for a clean success. "1 file uploaded · 0 files failed" is
+// read at a glance, and at 19s the toast parks on top of the Refresh and
+// Upload buttons in the top-right. Worse, sonner pauses its timer while
+// the pointer is over the toast — so reaching for those buttons holds it
+// open indefinitely and it reads as stuck.
+//
+// Long duration stays where there is something to read; a clean success
+// gets out of the way.
 const UPLOAD_TOAST_DURATION = 19000;
+const UPLOAD_TOAST_DURATION_CLEAN = 4500;
 
 const plural = (n) => `${n} file${n === 1 ? "" : "s"}`;
 
@@ -66,6 +78,13 @@ export const notifyUploadResult = (result, successMessage) => {
   // duplicates included, but those were skipped, so they count as failed).
   const filesRejected = result?.files_rejected ?? rejected.length;
   const filesAccepted = result?.files_uploaded;
+  // Nothing refused, nothing duplicated, nothing to read twice.
+  const cleanRun =
+    filesRejected === 0 && exactDupCount === 0 && maybeDupCount === 0;
+  const summaryDuration = cleanRun
+    ? UPLOAD_TOAST_DURATION_CLEAN
+    : UPLOAD_TOAST_DURATION;
+
   const summaryOptions =
     typeof filesAccepted === "number"
       ? {
@@ -73,9 +92,9 @@ export const notifyUploadResult = (result, successMessage) => {
             Math.max(filesAccepted - exactDupCount, 0),
             filesRejected + exactDupCount,
           ),
-          duration: UPLOAD_TOAST_DURATION,
+          duration: summaryDuration,
         }
-      : { duration: UPLOAD_TOAST_DURATION };
+      : { duration: summaryDuration };
 
   const firstExactName = warnings.find(isExactDup)?.existing_bill_name;
   const firstMaybeName =

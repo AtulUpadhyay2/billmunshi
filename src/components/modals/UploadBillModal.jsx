@@ -164,6 +164,10 @@ const UploadBillModal = ({
   // becomes its own SINGLE-mode bill) stays enabled.
   const fileType = "Single Invoice/File";
   const [isUploading, setIsUploading] = useState(false);
+  // What the spinner is actually waiting on. A bare "Uploading…" for the
+  // whole wait is misleading: the first stretch is main-thread canvas work
+  // downscaling photos, before a single byte leaves the browser.
+  const [uploadStage, setUploadStage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [rejected, setRejected] = useState([]);
   // per-item id currently open in the advanced scanner (or null)
@@ -174,6 +178,7 @@ const UploadBillModal = ({
     if (!isOpen) {
       setItems([]);
       setIsUploading(false);
+      setUploadStage("");
       setIsDragOver(false);
       setRejected([]);
       setTuningId(null);
@@ -274,8 +279,23 @@ const UploadBillModal = ({
     setIsUploading(true);
     try {
       const formData = new FormData();
+
       // Safe auto-enhance every image that the user didn't manually
       // fine-tune. PDFs and already-tuned files are sent as-is.
+      //
+      // This is canvas work on the main thread and runs BEFORE the
+      // request — on a few phone photos it is seconds of apparently
+      // nothing happening, so say what it is.
+      const needsEnhance = items.some(
+        (it) => !it.tunedFile && it.kind !== "pdf",
+      );
+      if (needsEnhance) {
+        setUploadStage("Preparing images…");
+        // Let the browser paint the label before the canvas work blocks
+        // the thread, otherwise it never appears.
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
       const prepared = await Promise.all(
         items.map(async (it) => {
           if (it.tunedFile) return it.tunedFile;
@@ -285,12 +305,17 @@ const UploadBillModal = ({
       );
       prepared.forEach((f) => formData.append("files", f));
       formData.append("fileType", fileType);
+
+      setUploadStage(
+        items.length === 1 ? "Uploading file…" : `Uploading ${items.length} files…`,
+      );
       await onUpload(formData);
       onClose();
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {
       setIsUploading(false);
+      setUploadStage("");
     }
   };
 
@@ -552,7 +577,7 @@ const UploadBillModal = ({
                 {isUploading ? (
                   <>
                     <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
-                    Uploading…
+                    {uploadStage || "Uploading…"}
                   </>
                 ) : (
                   <>
