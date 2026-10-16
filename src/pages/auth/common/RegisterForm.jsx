@@ -55,6 +55,41 @@ const inputBase =
 const inputError =
   "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800";
 
+/*
+ * Defined at module scope on purpose.
+ *
+ * It used to live inside RegForm, which meant a brand-new function was
+ * created on every render. React identifies a component by the identity of
+ * its type, so each render looked like a *different* component: the whole
+ * field subtree was unmounted and remounted instead of updated, and the
+ * input the user was typing into lost focus.
+ *
+ * The form re-renders on practically every keystroke — `mode: "all"`
+ * revalidates on change and `watch("password")` subscribes to edits — so
+ * that happened constantly.
+ */
+const Field = ({ label, required, error, icon, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+      {label} {required && <span className="text-rose-500">*</span>}
+    </label>
+    <div className="relative">
+      {icon && (
+        <Icon
+          icon={icon}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+        />
+      )}
+      {children}
+    </div>
+    {error && (
+      <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+        {error.message}
+      </p>
+    )}
+  </div>
+);
+
 const RegForm = () => {
   const [registerUser, { isLoading }] = useRegisterUserMutation();
   const [checked, setChecked] = useState(false);
@@ -64,6 +99,10 @@ const RegForm = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  // Shown next to the checkbox itself. A toast alone leaves the user
+  // hunting for what went wrong — the control that blocked them is at the
+  // bottom of a long form, nowhere near the corner the toast appears in.
+  const [termsError, setTermsError] = useState("");
   // Correction 57: after signup the user has to verify their email before
   // logging in — show that instead of bouncing them to the landing page.
   const [registeredEmail, setRegisteredEmail] = useState("");
@@ -118,6 +157,9 @@ const RegForm = () => {
 
   const onSubmit = async (data) => {
     if (!checked) {
+      setTermsError(
+        "Please accept the Terms and Conditions and Privacy Policy to continue.",
+      );
       toast.error("Please accept the Terms and Conditions and Privacy Policy");
       return;
     }
@@ -156,38 +198,22 @@ const RegForm = () => {
           .find((m) => typeof m === "string") ||
         "An error occurred. Please try again later.";
 
-      if (errorMessage === "Email is already registered") toast.error(errorMessage);
-      else toast.warning(errorMessage);
+      // Signup failed, so this is an error — not a warning. The branch
+      // here used to compare against the literal "Email is already
+      // registered", a string the API never sends (it returns "This email
+      // address is already in use."), so every failure including a
+      // duplicate email fell through to the amber warning toast and read
+      // as something optional the user could ignore.
+      toast.error(errorMessage);
     }
   };
 
   const handleAcceptTerms = () => {
     setChecked(true);
+    setTermsError("");
     setShowTermsModal(false);
     setShowPrivacyModal(false);
   };
-
-  const Field = ({ label, required, error, icon, children }) => (
-    <div>
-      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
-      <div className="relative">
-        {icon && (
-          <Icon
-            icon={icon}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
-          />
-        )}
-        {children}
-      </div>
-      {error && (
-        <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
-          {error.message}
-        </p>
-      )}
-    </div>
-  );
 
   const strengthColor =
     passwordStrength === "Weak"
@@ -391,7 +417,10 @@ const RegForm = () => {
         <input
           type="checkbox"
           checked={checked}
-          onChange={() => setChecked(!checked)}
+          onChange={() => {
+            setChecked((prev) => !prev);
+            setTermsError("");
+          }}
           className="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
         />
         <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -419,6 +448,12 @@ const RegForm = () => {
           </button>
         </span>
       </label>
+
+      {termsError && (
+        <p className="-mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+          {termsError}
+        </p>
+      )}
 
       <ReCaptcha
         ref={captchaRef}
