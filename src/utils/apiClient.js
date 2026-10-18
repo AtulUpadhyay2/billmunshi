@@ -56,12 +56,18 @@ apiClient.interceptors.response.use(
 // Generic API fetch function using axios
 export const apiFetch = async (endpoint, options = {}) => {
   try {
+    // Only forward what apiFetch's contract covers. The old trailing
+    // `...options` re-injected `body` as a stray axios key and would
+    // clobber `data`/`url` if a caller ever passed them.
+    const { method, body, headers, signal, params, responseType } = options;
     const response = await apiClient({
       url: endpoint,
-      method: options.method || "GET",
-      data: options.body,
-      headers: options.headers,
-      ...options,
+      method: method || "GET",
+      data: body,
+      headers,
+      ...(signal ? { signal } : {}),
+      ...(params ? { params } : {}),
+      ...(responseType ? { responseType } : {}),
     });
 
     return response.data;

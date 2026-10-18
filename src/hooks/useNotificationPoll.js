@@ -19,6 +19,8 @@ export default function useNotificationPoll(orgId, { intervalMs = 15000 } = {}) 
   const cursorRef = useRef(null); // ISO string of last server_time
   const timerRef = useRef(null);
   const mountedRef = useRef(true);
+  // Ids already shown, so dedup can happen outside the state updater.
+  const seenIdsRef = useRef(new Set());
 
   const poll = useCallback(async () => {
     if (!orgId) return;
@@ -33,14 +35,17 @@ export default function useNotificationPoll(orgId, { intervalMs = 15000 } = {}) 
       if (!mountedRef.current) return;
       cursorRef.current = res.server_time || cursorRef.current;
       if (res.notifications && res.notifications.length > 0) {
-        setNotifications((prev) => {
-          const seen = new Set(prev.map((n) => n.id));
-          const fresh = res.notifications.filter((n) => !seen.has(n.id));
-          if (!fresh.length) return prev;
+        // The dedup used to run inside the setNotifications updater, with
+        // setUnreadCount called from within it. Updaters must be pure —
+        // React re-invokes them (StrictMode, update re-basing), which
+        // double-counted the badge. Compute first, then set both.
+        const seen = new Set(seenIdsRef.current);
+        const fresh = res.notifications.filter((n) => !seen.has(n.id));
+        if (fresh.length) {
+          fresh.forEach((n) => seenIdsRef.current.add(n.id));
+          setNotifications((prev) => [...fresh, ...prev].slice(0, 100));
           setUnreadCount((c) => c + fresh.length);
-          // Keep newest 100 total.
-          return [...fresh, ...prev].slice(0, 100);
-        });
+        }
       }
     } catch (err) {
       // Silent — a poll failure shouldn't spam the console; the next

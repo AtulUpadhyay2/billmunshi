@@ -107,6 +107,111 @@ const ProcessingBar = ({ bill }) => {
   );
 };
 
+// Module scope, not inside BillsList's render: a new function identity on
+// every render remounted every row's action cell on each 5s poll, which
+// restarted the spinner animation from frame 0 and read as a stutter.
+const ActionCell = ({
+  bill,
+  copy,
+  navigate,
+  analyzingBills,
+  syncingBills,
+  onAction,
+}) => {
+  const { status } = bill;
+  if (status === "Synced" && bill.tally_synced) {
+    return (
+      <span className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60`}>
+        <Icon icon="heroicons:check-circle" className="text-xs" />
+        Posted
+      </span>
+    );
+  }
+  if (status === "Synced" && !bill.tally_synced) {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
+        className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer`}
+      >
+        <Icon icon="heroicons:check-badge" className="text-xs" /> Re-verify
+      </button>
+    );
+  }
+  if (status === "Draft") {
+    // Three different Draft states used to render the same live
+    // "Analyse" button, because the only signal consulted was
+    // `analyzingBills` — a local Set that knows about clicks made in
+    // THIS tab, in THIS session. A bill already being worked on by the
+    // queue looked idle, so operators clicked it again and queued a
+    // duplicate run. The server's own `is_processing` is the truth.
+    const clickedHere = analyzingBills.has(bill.id);
+    const busy = clickedHere || bill.is_processing === true;
+    const failed = Boolean(bill.processing_error) && !busy;
+
+    if (busy) {
+      // Disabled on purpose: uploads auto-analyse, so there is nothing
+      // for the operator to do here but wait. The progress bar under
+      // the document name shows how far along it is.
+      return (
+        <span
+          className={`${chipBase} text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 cursor-default`}
+          title={stageLabel(bill)}
+        >
+          <Icon icon="heroicons:arrow-path" className="text-xs animate-spin" />
+          {stageLabel(bill)}
+        </span>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => onAction(bill.id, "analyse")}
+        title={failed ? bill.processing_error : undefined}
+        className={`${chipBase} ${
+          failed
+            ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60"
+            : "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60"
+        } cursor-pointer`}
+      >
+        <Icon
+          icon={failed ? "heroicons:arrow-path" : "heroicons:sparkles"}
+          className="text-xs"
+        />
+        {failed ? "Retry" : "Analyse"}
+      </button>
+    );
+  }
+  if (status === "Analysed") {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
+        className={`${chipBase} text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-100 dark:ring-violet-900/60 hover:bg-violet-100 dark:hover:bg-violet-950/60 cursor-pointer`}
+      >
+        <Icon icon="heroicons:check-badge" className="text-xs" /> Verify
+      </button>
+    );
+  }
+  if (status === "Verified") {
+    const isSyncing = syncingBills.has(bill.id);
+    return (
+      <button
+        type="button"
+        onClick={() => onAction(bill.id, "sync")}
+        disabled={isSyncing}
+        className={`${chipBase} text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait cursor-pointer`}
+      >
+        <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-xs ${isSyncing ? "animate-spin" : ""}`} />
+        {isSyncing ? "Syncing…" : "Sync"}
+      </button>
+    );
+  }
+  return <span className="text-[11px] text-slate-400">—</span>;
+};
+
+
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", {
@@ -270,10 +375,14 @@ const BillsList = ({
       (b?.status === "Draft" && !b?.processing_error) ||
       (b?.status === "Synced" && b?.tally_synced === false),
   );
+  // The four badge counts are cosmetic, so they poll at a third of the
+  // list's rate and stop entirely while the tab is in the background.
+  // Previously all five queries ran every 5s, in background too — roughly
+  // one request a second per open tab for the whole of a batch upload.
   const countOpts = {
     enabled: !!selectedOrganization?.id,
-    refetchInterval: anyRowProcessing ? 5000 : false,
-    refetchIntervalInBackground: true,
+    refetchInterval: anyRowProcessing ? 15000 : false,
+    refetchIntervalInBackground: false,
   };
 
   const { data: allCountData } = useGetBills(countQuery, countOpts);
@@ -304,11 +413,12 @@ const BillsList = ({
   // Download-report hook is optional. When the parent page doesn't
   // pass one, ``downloadReport`` is a no-op and the button stays hidden.
   const downloadReportMutation = useDownloadReport ? useDownloadReport() : null;
-  // Export lives on the Analysed tab only. Elsewhere the button would be
-  // permanently disabled anyway — Draft rows have no analysed data to
-  // export, so offering it there is just noise.
+  // Shown wherever exportable rows can be selected. Restricting it to the
+  // Analysed tab left Synced bills with no screen to export from at all,
+  // even though the backend accepts them. Draft and Trash still hide it.
   const canDownloadReport =
-    Boolean(useDownloadReport) && activeTab === "analysed";
+    Boolean(useDownloadReport) &&
+    ["analysed", "synced", "all"].includes(activeTab);
   const isDownloadingReport = downloadReportMutation?.isPending || false;
 
   const handleDownloadReport = async () => {
@@ -354,6 +464,11 @@ const BillsList = ({
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isBulkSyncOpen, setIsBulkSyncOpen] = useState(false);
   const [isBulkActing, setIsBulkActing] = useState(false);
+  // Frozen when a bulk dialog opens. The lists below are derived from the
+  // polled page, so without this the dialog's counts (and the ids acted on)
+  // change under the user while they are reading the confirmation.
+  const [bulkSnapshot, setBulkSnapshot] = useState(null);
+  const bulkActingRef = useRef(false);
 
   // `results` is already the requested page, filtered and sized by the
   // server — no client-side slicing. Slicing here was the reason a 118-bill
@@ -405,6 +520,13 @@ const BillsList = ({
     [selectedBillObjs],
   );
   const bulkBlockedCount = selectedBillObjs.length - bulkTrashableIds.length;
+
+  // What the open confirm dialog shows: the frozen snapshot if there is one,
+  // otherwise the live figures.
+  const bulkDeleteCount = bulkSnapshot?.ids?.length ?? bulkTrashableIds.length;
+  const bulkDeleteBlocked = bulkSnapshot?.blocked ?? bulkBlockedCount;
+  const bulkSyncCount = bulkSnapshot?.ids?.length ?? bulkSyncableIds.length;
+  const bulkSyncSelected = bulkSnapshot?.selected ?? selectedBills.size;
 
   // Excel export covers exactly the ticked rows. Un-analysed selections are
   // dropped here so the user never receives a spreadsheet with fewer rows
@@ -507,6 +629,9 @@ const BillsList = ({
     }
   };
 
+  // Returns true only when the upload actually went through, so the modal
+  // keeps the staged files on screen after a failure instead of closing and
+  // making the user re-pick every one of them.
   const handleUpload = async (formData) => {
     try {
       const result = await uploadBills({
@@ -516,8 +641,10 @@ const BillsList = ({
       notifyUploadResult(result, "Bills uploaded — processing in background…");
       setIsUploadModalOpen(false);
       refetch();
+      return true;
     } catch (err) {
       notifyUploadError(err, "Failed to upload");
+      return false;
     }
   };
 
@@ -553,9 +680,10 @@ const BillsList = ({
   };
 
   const handleBulkDelete = async () => {
-    const ids = bulkTrashableIds;
-    const skipped = bulkBlockedCount;
-    if (ids.length === 0) return;
+    const ids = bulkSnapshot?.ids ?? bulkTrashableIds;
+    const skipped = bulkSnapshot?.blocked ?? bulkBlockedCount;
+    if (ids.length === 0 || bulkActingRef.current) return;
+    bulkActingRef.current = true;
     setIsBulkActing(true);
     let ok = 0;
     let failed = 0;
@@ -567,8 +695,10 @@ const BillsList = ({
       ),
     );
     results.forEach((r) => (r.status === "fulfilled" ? ok++ : failed++));
+    bulkActingRef.current = false;
     setIsBulkActing(false);
     setIsBulkDeleteOpen(false);
+    setBulkSnapshot(null);
     setSelectedBills(new Set());
     if (ok) globalToast.success(`Moved ${ok} bill${ok > 1 ? "s" : ""} to Trash`);
     if (failed) globalToast.error(`Failed to move ${failed} bill${failed > 1 ? "s" : ""} to Trash`);
@@ -582,118 +712,28 @@ const BillsList = ({
   };
 
   const handleBulkSync = async () => {
-    if (bulkSyncableIds.length === 0) return;
+    const ids = bulkSnapshot?.ids ?? bulkSyncableIds;
+    if (ids.length === 0 || bulkActingRef.current) return;
+    bulkActingRef.current = true;
     setIsBulkActing(true);
     let ok = 0;
     let failed = 0;
     const results = await Promise.allSettled(
-      bulkSyncableIds.map((billId) =>
+      ids.map((billId) =>
         syncBill({ organizationId: selectedOrganization?.id, billId }),
       ),
     );
     results.forEach((r) => (r.status === "fulfilled" ? ok++ : failed++));
+    bulkActingRef.current = false;
     setIsBulkActing(false);
     setIsBulkSyncOpen(false);
+    setBulkSnapshot(null);
     setSelectedBills(new Set());
     if (ok) globalToast.success(`Queued ${ok} bill${ok > 1 ? "s" : ""} for sync`);
     if (failed) globalToast.error(`Failed to sync ${failed} bill${failed > 1 ? "s" : ""}`);
     refetch();
   };
 
-  // Action button cell
-  const ActionCell = ({ bill }) => {
-    const { status } = bill;
-    if (status === "Synced" && bill.tally_synced) {
-      return (
-        <span className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60`}>
-          <Icon icon="heroicons:check-circle" className="text-xs" />
-          Posted
-        </span>
-      );
-    }
-    if (status === "Synced" && !bill.tally_synced) {
-      return (
-        <button
-          type="button"
-          onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
-          className={`${chipBase} text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer`}
-        >
-          <Icon icon="heroicons:check-badge" className="text-xs" /> Re-verify
-        </button>
-      );
-    }
-    if (status === "Draft") {
-      // Three different Draft states used to render the same live
-      // "Analyse" button, because the only signal consulted was
-      // `analyzingBills` — a local Set that knows about clicks made in
-      // THIS tab, in THIS session. A bill already being worked on by the
-      // queue looked idle, so operators clicked it again and queued a
-      // duplicate run. The server's own `is_processing` is the truth.
-      const clickedHere = analyzingBills.has(bill.id);
-      const busy = clickedHere || bill.is_processing === true;
-      const failed = Boolean(bill.processing_error) && !busy;
-
-      if (busy) {
-        // Disabled on purpose: uploads auto-analyse, so there is nothing
-        // for the operator to do here but wait. The progress bar under
-        // the document name shows how far along it is.
-        return (
-          <span
-            className={`${chipBase} text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 cursor-default`}
-            title={stageLabel(bill)}
-          >
-            <Icon icon="heroicons:arrow-path" className="text-xs animate-spin" />
-            {stageLabel(bill)}
-          </span>
-        );
-      }
-
-      return (
-        <button
-          type="button"
-          onClick={() => handleAction(bill.id, "analyse")}
-          title={failed ? bill.processing_error : undefined}
-          className={`${chipBase} ${
-            failed
-              ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60"
-              : "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60"
-          } cursor-pointer`}
-        >
-          <Icon
-            icon={failed ? "heroicons:arrow-path" : "heroicons:sparkles"}
-            className="text-xs"
-          />
-          {failed ? "Retry" : "Analyse"}
-        </button>
-      );
-    }
-    if (status === "Analysed") {
-      return (
-        <button
-          type="button"
-          onClick={() => navigate(`${copy.detailRoute}/${bill.id}`)}
-          className={`${chipBase} text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-100 dark:ring-violet-900/60 hover:bg-violet-100 dark:hover:bg-violet-950/60 cursor-pointer`}
-        >
-          <Icon icon="heroicons:check-badge" className="text-xs" /> Verify
-        </button>
-      );
-    }
-    if (status === "Verified") {
-      const isSyncing = syncingBills.has(bill.id);
-      return (
-        <button
-          type="button"
-          onClick={() => handleAction(bill.id, "sync")}
-          disabled={isSyncing}
-          className={`${chipBase} text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait cursor-pointer`}
-        >
-          <Icon icon={isSyncing ? "heroicons:arrow-path" : "heroicons:arrow-path-rounded-square"} className={`text-xs ${isSyncing ? "animate-spin" : ""}`} />
-          {isSyncing ? "Syncing…" : "Sync"}
-        </button>
-      );
-    }
-    return <span className="text-[11px] text-slate-400">—</span>;
-  };
 
   if (!selectedOrganization?.id) {
     return (
@@ -791,7 +831,13 @@ const BillsList = ({
                         {({ focus }) => (
                           <button
                             type="button"
-                            onClick={() => setIsBulkDeleteOpen(true)}
+                            onClick={() => {
+                              setBulkSnapshot({
+                                ids: bulkTrashableIds,
+                                blocked: bulkBlockedCount,
+                              });
+                              setIsBulkDeleteOpen(true);
+                            }}
                             disabled={isBulkActing}
                             title={
                               bulkBlockedCount > 0
@@ -812,7 +858,13 @@ const BillsList = ({
               {bulkSyncableIds.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setIsBulkSyncOpen(true)}
+                  onClick={() => {
+                    setBulkSnapshot({
+                      ids: bulkSyncableIds,
+                      selected: selectedBills.size,
+                    });
+                    setIsBulkSyncOpen(true);
+                  }}
                   disabled={isBulkActing}
                   title="Sync selected Verified bills to Tally"
                   className={`${btnBase} text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:cursor-wait`}
@@ -1146,7 +1198,16 @@ const BillsList = ({
                             {formatDate(bill.created_at)}
                           </div>
                         </td>
-                        <td className={tdBase}><ActionCell bill={bill} /></td>
+                        <td className={tdBase}>
+                          <ActionCell
+                            bill={bill}
+                            copy={copy}
+                            navigate={navigate}
+                            analyzingBills={analyzingBills}
+                            syncingBills={syncingBills}
+                            onAction={handleAction}
+                          />
+                        </td>
                         <td className={`${tdBase} ltr:text-right rtl:text-left`}>
                           <div className="inline-flex items-center gap-0.5">
                             {["Analysed", "Verified", "Synced"].includes(bill.status) && (
@@ -1550,37 +1611,47 @@ const BillsList = ({
 
       <ConfirmDialog
         open={isBulkDeleteOpen}
-        onClose={() => (isBulkActing ? null : setIsBulkDeleteOpen(false))}
+        isLoading={isBulkActing}
+        onClose={() => {
+          if (isBulkActing) return;
+          setIsBulkDeleteOpen(false);
+          setBulkSnapshot(null);
+        }}
         onConfirm={handleBulkDelete}
-        title={`Move ${bulkTrashableIds.length} bill${bulkTrashableIds.length > 1 ? "s" : ""} to Trash?`}
+        title={`Move ${bulkDeleteCount} bill${bulkDeleteCount > 1 ? "s" : ""} to Trash?`}
         message={
-          `You're about to move ${bulkTrashableIds.length} ` +
-          `${copy.billLabel}${bulkTrashableIds.length > 1 ? "s" : ""} to Trash. You ` +
+          `You're about to move ${bulkDeleteCount} ` +
+          `${copy.billLabel}${bulkDeleteCount > 1 ? "s" : ""} to Trash. You ` +
           `can restore them from there within ${TRASH_RETENTION_DAYS} days, ` +
           `after which they are deleted permanently.` +
-          (bulkBlockedCount > 0
-            ? ` ${bulkBlockedCount} selected bill${bulkBlockedCount > 1 ? "s are" : " is"} ` +
+          (bulkDeleteBlocked > 0
+            ? ` ${bulkDeleteBlocked} selected bill${bulkDeleteBlocked > 1 ? "s are" : " is"} ` +
               `already posted to Tally and will be skipped.`
             : "")
         }
-        confirmText={isBulkActing ? "Moving…" : `Move ${bulkTrashableIds.length} to Trash`}
+        confirmText={isBulkActing ? "Moving…" : `Move ${bulkDeleteCount} to Trash`}
         variant="danger"
       />
 
       <ConfirmDialog
         open={isBulkSyncOpen}
-        onClose={() => (isBulkActing ? null : setIsBulkSyncOpen(false))}
+        isLoading={isBulkActing}
+        onClose={() => {
+          if (isBulkActing) return;
+          setIsBulkSyncOpen(false);
+          setBulkSnapshot(null);
+        }}
         onConfirm={handleBulkSync}
-        title={`Sync ${bulkSyncableIds.length} bill${bulkSyncableIds.length > 1 ? "s" : ""} to Tally?`}
+        title={`Sync ${bulkSyncCount} bill${bulkSyncCount > 1 ? "s" : ""} to Tally?`}
         message={
-          selectedBills.size > bulkSyncableIds.length
-            ? `Only ${bulkSyncableIds.length} of the ${selectedBills.size} selected ` +
+          bulkSyncSelected > bulkSyncCount
+            ? `Only ${bulkSyncCount} of the ${bulkSyncSelected} selected ` +
               `bills are eligible for sync (Verified, or Synced-but-not-posted). ` +
               `Ineligible bills will be skipped.`
-            : `The ${bulkSyncableIds.length} selected bill${bulkSyncableIds.length > 1 ? "s" : ""} ` +
+            : `The ${bulkSyncCount} selected bill${bulkSyncCount > 1 ? "s" : ""} ` +
               `will be posted to Tally.`
         }
-        confirmText={isBulkActing ? "Syncing…" : `Yes, sync ${bulkSyncableIds.length}`}
+        confirmText={isBulkActing ? "Syncing…" : `Yes, sync ${bulkSyncCount}`}
       />
     </div>
   );

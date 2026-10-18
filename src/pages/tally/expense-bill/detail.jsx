@@ -72,8 +72,12 @@ const EditableTaxAmount = ({ value, disabled, onCommit, className = "" }) => {
       setDraft(formatted);
       return;
     }
-    onCommit(String(parsed));
-    setDraft(parsed.toFixed(2));
+    // Commit the same number the box shows. Previously the full-precision
+    // value went into state while the cell rendered a 2-dp rounding of it,
+    // so typing 100.005 displayed 100.01 but submitted 100.005.
+    const rounded = parsed.toFixed(2);
+    onCommit(rounded);
+    setDraft(rounded);
   };
 
   return (
@@ -1481,15 +1485,20 @@ const TallyExpenseBillDetail = () => {
       vendorAmount = grandTotalCredit - grandTotalDebit;
     }
 
-    // Ensure vendor amount is not negative
+    // A negative balancing figure means the entry does not balance in the
+    // direction currently selected. Math.abs() used to hide that and ship a
+    // positive amount on the wrong side. Flip the side instead, so the
+    // voucher actually balances and the DR/CR selector shows what changed.
+    let vendorSide = taxSummaryForm.vendorDebitCredit;
     if (vendorAmount < 0) {
       vendorAmount = Math.abs(vendorAmount);
+      vendorSide = vendorSide === "credit" ? "debit" : "credit";
     }
 
-    // Update vendor amount with the calculated value
     setTaxSummaryForm((prev) => ({
       ...prev,
       vendorAmount: vendorAmount.toFixed(2),
+      vendorDebitCredit: vendorSide,
     }));
   }, [
     expenseItems,
@@ -2291,10 +2300,14 @@ const TallyExpenseBillDetail = () => {
     syncInFlightRef.current = true;
     try {
       setIsSyncing(true);
-      const result = await syncExpenseBill({
-        organizationId: selectedOrganization?.id,
-        billId,
-      });
+      const guarded = await tallySyncWithMastersGuard(() =>
+        syncExpenseBill({ organizationId: selectedOrganization?.id, billId }),
+      );
+      if (guarded?.status !== "success") {
+        refetch();
+        return;
+      }
+      const result = guarded.result;
       const data = result?.data || result;
       const state = data?.tally_sync_status || "pending_tally";
       const pendingCount = data?.pending_masters_count || 0;

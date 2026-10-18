@@ -161,8 +161,12 @@ const EditableTaxAmount = ({ value, disabled, onCommit }) => {
       setDraft(formatted);
       return;
     }
-    onCommit(String(parsed));
-    setDraft(parsed.toFixed(2));
+    // Commit the same number the box shows. Previously the full-precision
+    // value went into state while the cell rendered a 2-dp rounding of it,
+    // so typing 100.005 displayed 100.01 but submitted 100.005.
+    const rounded = parsed.toFixed(2);
+    onCommit(rounded);
+    setDraft(rounded);
   };
 
   return (
@@ -429,14 +433,33 @@ const TallyVendorBillDetail = () => {
     };
   }, [products]);
 
+  // Push the line-item tax sums up to the bill-level fields — but not before
+  // the lines actually carry tax. The OCR fallback hydration builds every line
+  // with a blank rate and zero tax, so running this on the first pass wiped
+  // the CGST/SGST/IGST figures read off the invoice and collapsed the total to
+  // the subtotal. Once any line has shown a rate, the sum governs from then on
+  // (including when the user clears it back to zero).
+  const lineGstSeenRef = useRef(false);
   useEffect(() => {
+    if (!lineGstSeenRef.current) {
+      const linesCarryTax = (products || []).some(
+        (p) =>
+          parseGstRate(p.gst) !== null ||
+          (parseFloat(p.cgst) || 0) > 0 ||
+          (parseFloat(p.sgst) || 0) > 0 ||
+          (parseFloat(p.igst) || 0) > 0,
+      );
+      if (!linesCarryTax) return;
+      lineGstSeenRef.current = true;
+    }
+
     setBillSummaryForm((prev) => ({
       ...prev,
       cgst: String(lineTaxTotals.cgst || 0),
       sgst: String(lineTaxTotals.sgst || 0),
       igst: String(lineTaxTotals.igst || 0),
     }));
-  }, [lineTaxTotals.cgst, lineTaxTotals.sgst, lineTaxTotals.igst]);
+  }, [lineTaxTotals.cgst, lineTaxTotals.sgst, lineTaxTotals.igst, products]);
 
   // Group line items by GST rate for the read-only Tax-by-rate rollup table.
   // The bucket also carries the currently-effective CGST/SGST/IGST ledger so
@@ -606,11 +629,25 @@ const TallyVendorBillDetail = () => {
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
   const isVerified = billInfo?.tally_synced === true;
 
-  // Inter-state supply ⇒ IGST; intra-state ⇒ CGST + SGST split. Read off the
-  // analysed GST type, falling back to "the bill carries an IGST figure".
-  const isInterStateSupply =
-    tallyAnalysedData?.gst_type === "IGST" ||
-    (parseFloat(billSummaryForm.igst) || 0) > 0;
+  // Inter-state supply ⇒ IGST; intra-state ⇒ CGST + SGST split.
+  //
+  // The fallback must not read `billSummaryForm.igst`: another effect derives
+  // that from the line items, so clearing the GST rate on the last IGST line
+  // drove it to 0 and silently flipped an IGST bill to CGST+SGST on the next
+  // edit. Decide from the analysed GST type, else from the figures as first
+  // loaded, and hold that decision steady for the rest of the session.
+  const interStateRef = useRef(null);
+  const isInterStateSupply = useMemo(() => {
+    if (tallyAnalysedData?.gst_type === "IGST") return true;
+    if (tallyAnalysedData?.gst_type === "CGST_SGST") return false;
+    if (interStateRef.current !== null) return interStateRef.current;
+
+    const seeded =
+      (parseFloat(tallyAnalysedData?.igst) || 0) > 0 ||
+      (products || []).some((p) => (parseFloat(p.igst) || 0) > 0);
+    if ((products || []).length > 0) interStateRef.current = seeded;
+    return seeded;
+  }, [tallyAnalysedData, products]);
 
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
@@ -1778,13 +1815,7 @@ const TallyVendorBillDetail = () => {
     if (lineTaxNormalisedRef.current || isVerified) return;
     if (products.length === 0) return;
 
-    // Deliberately not `isInterStateSupply`: its fallback reads
-    // `billSummaryForm.igst`, which another effect derives *from* these very
-    // lines, so on the first pass after hydration it can still be zero. Decide
-    // from the analysed GST type, else from what the lines themselves carry.
-    const interState =
-      tallyAnalysedData?.gst_type === "IGST" ||
-      products.some((p) => (parseFloat(p.igst) || 0) > 0);
+    const interState = isInterStateSupply;
 
     let changed = false;
     const normalised = products.map((product) => {
@@ -1801,7 +1832,7 @@ const TallyVendorBillDetail = () => {
     lineTaxNormalisedRef.current = true;
     if (changed) setProducts(normalised);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, isVerified, tallyAnalysedData]);
+  }, [products, isVerified, tallyAnalysedData, isInterStateSupply]);
 
   useEffect(() => {
     if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
@@ -2894,10 +2925,18 @@ const TallyVendorBillDetail = () => {
       // posts a callback that flips `tally_synced` on the bill. The
       // detail view re-reads `bill.tally_synced` / `.tally_sync_message`
       // to show the final state.
-      const result = await syncVendorBill({
-        organizationId: selectedOrganization?.id,
-        billId,
-      });
+      // 409 MASTERS_PENDING gets the "waiting for Tally to import N
+      // masters" message instead of a bare error. No retryFn: the guard's
+      // self-scheduling retry has no cancellation, so it would keep
+      // toasting after the user navigates away.
+      const guarded = await tallySyncWithMastersGuard(() =>
+        syncVendorBill({ organizationId: selectedOrganization?.id, billId }),
+      );
+      if (guarded?.status !== "success") {
+        refetch();
+        return;
+      }
+      const result = guarded.result;
       const data = result?.data || result;
       const state = data?.tally_sync_status || "pending_tally";
       const pendingCount = data?.pending_masters_count || 0;
@@ -4428,9 +4467,7 @@ const TallyVendorBillDetail = () => {
                     );
                   }
 
-                  const isInterState =
-                    tallyAnalysedData?.gst_type === "IGST" ||
-                    lineTaxTotals.igst > 0;
+                  const isInterState = isInterStateSupply;
 
                   return (
                     <>

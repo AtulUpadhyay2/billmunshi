@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 
 /**
  * Trigger geometry per size.
@@ -70,23 +70,35 @@ const SearchableDropdown = ({
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
-  // Filter options based on search term
-  const filteredOptions = options.filter((option) => {
-    const label = typeof option === "string" ? option : option[optionLabelKey];
-    return label?.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  // Memoised: a bill detail page mounts one of these per line item plus the
+  // vendor and tax pickers, and re-renders on every keystroke in a money
+  // field. Unmemoised, each render re-scanned the whole ledger list and
+  // allocated a lowercased copy of every label, in every instance.
+  const filteredOptions = useMemo(() => {
+    const needle = searchTerm.toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) => {
+      const label =
+        typeof option === "string" ? option : option[optionLabelKey];
+      return label?.toLowerCase().includes(needle);
+    });
+  }, [options, searchTerm, optionLabelKey]);
 
-  // Find selected option
-  const selectedOption = options.find((option) => {
-    const optionValue =
-      typeof option === "string" ? option : option[optionValueKey];
-    // Handle both string and number comparisons, and ensure we don't match empty/null values
-    return (
-      value &&
-      optionValue &&
-      (optionValue === value || String(optionValue) === String(value))
-    );
-  });
+  const selectedOption = useMemo(
+    () =>
+      options.find((option) => {
+        const optionValue =
+          typeof option === "string" ? option : option[optionValueKey];
+        // Handle both string and number comparisons, and ensure we don't
+        // match empty/null values
+        return (
+          value &&
+          optionValue &&
+          (optionValue === value || String(optionValue) === String(value))
+        );
+      }),
+    [options, value, optionValueKey],
+  );
 
   // Close dropdown when clicking outside and handle scroll/resize
   useEffect(() => {
@@ -97,15 +109,17 @@ const SearchableDropdown = ({
       }
     };
 
-    const handleScrollOrResize = () => {
-      if (isOpen) {
-        calculateDropdownPosition();
-      }
-    };
-
     document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", handleScrollOrResize, true);
-    window.addEventListener("resize", handleScrollOrResize);
+
+    // Only while open. These were registered by every instance at all
+    // times, and capture-phase scroll means all of them fired for every
+    // scroll of every nested scroller — then getBoundingClientRect() forced
+    // a synchronous layout on each one.
+    const handleScrollOrResize = () => calculateDropdownPosition();
+    if (isOpen) {
+      window.addEventListener("scroll", handleScrollOrResize, true);
+      window.addEventListener("resize", handleScrollOrResize);
+    }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);

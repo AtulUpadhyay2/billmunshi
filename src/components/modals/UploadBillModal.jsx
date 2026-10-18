@@ -309,8 +309,11 @@ const UploadBillModal = ({
       setUploadStage(
         items.length === 1 ? "Uploading file…" : `Uploading ${items.length} files…`,
       );
-      await onUpload(formData);
-      onClose();
+      // `false` means the caller already surfaced the error. Anything else
+      // (including a handler that returns nothing) is treated as success so
+      // other callers keep their existing behaviour.
+      const ok = await onUpload(formData);
+      if (ok !== false) onClose();
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

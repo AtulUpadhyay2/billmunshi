@@ -43,21 +43,10 @@ const OrgSwitcher = () => {
       return;
     }
 
+    let response;
     try {
       setCreateLoading(true);
-      const response = await apiClient.post(
-        "/org/create-with-module/",
-        formData,
-      );
-
-      toast.success(
-        response.data.data.message || "Organization created successfully",
-      );
-      setShowCreateModal(false);
-      setFormData({ name: "", module: "tally", gst_number: "" });
-
-      // Optionally reload user data to get updated organizations list
-      window.location.reload();
+      response = await apiClient.post("/org/create-with-module/", formData);
     } catch (error) {
       console.error("Error creating organization:", error);
       const errorMessage =
@@ -65,9 +54,25 @@ const OrgSwitcher = () => {
         error.response?.data?.message ||
         "Failed to create organization";
       toast.error(errorMessage);
+      return;
     } finally {
       setCreateLoading(false);
     }
+
+    // Reading the message used to sit inside the try. When the body came
+    // back in a different shape the property access threw, the catch
+    // reported "Failed to create organization", and the reload never ran —
+    // so an organization that HAD been created never showed up and the
+    // retry hit a duplicate-name error.
+    toast.success(
+      response?.data?.data?.message || "Organization created successfully",
+    );
+    setShowCreateModal(false);
+    setFormData({ name: "", module: "tally", gst_number: "" });
+
+    // Full reload so every org-scoped query refetches. Done last so a
+    // failure above can never discard unsaved work on the page.
+    window.location.reload();
   };
 
   const handleInputChange = (field, value) => {

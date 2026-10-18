@@ -38,7 +38,6 @@ const LoginForm = () => {
   } = useForm({ resolver: yupResolver(schema), mode: "all" });
 
   const navigate = useNavigate();
-  const [checked, setChecked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   // Correction 57: set when the server refuses login until the signup
   // email is verified — shows the resend panel instead of a bare error.
@@ -143,18 +142,12 @@ const LoginForm = () => {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={() => setChecked(!checked)}
-            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-          />
-          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Keep me signed in
-          </span>
-        </label>
+      {/* "Keep me signed in" was removed: it was never wired to anything —
+          tokens always went to localStorage, so unticking it still kept the
+          session across browser restarts. A security control that lies is
+          worse than no control. Re-add it only together with a real
+          session-vs-local token store. */}
+      <div className="flex items-center justify-end">
         <Link
           to="/auth/forgot-password"
           className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
