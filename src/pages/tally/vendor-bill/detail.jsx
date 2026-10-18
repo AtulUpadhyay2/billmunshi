@@ -3256,9 +3256,33 @@ const TallyVendorBillDetail = () => {
         {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
             amount (Corrections 14 + 24). Sourced from the backend
             sanity check stashed on analysedData._ocr_sanity. */}
-        {/* Rate / qty the backend corrected from the printed line amount */}
-        {Array.isArray(analysedData?._ocr_line_fixes) &&
-          analysedData._ocr_line_fixes.length > 0 && (
+        {/* Rate / qty the backend derived from the printed line amount.
+            Two very different things arrive in `_ocr_line_fixes`:
+
+              corrected — OCR read a rate/qty that contradicted the
+                          printed amount. Worth checking line by line.
+              filled    — OCR read nothing because the bill has no rate
+                          or quantity column (summary-style hospital and
+                          service bills). "amount x 1" is a tautology,
+                          so there is nothing to confirm.
+
+            Listing every `filled` row produced fourteen near-identical
+            sentences that buried the one warning that mattered. They now
+            collapse to a single line, and only real corrections are
+            itemised. */}
+        {(() => {
+          const allFixes = Array.isArray(analysedData?._ocr_line_fixes)
+            ? analysedData._ocr_line_fixes
+            : [];
+          if (allFixes.length === 0) return null;
+
+          // Older analyses predate `kind`; treat them as corrections so
+          // nothing a reviewer used to see silently disappears.
+          const corrected = allFixes.filter((f) => f.kind !== "filled");
+          const filled = allFixes.filter((f) => f.kind === "filled");
+          const SHOWN = 5;
+
+          return (
             <div className="mb-5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/30 px-3 py-2.5 flex items-start gap-2">
               <Icon
                 icon="heroicons:information-circle"
@@ -3266,9 +3290,12 @@ const TallyVendorBillDetail = () => {
               />
               <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
                 <p className="font-semibold text-blue-800 dark:text-blue-300 mb-0.5">
-                  Line rate / quantity corrected from the printed amount
+                  {corrected.length > 0
+                    ? "Line rate / quantity corrected from the printed amount"
+                    : "Rate and quantity taken from the line amount"}
                 </p>
-                {analysedData._ocr_line_fixes.map((f) => (
+
+                {corrected.slice(0, SHOWN).map((f) => (
                   <p key={f.index} className="break-words">
                     Line {Number(f.index) + 1}
                     {f.description ? ` (${f.description})` : ""}: OCR read{" "}
@@ -3277,9 +3304,24 @@ const TallyVendorBillDetail = () => {
                     Please confirm rate and quantity against the bill.
                   </p>
                 ))}
+                {corrected.length > SHOWN && (
+                  <p className="opacity-80">
+                    …and {corrected.length - SHOWN} more corrected line
+                    {corrected.length - SHOWN === 1 ? "" : "s"}.
+                  </p>
+                )}
+
+                {filled.length > 0 && (
+                  <p className="break-words">
+                    This bill prints no rate or quantity column, so{" "}
+                    {filled.length} line{filled.length === 1 ? "" : "s"} use the
+                    printed amount as the rate with quantity 1.
+                  </p>
+                )}
               </div>
             </div>
-          )}
+          );
+        })()}
 
         {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
