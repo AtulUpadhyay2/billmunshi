@@ -3315,10 +3315,21 @@ const TallyVendorBillDetail = () => {
             : [];
           if (allFixes.length === 0) return null;
 
-          // Older analyses predate `kind`; treat them as corrections so
-          // nothing a reviewer used to see silently disappears.
-          const corrected = allFixes.filter((f) => f.kind !== "filled");
-          const filled = allFixes.filter((f) => f.kind === "filled");
+          // `kind` is stamped by the backend, but analyses done before
+          // that shipped don't carry it — and those bills would otherwise
+          // show every blank-fill as a correction forever. The same test
+          // the backend uses is derivable from the row itself, so fall
+          // back to it rather than to "assume corrected".
+          const isFilled = (f) => {
+            if (f.kind) return f.kind === "filled";
+            const fromPrice = Number(f.from?.price) || 0;
+            const fromQty = Number(f.from?.quantity) || 0;
+            const toQty = Number(f.to?.quantity) || 0;
+            return fromPrice <= 0 && fromQty <= 1 && toQty === 1;
+          };
+
+          const corrected = allFixes.filter((f) => !isFilled(f));
+          const filled = allFixes.filter(isFilled);
           const SHOWN = 5;
 
           return (
