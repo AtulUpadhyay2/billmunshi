@@ -33,6 +33,19 @@ import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { toast } from "sonner";
 import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import {
+  GST_RATE_PERCENTS,
+  gstRateLabel,
+  isLegacyGstRate,
+  withCurrentRate,
+} from "@/constants/gstRates";
+
+// Line-item GST dropdown: 0% / 5% / 18% / 40% / Exempted / N/A.
+const PRODUCT_GST_OPTIONS = [
+  ...GST_RATE_PERCENTS.map((r) => `${r}%`),
+  "Exempted",
+  "N/A",
+];
 
 // Client Correction 49: always show amounts with both paise digits
 // (62816.10, not 62816.1). Falls back when the value isn't numeric.
@@ -4273,13 +4286,14 @@ const TallyVendorBillDetail = () => {
                                     style={CONTROL_SELECT_ARROW}
                                   >
                                     <option value="">Select GST</option>
-                                    <option value="0%">0%</option>
-                                    <option value="5%">5%</option>
-                                    <option value="12%">12%</option>
-                                    <option value="18%">18%</option>
-                                    <option value="28%">28%</option>
-                                    <option value="Exempted">Exempted</option>
-                                    <option value="N/A">N/A</option>
+                                    {withCurrentRate(
+                                      PRODUCT_GST_OPTIONS,
+                                      product.gst,
+                                    ).map((r) => (
+                                      <option key={r} value={r}>
+                                        {gstRateLabel(r)}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
                               </td>
@@ -4464,9 +4478,16 @@ const TallyVendorBillDetail = () => {
 
                 {(() => {
                   // Detect any line that has a GST rate but no rate→ledger mapping configured
-                  const missingMappingRates = taxRateRollup
+                  const unmappedRates = taxRateRollup
                     .filter((b) => Number(b.rate) > 0)
-                    .filter((b) => !rateLedgerMap[b.rate])
+                    .filter((b) => !rateLedgerMap[b.rate]);
+                  const missingMappingRates = unmappedRates
+                    .filter((b) => !isLegacyGstRate(b.rate))
+                    .map((b) => `${Number(b.rate)}%`);
+                  // 12% / 28% no longer have a row in Tally setup, so
+                  // "configure them there" would be a dead end.
+                  const legacyUnmappedRates = unmappedRates
+                    .filter((b) => isLegacyGstRate(b.rate))
                     .map((b) => `${Number(b.rate)}%`);
 
                   if (taxRateRollup.length === 0) {
@@ -4494,6 +4515,26 @@ const TallyVendorBillDetail = () => {
                             </span>{" "}
                             for {missingMappingRates.join(", ")}. Configure them
                             in <span className="font-semibold">Tally setup → Tax &amp; Adjustments</span> before verifying.
+                          </div>
+                        </div>
+                      )}
+                      {legacyUnmappedRates.length > 0 && (
+                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 flex items-start gap-2">
+                          <Icon
+                            icon="heroicons:exclamation-triangle"
+                            className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
+                          />
+                          <div className="text-[12px] text-amber-800 dark:text-amber-300">
+                            <span className="font-semibold">
+                              {legacyUnmappedRates.join(", ")}{" "}
+                              {legacyUnmappedRates.length > 1
+                                ? "are old GST rates"
+                                : "is an old GST rate"}
+                            </span>{" "}
+                            — from 22 Sep 2025 the slabs are 5%, 18% and 40%.
+                            Check the rate on these lines against the bill. For
+                            an older bill, pick its tax ledgers in the table
+                            below before verifying.
                           </div>
                         </div>
                       )}

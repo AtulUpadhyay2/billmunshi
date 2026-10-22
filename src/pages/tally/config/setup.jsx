@@ -18,8 +18,12 @@ import {
   useGetTallyIgstLedgers,
 } from "@/services/tally/tallyApiService";
 import { globalToast } from "@/utils/toast";
+import { GST_RATE_PERCENTS } from "@/constants/gstRates";
 
-const GST_RATES = ["0.00", "5.00", "12.00", "18.00", "28.00"];
+// "0.00", "5.00", "18.00", "40.00". Only these rows are shown and saved —
+// a mapping stored for an old 12% / 28% slab is left untouched, so older
+// bills at those rates still resolve their ledgers.
+const GST_RATES = GST_RATE_PERCENTS.map((r) => r.toFixed(2));
 
 // Shared app scale — mirrors pages/_shared/BillsList.jsx.
 const btnBase =
@@ -860,7 +864,7 @@ const TallySetup = () => {
                   Tax Ledger Mapping
                 </h2>
                 <Tooltip
-                  content="For mixed-rate bills, map each GST slab (5/12/18/28) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."
+                  content="For mixed-rate bills, map each GST slab (5/18/40) to its specific CGST/SGST/IGST ledger. Required for line-item level tax assignment."
                   placement="right"
                   arrow
                 >

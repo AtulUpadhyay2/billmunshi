@@ -10,6 +10,7 @@ import {
   CONTROL_SELECT_ARROW,
   FIELD_LABEL,
 } from "@/constants/ui";
+import { GST_RATE_PERCENTS } from "@/constants/gstRates";
 
 /**
  * AddItemModal — creates a Tally StockItem (inventory) row.
@@ -17,11 +18,14 @@ import {
  * Fields:
  *   - Item Name (required)
  *   - Item Unit (freetext, common units suggested)
- *   - GST Rate (dropdown: 0% / 5% / 12% / 18% / 28%)
+ *   - GST Rate (dropdown: 0% / 5% / 18% / 40% / Exempted)
  *   - HSN Code (optional)
  *   - Parent (Stock Group; freetext with default "Primary")
+ *
+ * A new master gets a current GST slab: a line still read at an old
+ * 12% / 28% rate opens on the 18% default for the user to confirm.
  */
-const GST_RATES = ["0%", "5%", "12%", "18%", "28%", "Exempted"];
+const GST_RATES = [...GST_RATE_PERCENTS.map((r) => `${r}%`), "Exempted"];
 const COMMON_UNITS = ["Nos", "Pcs", "Kgs", "Ltrs", "Mtrs", "Box", "Set", "Pkt"];
 
 const AddItemModal = ({

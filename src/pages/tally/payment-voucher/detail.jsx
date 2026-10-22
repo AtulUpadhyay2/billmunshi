@@ -27,6 +27,11 @@ import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import {
+  GST_RATE_PERCENTS,
+  gstRateLabel,
+  withCurrentRate,
+} from "@/constants/gstRates";
 
 // Client Correction 49: always show amounts with both paise digits
 // (62816.10, not 62816.1). Falls back when the value isn't numeric.
@@ -1672,7 +1677,11 @@ const TallyPaymentVoucherDetail = () => {
   // Tally Journal voucher: a (rate, tax_type, ledger, amount, DR/CR)
   // tuple. Mixed-rate bills have 2–N rows; a single-rate intrastate
   // has 2 rows (CGST + SGST); interstate has 1 row (IGST).
-  const GST_RATE_OPTIONS = ["5%", "12%", "18%", "28%", "Exempted", "N/A"];
+  const GST_RATE_OPTIONS = [
+    ...GST_RATE_PERCENTS.filter((r) => r > 0).map((r) => `${r}%`),
+    "Exempted",
+    "N/A",
+  ];
 
   const handleGstLineAdd = () => {
     setGstLines((prev) => [
@@ -3619,9 +3628,12 @@ const TallyPaymentVoucherDetail = () => {
                                     disabled={isVerified}
                                     className={gstSelectCls}
                                   >
-                                    {GST_RATE_OPTIONS.map((r) => (
+                                    {withCurrentRate(
+                                      GST_RATE_OPTIONS,
+                                      line.rate,
+                                    ).map((r) => (
                                       <option key={r} value={r}>
-                                        {r}
+                                        {gstRateLabel(r)}
                                       </option>
                                     ))}
                                   </select>
