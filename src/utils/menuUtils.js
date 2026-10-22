@@ -94,10 +94,13 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Purchase Voucher (formerly Vendor Bill)
+      // Handle the Tally "Purchase" group (Purchase Voucher, Payment Voucher)
       if (
-        item.title === "Purchase Voucher" &&
-        item.link === "/tally/vendor-bill"
+        item.title === "Purchase" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/tally/"),
+        )
       ) {
         return enabledModuleNames.includes("tally");
       }
@@ -110,11 +113,8 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Payment Voucher
-      if (
-        item.title === "Payment Voucher" &&
-        item.link === "/tally/payment-voucher"
-      ) {
+      // Handle Tally Activity (organisation-wide bill activity log)
+      if (item.title === "Activity" && item.link === "/tally/activity") {
         return enabledModuleNames.includes("tally");
       }
 

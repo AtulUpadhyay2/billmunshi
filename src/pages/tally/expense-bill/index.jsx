@@ -11,12 +11,15 @@ import {
   useDownloadTallyExpenseReport,
 
 } from "@/services/tally/tallyExpenseBillService";
+import { useTallyUploadTargets } from "@/services/tally/useTallyUploadTargets";
 
 const TallyExpenseBill = () => {
   return (
     <BillsList
       variant="expense"
       module="tally"
+      useUploadTargets={useTallyUploadTargets}
+      uploadTargetValue="expense"
       copy={{
         title: "Journal Entries",
         subtitle: "Create journal entry in Tally by BM automation.",

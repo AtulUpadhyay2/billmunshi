@@ -57,6 +57,11 @@ const trashBlockedReason = (bill) =>
 // Mirrors the server, which skips bills with no analysed header.
 const EXPORTABLE_STATUSES = new Set(["Analysed", "Verified", "Synced"]);
 
+// Fallback for pages that pass no upload targets — a real hook so the
+// call in BillsList is unconditional.
+const NO_UPLOAD_TARGETS = [];
+const useNoUploadTargets = () => NO_UPLOAD_TARGETS;
+
 /*
  * Progress of the upload -> analysis pipeline.
  *
@@ -276,6 +281,12 @@ const BillsList = ({
   // "tally" | "zoho" — chooses which backend tree the scanner endpoint hits
   module = "tally",
   copy,    // labels: { title, subtitle, billLabel, moveTargetLabel, detailRoute, uploadTitle }
+  // Optional. A hook returning every voucher type this module can upload
+  // into: [{ value, label, group, upload }]. When given, the upload dialog
+  // shows a voucher picker and one button serves all of them. Omitted, the
+  // page uploads only into its own type, exactly as before.
+  useUploadTargets,
+  uploadTargetValue,   // this page's own value within that list
   // hooks (from the per-page service file)
   useGetBills,
   useUpdateBill,
@@ -406,6 +417,13 @@ const BillsList = ({
   const { mutateAsync: updateBill } = useUpdateBill();
   const { mutateAsync: deleteBill } = useDeleteBill();
   const { mutateAsync: uploadBills } = useUploadBills();
+  // Always a hook call, never a conditional one: the prop is a static
+  // import at every call site, so the fallback keeps hook order stable.
+  const uploadTargets = (useUploadTargets || useNoUploadTargets)();
+  // The button no longer belongs to one voucher type once it can reach
+  // several, so the label stops naming this page's type.
+  const uploadButtonLabel =
+    uploadTargets.length > 1 ? "Upload bill" : `Upload ${copy.billLabel}`;
   const { mutateAsync: analyzeBill } = useAnalyzeBill();
   const { mutateAsync: syncBill } = useSyncBill();
   const { mutateAsync: moveBills } = useMoveBills();
@@ -632,15 +650,28 @@ const BillsList = ({
   // Returns true only when the upload actually went through, so the modal
   // keeps the staged files on screen after a failure instead of closing and
   // making the user re-pick every one of them.
-  const handleUpload = async (formData) => {
+  const handleUpload = async (formData, targetValue) => {
+    // The dialog can send the files to a voucher type other than this
+    // page's. Fall back to this page's own uploader when it doesn't.
+    const chosen = uploadTargets.find((t) => t.value === targetValue);
+    const send = chosen?.upload || uploadBills;
+    const sameList = !chosen || chosen.value === uploadTargetValue;
+
     try {
-      const result = await uploadBills({
+      const result = await send({
         organizationId: selectedOrganization?.id,
         formData,
       });
-      notifyUploadResult(result, "Bills uploaded — processing in background…");
+      notifyUploadResult(
+        result,
+        sameList
+          ? "Bills uploaded — processing in background…"
+          : `Uploaded to ${chosen.label} — processing in background…`,
+      );
       setIsUploadModalOpen(false);
-      refetch();
+      // Only this page's own list changed; another voucher's list is
+      // refetched when the user navigates to it.
+      if (sameList) refetch();
       return true;
     } catch (err) {
       notifyUploadError(err, "Failed to upload");
@@ -919,7 +950,7 @@ const BillsList = ({
             className={btnPrimary}
           >
             <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
-            Upload {copy.billLabel}
+            {uploadButtonLabel}
           </button>
         </div>
       </div>
@@ -1040,7 +1071,7 @@ const BillsList = ({
                           className={`mt-3 ${btnPrimary}`}
                         >
                           <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
-                          Upload {copy.billLabel}
+                          {uploadButtonLabel}
                         </button>
                       )}
                     </td>
@@ -1274,8 +1305,10 @@ const BillsList = ({
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
-        title={copy.uploadTitle}
+        title={uploadTargets.length > 1 ? "Upload bills" : copy.uploadTitle}
         module={module}
+        targets={uploadTargets}
+        defaultTarget={uploadTargetValue}
       />
 
       <FileViewerModal

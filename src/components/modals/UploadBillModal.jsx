@@ -148,6 +148,10 @@ const UploadBillModal = ({
   onUpload,
   title = "Upload Bills",
   module = "tally",
+  // Voucher types this upload can go into: [{ value, label, group }].
+  // Empty means the caller has only one destination and no picker is shown.
+  targets = [],
+  defaultTarget = null,
 }) => {
   // each item: { id, originalFile, tunedFile: null | File, kind: "image"|"pdf" }
   const [items, setItems] = useState([]);
@@ -163,6 +167,25 @@ const UploadBillModal = ({
   // Multi-FILE SELECTION (browse or drop several files at once, each one
   // becomes its own SINGLE-mode bill) stays enabled.
   const fileType = "Single Invoice/File";
+  // Targets in sidebar order, bucketed by their group, preserving the
+  // order they were declared in rather than sorting the labels.
+  const groupedTargets = useMemo(() => {
+    const order = [];
+    const byGroup = new Map();
+    targets.forEach((t) => {
+      const g = t.group || "";
+      if (!byGroup.has(g)) {
+        byGroup.set(g, []);
+        order.push(g);
+      }
+      byGroup.get(g).push(t);
+    });
+    return order.map((g) => [g, byGroup.get(g)]);
+  }, [targets]);
+
+  // Which voucher type the files become. Defaults to the page the user
+  // opened the dialog from, so the common case is still one click.
+  const [target, setTarget] = useState(defaultTarget);
   const [isUploading, setIsUploading] = useState(false);
   // What the spinner is actually waiting on. A bare "Uploading…" for the
   // whole wait is misleading: the first stretch is main-thread canvas work
@@ -182,8 +205,9 @@ const UploadBillModal = ({
       setIsDragOver(false);
       setRejected([]);
       setTuningId(null);
+      setTarget(defaultTarget);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultTarget]);
 
   const addFiles = (incoming) => {
     const list = Array.from(incoming);
@@ -312,7 +336,7 @@ const UploadBillModal = ({
       // `false` means the caller already surfaced the error. Anything else
       // (including a handler that returns nothing) is treated as success so
       // other callers keep their existing behaviour.
-      const ok = await onUpload(formData);
+      const ok = await onUpload(formData, target);
       if (ok !== false) onClose();
     } catch (err) {
       console.error("Upload failed:", err);
@@ -370,6 +394,50 @@ const UploadBillModal = ({
              "Single Invoice/File" (see the `fileType` const above), so the
              two-way switch was removed upstream along with FILE_TYPES. */
           <div className="space-y-3">
+            {/* Voucher type. One upload button serves every voucher, so the
+                destination is chosen here rather than by which page you
+                happened to be on. Grouped exactly like the sidebar. */}
+            {targets.length > 1 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Create as
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {groupedTargets.map(([groupName, groupTargets]) => (
+                    <div
+                      key={groupName}
+                      className="rounded-lg border border-slate-200 dark:border-slate-800 px-2.5 py-2"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1.5">
+                        {groupName}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {groupTargets.map((t) => {
+                          const active = t.value === target;
+                          return (
+                            <button
+                              key={t.value}
+                              type="button"
+                              disabled={isUploading}
+                              onClick={() => setTarget(t.value)}
+                              aria-pressed={active}
+                              className={`px-2.5 py-1.5 rounded-md text-[11px] font-semibold border transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${
+                                active
+                                  ? "border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              {t.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Drop zone */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">

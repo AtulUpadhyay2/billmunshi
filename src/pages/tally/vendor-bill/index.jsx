@@ -11,12 +11,15 @@ import {
   useDownloadTallyVendorReport,
 
 } from "@/services/tally/tallyVendorBillService";
+import { useTallyUploadTargets } from "@/services/tally/useTallyUploadTargets";
 
 const TallyVendorBill = () => {
   return (
     <BillsList
       variant="vendor"
       module="tally"
+      useUploadTargets={useTallyUploadTargets}
+      uploadTargetValue="vendor"
       copy={{
         title: "Purchase Vouchers",
         subtitle: "Create purchase voucher in Tally by BM automation.",
