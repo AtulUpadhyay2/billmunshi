@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import ActivityTimeline from "@/components/bills/ActivityTimeline";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -4268,6 +4269,30 @@ const TallyExpenseBillDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* Activity — who did what to this bill, straight from the
+                server-side log. Collapsed by default so it never competes
+                with the form above it. */}
+            <details className="mt-3 group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+              <summary className="flex items-center gap-2 p-4 cursor-pointer list-none select-none">
+                <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700">
+                  <Icon icon="heroicons:clock" className="text-sm" />
+                </span>
+                <h3 className="flex-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                  Activity
+                </h3>
+                <Icon
+                  icon="heroicons:chevron-down"
+                  className="text-sm text-slate-400 dark:text-slate-500 transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="px-4 pb-4">
+                <ActivityTimeline
+                  organizationId={selectedOrganization?.id}
+                  billId={billId}
+                />
+              </div>
+            </details>
           </div>
         </div>
       </div>
