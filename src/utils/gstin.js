@@ -18,6 +18,23 @@ const NAME_PREFIXES = /^(m\s*\/\s*s\.?|messrs\.?|the|shri|sri|smt\.?)\s+/i;
 export const normalizeGstin = (gstin) =>
   String(gstin || "").replace(/\s+/g, "").toUpperCase();
 
+/** Same message (and same rule) as the signup form and the backend. */
+export const GSTIN_FORMAT_MESSAGE =
+  "Enter a valid 15-character GST No. (e.g. 22AAAAA0000A1Z5)";
+
+/** Trimmed, upper-cased GSTIN as typed in a form field. */
+export const cleanGstinInput = (value) =>
+  String(value || "").trim().toUpperCase();
+
+/**
+ * Format error for an optional GSTIN field: "" when it is empty or looks
+ * like a 15-character GSTIN, otherwise GSTIN_FORMAT_MESSAGE.
+ */
+export const gstinFormatError = (value) => {
+  const g = cleanGstinInput(value);
+  return !g || GSTIN_RE.test(g) ? "" : GSTIN_FORMAT_MESSAGE;
+};
+
 /** Format + checksum check. */
 export const isValidGstin = (gstin) => {
   const g = normalizeGstin(gstin);

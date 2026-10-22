@@ -100,6 +100,9 @@ export const CONTROL_READONLY =
  */
 export const CONTROL_SEARCH = `w-full h-8 pl-8 pr-3 text-xs ${SKIN}`;
 
+/** `CONTROL_SEARCH` box for a field with a validation state — see `CONTROL_VALIDATED`. */
+export const CONTROL_SEARCH_VALIDATED = `w-full h-8 pl-8 pr-3 text-xs ${SKIN_BASE}`;
+
 /** Field label above a control. */
 export const FIELD_LABEL =
   "block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1";

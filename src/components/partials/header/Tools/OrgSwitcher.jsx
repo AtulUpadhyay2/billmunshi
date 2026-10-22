@@ -10,6 +10,7 @@ import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import apiClient from "@/utils/apiClient";
+import { cleanGstinInput, gstinFormatError } from "@/utils/gstin";
 
 const OrgSwitcher = () => {
   const dispatch = useDispatch();
@@ -34,6 +35,7 @@ const OrgSwitcher = () => {
   if (!orgs || orgs.length === 0) return null;
 
   const current = selectedOrganization || orgs[0];
+  const gstError = gstinFormatError(formData.gst_number);
 
   const handleCreateOrganization = async (e) => {
     e.preventDefault();
@@ -42,11 +44,18 @@ const OrgSwitcher = () => {
       toast.error("Organization name is required");
       return;
     }
+    if (gstError) {
+      toast.error(gstError);
+      return;
+    }
 
     let response;
     try {
       setCreateLoading(true);
-      response = await apiClient.post("/org/create-with-module/", formData);
+      response = await apiClient.post("/org/create-with-module/", {
+        ...formData,
+        gst_number: cleanGstinInput(formData.gst_number),
+      });
     } catch (error) {
       console.error("Error creating organization:", error);
       const errorMessage =
@@ -215,6 +224,8 @@ const OrgSwitcher = () => {
             placeholder="Enter GSTIN (optional)"
             value={formData.gst_number}
             onChange={(e) => handleInputChange("gst_number", e.target.value)}
+            className="uppercase placeholder:normal-case"
+            error={gstError ? { message: gstError } : null}
           />
 
           <Select

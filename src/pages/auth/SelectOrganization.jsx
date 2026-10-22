@@ -8,9 +8,16 @@ import Modal from "@/components/ui/Modal";
 import { toast } from "sonner";
 import Loading from "@/components/Loading";
 import apiClient from "@/utils/apiClient";
+import { cleanGstinInput, gstinFormatError } from "@/utils/gstin";
 
 const inputBase =
   "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+
+// `inputBase` with the border / focus colours swapped for rose — a full
+// replacement, not an add-on: two `border-*` colour utilities on one element
+// are resolved by stylesheet order, not by class order.
+const inputInvalid =
+  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-rose-400 dark:border-rose-500 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20";
 
 const AVATAR_GRADIENTS = [
   "from-blue-500 to-blue-700",
@@ -115,18 +122,24 @@ const SelectOrganization = () => {
     }
   };
 
+  const gstError = gstinFormatError(formData.gst_number);
+
   const handleCreateOrganization = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error("Organization name is required");
       return;
     }
+    if (gstError) {
+      toast.error(gstError);
+      return;
+    }
     try {
       setCreateLoading(true);
-      const response = await apiClient.post(
-        "/org/create-with-module/",
-        formData,
-      );
+      const response = await apiClient.post("/org/create-with-module/", {
+        ...formData,
+        gst_number: cleanGstinInput(formData.gst_number),
+      });
       toast.success(
         response.data.data.message || "Organization created successfully",
       );
@@ -588,9 +601,16 @@ const SelectOrganization = () => {
                   setFormData({ ...formData, gst_number: e.target.value })
                 }
                 placeholder="Enter GSTIN (optional)"
-                className={inputBase}
+                maxLength={15}
+                autoComplete="off"
+                className={`${gstError ? inputInvalid : inputBase} uppercase placeholder:normal-case`}
               />
             </div>
+            {gstError && (
+              <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                {gstError}
+              </p>
+            )}
           </div>
 
           <div>

@@ -7,7 +7,8 @@ import apiClient from "@/utils/apiClient";
 import Modal from "@/components/ui/Modal";
 import TablePagination from "@/components/ui/TablePagination";
 import { setSelectedOrganization } from "@/store/api/auth/authSlice";
-import { CONTROL_SEARCH } from "@/constants/ui";
+import { CONTROL_SEARCH, CONTROL_SEARCH_VALIDATED } from "@/constants/ui";
+import { cleanGstinInput, gstinFormatError } from "@/utils/gstin";
 
 
 const btnBase =
@@ -93,15 +94,24 @@ const ClientList = () => {
     });
   };
 
+  const gstError = gstinFormatError(formData.gst_number);
+
   const handleCreateClient = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error("Organization name is required");
       return;
     }
+    if (gstError) {
+      toast.error(gstError);
+      return;
+    }
     try {
       setCreateLoading(true);
-      const response = await apiClient.post("/org/create-with-module/", formData);
+      const response = await apiClient.post("/org/create-with-module/", {
+        ...formData,
+        gst_number: cleanGstinInput(formData.gst_number),
+      });
       toast.success(response.data.data.message);
       setShowCreateModal(false);
       setFormData({ name: "", module: "tally", gst_number: "" });
@@ -474,9 +484,20 @@ const ClientList = () => {
                 value={formData.gst_number}
                 onChange={(e) => setFormData({ ...formData, gst_number: e.target.value })}
                 placeholder="Enter GSTIN (optional)"
-                className={CONTROL_SEARCH}
+                maxLength={15}
+                autoComplete="off"
+                className={`${CONTROL_SEARCH_VALIDATED} uppercase placeholder:normal-case ${
+                  gstError
+                    ? "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20"
+                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
+                }`}
               />
             </div>
+            {gstError && (
+              <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                {gstError}
+              </p>
+            )}
           </div>
 
           <div>
