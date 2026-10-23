@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ActivityTimeline from "@/components/bills/ActivityTimeline";
+import ExtractionChecks from "@/components/bills/ExtractionChecks";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -3386,6 +3387,10 @@ const TallyVendorBillDetail = () => {
             </div>
           );
         })()}
+
+        {/* Arithmetic and identity findings from the server, which run on
+            every bill whichever model read it. Advisory, never blocking. */}
+        <ExtractionChecks findings={analysedData?._extraction_checks} />
 
         {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
           <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityTimeline from "@/components/bills/ActivityTimeline";
+import ExtractionChecks from "@/components/bills/ExtractionChecks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
@@ -2814,7 +2815,11 @@ const TallyPaymentVoucherDetail = () => {
                 </div>
 
                 {/* OCR sanity banner — leading-digit miss on large amounts. */}
-                {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
+                {/* Arithmetic and identity findings from the server, which run on
+            every bill whichever model read it. Advisory, never blocking. */}
+        <ExtractionChecks findings={analysedData?._extraction_checks} />
+
+        {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
                   <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
                     <Icon icon="heroicons:exclamation-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">

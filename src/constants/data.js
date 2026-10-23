@@ -108,6 +108,13 @@ export const menuItems = [
   },
 
   {
+    title: "Accuracy",
+    isHide: true,
+    icon: "heroicons-outline:chart-bar",
+    link: "/tally/accuracy",
+  },
+
+  {
     title: "Trash",
     isHide: true,
     icon: "heroicons-outline:trash",

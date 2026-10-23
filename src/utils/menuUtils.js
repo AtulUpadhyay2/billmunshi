@@ -118,6 +118,11 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
+      // Handle Tally Accuracy (extraction accuracy from verify corrections)
+      if (item.title === "Accuracy" && item.link === "/tally/accuracy") {
+        return enabledModuleNames.includes("tally");
+      }
+
       // Handle Tally Trash (recoverable deletes for every Tally bill type)
       if (item.title === "Trash" && item.link === "/tally/trash") {
         return enabledModuleNames.includes("tally");
