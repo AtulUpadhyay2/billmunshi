@@ -64,6 +64,17 @@ const NO_UPLOAD_TARGETS = [];
 const useNoUploadTargets = () => NO_UPLOAD_TARGETS;
 
 /*
+ * Stand-in for pages that cannot move bills anywhere (Sales, Receipt).
+ * A hook, not a plain object, so the hook-call order below stays the
+ * same whether or not the page passes a real one.
+ */
+const useNoMoveBills = () => ({
+  mutateAsync: async () => {
+    throw new Error("This voucher type cannot be moved.");
+  },
+});
+
+/*
  * Progress of the upload -> analysis pipeline.
  *
  * The percentage comes from the API (`processing_progress`), derived from
@@ -316,6 +327,11 @@ const BillsList = ({
   // direction args for the move endpoint
   moveFrom,
   moveTo,
+  // Moving a voucher between types only makes sense inside one side of
+  // the ledger. A sales invoice has a customer and revenue ledgers; a
+  // purchase bill has a vendor and expense ledgers, and the move would
+  // carry neither across. Sales and Receipt pass false.
+  allowMove = true,
 }) => {
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
@@ -442,7 +458,7 @@ const BillsList = ({
     uploadTargets.length > 1 ? "Upload bill" : `Upload ${copy.billLabel}`;
   const { mutateAsync: analyzeBill } = useAnalyzeBill();
   const { mutateAsync: syncBill } = useSyncBill();
-  const { mutateAsync: moveBills } = useMoveBills();
+  const { mutateAsync: moveBills } = (useMoveBills || useNoMoveBills)();
 
   // Download-report hook is optional. When the parent page doesn't
   // pass one, ``downloadReport`` is a no-op and the button stays hidden.
@@ -819,6 +835,7 @@ const BillsList = ({
                   Styled through `btnNeutral` so it keeps the same 32px box as
                   every other toolbar button instead of the 38px it shipped
                   with. */}
+              {allowMove && (
               <Menu as="div" className="relative">
                 <MenuButton className={btnNeutral}>
                   <Icon icon="heroicons:arrow-right-circle" className="text-sm" />
@@ -902,6 +919,7 @@ const BillsList = ({
                   )}
                 </MenuItems>
               </Menu>
+              )}
               {bulkSyncableIds.length > 0 && can(ACTIONS.SYNC_BILLS) && (
                 <button
                   type="button"

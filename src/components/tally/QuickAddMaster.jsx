@@ -22,6 +22,7 @@ import AddItemModal from "@/components/modals/AddItemModal";
 
 const KIND_TITLES = {
   vendor: "Create a new vendor ledger",
+  customer: "Create a new customer ledger",
   ledger: "Create a new ledger",
   item: "Create a new inventory / stock item",
 };
@@ -66,13 +67,14 @@ const QuickAddMaster = ({
         <Icon icon="heroicons:plus" className="text-sm" />
       </button>
 
-      {kind === "vendor" && (
+      {(kind === "vendor" || kind === "customer") && (
         <AddVendorModal
           isOpen={open}
           onClose={close}
           onCreated={handleCreated}
           defaultName={vendorDefaultName}
           defaultGstIn={vendorDefaultGstIn}
+          party={kind}
         />
       )}
       {kind === "ledger" && (

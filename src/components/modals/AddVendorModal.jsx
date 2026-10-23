@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
-import { useQuickCreateVendor } from "@/services/tally/tallyQuickCreateService";
+import {
+  useQuickCreateCustomer,
+  useQuickCreateVendor,
+} from "@/services/tally/tallyQuickCreateService";
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,24 +13,46 @@ import { CONTROL, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 import { gstinNameInitial, nameMatchesGstin } from "@/utils/gstin";
 
 /**
- * AddVendorModal — creates a Tally vendor ledger in one shot.
+ * AddVendorModal — creates a Tally party ledger in one shot.
+ *
+ * Serves both sides. ``party`` picks which: a vendor files under Sundry
+ * Creditors, a customer under Sundry Debtors, and each hits its own
+ * quick-create endpoint. Everything else — the GSTIN check, the parent
+ * datalist, the sync notice — is the same question asked of the same
+ * kind of record, so it is one modal rather than two that drift.
  *
  * Fields:
- *   - Vendor Name (required)
- *   - Vendor GSTIN (optional; validated as 15-char alphanumeric if provided)
- *   - Parent Ledger (dropdown from existing parents, default "Sundry Creditors";
- *     freetext fallback so a new parent can be created)
+ *   - Name (required)
+ *   - GSTIN (optional; validated as 15-char alphanumeric if provided)
+ *   - Parent Ledger (dropdown from existing parents, defaulting to the
+ *     party's usual group; freetext fallback so a new parent can be
+ *     created)
  *
  * On success invokes ``onCreated(ledger)`` with the fresh row so the
  * caller can push it into a dropdown as the selected value.
  */
+const PARTY = {
+  vendor: {
+    noun: "Vendor",
+    defaultParent: "Sundry Creditors",
+    cacheKey: "tallyVendorLedgers",
+  },
+  customer: {
+    noun: "Customer",
+    defaultParent: "Sundry Debtors",
+    cacheKey: "tallyCustomerLedgers",
+  },
+};
+
 const AddVendorModal = ({
   isOpen,
   onClose,
   onCreated,
   defaultName = "",
   defaultGstIn = "",
+  party = "vendor",
 }) => {
+  const partyConfig = PARTY[party] || PARTY.vendor;
   const { selectedOrganization } = useSelector((state) => state.auth);
   const orgId = selectedOrganization?.id;
 
@@ -45,7 +70,11 @@ const AddVendorModal = ({
     ]),
   );
 
-  const create = useQuickCreateVendor();
+  // Both hooks run every render so the hook order never changes with
+  // the ``party`` prop; only the chosen one is called.
+  const createVendor = useQuickCreateVendor();
+  const createCustomer = useQuickCreateCustomer();
+  const create = party === "customer" ? createCustomer : createVendor;
   const queryClient = useQueryClient();
 
   // On open, seed from the OCR-derived defaults (bill vendor name + GST).
@@ -58,7 +87,7 @@ const AddVendorModal = ({
     } else {
       setName("");
       setGstIn("");
-      setParentName("Sundry Creditors");
+      setParentName(partyConfig.defaultParent);
       setSubmitting(false);
     }
   }, [isOpen, defaultName, defaultGstIn]);
@@ -80,7 +109,7 @@ const AddVendorModal = ({
         gst_in: gstIn.trim(),
         parent_ledger_name: parentName.trim(),
       });
-      toast.success("Vendor created — awaiting Tally sync");
+      toast.success(`${partyConfig.noun} created — awaiting Tally sync`);
       onCreated?.(ledger);
       onClose?.();
     } catch (err) {
@@ -89,12 +118,15 @@ const AddVendorModal = ({
       const existing = err?.data?.existing_ledger;
       if (err?.data?.error === "DUPLICATE_LEDGER" && existing?.id) {
         toast.info(`"${existing.name}" already exists — using the existing ledger`);
-        queryClient.invalidateQueries({ queryKey: ["tallyVendorLedgers", orgId] });
+        queryClient.invalidateQueries({ queryKey: [partyConfig.cacheKey, orgId] });
         onCreated?.(existing);
         onClose?.();
         return;
       }
-      toast.error(err?.data?.message || err?.message || "Failed to create vendor");
+      toast.error(
+        err?.data?.message || err?.message ||
+          `Failed to create ${partyConfig.noun.toLowerCase()}`,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +134,7 @@ const AddVendorModal = ({
 
   return (
     <Modal
-      title="Add New Vendor"
+      title={`Add New ${partyConfig.noun}`}
       activeModal={isOpen}
       // Never pass undefined — HeadlessUI Dialog requires a function
       // or it throws mid-render and blanks the screen. No-op during
@@ -113,7 +145,7 @@ const AddVendorModal = ({
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className={FIELD_LABEL}>
-            Vendor Name <span className="text-rose-500">*</span>
+            {partyConfig.noun} Name <span className="text-rose-500">*</span>
           </label>
           <input
             type="text"
@@ -126,7 +158,7 @@ const AddVendorModal = ({
           {nameGstMismatch && (
             <p className="mt-1 text-[11px] leading-snug text-amber-700 dark:text-amber-400">
               This GSTIN belongs to a business whose name starts with
-              "{gstinNameInitial(gstIn)}". Check the vendor name on the bill —
+              "{gstinNameInitial(gstIn)}". Check the party name on the bill —
               OCR may have picked the customer or the invoice software's name.
             </p>
           )}
@@ -134,7 +166,7 @@ const AddVendorModal = ({
 
         <div>
           <label className={FIELD_LABEL}>
-            Vendor GSTIN
+            {partyConfig.noun} GSTIN
           </label>
           <input
             type="text"
@@ -168,7 +200,7 @@ const AddVendorModal = ({
             list="vendor-parent-options"
             value={parentName}
             onChange={(e) => setParentName(e.target.value)}
-            placeholder="Sundry Creditors"
+            placeholder={partyConfig.defaultParent}
             className={CONTROL}
           />
           <datalist id="vendor-parent-options">
@@ -184,7 +216,7 @@ const AddVendorModal = ({
         <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5 text-[12px] text-blue-800 dark:text-blue-300 flex items-start gap-2">
           <Icon icon="heroicons:information-circle" className="text-lg shrink-0 mt-0.5" />
           <span>
-            The vendor will be created in Bill Munshi immediately and queued
+            The {partyConfig.noun.toLowerCase()} will be created in Bill Munshi immediately and queued
             for Tally sync. Tally's TCP will import it in the next poll cycle
             (usually within ~30 seconds).
           </span>
@@ -212,7 +244,7 @@ const AddVendorModal = ({
             ) : (
               <>
                 <Icon icon="heroicons:plus" className="text-sm" />
-                Create Vendor
+                Create {partyConfig.noun}
               </>
             )}
           </button>

@@ -48,6 +48,16 @@ const ACCOUNT_FIELDS = [
   { key: "chart_of_accounts_parents", display: "coa_parent_names", label: "Purchase parent ledger", icon: "heroicons:shopping-cart" },
   { key: "chart_of_accounts_expense_parents", display: "expense_coa_parent_names", label: "Expense parent ledger", icon: "heroicons:credit-card" },
   { key: "payment_parents", display: "payment_parent_names", label: "Payment ledgers", icon: "heroicons:banknotes" },
+  // Sales side. Deliberately separate from the purchase groups: a
+  // customer offered as a vendor, or a purchase account offered on a
+  // sales line, posts revenue to the wrong side of the books.
+  { key: "customer_parents", display: "customer_parent_names", label: "Customer ledgers", icon: "heroicons:user-group" },
+  { key: "sales_coa_parents", display: "sales_coa_parent_names", label: "Sales parent ledger", icon: "heroicons:currency-rupee" },
+  { key: "receipt_parents", display: "receipt_parent_names", label: "Receipt ledgers", icon: "heroicons:arrow-down-tray" },
+  // Where the reverse-charge liability sits. Its own group because the
+  // input-credit ledger and the payable ledger are different accounts
+  // even though both live under Duties & Taxes.
+  { key: "rcm_parents", display: "rcm_parent_names", label: "RCM payable ledgers", icon: "heroicons:arrows-right-left" },
 ];
 
 // "Additional Adjustments Mapping" — Cess / Discount / Freight / Round Off / TDS
@@ -169,6 +179,10 @@ const EMPTY_CONFIG = {
   chart_of_accounts_parents: [],
   chart_of_accounts_expense_parents: [],
   payment_parents: [],
+  customer_parents: [],
+  sales_coa_parents: [],
+  receipt_parents: [],
+  rcm_parents: [],
   round_off_parents: [],
   cess_parents: [],
   discount_parents: [],
@@ -453,6 +467,10 @@ const TallySetup = () => {
         chart_of_accounts_parents: config.chart_of_accounts_parents || [],
         chart_of_accounts_expense_parents: config.chart_of_accounts_expense_parents || [],
         payment_parents: config.payment_parents || [],
+        customer_parents: config.customer_parents || [],
+        sales_coa_parents: config.sales_coa_parents || [],
+        receipt_parents: config.receipt_parents || [],
+        rcm_parents: config.rcm_parents || [],
         round_off_parents: config.round_off_parents || [],
         cess_parents: config.cess_parents || [],
         discount_parents: config.discount_parents || [],
@@ -509,6 +527,10 @@ const TallySetup = () => {
     chart_of_accounts_expense_parents:
       source.chart_of_accounts_expense_parents || [],
     payment_parents: source.payment_parents || [],
+    customer_parents: source.customer_parents || [],
+    sales_coa_parents: source.sales_coa_parents || [],
+    receipt_parents: source.receipt_parents || [],
+    rcm_parents: source.rcm_parents || [],
     round_off_parents: source.round_off_parents || [],
     cess_parents: source.cess_parents || [],
     discount_parents: source.discount_parents || [],

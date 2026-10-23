@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { useSelector } from "react-redux";
 import { useGetOrganizationModulesQuery } from "@/store/api/modules/modulesSlice";
 import { getFilteredMenuItems } from "@/utils/menuUtils";
+import { ACTIONS, useOrgPermissions } from "@/services/approvalService";
 
 // import images
 import MobileLogo from "@/assets/images/logo/logo-c.svg";
@@ -51,7 +52,11 @@ const MobileMenu = ({ className = "custom-class" }) => {
   });
 
   // Get filtered menu items based on enabled modules
-  const filteredMenuItems = getFilteredMenuItems(modulesData || []);
+  const { can } = useOrgPermissions();
+  const filteredMenuItems = getFilteredMenuItems(
+    modulesData || [],
+    can(ACTIONS.MANAGE_SETTINGS),
+  );
 
   return (
     <div

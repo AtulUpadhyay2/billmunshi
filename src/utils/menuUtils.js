@@ -31,7 +31,16 @@ export const getFilteredChildItems = (
  * @param {Array} enabledModules - Array of module objects from API
  * @returns {Array} Filtered menu items
  */
-export const getFilteredMenuItems = (enabledModules = []) => {
+/**
+ * Build the sidebar for this workspace.
+ *
+ * ``isAdmin`` gates the entries that are internal instruments rather
+ * than product features. Accuracy is one: it reports how often our own
+ * extractor was wrong, which is useful to the team and misleading to
+ * anyone else. Defaults to true so a caller that has not loaded
+ * permissions yet does not flicker the entry away from an admin.
+ */
+export const getFilteredMenuItems = (enabledModules = [], isAdmin = true) => {
   // Extract enabled module names
   const enabledModuleNames = enabledModules
     .filter((module) => module.is_enabled)
@@ -113,6 +122,11 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
+      // Handle the Tally Sales group (Sales Voucher, Receipt Voucher)
+      if (item.title === "Sales" && item.child) {
+        return enabledModuleNames.includes("tally");
+      }
+
       // Handle Tally Approvals (bills waiting on a Manager's decision)
       if (item.title === "Approvals" && item.link === "/tally/approvals") {
         return enabledModuleNames.includes("tally");
@@ -123,9 +137,9 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Accuracy (extraction accuracy from verify corrections)
+      // Accuracy is admin-only and covers every module, not just Tally.
       if (item.title === "Accuracy" && item.link === "/tally/accuracy") {
-        return enabledModuleNames.includes("tally");
+        return isAdmin;
       }
 
       // Handle Tally Trash (recoverable deletes for every Tally bill type)
@@ -187,6 +201,6 @@ export const getFilteredMenuItems = (enabledModules = []) => {
 /**
  * Hook to get filtered menu items based on current organization's enabled modules
  */
-export const useFilteredMenuItems = (enabledModules) => {
-  return getFilteredMenuItems(enabledModules);
+export const useFilteredMenuItems = (enabledModules, isAdmin = true) => {
+  return getFilteredMenuItems(enabledModules, isAdmin);
 };

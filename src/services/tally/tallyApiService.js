@@ -223,6 +223,44 @@ export const useGetTallyLedgers = (organizationId, options = {}) => {
 /**
  * Get Tally vendor ledgers for an organization
  */
+/**
+ * Customer ledgers — the sales-side party list, scoped by the
+ * ``customer_parents`` config group (normally Sundry Debtors).
+ */
+export const useGetTallyCustomerLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallyCustomerLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/configs/ledgers/?parent_type=customer_parents`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
+/**
+ * Sales ledgers — the revenue accounts a sales line is credited to,
+ * scoped by the ``sales_coa_parents`` config group.
+ */
+export const useGetTallySalesLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallySalesLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/configs/ledgers/?parent_type=sales_coa_parents`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
 export const useGetTallyVendorLedgers = (organizationId, options = {}) => {
   return useQuery({
     queryKey: ['tallyVendorLedgers', organizationId],

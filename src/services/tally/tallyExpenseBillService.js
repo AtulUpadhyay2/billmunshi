@@ -83,6 +83,13 @@ export const useGetTallyExpenseBillDetails = ({ organizationId, billId }, option
       return response;
     },
     enabled: !!organizationId && !!billId,
+    // The document pane loads the file through a signed URL that the
+    // serializer mints per response and that expires after an hour. A
+    // detail page left open past that shows "You do not have access to
+    // this file" where the bill image was. Refetching when the tab is
+    // focused again re-signs it, which is also when somebody is about
+    // to look at it.
+    refetchOnWindowFocus: true,
     ...options,
   });
 };

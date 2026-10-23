@@ -72,8 +72,8 @@ export const menuItems = [
   },
 
   // Vouchers are grouped by accounting cycle. Purchase and Payment are the
-  // payables cycle; Sales and Receipt will form a "Sales" group when they
-  // ship. Journal Entry stays top level on purpose: journals arise on both
+  // payables cycle; Sales and Receipt are the receivables one. Journal
+  // Entry stays top level on purpose: journals arise on both
   // sides (TDS, RCM, provisions on one; write-offs, TCS on the other), so
   // it belongs to neither group.
   {
@@ -89,6 +89,23 @@ export const menuItems = [
       {
         childtitle: "Payment Voucher",
         childlink: "/tally/payment-voucher",
+      },
+    ],
+  },
+
+  {
+    title: "Sales",
+    isHide: true,
+    icon: "heroicons-outline:currency-rupee",
+    link: "#",
+    child: [
+      {
+        childtitle: "Sales Voucher",
+        childlink: "/tally/sales-bill",
+      },
+      {
+        childtitle: "Receipt Voucher",
+        childlink: "/tally/receipt-voucher",
       },
     ],
   },

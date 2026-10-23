@@ -59,6 +59,17 @@ const TallyVendorBillDetail = lazy(
   () => import("./pages/tally/vendor-bill/detail"),
 );
 
+const TallySalesBill = lazy(() => import("./pages/tally/sales-bill"));
+const TallyReceiptVoucher = lazy(
+  () => import("./pages/tally/receipt-voucher"),
+);
+const TallyReceiptVoucherDetail = lazy(
+  () => import("./pages/tally/receipt-voucher/detail"),
+);
+const TallySalesBillDetail = lazy(
+  () => import("./pages/tally/sales-bill/detail"),
+);
+
 const TallyExpenseBill = lazy(() => import("./pages/tally/expense-bill"));
 const TallyExpenseBillDetail = lazy(
   () => import("./pages/tally/expense-bill/detail"),
@@ -188,6 +199,19 @@ function App() {
           <Route
             path="tally/vendor-bill/:id"
             element={<TallyVendorBillDetail />}
+          />
+          <Route path="tally/sales-bill" element={<TallySalesBill />} />
+          <Route
+            path="tally/receipt-voucher"
+            element={<TallyReceiptVoucher />}
+          />
+          <Route
+            path="tally/receipt-voucher/:id"
+            element={<TallyReceiptVoucherDetail />}
+          />
+          <Route
+            path="tally/sales-bill/:id"
+            element={<TallySalesBillDetail />}
           />
           <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
           <Route

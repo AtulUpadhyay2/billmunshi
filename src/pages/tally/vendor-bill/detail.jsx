@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import ActivityTimeline from "@/components/bills/ActivityTimeline";
+import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
-import ExtractionChecks from "@/components/bills/ExtractionChecks";
+import BillChecks from "@/components/bills/BillChecks";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -214,6 +214,7 @@ const TallyVendorBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
 
@@ -3225,6 +3226,15 @@ const TallyVendorBillDetail = () => {
             Next
             <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
+          <button
+            type="button"
+            onClick={() => setIsActivityOpen(true)}
+            aria-label="Activity"
+            className="inline-flex items-center justify-center h-8 w-8 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            title="Who did what to this bill"
+          >
+            <Icon icon="heroicons:clock" className="text-sm" />
+          </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
@@ -3311,125 +3321,17 @@ const TallyVendorBillDetail = () => {
         {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
             amount (Corrections 14 + 24). Sourced from the backend
             sanity check stashed on analysedData._ocr_sanity. */}
-        {/* Rate / qty the backend derived from the printed line amount.
-            Two very different things arrive in `_ocr_line_fixes`:
+        {/* Everything the operator must look at, in one box: what is
+            blocking Verify, then what simply does not add up. Four
+            separate banners used to stack here, two of them reporting
+            the same arithmetic. */}
+        <BillChecks
+          blockers={getValidationErrorMessages()}
+          isVerified={isVerified}
+        />
 
-              corrected — OCR read a rate/qty that contradicted the
-                          printed amount. Worth checking line by line.
-              filled    — OCR read nothing because the bill has no rate
-                          or quantity column (summary-style hospital and
-                          service bills). "amount x 1" is a tautology,
-                          so there is nothing to confirm.
 
-            Listing every `filled` row produced fourteen near-identical
-            sentences that buried the one warning that mattered. They now
-            collapse to a single line, and only real corrections are
-            itemised. */}
-        {(() => {
-          const allFixes = Array.isArray(analysedData?._ocr_line_fixes)
-            ? analysedData._ocr_line_fixes
-            : [];
-          if (allFixes.length === 0) return null;
 
-          // `kind` is stamped by the backend, but analyses done before
-          // that shipped don't carry it — and those bills would otherwise
-          // show every blank-fill as a correction forever. The same test
-          // the backend uses is derivable from the row itself, so fall
-          // back to it rather than to "assume corrected".
-          const isFilled = (f) => {
-            if (f.kind) return f.kind === "filled";
-            const fromPrice = Number(f.from?.price) || 0;
-            const fromQty = Number(f.from?.quantity) || 0;
-            const toQty = Number(f.to?.quantity) || 0;
-            return fromPrice <= 0 && fromQty <= 1 && toQty === 1;
-          };
-
-          const corrected = allFixes.filter((f) => !isFilled(f));
-          const filled = allFixes.filter(isFilled);
-          const SHOWN = 5;
-
-          return (
-            <div className="mb-5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/30 px-3 py-2.5 flex items-start gap-2">
-              <Icon
-                icon="heroicons:information-circle"
-                className="text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5"
-              />
-              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
-                <p className="font-semibold text-blue-800 dark:text-blue-300 mb-0.5">
-                  {corrected.length > 0
-                    ? "Line rate / quantity corrected from the printed amount"
-                    : "Rate and quantity taken from the line amount"}
-                </p>
-
-                {corrected.slice(0, SHOWN).map((f) => (
-                  <p key={f.index} className="break-words">
-                    Line {Number(f.index) + 1}
-                    {f.description ? ` (${f.description})` : ""}: OCR read{" "}
-                    {f.from?.price} × {f.from?.quantity || 0}, but the bill
-                    prints {f.amount} — set to {f.to?.price} × {f.to?.quantity}.
-                    Please confirm rate and quantity against the bill.
-                  </p>
-                ))}
-                {corrected.length > SHOWN && (
-                  <p className="opacity-80">
-                    …and {corrected.length - SHOWN} more corrected line
-                    {corrected.length - SHOWN === 1 ? "" : "s"}.
-                  </p>
-                )}
-
-                {filled.length > 0 && (
-                  <p className="break-words">
-                    This bill prints no rate or quantity column, so{" "}
-                    {filled.length} line{filled.length === 1 ? "" : "s"} use the
-                    printed amount as the rate with quantity 1.
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Arithmetic and identity findings from the server, which run on
-            every bill whichever model read it. Advisory, never blocking. */}
-        <ExtractionChecks findings={analysedData?._extraction_checks} />
-
-        {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
-          <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
-            <Icon
-              icon="heroicons:exclamation-circle"
-              className="text-rose-600 dark:text-rose-400 text-lg shrink-0 mt-0.5"
-            />
-            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed min-w-0">
-              <p className="font-semibold text-rose-800 dark:text-rose-300 mb-1">
-                OCR check — verify large amounts
-              </p>
-              <p>{analysedData._ocr_sanity.message}</p>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Most likely cause: OCR missed or added a digit (e.g. a
-                leading digit dropped on a large amount, or "425/-" read
-                as 4250). Cross-check the invoice image against every
-                amount field before verifying.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Validation summary */}
-        {hasValidationErrors() && !isVerified && (
-          <div className="mb-5 flex items-start gap-3 p-3.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
-            <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-lg shrink-0 mt-0.5" />
-            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                Resolve before verifying
-              </p>
-              <ul className="list-disc pl-4 space-y-0.5">
-                {getValidationErrorMessages().slice(0, 5).map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
 
         <div className="flex flex-col lg:flex-row gap-4 relative">
           {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
@@ -4968,32 +4870,16 @@ const TallyVendorBillDetail = () => {
               />
             </div>
 
-            {/* Activity — who did what to this bill, straight from the
-                server-side log. Collapsed by default so it never competes
-                with the form above it. */}
-            <details className="mt-3 group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-              <summary className="flex items-center gap-2 p-4 cursor-pointer list-none select-none">
-                <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700">
-                  <Icon icon="heroicons:clock" className="text-sm" />
-                </span>
-                <h3 className="flex-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                  Activity
-                </h3>
-                <Icon
-                  icon="heroicons:chevron-down"
-                  className="text-sm text-slate-400 dark:text-slate-500 transition-transform group-open:rotate-180"
-                />
-              </summary>
-              <div className="px-4 pb-4">
-                <ActivityTimeline
-                  organizationId={selectedOrganization?.id}
-                  billId={billId}
-                />
-              </div>
-            </details>
           </div>
         </div>
       </div>
+
+      <ActivityPanel
+        open={isActivityOpen}
+        onClose={() => setIsActivityOpen(false)}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+      />
 
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (

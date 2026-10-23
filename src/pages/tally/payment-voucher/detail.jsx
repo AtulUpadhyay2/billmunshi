@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import ActivityTimeline from "@/components/bills/ActivityTimeline";
+import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
-import ExtractionChecks from "@/components/bills/ExtractionChecks";
+import BillChecks from "@/components/bills/BillChecks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
@@ -121,6 +121,7 @@ const TallyPaymentVoucherDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
 
@@ -150,6 +151,11 @@ const TallyPaymentVoucherDetail = () => {
   // copied from the journal-entry page, where the product requirement is the
   // opposite (Correction 6), and the default came along with it.
   const [isConsolidated, setIsConsolidated] = useState(false);
+
+  // Reverse charge. The server owns the arithmetic — it mirrors each
+  // input GST line into a liability line against the RCM payable
+  // ledger — so this is only the switch and what it shows.
+  const [isReverseCharge, setIsReverseCharge] = useState(false);
 
   // Rows as they were before the last "consolidate ON", so switching back OFF
   // restores exactly what the user was looking at. Needed because a payment
@@ -948,6 +954,7 @@ const TallyPaymentVoucherDetail = () => {
           ? false
           : Boolean(tally.consolidate);
       setIsConsolidated(consolidateStatus);
+      setIsReverseCharge(Boolean(tally?.is_reverse_charge));
 
       // Initialize expense items from consolidate_prod or expense_items based on consolidate status
       let sourceItems = [];
@@ -2092,6 +2099,7 @@ const TallyPaymentVoucherDetail = () => {
           };
         }),
         consolidate: isConsolidated,
+        is_reverse_charge: isReverseCharge,
         ...(isConsolidated
           ? {
               consolidate_prod: expenseItems.map((item) => {
@@ -2477,6 +2485,15 @@ const TallyPaymentVoucherDetail = () => {
             Next
             <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
+          <button
+            type="button"
+            onClick={() => setIsActivityOpen(true)}
+            aria-label="Activity"
+            className="inline-flex items-center justify-center h-8 w-8 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            title="Who did what to this bill"
+          >
+            <Icon icon="heroicons:clock" className="text-sm" />
+          </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
@@ -2815,58 +2832,16 @@ const TallyPaymentVoucherDetail = () => {
                   </h3>
                 </div>
 
-                {/* OCR sanity banner — leading-digit miss on large amounts. */}
-                {/* Arithmetic and identity findings from the server, which run on
-            every bill whichever model read it. Advisory, never blocking. */}
-        <ExtractionChecks findings={analysedData?._extraction_checks} />
+        {/* Everything the operator must look at, in one box: what is
+            blocking Verify, then what simply does not add up. Four
+            separate banners used to stack here, two of them reporting
+            the same arithmetic. */}
+        <BillChecks
+          blockers={getValidationErrorMessages()}
+          isVerified={isVerified}
+        />
 
-        {analysedData?._ocr_sanity && analysedData._ocr_sanity.ok === false && (
-                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60">
-                    <Icon icon="heroicons:exclamation-circle" className="text-rose-600 dark:text-rose-400 text-base shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-rose-800 dark:text-rose-300 mb-1">
-                        OCR check — verify large amounts
-                      </p>
-                      <p className="text-[11px] text-rose-700/90 dark:text-rose-400/90">
-                        {analysedData._ocr_sanity.message}
-                      </p>
-                    </div>
-                  </div>
-                )}
 
-                {/* Validation Summary */}
-                {!isVerified && hasValidationErrors() && (
-                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
-                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                        Resolve before verifying
-                      </p>
-                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
-                        {isVendorRequired && <li>Select a vendor</li>}
-                        {isPaymentModeRequired && (
-                          <li>Select a Payment Mode</li>
-                        )}
-                        {expenseItems.length === 0 && (
-                          <li>Add at least one expense item</li>
-                        )}
-                        {getItemsWithoutCOA().length > 0 && (
-                          <li>
-                            Select expense ledger for{" "}
-                            {getItemsWithoutCOA().length} expense item
-                            {getItemsWithoutCOA().length > 1 ? "s" : ""}
-                          </li>
-                        )}
-                        {isCgstLedgerRequired() && <li>Select CGST ledger</li>}
-                        {isSgstLedgerRequired() && <li>Select SGST ledger</li>}
-                        {isIgstLedgerRequired() && <li>Select IGST ledger</li>}
-                        {isOtherAdjustmentLedgerRequired() && (
-                          <li>Select other-adjustment ledger</li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                )}
 
                 {/* Bill Form Fields */}
                 <div className="space-y-3">
@@ -3196,6 +3171,24 @@ const TallyPaymentVoucherDetail = () => {
                           onChange={handleConsolidateToggle}
                           disabled={isVerified}
                           activeClass="bg-blue-600"
+                        />
+                      </div>
+                      {/* Reverse charge. On save the server adds one
+                          credit line per GST line against the RCM
+                          payable ledger; turning it back off removes
+                          exactly those lines and nothing else. */}
+                      <div
+                        className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800"
+                        title="Reverse charge: you pay the GST instead of the supplier. Saving adds the matching liability entries."
+                      >
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Reverse charge
+                        </span>
+                        <Switch
+                          value={isReverseCharge}
+                          onChange={() => setIsReverseCharge((on) => !on)}
+                          disabled={isVerified}
+                          activeClass="bg-amber-600"
                         />
                       </div>
                       <button
@@ -4088,32 +4081,16 @@ const TallyPaymentVoucherDetail = () => {
               />
             </div>
 
-            {/* Activity — who did what to this bill, straight from the
-                server-side log. Collapsed by default so it never competes
-                with the form above it. */}
-            <details className="mt-3 group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-              <summary className="flex items-center gap-2 p-4 cursor-pointer list-none select-none">
-                <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700">
-                  <Icon icon="heroicons:clock" className="text-sm" />
-                </span>
-                <h3 className="flex-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                  Activity
-                </h3>
-                <Icon
-                  icon="heroicons:chevron-down"
-                  className="text-sm text-slate-400 dark:text-slate-500 transition-transform group-open:rotate-180"
-                />
-              </summary>
-              <div className="px-4 pb-4">
-                <ActivityTimeline
-                  organizationId={selectedOrganization?.id}
-                  billId={billId}
-                />
-              </div>
-            </details>
           </div>
         </div>
       </div>
+
+      <ActivityPanel
+        open={isActivityOpen}
+        onClose={() => setIsActivityOpen(false)}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+      />
 
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (

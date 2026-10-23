@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/apiClient";
+import { ACTIONS, useOrgPermissions } from "@/services/approvalService";
 
 /**
  * Extraction accuracy, measured from what people actually corrected.
@@ -12,6 +13,16 @@ import { apiFetch } from "@/utils/apiClient";
  * nobody changes is a field the extractor gets right. That signal costs
  * nothing, grows by itself, and reflects the real mix of bills rather
  * than whichever samples someone collected.
+ *
+ * **Internal, admin-only.** These are our own error rates. A client
+ * reading them has exactly one question, and it is not a question about
+ * bills. The numbers also overstate error — a derived field
+ * recomputing, or somebody reformatting a date, counts as a correction
+ * — so they are a signal to work from, not one to quote.
+ *
+ * Covers every module: the events come from Tally and Zoho alike, and
+ * extraction quality belongs to the extractor rather than to whichever
+ * accounting package a bill is bound for.
  */
 
 const WINDOWS = [7, 30, 90];
@@ -68,11 +79,32 @@ const Empty = ({ children }) => (
 
 const TallyAccuracy = () => {
   const { selectedOrganization } = useSelector((state) => state.auth);
+  const { can, isLoading: loadingPermissions } = useOrgPermissions();
   const [days, setDays] = useState(30);
   const { data, isLoading, isError, error, refetch, isFetching } = useStats(
     selectedOrganization?.id,
     days,
   );
+
+  // The server refuses this to anyone but an admin; saying so plainly
+  // beats a page of empty cards or a bare 403.
+  if (!loadingPermissions && !can(ACTIONS.MANAGE_SETTINGS)) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center gap-1">
+        <Icon
+          icon="heroicons:lock-closed"
+          className="text-2xl text-slate-300 dark:text-slate-600"
+        />
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Admins only
+        </p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
+          Extraction accuracy is an internal measure of how the reader is
+          performing.
+        </p>
+      </div>
+    );
+  }
 
   if (!selectedOrganization?.id) {
     return (
@@ -90,6 +122,9 @@ const TallyAccuracy = () => {
   const corrections = data?.corrections || [];
   const shadow = data?.shadow_agreement || [];
   const verifies = data?.verifies || 0;
+  const byModule = Object.entries(data?.by_module || {}).filter(
+    ([, m]) => m.uploaded > 0 || m.verifies > 0,
+  );
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -99,7 +134,8 @@ const TallyAccuracy = () => {
             Extraction accuracy
           </h1>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-            Measured from the corrections people made while verifying.
+            Measured from the corrections people made while verifying, across
+            Tally and Zoho. Internal — not for clients.
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -146,6 +182,29 @@ const TallyAccuracy = () => {
 
       {data && (
         <div className="flex-1 min-h-0 overflow-auto grid gap-3 md:grid-cols-2">
+          {byModule.length > 0 && (
+            <Card
+              title="By module"
+              hint="Tally and Zoho share one extractor, so a gap between them is worth a look."
+            >
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                {byModule.map(([name, m]) => (
+                  <React.Fragment key={name}>
+                    <span className="text-slate-600 dark:text-slate-400 capitalize">
+                      {name}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-300 tabular-nums text-right">
+                      {m.uploaded} uploaded · {m.verifies} verified
+                      {m.clean_rate != null
+                        ? ` · ${(m.clean_rate * 100).toFixed(0)}% clean`
+                        : ""}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card
             title="Fields people corrected"
             hint={`Across ${verifies} verified bill${verifies === 1 ? "" : "s"}. A high rate means the extractor keeps getting that field wrong.`}

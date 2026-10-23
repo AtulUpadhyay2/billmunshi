@@ -36,6 +36,30 @@ export const useQuickCreateVendor = () => {
   });
 };
 
+// ----- Customer (sales party) -----------------------------------------
+
+export const useQuickCreateCustomer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ organizationId, name, gst_in, parent_ledger_id, parent_ledger_name }) => {
+      return apiFetch(`tally/org/${organizationId}/quick-create/customer/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          gst_in: gst_in || "",
+          parent_ledger_id: parent_ledger_id || undefined,
+          parent_ledger_name: parent_ledger_name || undefined,
+        }),
+      });
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["tallyCustomerLedgers", vars.organizationId] });
+      qc.invalidateQueries({ queryKey: ["tallyLedgers", vars.organizationId] });
+    },
+  });
+};
+
 // ----- Ledger (Purchase / Expense) ------------------------------------
 
 export const useQuickCreateLedger = () => {

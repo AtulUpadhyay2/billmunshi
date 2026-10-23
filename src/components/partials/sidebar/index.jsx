@@ -8,6 +8,7 @@ import useSemiDark from "@/hooks/useSemiDark";
 import { menuItems } from "@/constants/data";
 import { useGetOrganizationModulesQuery } from "@/store/api/modules/modulesSlice";
 import { getFilteredMenuItems } from "@/utils/menuUtils";
+import { ACTIONS, useOrgPermissions } from "@/services/approvalService";
 import Navmenu from "./Navmenu";
 
 const Sidebar = () => {
@@ -25,7 +26,11 @@ const Sidebar = () => {
       skip: !selectedOrganization?.id,
     });
 
-  const filteredMenuItems = getFilteredMenuItems(modulesData || []);
+  const { can } = useOrgPermissions();
+  const filteredMenuItems = getFilteredMenuItems(
+    modulesData || [],
+    can(ACTIONS.MANAGE_SETTINGS),
+  );
   const showError = modulesError && !modulesLoading;
   const isExpanded = !collapsed || menuHover;
 
