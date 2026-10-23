@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
+import { ACTIONS, useOrgPermissions } from "@/services/approvalService";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import Modal from "@/components/ui/Modal";
 import TablePagination from "@/components/ui/TablePagination";
@@ -123,6 +124,7 @@ const ActionCell = ({
   syncingBills,
   onAction,
 }) => {
+  const { can } = useOrgPermissions();
   const { status } = bill;
   if (status === "Synced" && bill.tally_synced) {
     return (
@@ -201,6 +203,19 @@ const ActionCell = ({
   }
   if (status === "Verified") {
     const isSyncing = syncingBills.has(bill.id);
+    // Posting is a Manager/Admin right. An Accountant finishes the bill
+    // here and it waits; showing them a button the server refuses would
+    // read as a broken product rather than as a boundary.
+    if (!can(ACTIONS.SYNC_BILLS)) {
+      return (
+        <span
+          className={`${chipBase} text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700`}
+          title="Verified. A Manager or Admin posts it to Tally."
+        >
+          <Icon icon="heroicons:check-badge" className="text-xs" /> Ready to post
+        </span>
+      );
+    }
     return (
       <button
         type="button"
@@ -304,6 +319,7 @@ const BillsList = ({
 }) => {
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
+  const { can } = useOrgPermissions();
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -886,7 +902,7 @@ const BillsList = ({
                   )}
                 </MenuItems>
               </Menu>
-              {bulkSyncableIds.length > 0 && (
+              {bulkSyncableIds.length > 0 && can(ACTIONS.SYNC_BILLS) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -944,14 +960,16 @@ const BillsList = ({
             <Icon icon="heroicons:arrow-path" className={`text-sm ${(isLoading || isFetching) ? "animate-spin" : ""}`} />
             Refresh
           </button>
-          <button
-            type="button"
-            onClick={() => setIsUploadModalOpen(true)}
-            className={btnPrimary}
-          >
-            <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
-            {uploadButtonLabel}
-          </button>
+          {can(ACTIONS.UPLOAD_BILLS) && (
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              className={btnPrimary}
+            >
+              <Icon icon="heroicons:arrow-up-tray" className="text-sm" />
+              {uploadButtonLabel}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1064,7 +1082,7 @@ const BillsList = ({
                           ? "Try a different keyword or clear the search."
                           : `Upload your first ${copy.billLabel} to get started.`}
                       </p>
-                      {!searchQuery && (
+                      {!searchQuery && can(ACTIONS.UPLOAD_BILLS) && (
                         <button
                           type="button"
                           onClick={() => setIsUploadModalOpen(true)}

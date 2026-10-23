@@ -113,6 +113,11 @@ export const getFilteredMenuItems = (enabledModules = []) => {
         return enabledModuleNames.includes("tally");
       }
 
+      // Handle Tally Approvals (bills waiting on a Manager's decision)
+      if (item.title === "Approvals" && item.link === "/tally/approvals") {
+        return enabledModuleNames.includes("tally");
+      }
+
       // Handle Tally Activity (organisation-wide bill activity log)
       if (item.title === "Activity" && item.link === "/tally/activity") {
         return enabledModuleNames.includes("tally");

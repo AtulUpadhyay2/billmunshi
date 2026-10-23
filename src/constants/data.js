@@ -101,6 +101,13 @@ export const menuItems = [
   },
 
   {
+    title: "Approvals",
+    isHide: true,
+    icon: "heroicons-outline:badge-check",
+    link: "/tally/approvals",
+  },
+
+  {
     title: "Activity",
     isHide: true,
     icon: "heroicons-outline:clock",

@@ -73,6 +73,7 @@ const TallyMaster = lazy(() => import("./pages/tally/config/master"));
 const TallyAccountInfo = lazy(() => import("./pages/tally/account-info"));
 const TallyTrash = lazy(() => import("./pages/tally/trash"));
 const TallyActivity = lazy(() => import("./pages/tally/activity"));
+const TallyApprovals = lazy(() => import("./pages/tally/approvals"));
 const TallyAccuracy = lazy(() => import("./pages/tally/accuracy"));
 
 // Settings
@@ -200,6 +201,7 @@ function App() {
           />
           <Route path="tally/trash" element={<TallyTrash />} />
           <Route path="tally/activity" element={<TallyActivity />} />
+          <Route path="tally/approvals" element={<TallyApprovals />} />
           <Route path="tally/accuracy" element={<TallyAccuracy />} />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />

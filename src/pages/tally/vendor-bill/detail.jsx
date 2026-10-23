@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ActivityTimeline from "@/components/bills/ActivityTimeline";
+import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import ExtractionChecks from "@/components/bills/ExtractionChecks";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -4956,6 +4957,15 @@ const TallyVendorBillDetail = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Approval. Renders nothing unless the workspace has
+                require_bill_approval on, so this is invisible by default. */}
+            <div className="mt-3">
+              <ApprovalPanel
+                organizationId={selectedOrganization?.id}
+                billId={billId}
+              />
             </div>
 
             {/* Activity — who did what to this bill, straight from the
