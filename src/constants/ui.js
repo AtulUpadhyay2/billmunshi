@@ -67,6 +67,21 @@ export const CONTROL_SELECT =
   `w-full h-8 pl-2 pr-7 text-xs appearance-none cursor-pointer ${SKIN}`;
 
 /**
+ * Compact `<select>` for the 28px tier — the rows-per-page picker in the
+ * table footer. Needs `appearance-none` and `CONTROL_SELECT_ARROW` for the
+ * same reason `CONTROL_SELECT` does: without them the browser draws its own
+ * control, which on macOS is both taller and a different typeface, so the
+ * one unstyled select in the app was the one thing in the footer that did
+ * not look like the app.
+ */
+export const CONTROL_SELECT_SM =
+  "h-7 pl-1.5 pr-6 text-[11px] font-semibold appearance-none cursor-pointer " +
+  "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 " +
+  "border border-slate-200 dark:border-slate-700 rounded-md transition-colors " +
+  "hover:border-slate-300 dark:hover:border-slate-600 " +
+  "focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+
+/**
  * Chevron for `CONTROL_SELECT`, as an inline `style` object. A background
  * image rather than an overlaid element so it can't intercept clicks or shift
  * when the select is inside a table cell.
@@ -181,3 +196,163 @@ export const reactSelectStyles = (isDark = false) => {
     noOptionsMessage: (base) => ({ ...base, fontSize: "12px", color: muted }),
   };
 };
+
+/* ---------------------------------------------------------------------------
+ * Buttons
+ *
+ * The geometry was already uniform before this module grew these tokens —
+ * ~80 call sites all spelled `h-8 px-2.5 text-xs font-semibold rounded-lg`.
+ * What was *not* uniform was everything around it: an audit of those sites
+ * found 22 distinct spellings of the same three buttons, differing only in
+ * whether they remembered `transition-all`, `cursor-pointer`,
+ * `disabled:cursor-not-allowed`, `disabled:opacity-50` vs `-60`, and
+ * `shadow-md` vs `shadow-sm`. None of that is a design decision; it is just
+ * what happens when a class string is copied by hand. The tokens below are
+ * the union of those spellings, so adopting one is never a visual change
+ * beyond picking up the state classes a given site had forgotten.
+ *
+ * Two height tiers, deliberately:
+ *
+ *   32px (`h-8`)  the default. Matches `CONTROL` above, so a toolbar of mixed
+ *                 inputs, selects and buttons sits on one baseline.
+ *   28px (`h-7`)  compact. For actions *inside* a table row or a status strip,
+ *                 where a 32px control would set the row height. Already in
+ *                 use on the account-info and approvals pages; codified here
+ *                 rather than removed, because the two tiers read as a
+ *                 hierarchy and collapsing them makes table rows taller.
+ *
+ * Radius is `rounded-lg` (8px) on buttons against `rounded-md` (6px) on
+ * inputs. That split is intentional and predates this file: a button is a
+ * solid block and reads as rounder than an outlined box of the same radius.
+ * Keeping it means the tokens here match the ~80 sites already shipped.
+ * ------------------------------------------------------------------------ */
+
+/** Layout + state classes every button shares, with no size and no colour. */
+const BTN_BASE =
+  "inline-flex items-center justify-center gap-1.5 font-semibold " +
+  "rounded-lg transition-all cursor-pointer " +
+  "disabled:opacity-50 disabled:cursor-not-allowed";
+
+/** 32px tier — the default. */
+const BTN_MD = "h-8 px-2.5 text-xs";
+
+/** 28px tier — in-row actions only. See the note above. */
+const BTN_SM = "h-7 px-2.5 text-[11px]";
+
+/**
+ * Geometry and state only, no colour — for the `<Button>` component and the
+ * `<Modal>` trigger, whose callers still supply colour through the legacy
+ * `.btn-primary` / `.btn-outline-dark` classes in `app.css`. Those classes
+ * only set colours, so pairing them with this is safe; what they were paired
+ * with before was `.btn`, which also carried a 48px box and a 2px radius.
+ */
+export const BTN_BASE_SHAPE = `${BTN_BASE} ${BTN_MD}`;
+
+/** Primary action. One per view, usually the far right of the toolbar. */
+export const BTN_PRIMARY =
+  `${BTN_BASE} ${BTN_MD} text-white bg-orange-500 hover:bg-orange-600 ` +
+  "shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 " +
+  "ring-1 ring-orange-600/20";
+
+/** Default action: outlined, sits on the page background. */
+export const BTN_SECONDARY =
+  `${BTN_BASE} ${BTN_MD} text-slate-700 dark:text-slate-300 ` +
+  "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 " +
+  "hover:border-slate-300 dark:hover:border-slate-600 " +
+  "hover:bg-slate-50 dark:hover:bg-slate-800";
+
+/** Tinted action — a secondary that still wants to be noticed (Sync, Retry). */
+export const BTN_SOFT =
+  `${BTN_BASE} ${BTN_MD} text-blue-700 dark:text-blue-400 ` +
+  "bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 " +
+  "hover:bg-blue-100 dark:hover:bg-blue-950/60";
+
+/** Destructive action. Same tinted treatment as `BTN_SOFT`, in rose. */
+export const BTN_DANGER =
+  `${BTN_BASE} ${BTN_MD} text-rose-700 dark:text-rose-400 ` +
+  "bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 " +
+  "hover:bg-rose-100 dark:hover:bg-rose-950/60";
+
+/** Icon-only button on the 32px tier — square, so it stays a circle-ish box. */
+export const BTN_ICON =
+  `${BTN_BASE} h-8 w-8 p-0 text-slate-600 dark:text-slate-400 ` +
+  "hover:bg-slate-100 dark:hover:bg-slate-800 " +
+  "hover:text-slate-900 dark:hover:text-white";
+
+/** 28px versions. Only the geometry differs. */
+export const BTN_SECONDARY_SM =
+  `${BTN_BASE} ${BTN_SM} text-slate-700 dark:text-slate-300 ` +
+  "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 " +
+  "hover:border-slate-300 dark:hover:border-slate-600 " +
+  "hover:bg-slate-50 dark:hover:bg-slate-800";
+
+export const BTN_SOFT_SM =
+  `${BTN_BASE} ${BTN_SM} text-blue-700 dark:text-blue-400 ` +
+  "bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 " +
+  "hover:bg-blue-100 dark:hover:bg-blue-950/60";
+
+/* ---------------------------------------------------------------------------
+ * Type scale
+ *
+ * Three roles, and only three. Each was already the majority spelling at its
+ * role before being named here; the point of naming them is that the minority
+ * spellings (`tracking-[0.12em]` on a section heading, `text-sm` on an
+ * eyebrow, `text-[12px]` on a card title) stop being reachable by copy-paste.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The one `<h1>` on a page — the screen's name in the content area.
+ * Responsive because the sidebar eats horizontal room below `md`.
+ */
+export const PAGE_TITLE =
+  "text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white";
+
+/**
+ * Heading of a card or a panel section. Wide-tracked small caps rather than a
+ * larger size, so a page of six cards doesn't read as six page titles.
+ */
+export const SECTION_TITLE =
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300";
+
+/**
+ * Title of a card — the bordered box a page is built out of, usually with a
+ * 28px icon chip to its left. Sentence case and only one step above body
+ * text, because a page shows six of these at once. Was spelled three ways
+ * (`text-sm`, `text-xs`, `text-[12px]`, all with the same weight and
+ * tracking) across the config, account-info and dashboard pages.
+ */
+export const CARD_TITLE =
+  "text-sm font-bold tracking-tight text-slate-900 dark:text-white";
+
+/**
+ * One step below `SECTION_TITLE`: the label over a field group, or a column
+ * group header. Muted and a point smaller — it labels content rather than
+ * announcing a section, and the two have to be told apart at a glance.
+ */
+export const SUBTLE_LABEL =
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400";
+
+/* ---------------------------------------------------------------------------
+ * Tables and badges
+ * ------------------------------------------------------------------------ */
+
+/**
+ * `<th>` and `<td>` padding. `px-3 py-2` won the audit outright (61 of 70
+ * headers, 57 of 77 cells); the stragglers were `px-4 py-3.5` / `px-4 py-4`,
+ * which made one table on the org picker visibly looser than every other
+ * table in the app.
+ */
+export const TH =
+  "px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] " +
+  "text-slate-500 dark:text-slate-400 " +
+  "border-b border-slate-200 dark:border-slate-800";
+
+export const TD = "px-3 py-2 text-xs text-slate-700 dark:text-slate-300";
+
+/**
+ * Status pill. Colour is the caller's — a badge is always coloured by what it
+ * reports — so this is geometry and weight only.
+ */
+export const BADGE =
+  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full " +
+  "text-[10px] font-semibold";

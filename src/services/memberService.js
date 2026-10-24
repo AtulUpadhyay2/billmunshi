@@ -29,3 +29,26 @@ export const useInviteMember = () => {
     },
   });
 };
+
+/**
+ * The organisation's role catalogue: what each role is for and which
+ * actions it allows.
+ *
+ * Served from ``apps/common/roles.py``, the same matrix ``HasOrgPermission``
+ * enforces. The Members page used to carry its own hardcoded list of the
+ * four role codes, which meant the screen could promise something the
+ * permission check would then refuse — and nothing would notice until a
+ * user hit a 403. Readable by any member: knowing what a Consultant may do
+ * is not privileged.
+ *
+ * Cached for the session; the matrix only changes when the backend ships.
+ */
+export const useGetOrgRoles = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["organizationRoles", organizationId],
+    queryFn: () => apiFetch(`org/${organizationId}/roles/`),
+    enabled: !!organizationId,
+    staleTime: Infinity,
+    ...options,
+  });
+};

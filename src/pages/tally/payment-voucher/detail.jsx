@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import CurrencyBox from "@/components/bills/CurrencyBox";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
@@ -2836,6 +2837,20 @@ const TallyPaymentVoucherDetail = () => {
             blocking Verify, then what simply does not add up. Four
             separate banners used to stack here, two of them reporting
             the same arithmetic. */}
+        {/* Currency, and the rate this voucher will post at. Above the
+            checks because it rescales every figure below it: choosing it
+            after reading the totals means reading them all again. */}
+        <CurrencyBox
+          organizationId={selectedOrganization?.id}
+          billId={billId}
+          currency={tallyAnalysedData?.currency}
+          exchangeRate={tallyAnalysedData?.exchange_rate}
+          exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
+          exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
+          disabled={isVerified}
+          onChanged={() => refetch()}
+        />
+
         <BillChecks
           blockers={getValidationErrorMessages()}
           isVerified={isVerified}

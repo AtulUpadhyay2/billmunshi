@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/utils/apiClient";
 import ReCaptcha from "@/components/ReCaptcha";
 import { isRecaptchaConfigured } from "@/config/recaptcha";
+import { BTN_ICON, BTN_PRIMARY, CONTROL, CONTROL_TEXTAREA } from "@/constants/ui";
 
 /**
  * Client Correction 51 — simple support chat: Name, Email, Message, Send.
@@ -18,8 +19,10 @@ import { isRecaptchaConfigured } from "@/config/recaptcha";
  *   - <SupportChatLauncher/>: floating button for the public website.
  */
 
-const inputCls =
-  "w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+// The panel opens out of the app header, directly over workspace content,
+// so its fields use the app's 32px control box rather than the roomier
+// marketing-page scale. The public launcher pill below keeps its own size:
+// that one is only ever seen on the website.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -171,21 +174,21 @@ export const SupportChatPanel = ({ open, onClose }) => {
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Name <span className="text-rose-500">*</span>
             </label>
-            <input type="text" value={form.name} onChange={set("name")} maxLength={120} autoComplete="name" placeholder="Your name" className={inputCls} />
+            <input type="text" value={form.name} onChange={set("name")} maxLength={120} autoComplete="name" placeholder="Your name" className={CONTROL} />
             {errors.name && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.name}</p>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Email <span className="text-rose-500">*</span>
             </label>
-            <input type="email" value={form.email} onChange={set("email")} maxLength={254} autoComplete="email" placeholder="you@company.com" className={inputCls} />
+            <input type="email" value={form.email} onChange={set("email")} maxLength={254} autoComplete="email" placeholder="you@company.com" className={CONTROL} />
             {errors.email && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.email}</p>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Message <span className="text-rose-500">*</span>
             </label>
-            <textarea value={form.message} onChange={set("message")} maxLength={5000} rows={4} placeholder="How can we help?" className={`${inputCls} resize-none`} />
+            <textarea value={form.message} onChange={set("message")} maxLength={5000} rows={4} placeholder="How can we help?" className={CONTROL_TEXTAREA} />
             {errors.message && <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{errors.message}</p>}
           </div>
           {needsCaptcha && (
@@ -201,9 +204,9 @@ export const SupportChatPanel = ({ open, onClose }) => {
           <button
             type="submit"
             disabled={sending}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className={`${BTN_PRIMARY} w-full`}
           >
-            <Icon icon={sending ? "heroicons:arrow-path" : "heroicons:paper-airplane"} className={`text-base ${sending ? "animate-spin" : ""}`} />
+            <Icon icon={sending ? "heroicons:arrow-path" : "heroicons:paper-airplane"} className={`text-sm ${sending ? "animate-spin" : ""}`} />
             {sending ? "Sending…" : "Send"}
           </button>
         </form>
@@ -222,7 +225,7 @@ export const SupportChatHeaderButton = () => {
         onClick={() => setOpen((v) => !v)}
         aria-label="Chat with support"
         title="Chat with support"
-        className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        className={BTN_ICON}
       >
         <Icon icon="heroicons:chat-bubble-left-right" className="text-lg" />
       </button>

@@ -4,12 +4,7 @@ import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { useQuickCreateItem } from "@/services/tally/tallyQuickCreateService";
 import { useSelector } from "react-redux";
-import {
-  CONTROL,
-  CONTROL_SELECT,
-  CONTROL_SELECT_ARROW,
-  FIELD_LABEL,
-} from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_SELECT, CONTROL_SELECT_ARROW, FIELD_LABEL } from "@/constants/ui";
 import { GST_RATE_PERCENTS } from "@/constants/gstRates";
 
 /**
@@ -198,14 +193,14 @@ const AddItemModal = ({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="inline-flex items-center h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"
+            className={BTN_SECONDARY}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!name.trim() || submitting}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20"
+            className={BTN_PRIMARY}
           >
             {submitting ? (
               <>

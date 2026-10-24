@@ -3,29 +3,196 @@ import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import Modal from "@/components/ui/Modal";
 import TablePagination from "@/components/ui/TablePagination";
-import { useGetMembers } from "@/services/memberService";
+import { useGetMembers, useGetOrgRoles } from "@/services/memberService";
 import { globalToast } from "@/utils/toast";
 import apiClient from "@/utils/apiClient";
-import { CONTROL_SEARCH } from "@/constants/ui";
+import {
+  BADGE,
+  BTN_BASE_SHAPE,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  BTN_SECONDARY_SM,
+  CONTROL_SEARCH,
+  SECTION_TITLE,
+  SUBTLE_LABEL,
+} from "@/constants/ui";
 
 
-const btnBase =
-  "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
-const btnNeutral =
-  `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
-const btnPrimary =
-  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20`;
 
-const thBase =
-  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+// Identical to SUBTLE_LABEL apart from alignment and wrapping — it had
+// drifted to tracking-[0.1em], a fourth tracking value in an app that
+// already has two by role.
+const thBase = `px-3 py-2 ltr:text-left rtl:text-right whitespace-nowrap ${SUBTLE_LABEL}`;
 const tdBase = "px-3 py-1.5";
 
-const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "MANAGER", label: "Manager" },
-  { value: "ACCOUNTANT", label: "Accountant" },
-  { value: "CONSULTANT", label: "Consultant" },
-];
+/**
+ * Roles are no longer listed here.
+ *
+ * This file used to hold `ROLE_OPTIONS` — a hand-written copy of the four
+ * role codes. It was a second source of truth next to the server's
+ * permission matrix, and the two could drift apart with nothing failing:
+ * the screen would offer a role, the permission check would refuse the
+ * action, and the user would find out by hitting a 403. The list, the
+ * one-line summaries and the per-action yes/no all come from
+ * `GET org/<id>/roles/` now, which is generated from the same matrix
+ * `HasOrgPermission` enforces.
+ *
+ * Nothing in this file re-words a permission label. If one reads badly it
+ * is fixed in `apps/common/roles.py`, so both sides move together.
+ */
+
+/** Shown while the catalogue is in flight, so the tab strip keeps its shape. */
+const ROLE_TABS_SKELETON = 4;
+
+/** Groups `actions` by `group`, in the order the server says. */
+const groupActions = (actions = [], groupOrder = []) => {
+  const byGroup = new Map(groupOrder.map((g) => [g, []]));
+  for (const action of actions) {
+    // A group the server added but did not list still has to appear;
+    // dropping it silently would hide a permission from the matrix.
+    if (!byGroup.has(action.group)) byGroup.set(action.group, []);
+    byGroup.get(action.group).push(action);
+  }
+  return [...byGroup.entries()].filter(([, items]) => items.length > 0);
+};
+
+/** Tick / cross cell for the comparison matrix. */
+const AllowCell = ({ allowed, label }) => (
+  <td className="px-3 py-1.5 text-center">
+    <Icon
+      icon={allowed ? "heroicons:check-circle-solid" : "heroicons:minus-small"}
+      className={
+        allowed
+          ? "text-sm text-emerald-600 dark:text-emerald-500"
+          : "text-sm text-slate-300 dark:text-slate-600"
+      }
+      aria-hidden="true"
+    />
+    <span className="sr-only">{allowed ? `${label}: yes` : `${label}: no`}</span>
+  </td>
+);
+
+/**
+ * What one role grants, grouped. Used inside the invite modal so the
+ * answer is on screen at the moment the role is chosen, rather than
+ * behind a separate page.
+ */
+const RoleDetail = ({ role, actions, groupOrder }) => {
+  if (!role) return null;
+  const granted = new Set(role.permissions || []);
+  const groups = groupActions(actions, groupOrder);
+
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
+      <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+        {role.summary}
+      </p>
+      <div className="mt-2.5 grid sm:grid-cols-2 gap-x-4 gap-y-2">
+        {groups.map(([group, items]) => (
+          <div key={group}>
+            <div className={SUBTLE_LABEL}>{group}</div>
+            <ul className="mt-1 space-y-0.5">
+              {items.map((action) => {
+                const allowed = granted.has(action.value);
+                return (
+                  <li
+                    key={action.value}
+                    className={`flex items-start gap-1.5 text-[11px] ${
+                      allowed
+                        ? "text-slate-700 dark:text-slate-300"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
+                  >
+                    <Icon
+                      icon={allowed ? "heroicons:check" : "heroicons:x-mark"}
+                      className={`mt-0.5 shrink-0 text-[11px] ${
+                        allowed ? "text-emerald-600 dark:text-emerald-500" : "text-slate-300 dark:text-slate-600"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span>{action.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * All four roles side by side. Lives on the Members page itself rather
+ * than only in the invite modal, because the question "what does this
+ * person's role already let them do?" is asked about existing members too.
+ */
+const RoleMatrix = ({ roles, actions, groupOrder }) => {
+  const groups = groupActions(actions, groupOrder);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[560px] border-collapse">
+        <thead>
+          <tr>
+            <th className={`${thBase} w-[46%]`}>Action</th>
+            {roles.map((role) => (
+              <th key={role.value} className={`${thBase} text-center`}>
+                {role.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map(([group, items]) => (
+            <React.Fragment key={group}>
+              <tr>
+                <td
+                  colSpan={roles.length + 1}
+                  className="px-3 pt-3 pb-1 bg-slate-50/60 dark:bg-slate-900/40"
+                >
+                  <span className={SUBTLE_LABEL}>{group}</span>
+                </td>
+              </tr>
+              {items.map((action) => (
+                <tr
+                  key={action.value}
+                  className="border-t border-slate-100 dark:border-slate-800/70"
+                >
+                  <td className="px-3 py-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                    {action.label}
+                  </td>
+                  {roles.map((role) => (
+                    <AllowCell
+                      key={role.value}
+                      allowed={(action.allowed_for || []).includes(role.value)}
+                      label={`${role.label} — ${action.label}`}
+                    />
+                  ))}
+                </tr>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-slate-200 dark:border-slate-800">
+            <td className="px-3 py-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              Total
+            </td>
+            {roles.map((role) => (
+              <td
+                key={role.value}
+                className="px-3 py-2 text-center text-[11px] font-semibold text-slate-600 dark:text-slate-400"
+              >
+                {(role.permissions || []).length}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+};
 
 const roleStyle = (role) => {
   switch ((role || "").toUpperCase()) {
@@ -46,6 +213,11 @@ const initials = (name = "") =>
 
 const Members = () => {
   const { selectedOrganization } = useSelector((state) => state.auth);
+  const { data: roleCatalogue } = useGetOrgRoles(selectedOrganization?.id);
+  const roles = roleCatalogue?.roles ?? [];
+  const roleActions = roleCatalogue?.actions ?? [];
+  const groupOrder = roleCatalogue?.group_order ?? [];
+  const [showRoleMatrix, setShowRoleMatrix] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteData, setInviteData] = useState({
@@ -107,6 +279,11 @@ const Members = () => {
     const startIdx = (page - 1) * pageSize;
     return filtered.slice(startIdx, startIdx + pageSize);
   }, [filtered, page, pageSize]);
+
+  const selectedRole = useMemo(
+    () => roles.find((r) => r.value === inviteData.role) ?? null,
+    [roles, inviteData.role],
+  );
 
   const handleInputChange = (field, value) => {
     setInviteData((prev) => ({ ...prev, [field]: value }));
@@ -177,7 +354,7 @@ const Members = () => {
 
   const StatusBadge = ({ active }) => (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ${
+      className={`${BADGE} gap-1.5 ring-1 ${
         active
           ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-slate-200 dark:ring-slate-700"
@@ -215,7 +392,7 @@ const Members = () => {
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className={btnNeutral}
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -223,7 +400,7 @@ const Members = () => {
           <button
             type="button"
             onClick={() => setIsInviteModalOpen(true)}
-            className={btnPrimary}
+            className={BTN_PRIMARY}
           >
             <Icon icon="heroicons:plus" className="text-sm" />
             Invite member
@@ -258,6 +435,61 @@ const Members = () => {
         ))}
       </div>
 
+      {/* Role reference.
+          Collapsed by default — it is an answer to a question, not part of
+          the daily job — but on the Members page rather than only in the
+          invite modal, because "what is this person's role letting them
+          do?" gets asked about people who already have one. */}
+      {roles.length > 0 && (
+        <div className="shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowRoleMatrix((v) => !v)}
+            aria-expanded={showRoleMatrix}
+            className="w-full flex items-center justify-between gap-2 px-3 md:px-4 py-2.5 text-left cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Icon
+                icon="heroicons:shield-check"
+                className="shrink-0 text-base text-blue-600 dark:text-blue-400"
+              />
+              <span className={SECTION_TITLE}>What can each role do?</span>
+              <span className="hidden sm:inline text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                {roles.map((r) => `${r.label} ${r.permissions?.length ?? 0}`).join(" · ")}
+              </span>
+            </span>
+            <span className={`${BTN_SECONDARY_SM} pointer-events-none`}>
+              <Icon
+                icon={showRoleMatrix ? "heroicons:chevron-up" : "heroicons:chevron-down"}
+                className="text-[11px]"
+              />
+              {showRoleMatrix ? "Hide" : "Compare"}
+            </span>
+          </button>
+          {showRoleMatrix && (
+            <div className="border-t border-slate-200 dark:border-slate-800">
+              <div className="px-3 md:px-4 py-2.5 grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5 border-b border-slate-200 dark:border-slate-800">
+                {roles.map((role) => (
+                  <div key={role.value}>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
+                      {role.label}
+                    </div>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                      {role.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <RoleMatrix
+                roles={roles}
+                actions={roleActions}
+                groupOrder={groupOrder}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Members card — the only thing on the page that scrolls */}
       <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
@@ -276,7 +508,7 @@ const Members = () => {
           <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 self-start md:self-auto overflow-x-auto">
             {[
               { value: "ALL", label: "All" },
-              ...ROLE_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+              ...roles.map((r) => ({ value: r.value, label: r.label })),
             ].map((tab) => {
               const isActive = roleFilter === tab.value;
               return (
@@ -314,7 +546,7 @@ const Members = () => {
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 mb-3">
                 There was an error loading the members data.
               </p>
-              <button type="button" onClick={() => refetch()} className={btnNeutral}>
+              <button type="button" onClick={() => refetch()} className={BTN_SECONDARY}>
                 <Icon icon="heroicons:arrow-path" className="text-sm" />
                 Try again
               </button>
@@ -353,7 +585,7 @@ const Members = () => {
                         <button
                           type="button"
                           onClick={() => setIsInviteModalOpen(true)}
-                          className={`mt-3 ${btnPrimary}`}
+                          className={`mt-3 ${BTN_PRIMARY}`}
                         >
                           <Icon icon="heroicons:plus" className="text-sm" />
                           Invite member
@@ -520,23 +752,42 @@ const Members = () => {
               Role
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {ROLE_OPTIONS.map((opt) => {
-                const isActive = inviteData.role === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleInputChange("role", opt.value)}
-                    className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-                      isActive
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500/20"
-                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+              {roles.length === 0
+                ? Array.from({ length: ROLE_TABS_SKELETON }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse"
+                    />
+                  ))
+                : roles.map((opt) => {
+                    const isActive = inviteData.role === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => handleInputChange("role", opt.value)}
+                        className={`h-8 px-2.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                          isActive
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500/20"
+                            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+            </div>
+
+            {/* What the chosen role actually grants. Inline rather than a
+                tooltip: the whole point is that nobody should have to go
+                looking for it before sending the invite. */}
+            <div className="mt-2">
+              <RoleDetail
+                role={selectedRole}
+                actions={roleActions}
+                groupOrder={groupOrder}
+              />
             </div>
           </div>
 
@@ -558,11 +809,11 @@ const Members = () => {
                 setIsInviteModalOpen(false);
                 setInviteData({ email: "", first_name: "", last_name: "", role: "MANAGER" });
               }}
-              className={btnNeutral}
+              className={BTN_SECONDARY}
             >
               Cancel
             </button>
-            <button type="submit" disabled={inviteLoading} className={btnPrimary}>
+            <button type="submit" disabled={inviteLoading} className={BTN_PRIMARY}>
               {inviteLoading ? (
                 <>
                   <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
@@ -631,7 +882,7 @@ const Members = () => {
                 setDeletingMember(null);
                 setDeleteUserAccount(false);
               }}
-              className={btnNeutral}
+              className={BTN_SECONDARY}
             >
               Cancel
             </button>
@@ -639,7 +890,9 @@ const Members = () => {
               type="button"
               onClick={handleDeleteMember}
               disabled={deleteLoading}
-              className={`${btnBase} text-white bg-rose-600 hover:bg-rose-700 shadow-sm`}
+              // Solid rose rather than BTN_DANGER's tinted treatment: this is the
+              // confirm button of a destructive dialog, not a toolbar action.
+              className={`${BTN_BASE_SHAPE} text-white bg-rose-600 hover:bg-rose-700 shadow-sm`}
             >
               {deleteLoading ? (
                 <>

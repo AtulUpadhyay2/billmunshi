@@ -6,7 +6,7 @@ import {
   useReplyToTicket,
 } from "@/services/support/supportService";
 import NewTicketModal from "@/components/support/NewTicketModal";
-import { CONTROL_TEXTAREA } from "@/constants/ui";
+import { BTN_PRIMARY, CONTROL_TEXTAREA } from "@/constants/ui";
 
 const STATUS_STYLES = {
   open: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-900",
@@ -65,7 +65,7 @@ const TicketReplyForm = ({ ticketId }) => {
       <button
         type="submit"
         disabled={!body.trim() || reply.isPending}
-        className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 shrink-0"
+        className={`${BTN_PRIMARY} shrink-0`}
       >
         {reply.isPending ? (
           <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
@@ -159,7 +159,7 @@ const TicketList = () => {
         <button
           type="button"
           onClick={() => setIsNewOpen(true)}
-          className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer shrink-0"
+          className={`${BTN_PRIMARY} shrink-0`}
         >
           <Icon icon="heroicons:chat-bubble-left-right" className="text-sm" />
           Contact Support

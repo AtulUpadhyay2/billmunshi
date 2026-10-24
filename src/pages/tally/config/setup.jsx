@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import ReactSelect from "react-select";
 import useDarkMode from "@/hooks/useDarkMode";
-import { reactSelectStyles } from "@/constants/ui";
+import { CARD_TITLE, reactSelectStyles } from "@/constants/ui";
 import Modal from "@/components/ui/Modal";
 import Tooltip from "@/components/ui/Tooltip";
 import {
@@ -882,7 +882,7 @@ const TallySetup = () => {
           <section>
             <div className="flex items-center justify-between mb-2 px-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                   Tax Ledger Mapping
                 </h2>
                 <Tooltip
@@ -1005,7 +1005,7 @@ const TallySetup = () => {
           <section>
             <div className="flex items-center justify-between mb-2 px-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                   Select Parent Ledgers
                 </h2>
                 <Tooltip
@@ -1036,7 +1036,7 @@ const TallySetup = () => {
           <section>
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                   Additional Mapping
                 </h2>
                 <Tooltip
@@ -1211,7 +1211,7 @@ const TallySetup = () => {
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
               <Icon icon="heroicons:receipt-percent" className="text-blue-600 dark:text-blue-400 text-sm" />
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
+              <h3 className={CARD_TITLE}>
                 Tax configuration
               </h3>
             </div>
@@ -1228,7 +1228,7 @@ const TallySetup = () => {
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
               <Icon icon="heroicons:book-open" className="text-blue-600 dark:text-blue-400 text-sm" />
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
+              <h3 className={CARD_TITLE}>
                 Account configuration
               </h3>
             </div>

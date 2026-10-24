@@ -1,6 +1,7 @@
 import { Dialog,DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import React, { Fragment, useState } from "react";
 import Icon from "@/components/ui/Icon";
+import { BTN_BASE_SHAPE } from "@/constants/ui";
 
 const Modal = ({
   activeModal,
@@ -39,7 +40,7 @@ const Modal = ({
           <button
             type="button"
             onClick={openModal}
-            className={`btn ${labelClass}`}
+            className={`${BTN_BASE_SHAPE} ${labelClass}`}
           >
             {label}
           </button>

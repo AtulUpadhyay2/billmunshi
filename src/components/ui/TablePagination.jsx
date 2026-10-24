@@ -1,5 +1,6 @@
 import React from "react";
 import { Icon } from "@iconify/react";
+import { CONTROL_SELECT_ARROW, CONTROL_SELECT_SM } from "@/constants/ui";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -52,7 +53,8 @@ const TablePagination = ({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="cursor-pointer pl-1.5 pr-5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className={CONTROL_SELECT_SM}
+              style={CONTROL_SELECT_ARROW}
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>

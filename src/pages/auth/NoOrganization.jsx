@@ -158,6 +158,7 @@ const NoOrganization = () => {
                                 <Button
                                     text="Onboard Your Organization"
                                     className="btn btn-primary block w-full text-center"
+                                    size="lg"
                                     icon="heroicons-outline:plus"
                                     onClick={handleOnboardOrganization}
                                 />
@@ -165,6 +166,7 @@ const NoOrganization = () => {
                                 <Button
                                     text="Refresh Profile"
                                     className="btn btn-outline-primary block w-full text-center"
+                                    size="lg"
                                     icon="heroicons-outline:refresh"
                                     isLoading={isRefreshing}
                                     onClick={handleRefresh}
@@ -173,6 +175,7 @@ const NoOrganization = () => {
                                 <Button
                                     text="Logout"
                                     className="btn btn-outline-dark block w-full text-center"
+                                    size="lg"
                                     icon="heroicons-outline:logout"
                                     onClick={handleLogout}
                                 />

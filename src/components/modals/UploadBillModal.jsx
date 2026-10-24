@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import Modal from "@/components/ui/Modal";
 import BillScanner from "@/components/scanner/BillScanner";
+import { BTN_PRIMARY, BTN_SECONDARY } from "@/constants/ui";
 
 /**
  * UploadBillModal — 2-click upload flow.
@@ -635,7 +636,7 @@ const UploadBillModal = ({
                 type="button"
                 onClick={handleClose}
                 disabled={isUploading}
-                className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                className={BTN_SECONDARY}
               >
                 Cancel
               </button>
@@ -643,7 +644,7 @@ const UploadBillModal = ({
                 type="button"
                 onClick={handleUpload}
                 disabled={items.length === 0 || isUploading}
-                className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+                className={BTN_PRIMARY}
               >
                 {isUploading ? (
                   <>

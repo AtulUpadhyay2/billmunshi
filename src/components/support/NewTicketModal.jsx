@@ -3,13 +3,7 @@ import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { useCreateSupportTicket } from "@/services/support/supportService";
-import {
-  CONTROL,
-  CONTROL_SELECT,
-  CONTROL_SELECT_ARROW,
-  CONTROL_TEXTAREA,
-  FIELD_LABEL,
-} from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, FIELD_LABEL } from "@/constants/ui";
 
 /**
  * NewTicketModal — raise a support ticket.
@@ -122,14 +116,14 @@ const NewTicketModal = ({ isOpen, onClose, onCreated }) => {
             type="button"
             onClick={handleClose}
             disabled={createTicket.isPending}
-            className="inline-flex items-center h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"
+            className={BTN_SECONDARY}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!subject.trim() || !message.trim() || createTicket.isPending}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20"
+            className={BTN_PRIMARY}
           >
             {createTicket.isPending ? (
               <>

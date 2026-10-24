@@ -11,12 +11,15 @@ import {
   useDownloadZohoJournalReport,
 
 } from "@/services/zoho/zohoJournalEntryService";
+import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
 const ZohoJournalEntry = () => {
   return (
     <BillsList
       variant="journal"
       module="zoho"
+      useUploadTargets={useZohoUploadTargets}
+      uploadTargetValue="journal"
       copy={{
         title: "Journal entries",
         subtitle: "Upload, analyse and post journal entries directly to Zoho Books.",

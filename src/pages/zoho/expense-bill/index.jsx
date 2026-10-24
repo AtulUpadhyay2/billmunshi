@@ -11,12 +11,15 @@ import {
   useDownloadZohoExpenseReport,
 
 } from "@/services/zoho/zohoExpenseBillService";
+import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
 const ZohoExpenseBill = () => {
   return (
     <BillsList
       variant="expense"
       module="zoho"
+      useUploadTargets={useZohoUploadTargets}
+      uploadTargetValue="expense"
       copy={{
         title: "Expense bills",
         subtitle: "Upload, analyse and post expense bills directly to Zoho Books.",

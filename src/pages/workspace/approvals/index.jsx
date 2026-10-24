@@ -13,11 +13,35 @@ import { useApprovalQueue, useOrgPermissions } from "@/services/approvalService"
  * not a place to approve things sight unseen.
  */
 
+/**
+ * Where a queued bill's "Review" button goes.
+ *
+ * Keyed on module AND bill type, not type alone: a Tally purchase and a
+ * Zoho purchase both arrive as ``vendor`` and would otherwise collide,
+ * sending half the queue to the wrong screen. A row whose pair is not
+ * here renders no Review button, which strands it — so every pair that
+ * the backend can produce has an entry.
+ */
 const DETAIL_ROUTE = {
-  vendor: "/tally/vendor-bill",
-  expense: "/tally/expense-bill",
-  payment: "/tally/payment-voucher",
+  tally: {
+    vendor: "/tally/vendor-bill",
+    sales: "/tally/sales-bill",
+    expense: "/tally/expense-bill",
+    payment: "/tally/payment-voucher",
+    receipt: "/tally/receipt-voucher",
+  },
+  zoho: {
+    vendor: "/zoho/vendor-bill",
+    sales: "/zoho/sales-bill",
+    expense: "/zoho/expense-bill",
+    journal: "/zoho/journal-entry",
+    payment: "/zoho/payment-voucher",
+    receipt: "/zoho/receipt-voucher",
+  },
 };
+
+const detailRoute = (row) =>
+  DETAIL_ROUTE[row.module]?.[row.bill_type] || null;
 
 const when = (iso) => {
   if (!iso) return "—";
@@ -117,7 +141,7 @@ const TallyApprovals = () => {
             </thead>
             <tbody>
               {rows.map((row) => {
-                const route = DETAIL_ROUTE[row.bill_type];
+                const route = detailRoute(row);
                 return (
                   <tr
                     key={row.id}
@@ -125,6 +149,11 @@ const TallyApprovals = () => {
                   >
                     <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
                       {row.bill_type_label}
+                      {/* The queue carries both modules, and a purchase
+                          voucher looks the same in either — say which. */}
+                      <span className="ml-1.5 text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        {row.module}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
                       {row.submitted_by_email || "—"}

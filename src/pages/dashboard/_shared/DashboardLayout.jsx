@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import Loading from "@/components/Loading";
 import UploadBillModal from "@/components/modals/UploadBillModal";
+import { BTN_SECONDARY, CARD_TITLE } from "@/constants/ui";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -281,7 +282,7 @@ const FunnelCard = ({ title, data, accent = "blue", className = "", dense = fals
           >
             <Icon icon="heroicons:funnel" className="text-sm" />
           </span>
-          <h3 className="text-[12px] font-bold text-slate-900 dark:text-white tracking-tight truncate">
+          <h3 className={`${CARD_TITLE} truncate`}>
             {title}
           </h3>
         </div>
@@ -375,7 +376,7 @@ const TrendsChart = ({
         <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
           <Icon icon="heroicons:chart-bar-square" className="text-sm" />
         </span>
-        <h3 className="text-[12px] font-bold text-slate-900 dark:text-white tracking-tight">
+        <h3 className={CARD_TITLE}>
           Usage trends
         </h3>
       </div>
@@ -443,7 +444,7 @@ const FileDistribution = ({ slices }) => (
       <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
         <Icon icon="heroicons:document-duplicate" className="text-sm" />
       </span>
-      <h3 className="text-[12px] font-bold text-slate-900 dark:text-white tracking-tight">
+      <h3 className={CARD_TITLE}>
         File distribution
       </h3>
     </div>
@@ -576,7 +577,7 @@ const DashboardLayout = ({
           <button
             type="button"
             onClick={refetchAll}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again

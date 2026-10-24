@@ -1,6 +1,7 @@
 import React from "react";
 import Icon from "@/components/ui/Icon";
 import { Link } from "react-router-dom";
+import { BTN_BASE_SHAPE } from "@/constants/ui";
 function Button({
   text,
   type = "button",
@@ -15,14 +16,23 @@ function Button({
   link,
   onClick,
   div,
+  // "md" is the app's 32px control box — the same height as every input and
+  // toolbar button (see `@/constants/ui`). "lg" keeps the legacy DashCode
+  // `.btn` geometry (~48px, uppercase-ish, full-bleed) for the handful of
+  // places that really are a page-sized call to action: the auth cards and
+  // the 404. Everything else — modal footers, toolbars — is "md", which is
+  // what this component was being used for in 19 of its 22 call sites while
+  // rendering a 48px button that matched nothing around it.
+  size = "md",
 }) {
+  const shape = size === "lg" ? "btn" : BTN_BASE_SHAPE;
   return (
     <>
       {!link && !div && (
         <button
           type={type}
           onClick={onClick}
-          className={`btn btn inline-flex justify-center   ${
+          className={`${shape} inline-flex justify-center   ${
             isLoading ? " pointer-events-none" : ""
           }
         ${disabled ? " opacity-40 cursor-not-allowed" : ""}
@@ -80,7 +90,7 @@ function Button({
       {!link && div && (
         <div
           onClick={onClick}
-          className={`btn btn inline-flex justify-center   ${
+          className={`${shape} inline-flex justify-center   ${
             isLoading ? " pointer-events-none" : ""
           }
         ${disabled ? " opacity-40 cursor-not-allowed" : ""}
@@ -141,7 +151,7 @@ function Button({
       {link && !div && (
         <Link
           to={link}
-          className={`btn btn inline-flex justify-center   ${
+          className={`${shape} inline-flex justify-center   ${
             isLoading ? " pointer-events-none" : ""
           }
         ${disabled ? " opacity-40 cursor-not-allowed" : ""}

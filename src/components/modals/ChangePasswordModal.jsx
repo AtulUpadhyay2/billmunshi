@@ -3,7 +3,7 @@ import Modal from "@/components/ui/Modal";
 import { useChangePasswordMutation } from "@/store/api/auth/authApiSlice";
 import { toast } from "sonner";
 import Icon from "@/components/ui/Icon";
-import { CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 
 /**
  * One field, used three times.
@@ -219,7 +219,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={handleClose}
             disabled={isLoading}
-            className="inline-flex items-center h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 rounded-lg transition-all cursor-pointer"
+            className={BTN_SECONDARY}
           >
             Cancel
           </button>
@@ -227,7 +227,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={handleSubmit}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-lg shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={BTN_PRIMARY}
           >
             {isLoading ? (
               <>

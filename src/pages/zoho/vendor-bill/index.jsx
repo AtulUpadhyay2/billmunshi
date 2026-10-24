@@ -11,12 +11,15 @@ import {
   useDownloadZohoVendorReport,
 
 } from "@/services/zoho/zohoVendorBillService";
+import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
 const ZohoVendorBill = () => {
   return (
     <BillsList
       variant="vendor"
       module="zoho"
+      useUploadTargets={useZohoUploadTargets}
+      uploadTargetValue="vendor"
       copy={{
         title: "Vendor bills",
         subtitle: "Upload, analyse and post vendor bills directly to Zoho Books.",

@@ -10,28 +10,81 @@ export const menuItems = [
     isHide: true,
     link: "/dashboard",
   },
+  // Approvals and Activity cover Tally AND Zoho — the queue and the log
+  // are keyed on the organisation, not on a module. Under the "Tally"
+  // heading they read as a Tally feature, which is why they sit here
+  // with Dashboard instead: views across everything, before the two
+  // accounting packages. (Trash stays under Tally — it genuinely only
+  // holds Tally vouchers.)
+  {
+    title: "Approvals",
+    isHide: true,
+    icon: "heroicons-outline:badge-check",
+    link: "/approvals",
+  },
+
+  {
+    title: "Activity",
+    isHide: true,
+    icon: "heroicons-outline:clock",
+    link: "/activity",
+  },
+
   {
     isHeadr: true,
     title: "Zoho",
   },
 
+  // Grouped by accounting cycle, exactly as the Tally section below.
+  // Purchase is the payables cycle — the vendor bill, the payment that
+  // settles it, and the expense, which posts against a vendor and an
+  // expense ledger too. Sales is the receivables one. Journal Entry stays
+  // top level on purpose: journals arise on both sides (TDS, RCM,
+  // provisions on one; write-offs, TCS on the other), so it belongs to
+  // neither group.
   {
-    title: "Vendor Bill",
+    title: "Purchase",
     isHide: true,
-    icon: "heroicons-outline:document-text",
-    link: "/zoho/vendor-bill",
+    icon: "heroicons-outline:shopping-cart",
+    link: "#",
+    child: [
+      {
+        childtitle: "Vendor Bill",
+        childlink: "/zoho/vendor-bill",
+      },
+      {
+        childtitle: "Payment",
+        childlink: "/zoho/payment-voucher",
+      },
+      {
+        childtitle: "Expense Bill",
+        childlink: "/zoho/expense-bill",
+      },
+    ],
   },
+
+  {
+    title: "Sales",
+    isHide: true,
+    icon: "heroicons-outline:currency-rupee",
+    link: "#",
+    child: [
+      {
+        childtitle: "Sales",
+        childlink: "/zoho/sales-bill",
+      },
+      {
+        childtitle: "Receipt",
+        childlink: "/zoho/receipt-voucher",
+      },
+    ],
+  },
+
   {
     title: "Journal Entry",
     isHide: true,
     icon: "heroicons-outline:document",
     link: "/zoho/journal-entry",
-  },
-  {
-    title: "Expense Bill",
-    isHide: true,
-    icon: "heroicons-outline:clipboard",
-    link: "/zoho/expense-bill",
   },
   {
     title: "Config",
@@ -58,6 +111,10 @@ export const menuItems = [
       {
         childtitle: "Vendor List",
         childlink: "/zoho/vendors",
+      },
+      {
+        childtitle: "Customer List",
+        childlink: "/zoho/customers",
       },
       // {
       //   childtitle: "Vendors Credits",
@@ -117,26 +174,6 @@ export const menuItems = [
     link: "/tally/expense-bill",
   },
 
-  {
-    title: "Approvals",
-    isHide: true,
-    icon: "heroicons-outline:badge-check",
-    link: "/tally/approvals",
-  },
-
-  {
-    title: "Activity",
-    isHide: true,
-    icon: "heroicons-outline:clock",
-    link: "/tally/activity",
-  },
-
-  {
-    title: "Accuracy",
-    isHide: true,
-    icon: "heroicons-outline:chart-bar",
-    link: "/tally/accuracy",
-  },
 
   {
     title: "Trash",
@@ -180,6 +217,16 @@ export const menuItems = [
   {
     isHeadr: true,
     title: "Settings",
+  },
+
+  // Admin-only, and an internal measure of how the reader is performing
+  // rather than something an operator uses — so it belongs with the
+  // other settings, not in the daily workflow.
+  {
+    title: "Accuracy",
+    isHide: true,
+    icon: "heroicons-outline:chart-bar",
+    link: "/accuracy",
   },
   {
     title: "Members",
@@ -227,6 +274,21 @@ export const topMenu = [
         childicon: "heroicons-outline:clipboard",
       },
       {
+        childtitle: "Sales",
+        childlink: "/zoho/sales-bill",
+        childicon: "heroicons-outline:currency-rupee",
+      },
+      {
+        childtitle: "Receipt",
+        childlink: "/zoho/receipt-voucher",
+        childicon: "heroicons-outline:banknotes",
+      },
+      {
+        childtitle: "Payment",
+        childlink: "/zoho/payment-voucher",
+        childicon: "heroicons-outline:credit-card",
+      },
+      {
         childtitle: "Credentials",
         childlink: "/zoho/config/credentials",
         childicon: "heroicons-outline:key",
@@ -250,6 +312,11 @@ export const topMenu = [
         childtitle: "Vendor List",
         childlink: "/zoho/vendors",
         childicon: "heroicons-outline:user-group",
+      },
+      {
+        childtitle: "Customer List",
+        childlink: "/zoho/customers",
+        childicon: "heroicons-outline:users",
       },
     ],
   },

@@ -76,9 +76,11 @@ export const getFilteredMenuItems = (enabledModules = [], isAdmin = true) => {
         return enabledModuleNames.includes("zoho");
       }
 
-      // Handle Zoho Expense Bill with children (Journal Entry, Expense)
+      // Zoho and Tally both have a "Purchase" and a "Sales" group, so
+      // neither can be matched on title alone — the child links decide
+      // which module's group this is.
       if (
-        item.title === "Expense Bill" &&
+        (item.title === "Purchase" || item.title === "Sales") &&
         item.child &&
         item.child.some(
           (child) => child.childlink && child.childlink.startsWith("/zoho/"),
@@ -123,22 +125,30 @@ export const getFilteredMenuItems = (enabledModules = [], isAdmin = true) => {
       }
 
       // Handle the Tally Sales group (Sales Voucher, Receipt Voucher)
-      if (item.title === "Sales" && item.child) {
+      if (
+        item.title === "Sales" &&
+        item.child &&
+        item.child.some(
+          (child) => child.childlink && child.childlink.startsWith("/tally/"),
+        )
+      ) {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Approvals (bills waiting on a Manager's decision)
-      if (item.title === "Approvals" && item.link === "/tally/approvals") {
-        return enabledModuleNames.includes("tally");
-      }
-
-      // Handle Tally Activity (organisation-wide bill activity log)
-      if (item.title === "Activity" && item.link === "/tally/activity") {
-        return enabledModuleNames.includes("tally");
+      // Approvals and Activity are organisation-wide, not Tally's. Both
+      // the queue and the log are keyed on the organisation and carry
+      // bills from either package, so gating them on Tally hid them
+      // from a Zoho-only workspace that they work perfectly well for.
+      // Shown as soon as there is any module to produce a bill.
+      if (
+        (item.title === "Approvals" && item.link === "/approvals") ||
+        (item.title === "Activity" && item.link === "/activity")
+      ) {
+        return enabledModuleNames.length > 0;
       }
 
       // Accuracy is admin-only and covers every module, not just Tally.
-      if (item.title === "Accuracy" && item.link === "/tally/accuracy") {
+      if (item.title === "Accuracy" && item.link === "/accuracy") {
         return isAdmin;
       }
 

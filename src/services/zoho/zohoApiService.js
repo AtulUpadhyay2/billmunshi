@@ -333,6 +333,71 @@ export const useSyncVendors = () => {
   });
 };
 
+// ==================== CUSTOMERS ====================
+
+// Fetch Customers
+export const useGetCustomers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoCustomers", organizationId],
+    queryFn: () => apiFetch(`zoho/org/${organizationId}/customers/`),
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
+// Fetch ALL Customers (for dropdowns). The customers endpoint paginates
+// like the chart of accounts one, so the sales/receipt pickers have to walk
+// every page or they silently offer only the first.
+export const useGetAllCustomers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["zohoAllCustomers", organizationId],
+    queryFn: async () => {
+      let allResults = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await apiFetch(
+          `zoho/org/${organizationId}/customers/?page=${page}`
+        );
+
+        if (response.results && response.results.length > 0) {
+          allResults = [...allResults, ...response.results];
+          hasMore = !!response.next;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return { results: allResults, count: allResults.length };
+    },
+    enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Sync Customers
+export const useSyncCustomers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (organizationId) =>
+      apiFetch(`zoho/org/${organizationId}/customers/sync/`, {
+        method: "POST",
+      }),
+    onSuccess: (data, organizationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoCustomers", organizationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["zohoAllCustomers", organizationId],
+      });
+    },
+  });
+};
+
 // ==================== VENDOR CREDITS ====================
 
 // Fetch Vendor Credits

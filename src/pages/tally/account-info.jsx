@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { BTN_PRIMARY, BTN_SECONDARY, CARD_TITLE } from "@/constants/ui";
 import {
   useGetHelpData,
   useGetTallySetupGuide,
@@ -251,7 +252,7 @@ const TallyAccountInfo = () => {
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer disabled:opacity-50"
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -267,7 +268,7 @@ const TallyAccountInfo = () => {
                   ? `Tally TCP v${helpData.tcp_version}`
                   : "Download Tally TCP"
             }
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={BTN_PRIMARY}
           >
             <Icon icon="heroicons:arrow-down-tray" className="text-sm" />
             Download TCP
@@ -301,7 +302,7 @@ const TallyAccountInfo = () => {
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
@@ -330,7 +331,7 @@ const TallyAccountInfo = () => {
                   <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
                     <Icon icon="heroicons:building-office-2" className="text-sm" />
                   </span>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h3 className={CARD_TITLE}>
                     Organization details
                   </h3>
                 </div>
@@ -390,7 +391,7 @@ const TallyAccountInfo = () => {
                     <span className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
                       <Icon icon="heroicons:cog-6-tooth" className="text-sm" />
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                    <h3 className={CARD_TITLE}>
                       Tally integration
                     </h3>
                   </div>
@@ -447,7 +448,7 @@ const TallyAccountInfo = () => {
                   <Icon icon="heroicons:book-open" className="text-sm" />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h3 className={CARD_TITLE}>
                     Tally setup guide
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">

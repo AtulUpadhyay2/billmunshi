@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import ActivityPanel from "@/components/bills/ActivityPanel";
+import BillChecks from "@/components/bills/BillChecks";
+import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -70,6 +73,7 @@ const ZohoExpenseBillDetail = () => {
   // State for image zoom and viewing
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
 
   // State for verification loading
   const [isVerifying, setIsVerifying] = useState(false);
@@ -152,6 +156,25 @@ const ZohoExpenseBillDetail = () => {
     getItemsWithoutCOA().length > 0 ||
     getItemsWithoutTaxes().length > 0 ||
     expenseItems.length === 0;
+
+  // The blocking list, spelled out. The banner and the Verify button's
+  // tooltip both read it, so the two can never disagree.
+  const getValidationErrorMessages = () => {
+    const errors = [];
+    if (isVendorRequired) errors.push("Select a vendor");
+    if (expenseItems.length === 0) errors.push("Add at least one expense item");
+    if (getItemsWithoutCOA().length > 0) {
+      errors.push(
+        `Select chart of accounts for ${getItemsWithoutCOA().length} expense item${getItemsWithoutCOA().length > 1 ? "s" : ""}`,
+      );
+    }
+    if (getItemsWithoutTaxes().length > 0) {
+      errors.push(
+        `Select taxes for ${getItemsWithoutTaxes().length} expense item${getItemsWithoutTaxes().length > 1 ? "s" : ""}`,
+      );
+    }
+    return errors;
+  };
 
   // Date validation helper function
   const validateDateInput = (dateString) => {
@@ -792,6 +815,15 @@ const ZohoExpenseBillDetail = () => {
             Next
             <Icon icon="heroicons:arrow-right" className="text-sm" />
           </button>
+          <button
+            type="button"
+            onClick={() => setIsActivityOpen(true)}
+            aria-label="Activity"
+            className="inline-flex items-center justify-center h-8 w-8 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            title="Who did what to this bill"
+          >
+            <Icon icon="heroicons:clock" className="text-sm" />
+          </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
@@ -804,7 +836,7 @@ const ZohoExpenseBillDetail = () => {
                 : isSynced
                   ? "Bill already synced"
                   : hasValidationErrors()
-                    ? "Resolve validation issues before verifying"
+                    ? getValidationErrorMessages().join(" · ")
                     : billInfo?.status === "Verified"
                       ? "Re-verify"
                       : "Verify"
@@ -1330,37 +1362,21 @@ const ZohoExpenseBillDetail = () => {
                   </h3>
                 </div>
 
-                {/* Validation Summary */}
-                {!isVerified && hasValidationErrors() && (
-                  <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/60">
-                    <Icon icon="heroicons:exclamation-triangle" className="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                        Resolve before verifying
-                      </p>
-                      <ul className="text-[11px] text-amber-700/90 dark:text-amber-400/90 space-y-0.5 list-disc pl-4">
-                        {isVendorRequired && <li>Select a vendor</li>}
-                        {expenseItems.length === 0 && (
-                          <li>Add at least one expense item</li>
-                        )}
-                        {getItemsWithoutCOA().length > 0 && (
-                          <li>
-                            Select chart of accounts for{" "}
-                            {getItemsWithoutCOA().length} expense item
-                            {getItemsWithoutCOA().length > 1 ? "s" : ""}
-                          </li>
-                        )}
-                        {getItemsWithoutTaxes().length > 0 && (
-                          <li>
-                            Select taxes for {getItemsWithoutTaxes().length}{" "}
-                            expense item
-                            {getItemsWithoutTaxes().length > 1 ? "s" : ""}
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                )}
+                {/* What the Verify button is waiting on, and nothing
+                    else — the advisory checks are deliberately not shown. */}
+                {/* Approval. Renders nothing unless the workspace has
+                    require_bill_approval on, so this is invisible by default. */}
+                <div className="mb-3">
+                  <ApprovalPanel
+                    organizationId={selectedOrganization?.id}
+                    billId={billId}
+                  />
+                </div>
+
+                <BillChecks
+                  blockers={getValidationErrorMessages()}
+                  isVerified={isVerified}
+                />
 
                 {/* Bill Form Fields */}
                 <div className="space-y-3">
@@ -2042,6 +2058,13 @@ const ZohoExpenseBillDetail = () => {
           </div>
         </div>
       </div>
+
+      <ActivityPanel
+        open={isActivityOpen}
+        onClose={() => setIsActivityOpen(false)}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+      />
 
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (

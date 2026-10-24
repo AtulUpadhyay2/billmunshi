@@ -8,6 +8,7 @@ import React, {
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { useProcessBillScan } from "@/services/tally/tallyApiService";
+import { BTN_SECONDARY } from "@/constants/ui";
 
 /**
  * BillScanner — server-side document scanner UI.
@@ -409,7 +410,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
             type="button"
             onClick={handleApplyCrop}
             disabled={isProcessing}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-md cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg cursor-pointer"
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Re-enhance
@@ -448,7 +449,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
               type="button"
               onClick={onSkip}
               disabled={isProcessing}
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
+              className={BTN_SECONDARY}
             >
               Skip scan
             </button>
@@ -458,7 +459,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
               type="button"
               onClick={onCancel}
               disabled={isProcessing}
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer disabled:opacity-50"
+              className={BTN_SECONDARY}
             >
               Cancel
             </button>

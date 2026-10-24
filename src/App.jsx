@@ -38,6 +38,18 @@ const ZohoExpenseBill = lazy(() => import("./pages/zoho/expense-bill"));
 const ZohoExpenseBillDetail = lazy(
   () => import("./pages/zoho/expense-bill/detail"),
 );
+const ZohoSalesBill = lazy(() => import("./pages/zoho/sales-bill"));
+const ZohoSalesBillDetail = lazy(
+  () => import("./pages/zoho/sales-bill/detail"),
+);
+const ZohoReceiptVoucher = lazy(() => import("./pages/zoho/receipt-voucher"));
+const ZohoReceiptVoucherDetail = lazy(
+  () => import("./pages/zoho/receipt-voucher/detail"),
+);
+const ZohoPaymentVoucher = lazy(() => import("./pages/zoho/payment-voucher"));
+const ZohoPaymentVoucherDetail = lazy(
+  () => import("./pages/zoho/payment-voucher/detail"),
+);
 const ZohoJournalEntry = lazy(() => import("./pages/zoho/journal-entry"));
 const ZohoJournalEntryDetail = lazy(
   () => import("./pages/zoho/journal-entry/detail"),
@@ -49,6 +61,7 @@ const ZohoChartOfAccounts = lazy(
 const ZohoTaxes = lazy(() => import("./pages/zoho/config/taxes"));
 const ZohoTdsTcs = lazy(() => import("./pages/zoho/config/TdsTcs"));
 const ZohoVendors = lazy(() => import("./pages/zoho/config/vendors"));
+const ZohoCustomers = lazy(() => import("./pages/zoho/config/customers"));
 const ZohoVendorsCredits = lazy(
   () => import("./pages/zoho/config/VendorsCredits"),
 );
@@ -83,9 +96,9 @@ const TallySetups = lazy(() => import("./pages/tally/config/setup"));
 const TallyMaster = lazy(() => import("./pages/tally/config/master"));
 const TallyAccountInfo = lazy(() => import("./pages/tally/account-info"));
 const TallyTrash = lazy(() => import("./pages/tally/trash"));
-const TallyActivity = lazy(() => import("./pages/tally/activity"));
-const TallyApprovals = lazy(() => import("./pages/tally/approvals"));
-const TallyAccuracy = lazy(() => import("./pages/tally/accuracy"));
+const Activity = lazy(() => import("./pages/workspace/activity"));
+const Approvals = lazy(() => import("./pages/workspace/approvals"));
+const Accuracy = lazy(() => import("./pages/workspace/accuracy"));
 
 // Settings
 const Members = lazy(() => import("./pages/settings/members"));
@@ -179,6 +192,27 @@ function App() {
             path="zoho/expense-bill/:id"
             element={<ZohoExpenseBillDetail />}
           />
+          <Route path="zoho/sales-bill" element={<ZohoSalesBill />} />
+          <Route
+            path="zoho/sales-bill/:id"
+            element={<ZohoSalesBillDetail />}
+          />
+          <Route
+            path="zoho/receipt-voucher"
+            element={<ZohoReceiptVoucher />}
+          />
+          <Route
+            path="zoho/receipt-voucher/:id"
+            element={<ZohoReceiptVoucherDetail />}
+          />
+          <Route
+            path="zoho/payment-voucher"
+            element={<ZohoPaymentVoucher />}
+          />
+          <Route
+            path="zoho/payment-voucher/:id"
+            element={<ZohoPaymentVoucherDetail />}
+          />
           <Route path="zoho/journal-entry" element={<ZohoJournalEntry />} />
           <Route
             path="zoho/journal-entry/:id"
@@ -192,6 +226,7 @@ function App() {
           <Route path="zoho/taxes" element={<ZohoTaxes />} />
           <Route path="zoho/tds-tcs" element={<ZohoTdsTcs />} />
           <Route path="zoho/vendors" element={<ZohoVendors />} />
+          <Route path="zoho/customers" element={<ZohoCustomers />} />
           <Route path="zoho/vendors-credits" element={<ZohoVendorsCredits />} />
 
           {/** Tally */}
@@ -224,9 +259,26 @@ function App() {
             element={<TallyPaymentVoucherDetail />}
           />
           <Route path="tally/trash" element={<TallyTrash />} />
-          <Route path="tally/activity" element={<TallyActivity />} />
-          <Route path="tally/approvals" element={<TallyApprovals />} />
-          <Route path="tally/accuracy" element={<TallyAccuracy />} />
+          {/* Approvals, Activity and Accuracy read across Tally AND
+              Zoho — they are keyed on the organisation, not a module —
+              so they sit at the top level rather than under /tally. The
+              old paths redirect: they have been in the sidebar, so some
+              are bookmarked. */}
+          <Route path="approvals" element={<Approvals />} />
+          <Route path="activity" element={<Activity />} />
+          <Route path="accuracy" element={<Accuracy />} />
+          <Route
+            path="tally/approvals"
+            element={<Navigate to="/approvals" replace />}
+          />
+          <Route
+            path="tally/activity"
+            element={<Navigate to="/activity" replace />}
+          />
+          <Route
+            path="tally/accuracy"
+            element={<Navigate to="/accuracy" replace />}
+          />
           <Route path="tally/ledgers" element={<TallyLedgers />} />
           <Route path="tally/setup" element={<TallySetups />} />
           <Route path="tally/masters" element={<TallyMaster />} />
