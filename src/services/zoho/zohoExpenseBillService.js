@@ -145,6 +145,11 @@ export const useDeleteZohoExpenseBill = () => {
         method: "DELETE",
       }),
     onSuccess: (data, variables) => {
+      // The delete is a move to Trash now, so the Trash screen's
+      // merged list is stale the moment this returns.
+      queryClient.invalidateQueries({
+        queryKey: ["unifiedTrash", variables.organizationId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["zohoExpenseBills", variables.organizationId],
       });

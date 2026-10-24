@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import ReCaptcha from "@/components/ReCaptcha";
 import { isRecaptchaConfigured } from "@/config/recaptcha";
 import VerifyEmailNotice from "@/components/auth/VerifyEmailNotice";
+import { BTN_PRIMARY_CTA, BTN_SECONDARY, BTN_SOFT, CONTROL_SEARCH_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 
 const schema = yup
   .object({
@@ -50,10 +51,10 @@ const schema = yup
   .required();
 
 const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+  `${CONTROL_SEARCH_VALIDATED} border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20`;
 
 const inputError =
-  "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800";
+  `${CONTROL_SEARCH_VALIDATED} border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20`;
 
 /*
  * Defined at module scope on purpose.
@@ -70,14 +71,14 @@ const inputError =
  */
 const Field = ({ label, required, error, icon, children }) => (
   <div>
-    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+    <label className={FIELD_LABEL}>
       {label} {required && <span className="text-rose-500">*</span>}
     </label>
     <div className="relative">
       {icon && (
         <Icon
           icon={icon}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"
         />
       )}
       {children}
@@ -251,7 +252,7 @@ const RegForm = () => {
         />
         <Link
           to="/auth/login"
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all"
+          className={`w-full ${BTN_PRIMARY_CTA}`}
         >
           Go to login
           <Icon icon="heroicons:arrow-right" className="text-base" />
@@ -269,7 +270,7 @@ const RegForm = () => {
             placeholder="Your full name"
             autoComplete="name"
             {...register("name")}
-            className={`${inputBase} ${errors.name ? inputError : ""}`}
+            className={`${errors.name ? inputError : inputBase}`}
           />
         </Field>
 
@@ -284,7 +285,7 @@ const RegForm = () => {
             placeholder="Your organization"
             autoComplete="organization"
             {...register("organizationName")}
-            className={`${inputBase} ${errors.organizationName ? inputError : ""}`}
+            className={`${errors.organizationName ? inputError : inputBase}`}
           />
         </Field>
       </div>
@@ -313,7 +314,7 @@ const RegForm = () => {
         >
           <select
             {...register("designation")}
-            className={`${inputBase} pr-10 cursor-pointer appearance-none ${
+            className={`${inputBase} pr-8 cursor-pointer appearance-none ${
               errors.designation ? inputError : ""
             }`}
           >
@@ -337,7 +338,7 @@ const RegForm = () => {
         >
           <select
             {...register("accountingSoftware")}
-            className={`${inputBase} pr-10 cursor-pointer appearance-none ${
+            className={`${inputBase} pr-8 cursor-pointer appearance-none ${
               errors.accountingSoftware ? inputError : ""
             }`}
           >
@@ -361,7 +362,7 @@ const RegForm = () => {
             placeholder="you@company.com"
             autoComplete="email"
             {...register("email")}
-            className={`${inputBase} ${errors.email ? inputError : ""}`}
+            className={`${errors.email ? inputError : inputBase}`}
           />
         </Field>
 
@@ -371,34 +372,34 @@ const RegForm = () => {
             placeholder="10-digit phone number"
             autoComplete="tel"
             {...register("phone")}
-            className={`${inputBase} ${errors.phone ? inputError : ""}`}
+            className={`${errors.phone ? inputError : inputBase}`}
           />
         </Field>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <label className={FIELD_LABEL}>
           Password <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
           <Icon
             icon="heroicons:lock-closed"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"
           />
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Min 8 chars · 1 upper · 1 number · 1 symbol"
             autoComplete="new-password"
             {...register("password")}
-            className={`${inputBase} pr-10 ${errors.password ? inputError : ""}`}
+            className={`${errors.password ? inputError : inputBase} pr-8`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            <Icon icon={showPassword ? "heroicons:eye-slash" : "heroicons:eye"} className="text-lg" />
+            <Icon icon={showPassword ? "heroicons:eye-slash" : "heroicons:eye"} className="text-sm" />
           </button>
         </div>
         {errors.password && (
@@ -488,7 +489,7 @@ const RegForm = () => {
       <button
         type="submit"
         disabled={isLoading}
-        className="group w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer"
+        className={`group w-full ${BTN_PRIMARY_CTA}`}
       >
         {isLoading ? (
           <>
@@ -516,14 +517,14 @@ const RegForm = () => {
             <button
               type="button"
               onClick={() => setShowTermsModal(false)}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              className={BTN_SECONDARY}
             >
               Close
             </button>
             <button
               type="button"
               onClick={handleAcceptTerms}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 cursor-pointer"
+              className={BTN_SOFT}
             >
               Accept
             </button>
@@ -545,14 +546,14 @@ const RegForm = () => {
             <button
               type="button"
               onClick={() => setShowPrivacyModal(false)}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              className={BTN_SECONDARY}
             >
               Close
             </button>
             <button
               type="button"
               onClick={handleAcceptTerms}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 cursor-pointer"
+              className={BTN_SOFT}
             >
               Accept
             </button>

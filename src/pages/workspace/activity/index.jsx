@@ -6,7 +6,13 @@ import { useOrgActivity } from "@/services/activityService";
 import TablePagination from "@/components/ui/TablePagination";
 
 /**
- * Organisation-wide activity feed for Tally.
+ * Organisation-wide activity feed, across every module.
+ *
+ * The log is keyed on the organisation, not on an accounting package:
+ * a Tally voucher and a Zoho bill land in the same feed. It used to say
+ * "Tally" throughout and offer only Tally's three voucher types, so
+ * half the rows had no filter that could reach them and no link that
+ * could open them.
  *
  * Reads the same log the per-bill timeline does, filtered server-side so
  * the page never pulls more than one screen of rows.
@@ -19,7 +25,7 @@ const ACTIONS = [
   { value: "analysis_failed", label: "Analysis failed" },
   { value: "duplicate_flagged", label: "Flagged as duplicate" },
   { value: "verified", label: "Verified" },
-  { value: "sync_requested", label: "Sent to Tally" },
+  { value: "sync_requested", label: "Sent to accounting software" },
   { value: "sync_confirmed", label: "Posted" },
   { value: "sync_failed", label: "Posting failed" },
   { value: "moved", label: "Moved" },
@@ -28,19 +34,47 @@ const ACTIONS = [
   { value: "deleted", label: "Deleted permanently" },
 ];
 
+const MODULES = [
+  { value: "", label: "All modules" },
+  { value: "tally", label: "Tally" },
+  { value: "zoho", label: "Zoho" },
+];
+
 const BILL_TYPES = [
   { value: "", label: "All vouchers" },
   { value: "vendor", label: "Purchase Voucher" },
+  { value: "sales", label: "Sales Voucher" },
   { value: "payment", label: "Payment Voucher" },
+  { value: "receipt", label: "Receipt Voucher" },
   { value: "expense", label: "Journal Entry" },
+  { value: "journal", label: "Journal" },
 ];
 
-// Where a row's bill lives, so the row can link straight to it.
+/**
+ * Where a row's bill lives, so the row can link straight to it.
+ *
+ * Keyed on module AND type: both packages produce a ``vendor``, and
+ * keying on the type alone sent half the feed to the wrong screen.
+ */
 const DETAIL_ROUTE = {
-  vendor: "/tally/vendor-bill",
-  payment: "/tally/payment-voucher",
-  expense: "/tally/expense-bill",
+  tally: {
+    vendor: "/tally/vendor-bill",
+    sales: "/tally/sales-bill",
+    payment: "/tally/payment-voucher",
+    receipt: "/tally/receipt-voucher",
+    expense: "/tally/expense-bill",
+  },
+  zoho: {
+    vendor: "/zoho/vendor-bill",
+    sales: "/zoho/sales-bill",
+    payment: "/zoho/payment-voucher",
+    receipt: "/zoho/receipt-voucher",
+    expense: "/zoho/expense-bill",
+    journal: "/zoho/journal-entry",
+  },
 };
+
+const detailRoute = (row) => DETAIL_ROUTE[row.module]?.[row.bill_type] || null;
 
 const TONE = {
   analysis_failed: "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-rose-100 dark:ring-rose-900/60",
@@ -72,10 +106,11 @@ const formatWhen = (iso) => {
 const selectClass =
   "h-8 px-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer";
 
-const TallyActivity = () => {
+const Activity = () => {
   const { selectedOrganization } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
+  const [module, setModule] = useState("");
   const [action, setAction] = useState("");
   const [billType, setBillType] = useState("");
   const [since, setSince] = useState("");
@@ -83,7 +118,7 @@ const TallyActivity = () => {
 
   const filters = useMemo(
     () => ({
-      module: "tally",
+      module,
       action,
       bill_type: billType,
       // A date input gives a plain date; the API wants a datetime.
@@ -91,7 +126,7 @@ const TallyActivity = () => {
       page,
       page_size: PAGE_SIZE,
     }),
-    [action, billType, since, page],
+    [module, action, billType, since, page],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } =
@@ -133,10 +168,21 @@ const TallyActivity = () => {
             Activity
           </h1>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-            Every change to every Tally bill, newest first.
+            Every change to every bill, Tally and Zoho, newest first.
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
+          <select
+            value={module}
+            onChange={(e) => onFilter(setModule)(e.target.value)}
+            className={selectClass}
+          >
+            {MODULES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
           <select
             value={billType}
             onChange={(e) => onFilter(setBillType)(e.target.value)}
@@ -224,7 +270,7 @@ const TallyActivity = () => {
               )}
 
               {rows.map((row) => {
-                const route = DETAIL_ROUTE[row.bill_type];
+                const route = detailRoute(row);
                 // A deleted bill has no page left to open.
                 const canOpen = Boolean(route) && row.action !== "deleted";
                 return (
@@ -246,6 +292,11 @@ const TallyActivity = () => {
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-slate-600 dark:text-slate-400">
                       {row.bill_type_label}
+                      {/* Both packages produce a "Purchase Voucher" —
+                          say which one this row came from. */}
+                      <span className="ml-1.5 text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        {row.module}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
                       {row.actor_label}
@@ -298,4 +349,4 @@ const TallyActivity = () => {
   );
 };
 
-export default TallyActivity;
+export default Activity;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "@/utils/apiClient";
+import { BTN_PRIMARY, BTN_SECONDARY } from "@/constants/ui";
 
 /**
  * VerifyEmail landing page — user arrives here via the link in the
@@ -103,10 +104,10 @@ const VerifyEmail = ({ mode = "account" }) => {
             </p>
             <Link
               to={isDemo ? "/" : "/auth/login"}
-              className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20"
+              className={`mt-6 ${BTN_PRIMARY}`}
             >
               {isDemo ? "Back to home" : "Sign in"}
-              <Icon icon="heroicons:arrow-right" className="text-base" />
+              <Icon icon="heroicons:arrow-right" className="text-sm" />
             </Link>
           </>
         )}
@@ -124,7 +125,7 @@ const VerifyEmail = ({ mode = "account" }) => {
             </p>
             <Link
               to={isDemo ? "/" : "/auth/login"}
-              className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg"
+              className={`mt-6 ${BTN_SECONDARY}`}
             >
               {isDemo ? "Back to home" : "Back to sign in"}
             </Link>

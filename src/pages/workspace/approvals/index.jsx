@@ -1,11 +1,15 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useApprovalQueue, useOrgPermissions } from "@/services/approvalService";
+import TablePagination from "@/components/ui/TablePagination";
 
 /**
- * Bills waiting on a decision, oldest first.
+ * Bills waiting on a decision, oldest first, across every module.
+ *
+ * The queue is keyed on the organisation, not on an accounting package:
+ * a Tally voucher and a Zoho bill wait in the same line.
  *
  * Oldest first because a queue is worked through: the bill that has
  * waited longest is the one holding somebody up. Deciding happens on
@@ -43,6 +47,30 @@ const DETAIL_ROUTE = {
 const detailRoute = (row) =>
   DETAIL_ROUTE[row.module]?.[row.bill_type] || null;
 
+const MODULES = [
+  { value: "", label: "All modules" },
+  { value: "tally", label: "Tally" },
+  { value: "zoho", label: "Zoho" },
+];
+
+// Labels match BillActivity.BillType on the backend, so a filter here
+// and a row in the activity log read the same way.
+const BILL_TYPES = [
+  { value: "", label: "All vouchers" },
+  { value: "vendor", label: "Purchase Voucher" },
+  { value: "sales", label: "Sales Voucher" },
+  { value: "payment", label: "Payment Voucher" },
+  { value: "receipt", label: "Receipt Voucher" },
+  { value: "expense", label: "Journal Entry" },
+  { value: "journal", label: "Journal" },
+];
+
+const PAGE_SIZE = 25;
+
+const selectClass =
+  "h-8 px-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 " +
+  "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer";
+
 const when = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -53,12 +81,33 @@ const when = (iso) => {
   return `${days} day${days === 1 ? "" : "s"} ago · ${stamp}`;
 };
 
-const TallyApprovals = () => {
+const Approvals = () => {
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
   const organizationId = selectedOrganization?.id;
   const { approvalRequired, isLoading: loadingPermissions } = useOrgPermissions();
-  const { data, isLoading, isError, refetch, isFetching } = useApprovalQueue(organizationId);
+
+  const [module, setModule] = useState("");
+  const [billType, setBillType] = useState("");
+  const [page, setPage] = useState(1);
+
+  const filters = useMemo(
+    () => ({ module, bill_type: billType, page, page_size: PAGE_SIZE }),
+    [module, billType, page],
+  );
+
+  const { data, isLoading, isError, refetch, isFetching } = useApprovalQueue(
+    organizationId,
+    filters,
+    { keepPreviousData: true },
+  );
+
+  // Any filter change restarts paging; otherwise page 3 of an old
+  // filter shows an empty table under a new one.
+  const onFilter = (setter) => (value) => {
+    setter(value);
+    setPage(1);
+  };
 
   if (!organizationId) {
     return (
@@ -71,6 +120,7 @@ const TallyApprovals = () => {
   }
 
   const rows = data?.results || [];
+  const total = data?.count ?? 0;
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -83,7 +133,32 @@ const TallyApprovals = () => {
             Bills waiting for a decision. Open one to see the figures before deciding.
           </p>
         </div>
-        <button
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <select
+            value={module}
+            onChange={(e) => onFilter(setModule)(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by module"
+          >
+            {MODULES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={billType}
+            onChange={(e) => onFilter(setBillType)(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by voucher type"
+          >
+            {BILL_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <button
           type="button"
           onClick={() => refetch()}
           disabled={isLoading || isFetching}
@@ -94,7 +169,8 @@ const TallyApprovals = () => {
             className={`text-sm ${isLoading || isFetching ? "animate-spin" : ""}`}
           />
           Refresh
-        </button>
+          </button>
+        </div>
       </div>
 
       {!loadingPermissions && !approvalRequired && (
@@ -103,8 +179,8 @@ const TallyApprovals = () => {
             Approvals are off for this workspace
           </p>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-            A verified bill posts straight to Tally. Turn the approval step on to
-            have a Manager sign off first.
+            A verified bill posts straight to Tally or Zoho Books. Turn the
+            approval step on to have a Manager sign off first.
           </p>
         </div>
       )}
@@ -115,7 +191,8 @@ const TallyApprovals = () => {
         </p>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex-1 min-h-0 overflow-auto">
         {isLoading ? (
           <p className="p-4 text-xs text-slate-500 dark:text-slate-400">Loading…</p>
         ) : rows.length === 0 ? (
@@ -182,9 +259,21 @@ const TallyApprovals = () => {
             </tbody>
           </table>
         )}
+        </div>
+
+        {total > PAGE_SIZE && (
+          <div className="border-t border-slate-200 dark:border-slate-800">
+            <TablePagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={total}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default TallyApprovals;
+export default Approvals;

@@ -72,7 +72,7 @@ const usePageTitle = () => {
         "/tally/vendor-bill": "Tally Purchase Vouchers",
         "/tally/expense-bill": "Tally Journal Entries",
         "/tally/payment-voucher": "Tally Payment Vouchers",
-        "/tally/trash": "Trash",
+        "/trash": "Trash",
         "/tally/ledgers": "Tally Ledgers",
         "/tally/setup": "Tally Setup",
         "/tally/masters": "Tally Masters",

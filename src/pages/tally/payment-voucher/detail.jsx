@@ -30,7 +30,7 @@ import { findVendorOption } from "@/utils/vendorMatch";
 import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
-import { CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
@@ -2381,7 +2381,7 @@ const TallyPaymentVoucherDetail = () => {
           <button
             type="button"
             onClick={handleBackClick}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-left" className="text-sm" />
             Go back
@@ -2389,7 +2389,7 @@ const TallyPaymentVoucherDetail = () => {
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className={BTN_PRIMARY}
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
@@ -2439,13 +2439,13 @@ const TallyPaymentVoucherDetail = () => {
                 {billInfo?.created_at && ` · Uploaded ${new Date(billInfo.created_at).toLocaleDateString()}`}
               </span>
               {billInfo?.status === "Synced" && billInfo?.tally_synced === true && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                <span className={`${BADGE} bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300`}>
                   <Icon icon="heroicons:check-circle" className="text-xs" />
                   Synced to Tally
                 </span>
               )}
               {billInfo?.status === "Synced" && billInfo?.tally_synced === false && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                <span className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
                   <Icon icon="heroicons:clock" className="text-xs" />
                   Waiting for Tally
                 </span>
@@ -2461,7 +2461,7 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.previous_bill}`)}
             disabled={!expenseBillData?.previous_bill}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className={BTN_SECONDARY}
             title={expenseBillData?.previous_bill ? "Go to previous bill" : "No previous bill"}
           >
             <Icon icon="heroicons:arrow-left" className="text-sm" />
@@ -2471,7 +2471,7 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            className={BTN_SECONDARY}
           >
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
@@ -2480,7 +2480,7 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={() => navigate(`/tally/payment-voucher/${expenseBillData?.next_bill}`)}
             disabled={!expenseBillData?.next_bill}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className={BTN_SECONDARY}
             title={expenseBillData?.next_bill ? "Go to next bill" : "No next bill"}
           >
             Next
@@ -2500,7 +2500,7 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={handleSave}
             disabled={isVerifying || isVerified || hasValidationErrors()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
+            className={BTN_SOFT}
             title={
               isVerifying
                 ? "Verifying…"
@@ -2518,7 +2518,7 @@ const TallyPaymentVoucherDetail = () => {
             type="button"
             onClick={handleSync}
             disabled={isSyncing || isVerified || billInfo?.status !== "Verified"}
-            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className={`group ${BTN_PRIMARY}`}
             title={
               isSyncing
                 ? "Syncing…"
@@ -2810,10 +2810,10 @@ const TallyPaymentVoucherDetail = () => {
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                     Bill Document
                   </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -2846,6 +2846,7 @@ const TallyPaymentVoucherDetail = () => {
           currency={tallyAnalysedData?.currency}
           exchangeRate={tallyAnalysedData?.exchange_rate}
           exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
+          exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
           exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
           disabled={isVerified}
           onChanged={() => refetch()}
@@ -2950,7 +2951,7 @@ const TallyPaymentVoucherDetail = () => {
                       {/* Vendor Not Found Warning */}
                       {analysedData?.from?.name && !billForm.selectedVendor && (
                         <div className="mt-3">
-                          <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                          <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
                             <svg
                               className="w-3 h-3 mr-1.5"
                               fill="none"
@@ -3209,7 +3210,7 @@ const TallyPaymentVoucherDetail = () => {
                       <button
                         onClick={addExpenseItem}
                         disabled={isVerified}
-                        className={`inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${
+                        className={`inline-flex items-center justify-center h-8 w-8 p-0 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${
                           isVerified
                             ? "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
                             : ""
@@ -3236,11 +3237,11 @@ const TallyPaymentVoucherDetail = () => {
                   </div>
 
                   {/* Enhanced Expense Items Table - Scrollable */}
-                  <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto">
                       <div className="max-h-[600px] overflow-y-auto min-h-[350px]">
                         <table className="w-full min-w-[800px]">
-                          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+                          <thead className="bg-slate-50 dark:bg-slate-900/60 sticky top-0 z-10">
                             <tr>
                               <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[300px]">
                                 Item Details
@@ -3260,7 +3261,7 @@ const TallyPaymentVoucherDetail = () => {
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
                             {expenseItems.map((item, index) => (
                               <tr
                                 key={item.id}

@@ -1,10 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import Seo from '@/components/Seo';
 import { CookieSettingsLink } from '@/components/cookies';
 import { PAGE_SEO, buildFaqSchema } from '@/config/seo';
 import { SupportChatLauncher } from '@/components/support/SupportChat';
+
+// Sections fade up as they come into view.
+//
+// The page is long and every block arrived at once, fully formed, which
+// is what made it read as a static brochure. Observing rather than
+// listening to scroll keeps this off the main thread, and the observer
+// unsubscribes each element after its one reveal so a long page does not
+// carry dozens of live callbacks.
+//
+// Anything already on screen at mount is revealed immediately, so the
+// hero never animates under the reader. If the browser reports a
+// motion preference, or IntersectionObserver is missing, every element
+// is simply shown.
+const useRevealOnScroll = () => {
+    // The hidden state is gated behind a class this effect adds, so a
+    // page whose JavaScript never runs still shows every section rather
+    // than a column of blank space. useLayoutEffect rather than
+    // useEffect because it lands before the first paint: the class and
+    // the content arrive together, with no flash of visible sections
+    // that then disappear.
+    useLayoutEffect(() => {
+        const nodes = Array.from(document.querySelectorAll('[data-reveal]'));
+        const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+        if (reduced || typeof IntersectionObserver === 'undefined') return;
+
+        document.documentElement.classList.add('reveal-ready');
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.setAttribute('data-reveal', 'shown');
+                    observer.unobserve(entry.target);
+                });
+            },
+            { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+        );
+
+        nodes.forEach((el) => observer.observe(el));
+        return () => {
+            observer.disconnect();
+            document.documentElement.classList.remove('reveal-ready');
+        };
+    }, []);
+};
+
+const revealStyles = `
+.reveal-ready [data-reveal] { opacity: 0; transform: translateY(16px); }
+.reveal-ready [data-reveal="shown"] {
+    opacity: 1;
+    transform: none;
+    transition: opacity .5s ease-out, transform .5s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .reveal-ready [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+`;
 
 const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -18,6 +76,8 @@ const Landing = () => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useRevealOnScroll();
 
     const stats = [
         { value: '70%', label: 'Hours saved in bill processing', icon: 'heroicons:clock' },
@@ -122,6 +182,7 @@ const Landing = () => {
                 government and health sites, so treat this as machine-readable
                 context (and Bing/LLM crawlers), not a rich-snippet win. */}
             <Seo {...PAGE_SEO.home} schemas={[buildFaqSchema(faqs)]} />
+            <style>{revealStyles}</style>
 
             {/* Top trust bar */}
             <div className="bg-slate-950 text-slate-300 text-[13px]">
@@ -224,13 +285,13 @@ const Landing = () => {
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI-powered OCR with native Tally &amp; Zoho sync</span>
                             </div>
 
-                            <h1 className="mt-5 sm:mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] sm:leading-[1.05] text-slate-900 dark:text-white">
+                            <h1 className="mt-5 sm:mt-6 text-[1.75rem] sm:text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1] text-slate-900 dark:text-white">
                                 <span className="bg-linear-to-r from-slate-900 via-blue-800 to-slate-900 dark:from-white dark:via-blue-300 dark:to-white bg-clip-text text-transparent">
                                     Tired of manually recording &amp; organizing bills or expenses?
                                 </span>
                             </h1>
 
-                            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                            <p className="mt-3.5 sm:mt-4 text-[15px] sm:text-base md:text-[17px] text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
                                 Save hours each week in processing purchases &amp; expenses. <br className="hidden sm:block" />
                                 Create accounting entries in a few clicks with accuracy &amp; compliance.
                             </p>
@@ -238,14 +299,14 @@ const Landing = () => {
                             <div className="mt-8 flex flex-col sm:flex-row gap-3">
                                 <Link
                                     to="/auth/register"
-                                    className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20"
+                                    className="group inline-flex items-center justify-center gap-2 px-5 py-3 text-[15px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20"
                                 >
                                     <span>Start for Free</span>
                                     <Icon icon="heroicons:arrow-right" className="text-lg group-hover:translate-x-0.5 transition-transform" />
                                 </Link>
                                 <Link
                                     to="/book-demo"
-                                    className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg shadow-sm transition-all duration-200"
+                                    className="group inline-flex items-center justify-center gap-2 px-5 py-3 text-[15px] font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg shadow-sm transition-all duration-200"
                                 >
                                     <Icon icon="heroicons:play-circle" className="text-lg" />
                                     <span>Book Your Demo</span>
@@ -354,11 +415,11 @@ const Landing = () => {
                     {/* Stats strip */}
                     <div className="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                         {stats.map((s, i) => (
-                            <div key={i} className="p-6 md:p-7 text-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <div className="inline-flex w-10 h-10 mb-3 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                            <div key={i} className="p-5 md:p-6 text-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div className="inline-flex w-10 h-10 mb-3 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 group-hover:scale-110 transition-transform duration-300">
                                     <Icon icon={s.icon} className="text-xl" />
                                 </div>
-                                <div className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">{s.value}</div>
+                                <div className="text-[26px] md:text-3xl font-extrabold tracking-tight bg-linear-to-br from-slate-900 to-blue-700 dark:from-white dark:to-blue-300 bg-clip-text text-transparent">{s.value}</div>
                                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-400 font-medium">{s.label}</div>
                             </div>
                         ))}
@@ -367,10 +428,11 @@ const Landing = () => {
             </section>
 
             {/* ===================== HOW IT HELPS ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
-                    <div className="text-center mb-16 md:mb-20">
-                        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    <div className="text-center mb-10 md:mb-12">
+                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
                             How it helps
                         </h2>
                     </div>
@@ -391,12 +453,12 @@ const Landing = () => {
                             </div>
                         </div>
                         <div className="order-1 md:order-2">
-                            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-7 tracking-tight">For Accountants</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-5 tracking-tight">For Accountants</h3>
                             <ul className="space-y-5">
                                 {accountantPoints.map((p, i) => (
                                     <li key={i} className="flex gap-4">
                                         <span className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-sm">{i + 1}</span>
-                                        <p className="text-slate-700 dark:text-slate-300 text-base md:text-lg leading-relaxed pt-0.5">{p}</p>
+                                        <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed pt-0.5">{p}</p>
                                     </li>
                                 ))}
                             </ul>
@@ -406,12 +468,12 @@ const Landing = () => {
                     {/* For Business Owner */}
                     <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
                         <div>
-                            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-7 tracking-tight">For Business Owner</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-5 tracking-tight">For Business Owner</h3>
                             <ul className="space-y-5">
                                 {ownerPoints.map((p, i) => (
                                     <li key={i} className="flex gap-4">
                                         <span className="shrink-0 w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/60 text-orange-700 dark:text-orange-400 flex items-center justify-center font-bold text-sm">{i + 1}</span>
-                                        <p className="text-slate-700 dark:text-slate-300 text-base md:text-lg leading-relaxed pt-0.5">{p}</p>
+                                        <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed pt-0.5">{p}</p>
                                     </li>
                                 ))}
                             </ul>
@@ -434,26 +496,34 @@ const Landing = () => {
             </section>
 
             {/* ===================== THREE STEPS AUTOMATION ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
                 <div className="container mx-auto px-4 sm:px-6">
-                    <div className="text-center mb-14 md:mb-16">
-                        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    <div className="text-center mb-10 md:mb-12">
+                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
                             Three Steps Automation
                         </h2>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    <div className="relative grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                        {/* Reads the three cards as one sequence rather than
+                            three unrelated boxes. Desktop only: stacked on a
+                            phone the line would run through nothing. */}
+                        <div
+                            aria-hidden="true"
+                            className="hidden md:block absolute top-12 left-[16.6%] right-[16.6%] h-px bg-linear-to-r from-transparent via-blue-200 dark:via-blue-900 to-transparent"
+                        />
                         {[
                             { n: '01', icon: 'heroicons:arrow-up-tray', title: 'Upload', desc: 'Drop a PDF, photo or email attachment. We handle the rest.' },
                             { n: '02', icon: 'heroicons:check-badge', title: 'Verify', desc: 'AI extracts vendor, amounts, GST and line items — you review.' },
                             { n: '03', icon: 'heroicons:arrow-path', title: 'Sync', desc: 'Push directly to Tally or Zoho — fully audit-trailed.' },
                         ].map((s, i) => (
-                            <div key={i} className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-7 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-300">
-                                <span className="absolute top-5 right-5 text-xs font-mono font-semibold text-slate-400 dark:text-slate-600">{s.n}</span>
+                            <div key={i} className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-7 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-300">
+                                <span className="absolute top-5 right-5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold font-mono">{s.n}</span>
                                 <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center mb-5">
                                     <Icon icon={s.icon} className="text-2xl" />
                                 </div>
-                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1.5 tracking-tight">{s.title}</h4>
+                                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5 tracking-tight">{s.title}</h4>
                                 <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{s.desc}</p>
                             </div>
                         ))}
@@ -463,12 +533,23 @@ const Landing = () => {
                     <div className="max-w-4xl mx-auto mt-14">
                         <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-2xl border border-slate-200 dark:border-slate-800">
                             <div className="relative rounded-xl overflow-hidden bg-linear-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900" style={{ paddingBottom: '56.25%' }}>
+                                <div
+                                    aria-hidden="true"
+                                    className="absolute inset-0 opacity-30"
+                                    style={{
+                                        backgroundImage:
+                                            'linear-gradient(to right, rgb(148 163 184 / 0.18) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.18) 1px, transparent 1px)',
+                                        backgroundSize: '40px 40px',
+                                    }}
+                                />
+                                <div aria-hidden="true" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                                     <button
                                         type="button"
                                         aria-label="Play product demo"
-                                        className="group inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300 cursor-pointer"
+                                        className="group relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-pointer"
                                     >
+                                        <span aria-hidden="true" className="absolute inset-0 rounded-full bg-white/10 animate-ping motion-reduce:hidden" />
                                         <Icon icon="heroicons:play-solid" className="text-2xl text-white translate-x-0.5 group-hover:scale-110 transition-transform" />
                                     </button>
                                 </div>
@@ -479,10 +560,11 @@ const Landing = () => {
             </section>
 
             {/* ===================== ABOUT BILLMUNSHI ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
-                    <div className="text-center max-w-3xl mx-auto mb-14 md:mb-16">
-                        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    <div className="text-center max-w-3xl mx-auto mb-10 md:mb-12">
+                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
                             About BillMunshi
                         </h2>
                         <p className="mt-4 text-lg md:text-xl text-slate-600 dark:text-slate-400">
@@ -512,14 +594,14 @@ const Landing = () => {
             </section>
 
             {/* ===================== INTEGRATIONS ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800">
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center max-w-2xl mx-auto mb-12 md:mb-14">
                         <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 rounded-full text-xs font-semibold text-blue-700 dark:text-blue-400">
                             <Icon icon="heroicons:link" className="text-sm" />
                             Integrations
                         </span>
-                        <h2 className="mt-5 text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                        <h2 className="mt-5 text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
                             Connect Your Tools
                         </h2>
                         <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
@@ -597,7 +679,7 @@ const Landing = () => {
             </section>
 
             {/* ===================== CTA ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-white dark:bg-slate-950">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="relative bg-linear-to-br from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 md:p-16 text-center overflow-hidden shadow-2xl border border-slate-800">
                         <div aria-hidden="true" className="absolute inset-0 opacity-60">
@@ -611,7 +693,7 @@ const Landing = () => {
                                 Get Started Today
                             </span>
 
-                            <h2 className="mt-6 text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                            <h2 className="mt-6 text-2xl md:text-[2rem] font-extrabold tracking-tight text-white leading-tight">
                                 Ready to upgrade the way you manage accounting.
                             </h2>
 
@@ -651,17 +733,18 @@ const Landing = () => {
             </section>
 
             {/* ===================== FAQs ===================== */}
-            <section className="py-14 sm:py-20 md:py-28 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
+            <section data-reveal className="py-12 sm:py-16 md:py-20 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
                 <div className="container mx-auto px-4 sm:px-6">
-                    <div className="text-center max-w-2xl mx-auto mb-14 md:mb-16">
+                    <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-xs mb-5">
                             <Icon icon="heroicons:question-mark-circle" className="text-blue-600 dark:text-blue-400 text-sm" />
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Got Questions?</span>
                         </div>
-                        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
                             FAQs
                         </h2>
-                        <p className="mt-4 text-base md:text-lg text-slate-600 dark:text-slate-400">
+                        <p className="mt-3.5 text-[15px] md:text-base text-slate-600 dark:text-slate-400">
                             Find answers to common questions about Bill Munshi
                         </p>
                     </div>
@@ -680,16 +763,20 @@ const Landing = () => {
                                         aria-expanded={open}
                                         className="w-full flex items-center justify-between gap-4 p-5 md:p-6 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer"
                                     >
-                                        <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white pr-2">{f.q}</h3>
+                                        <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white pr-2">{f.q}</h3>
                                         <span className={`shrink-0 w-8 h-8 rounded-lg ring-1 flex items-center justify-center transition-all duration-200 ${open ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 ring-blue-200 dark:ring-blue-900' : 'ring-slate-200 dark:ring-slate-700 text-slate-500 dark:text-slate-400'}`}>
                                             <Icon icon={open ? 'heroicons:minus' : 'heroicons:plus'} className="text-base" />
                                         </span>
                                     </button>
-                                    {open && (
-                                        <div className="px-5 md:px-6 pb-5 md:pb-6 -mt-1">
-                                            <p className="text-[15px] text-slate-600 dark:text-slate-400 leading-relaxed">{f.a}</p>
+                                    <div
+                                        className={`grid transition-[grid-template-rows] duration-300 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                                    >
+                                        <div className="overflow-hidden">
+                                            <div className="px-5 md:px-6 pb-5 md:pb-6 -mt-1">
+                                                <p className="text-[15px] text-slate-600 dark:text-slate-400 leading-relaxed">{f.a}</p>
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             );
                         })}

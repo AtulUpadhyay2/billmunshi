@@ -26,7 +26,6 @@ import RequireAuth from "./layouts/RequireAuth";
 
 // utility pages
 const Profile = lazy(() => import("./pages/utility/profile"));
-const NotificationPage = lazy(() => import("./pages/utility/notifications"));
 
 // Zoho
 const ZohoVendorBill = lazy(() => import("./pages/zoho/vendor-bill"));
@@ -95,7 +94,7 @@ const TallyLedgers = lazy(() => import("./pages/tally/config/ledgers"));
 const TallySetups = lazy(() => import("./pages/tally/config/setup"));
 const TallyMaster = lazy(() => import("./pages/tally/config/master"));
 const TallyAccountInfo = lazy(() => import("./pages/tally/account-info"));
-const TallyTrash = lazy(() => import("./pages/tally/trash"));
+const Trash = lazy(() => import("./pages/workspace/trash"));
 const Activity = lazy(() => import("./pages/workspace/activity"));
 const Approvals = lazy(() => import("./pages/workspace/approvals"));
 const Accuracy = lazy(() => import("./pages/workspace/accuracy"));
@@ -179,7 +178,6 @@ function App() {
 
           {/* App pages */}
           <Route path="profile" element={<Profile />} />
-          <Route path="notifications" element={<NotificationPage />} />
 
           {/** Zoho */}
           <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
@@ -258,15 +256,19 @@ function App() {
             path="tally/payment-voucher/:id"
             element={<TallyPaymentVoucherDetail />}
           />
-          <Route path="tally/trash" element={<TallyTrash />} />
-          {/* Approvals, Activity and Accuracy read across Tally AND
-              Zoho — they are keyed on the organisation, not a module —
+          {/* Approvals, Trash, Activity and Accuracy read across Tally
+              AND Zoho — they are keyed on the organisation, not a module —
               so they sit at the top level rather than under /tally. The
               old paths redirect: they have been in the sidebar, so some
               are bookmarked. */}
           <Route path="approvals" element={<Approvals />} />
+          <Route path="trash" element={<Trash />} />
           <Route path="activity" element={<Activity />} />
           <Route path="accuracy" element={<Accuracy />} />
+          <Route
+            path="tally/trash"
+            element={<Navigate to="/trash" replace />}
+          />
           <Route
             path="tally/approvals"
             element={<Navigate to="/approvals" replace />}

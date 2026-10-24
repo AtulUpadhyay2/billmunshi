@@ -5,6 +5,7 @@ import { MenuItem } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logOut } from "@/store/api/auth/authSlice";
+import { MENU_HEADER, MENU_ITEM } from "@/constants/ui";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -29,22 +30,22 @@ const Profile = () => {
     return (
       <div className="flex items-center">
         <div className="flex-1 ltr:mr-[10px] rtl:ml-[10px]">
-          <div className="lg:h-8 lg:w-8 h-7 w-7 rounded-full bg-slate-500 dark:bg-slate-600 flex items-center justify-center text-white font-semibold text-xs lg:text-sm">
+          <div className="lg:h-8 lg:w-8 h-7 w-7 rounded-full bg-slate-500 dark:bg-slate-600 flex items-center justify-center text-white font-semibold text-[11px]">
             {initials}
           </div>
         </div>
         <div className="flex-none text-slate-600 dark:text-white text-sm font-normal items-center lg:flex hidden overflow-hidden text-ellipsis whitespace-nowrap">
           <div className="text-right ltr:mr-[10px] rtl:ml-[10px]">
-            <div className="overflow-hidden text-ellipsis whitespace-nowrap w-[85px] block text-sm font-medium">
+            <div className="overflow-hidden text-ellipsis whitespace-nowrap w-[85px] block text-xs font-semibold">
               {displayName || "User"}
             </div>
             {userEmail && (
-              <div className="text-xs text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap w-[85px]">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap w-[85px]">
                 {userEmail}
               </div>
             )}
           </div>
-          <span className="text-base inline-block">
+          <span className="text-sm inline-block">
             <Icon icon="heroicons-outline:chevron-down"></Icon>
           </span>
         </div>
@@ -80,15 +81,15 @@ const Profile = () => {
   return (
     <Dropdown label={profileLabel()} classMenuItems="w-[200px] top-[58px]">
       {/* User Info Header */}
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-        <div className="text-sm font-medium text-slate-900 dark:text-white">
+      <div className={MENU_HEADER}>
+        <div className="text-xs font-semibold text-slate-900 dark:text-white">
           {user ? `${user.first_name} ${user.last_name}`.trim() : "User"}
         </div>
-        <div className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="text-[11px] text-slate-500 dark:text-slate-400">
           {user?.email}
         </div>
         {user?.organizations && user.organizations.length > 0 && (
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {user.organizations.length} organization{user.organizations.length !== 1 ? 's' : ''}
           </div>
         )}
@@ -109,12 +110,12 @@ const Profile = () => {
                   : ""
               } ${item.isStatus ? "opacity-75" : "cursor-pointer"}`}
             >
-              <div className={`block px-4 py-2`}>
+              <div className={MENU_ITEM}>
                 <div className="flex items-center">
-                  <span className={`block text-xl ltr:mr-3 rtl:ml-3 ${item.statusClass || ""}`}>
+                  <span className={`block text-base ltr:mr-2 rtl:ml-2 ${item.statusClass || ""}`}>
                     <Icon icon={item.icon} />
                   </span>
-                  <span className={`block text-sm ${item.statusClass || ""}`}>{item.label}</span>
+                  <span className={`block text-xs ${item.statusClass || ""}`}>{item.label}</span>
                 </div>
               </div>
             </div>

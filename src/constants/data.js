@@ -10,12 +10,13 @@ export const menuItems = [
     isHide: true,
     link: "/dashboard",
   },
-  // Approvals and Activity cover Tally AND Zoho — the queue and the log
-  // are keyed on the organisation, not on a module. Under the "Tally"
-  // heading they read as a Tally feature, which is why they sit here
-  // with Dashboard instead: views across everything, before the two
-  // accounting packages. (Trash stays under Tally — it genuinely only
-  // holds Tally vouchers.)
+  // Approvals, Activity and Trash cover Tally AND Zoho — the queue, the
+  // log and the recycle bin are keyed on the organisation, not on a
+  // module. Under the "Tally" heading they read as Tally features,
+  // which is why they sit here with Dashboard instead: views across
+  // everything, before the two accounting packages. Trash sat under
+  // Tally until Zoho bills became recoverable too; now the one screen
+  // holds both, so it belongs up here with the others.
   {
     title: "Approvals",
     isHide: true,
@@ -28,6 +29,13 @@ export const menuItems = [
     isHide: true,
     icon: "heroicons-outline:clock",
     link: "/activity",
+  },
+
+  {
+    title: "Trash",
+    isHide: true,
+    icon: "heroicons-outline:trash",
+    link: "/trash",
   },
 
   {
@@ -174,13 +182,6 @@ export const menuItems = [
     link: "/tally/expense-bill",
   },
 
-
-  {
-    title: "Trash",
-    isHide: true,
-    icon: "heroicons-outline:trash",
-    link: "/tally/trash",
-  },
 
   {
     title: "Settings",
@@ -378,102 +379,5 @@ export const topMenu = [
         childicon: "heroicons-outline:user-group",
       },
     ],
-  },
-];
-
-import User1 from "@/assets/images/all-img/user.png";
-import User2 from "@/assets/images/all-img/user2.png";
-import User3 from "@/assets/images/all-img/user3.png";
-import User4 from "@/assets/images/all-img/user4.png";
-export const notifications = [
-  {
-    title: "Your order is placed",
-    desc: "Amet minim mollit non deser unt ullamco est sit aliqua.",
-
-    image: User1,
-    link: "#",
-  },
-  {
-    title: "Congratulations Darlene  🎉",
-    desc: "Won the monthly best seller badge",
-    unread: true,
-    image: User2,
-    link: "#",
-  },
-  {
-    title: "Revised Order 👋",
-    desc: "Won the monthly best seller badge",
-
-    image: User3,
-    link: "#",
-  },
-  {
-    title: "Brooklyn Simmons",
-    desc: "Added you to Top Secret Project group...",
-
-    image: User4,
-    link: "#",
-  },
-];
-
-export const message = [
-  {
-    title: "Wade Warren",
-    desc: "Hi! How are you doing?.....",
-    active: true,
-    hasnotifaction: true,
-    notification_count: 1,
-    image: User1,
-    link: "#",
-  },
-  {
-    title: "Savannah Nguyen",
-    desc: "Hi! How are you doing?.....",
-    active: false,
-    hasnotifaction: false,
-    image: User2,
-    link: "#",
-  },
-  {
-    title: "Ralph Edwards",
-    desc: "Hi! How are you doing?.....",
-    active: false,
-    hasnotifaction: true,
-    notification_count: 8,
-    image: User3,
-    link: "#",
-  },
-  {
-    title: "Cody Fisher",
-    desc: "Hi! How are you doing?.....",
-    active: true,
-    hasnotifaction: false,
-    image: User4,
-    link: "#",
-  },
-  {
-    title: "Savannah Nguyen",
-    desc: "Hi! How are you doing?.....",
-    active: false,
-    hasnotifaction: false,
-    image: User2,
-    link: "#",
-  },
-  {
-    title: "Ralph Edwards",
-    desc: "Hi! How are you doing?.....",
-    active: false,
-    hasnotifaction: true,
-    notification_count: 8,
-    image: User3,
-    link: "#",
-  },
-  {
-    title: "Cody Fisher",
-    desc: "Hi! How are you doing?.....",
-    active: true,
-    hasnotifaction: false,
-    image: User4,
-    link: "#",
   },
 ];

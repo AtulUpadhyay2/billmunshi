@@ -552,7 +552,7 @@ const ZohoPaymentVoucherDetail = () => {
           <button
             type="button"
             onClick={handleBackClick}
-            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
             title="Back to payments"
           >
             <Icon icon="heroicons:arrow-left" className="text-sm" />
@@ -741,10 +741,10 @@ const ZohoPaymentVoucherDetail = () => {
                     icon="heroicons:document"
                     className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-4"
                   />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                     Payment Document
                   </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">No document available</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">No document available</p>
                 </div>
               )}
             </div>
@@ -841,7 +841,7 @@ const ZohoPaymentVoucherDetail = () => {
                         {analysedData?.from?.name &&
                           !paymentForm.selectedParty && (
                             <div className="mt-2">
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                                 <Icon
                                   icon="heroicons:exclamation-triangle"
                                   className="w-3 h-3"
@@ -1089,7 +1089,7 @@ const ZohoPaymentVoucherDetail = () => {
                   </div>
                   <button
                     onClick={addAppliedDoc}
-                    className="inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
+                    className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                     title="Add"
                     disabled={isVerified}
                   >

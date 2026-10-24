@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import apiClient from "@/utils/apiClient";
 import { cleanGstinInput, gstinFormatError } from "@/utils/gstin";
+import { BADGE, MENU_ITEM } from "@/constants/ui";
 
 const OrgSwitcher = () => {
   const dispatch = useDispatch();
@@ -94,16 +95,16 @@ const OrgSwitcher = () => {
   const label = (
     <div className="flex items-center px-2 py-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700">
       <div className="flex-1">
-        <div className="text-slate-700 dark:text-slate-200 text-sm font-medium max-w-[140px] truncate">
+        <div className="text-slate-700 dark:text-slate-200 text-xs font-semibold max-w-[140px] truncate">
           {current?.name || "Organization"}
         </div>
         {current?.role && (
-          <div className="text-xs text-slate-500 dark:text-slate-400 max-w-[140px] truncate">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[140px] truncate">
             {current.role}
           </div>
         )}
       </div>
-      <span className="text-base ltr:ml-2 rtl:mr-2 text-slate-500">
+      <span className="text-sm ltr:ml-2 rtl:mr-2 text-slate-500">
         <Icon icon="heroicons-outline:chevron-down" />
       </span>
     </div>
@@ -121,16 +122,16 @@ const OrgSwitcher = () => {
                   isActive
                     ? "bg-slate-100 text-slate-900 dark:bg-slate-600/50 dark:text-slate-300"
                     : "text-slate-600 dark:text-slate-300"
-                } block cursor-pointer px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors`}
+                } ${MENU_ITEM} hover:bg-slate-50 dark:hover:bg-slate-700/50`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="block text-sm font-medium truncate">
+                      <span className="block text-xs font-semibold truncate">
                         {o.name}
                       </span>
                       {current?.id === o.id && (
-                        <span className="text-success-500 text-lg ml-2">
+                        <span className="text-success-500 text-sm ml-2">
                           <Icon icon="bi:check-lg" />
                         </span>
                       )}
@@ -139,7 +140,7 @@ const OrgSwitcher = () => {
                       <div className="flex items-center space-x-2">
                         {o.role && (
                           <span
-                            className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                            className={`${BADGE} ${
                               o.role === "ADMIN"
                                 ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                                 : o.role === "MANAGER"
@@ -185,13 +186,13 @@ const OrgSwitcher = () => {
                 isActive
                   ? "bg-slate-100 text-slate-900 dark:bg-slate-600/50 dark:text-slate-300"
                   : "text-slate-600 dark:text-slate-300"
-              } block cursor-pointer px-4 py-3 border-t border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors`}
+              } ${MENU_ITEM} border-t border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50`}
             >
               <div className="flex items-center space-x-2">
                 <span className="text-primary-500">
                   <Icon icon="heroicons:plus-circle" />
                 </span>
-                <span className="text-sm font-medium">Add Organization</span>
+                <span className="text-xs font-semibold">Add Organization</span>
               </div>
             </div>
           )}

@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { handleApiError } from "@/utils/apiErrorHandler";
 import VerifyEmailNotice from "@/components/auth/VerifyEmailNotice";
+import { BTN_PRIMARY_CTA, CONTROL_SEARCH_VALIDATED, FIELD_LABEL } from "@/constants/ui";
 
 const schema = yup
   .object({
@@ -21,10 +22,10 @@ const schema = yup
   .required();
 
 const inputBase =
-  "w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 hover:border-slate-300 dark:hover:border-slate-600";
+  `${CONTROL_SEARCH_VALIDATED} border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20`;
 
 const inputError =
-  "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 dark:border-rose-800";
+  `${CONTROL_SEARCH_VALIDATED} border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20`;
 
 const LoginForm = () => {
   const [login, { isLoading }] = useLoginMutation();
@@ -91,18 +92,18 @@ const LoginForm = () => {
         <VerifyEmailNotice email={unverifiedEmail} title="Please verify your email to log in" />
       )}
       <div>
-        <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <label htmlFor="email" className={FIELD_LABEL}>
           Email <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
-          <Icon icon="heroicons:envelope" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+          <Icon icon="heroicons:envelope" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
           <input
             id="email"
             type="email"
             autoComplete="email"
             placeholder="you@company.com"
             {...register("email")}
-            className={`${inputBase} ${errors.email ? inputError : ""}`}
+            className={`${errors.email ? inputError : inputBase}`}
           />
         </div>
         {errors.email && (
@@ -113,26 +114,26 @@ const LoginForm = () => {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <label htmlFor="password" className={FIELD_LABEL}>
           Password <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
-          <Icon icon="heroicons:lock-closed" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
+          <Icon icon="heroicons:lock-closed" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
           <input
             id="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="Enter your password"
             {...register("password")}
-            className={`${inputBase} pr-10 ${errors.password ? inputError : ""}`}
+            className={`${errors.password ? inputError : inputBase} pr-8`}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
-            <Icon icon={showPassword ? "heroicons:eye-slash" : "heroicons:eye"} className="text-lg" />
+            <Icon icon={showPassword ? "heroicons:eye-slash" : "heroicons:eye"} className="text-sm" />
           </button>
         </div>
         {errors.password && (
@@ -159,7 +160,7 @@ const LoginForm = () => {
       <button
         type="submit"
         disabled={loading}
-        className="group w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer"
+        className={`group w-full ${BTN_PRIMARY_CTA}`}
       >
         {loading ? (
           <>

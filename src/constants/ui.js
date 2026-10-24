@@ -273,6 +273,29 @@ export const BTN_DANGER =
   "bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 " +
   "hover:bg-rose-100 dark:hover:bg-rose-950/60";
 
+/**
+ * `BTN_PRIMARY` in a 40px box, for the one full-width submit on a public auth
+ * page (sign in, create account, send reset link).
+ *
+ * The rest of the app is 32px and this is the only deliberate exception. Two
+ * reasons, both specific to these pages and to nowhere else:
+ *
+ *   - It is the *only* control in the viewport, not one of a toolbar row, so
+ *     it has no neighbour to line up with. The argument for `h-8` is that a
+ *     row of mixed controls shares a baseline; there is no row here.
+ *   - It is the primary touch target on a page people reach on a phone. At
+ *     `h-8` and full width it measured 32px tall against a ~44px platform
+ *     minimum, and read as a thin bar under a 44px page heading.
+ *
+ * The type scale does not change — still `text-xs`, so it stays on the
+ * system; only the box is taller. To collapse this back to one scale, point
+ * the four auth forms at `BTN_PRIMARY` and delete this.
+ */
+export const BTN_PRIMARY_CTA =
+  `${BTN_BASE} h-10 px-4 text-xs text-white bg-orange-500 hover:bg-orange-600 ` +
+  "shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 " +
+  "ring-1 ring-orange-600/20";
+
 /** Icon-only button on the 32px tier — square, so it stays a circle-ish box. */
 export const BTN_ICON =
   `${BTN_BASE} h-8 w-8 p-0 text-slate-600 dark:text-slate-400 ` +
@@ -331,6 +354,24 @@ export const CARD_TITLE =
  */
 export const SUBTLE_LABEL =
   "text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400";
+
+/* ---------------------------------------------------------------------------
+ * Dropdown menus
+ *
+ * The header chrome (`Profile`, `OrgSwitcher`) came from the DashCode template
+ * and kept its `px-4 py-2 text-sm` menu rows — a ~38px row and a 14px label
+ * hanging off a 32px header. These two put those rows on the same scale as
+ * the rest of the app, so the menu that drops out of the header matches the
+ * page it drops onto.
+ * ------------------------------------------------------------------------ */
+
+/** A clickable row in a dropdown menu. 32px, like every other control. */
+export const MENU_ITEM =
+  "block w-full px-3 py-2 text-xs font-medium cursor-pointer transition-colors";
+
+/** The non-clickable identity block at the top of a menu. */
+export const MENU_HEADER =
+  "px-3 py-2 border-b border-slate-100 dark:border-slate-700";
 
 /* ---------------------------------------------------------------------------
  * Tables and badges

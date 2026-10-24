@@ -152,9 +152,11 @@ export const getFilteredMenuItems = (enabledModules = [], isAdmin = true) => {
         return isAdmin;
       }
 
-      // Handle Tally Trash (recoverable deletes for every Tally bill type)
-      if (item.title === "Trash" && item.link === "/tally/trash") {
-        return enabledModuleNames.includes("tally");
+      // Trash covers every module, not just Tally: Zoho bills are
+      // recoverable too now, and the screen merges both feeds. Gating it
+      // on Tally hid a Zoho-only workspace's own trash from it.
+      if (item.title === "Trash" && item.link === "/trash") {
+        return enabledModuleNames.length > 0;
       }
 
       // Handle Tally Config with children (Account Info, Config, Ledgers, Masters)
