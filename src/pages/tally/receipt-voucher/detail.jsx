@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
 import { apiFetch } from "@/utils/apiClient";
+import { currencySymbol } from "@/utils/currency";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -302,6 +303,11 @@ const TallyReceiptVoucherDetail = () => {
   const analysedData = billInfo?.analysed_data || {};
   const tallyAnalysedData = billInfo?.analyzed_bill || {};
 
+  // Every figure below is printed in the bill's own currency. This was
+  // a hardcoded ₹ in about twenty places per page, so a dollar invoice
+  // rendered its totals labelled as rupees.
+  const cur = currencySymbol(tallyAnalysedData?.currency);
+
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
   const isVerified = billInfo?.tally_synced === true;
 
@@ -560,9 +566,9 @@ const TallyReceiptVoucherDetail = () => {
     if (isTotalOutOfBalance())
       errors.push(
         `Invoice total doesn't agree — line items + GST + round off + other ` +
-          `adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, ` +
-          `but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} ` +
-          `(off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)})`,
+          `adjustment comes to ${cur}${billTotalMatch.currentTotal.toFixed(2)}, ` +
+          `but the invoice total is ${cur}${billTotalMatch.billTotal.toFixed(2)} ` +
+          `(off by ${billTotalMatch.diff > 0 ? "+" : ""}${cur}${billTotalMatch.diff.toFixed(2)})`,
       );
     return errors;
   };
@@ -3408,7 +3414,7 @@ const TallyReceiptVoucherDetail = () => {
                             )}
                           </span>
                           <span className="font-semibold text-slate-900 dark:text-white">
-                            Subtotal: ₹
+                            Subtotal: {cur}
                             {expenseItems
                               .reduce(
                                 (sum, item) =>
@@ -3455,7 +3461,7 @@ const TallyReceiptVoucherDetail = () => {
                           : `Heads-up: edited tax values differ from the bill image (${billTaxMatch.mismatches
                               .map(
                                 (k) =>
-                                  `${k.toUpperCase()}: edited ₹${billTaxMatch.editedValues[k].toFixed(2)} vs bill ₹${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}₹${billTaxMatch.diffs[k].toFixed(2)})`,
+                                  `${k.toUpperCase()}: edited ${cur}${billTaxMatch.editedValues[k].toFixed(2)} vs bill ${cur}${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}${cur}${billTaxMatch.diffs[k].toFixed(2)})`,
                               )
                               .join(", ")}). This won't block verification — confirm the values are intentional and proceed.`
                       }
@@ -3508,11 +3514,11 @@ const TallyReceiptVoucherDetail = () => {
                                   {k}
                                 </div>
                                 <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                                  Edited ₹{billTaxMatch.editedValues[k].toFixed(2)} · Bill ₹
+                                  Edited {cur}{billTaxMatch.editedValues[k].toFixed(2)} · Bill {cur}
                                   {billTaxMatch.billValues[k].toFixed(2)}
                                 </div>
                                 <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
-                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}{cur}
                                   {billTaxMatch.diffs[k].toFixed(2)}
                                 </div>
                               </div>
@@ -3578,7 +3584,7 @@ const TallyReceiptVoucherDetail = () => {
                         <div className="hidden md:grid grid-cols-[80px_80px_110px_minmax(180px,1fr)_100px_40px] gap-2 px-2 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Rate</span>
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Type</span>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Amount (₹)</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">Amount ({cur})</span>
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger</span>
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">DR/CR</span>
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-center">×</span>
@@ -3846,7 +3852,7 @@ const TallyReceiptVoucherDetail = () => {
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount ({cur})</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Type</span>
                       </div>
@@ -3997,7 +4003,7 @@ const TallyReceiptVoucherDetail = () => {
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span
                               className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Line items + GST + round off + other adjustment comes to ₹${billTotalMatch.currentTotal.toFixed(2)}, but the invoice total is ₹${billTotalMatch.billTotal.toFixed(2)} — off by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. Adjust Round Off or Other Adjustment so the two agree.`}
+                              title={`Line items + GST + round off + other adjustment comes to ${cur}${billTotalMatch.currentTotal.toFixed(2)}, but the invoice total is ${cur}${billTotalMatch.billTotal.toFixed(2)} — off by ${billTotalMatch.diff > 0 ? "+" : ""}${cur}${billTotalMatch.diff.toFixed(2)}. Adjust Round Off or Other Adjustment so the two agree.`}
                             >
                               <Icon
                                 icon="heroicons:information-circle"
@@ -4006,8 +4012,8 @@ const TallyReceiptVoucherDetail = () => {
                               Invoice total doesn't agree
                             </span>
                             <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
-                              Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
-                              {billTotalMatch.diff > 0 ? "+" : ""}₹
+                              Bill {cur}{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
+                              {billTotalMatch.diff > 0 ? "+" : ""}{cur}
                               {billTotalMatch.diff.toFixed(2)}
                             </span>
                           </div>

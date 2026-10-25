@@ -31,6 +31,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
+import { currencySymbol } from "@/utils/currency";
 import { findVendorOption } from "@/utils/vendorMatch";
 import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
@@ -571,6 +572,11 @@ const TallySalesBillDetail = () => {
     () => customerBillData?.analyzed_bill || {},
     [customerBillData],
   );
+
+  // Every figure below is printed in the bill's own currency. This was
+  // a hardcoded ₹ in about twenty places per page, so a dollar invoice
+  // rendered its totals labelled as rupees.
+  const cur = currencySymbol(tallyAnalysedData?.currency);
 
   // Bill-image vs line-items reconciliation. ``analysed_data`` carries
   // the raw CGST/SGST/IGST values extracted from the original bill image
@@ -2284,7 +2290,7 @@ const TallySalesBillDetail = () => {
       globalToast.success("Already balanced — no round-off needed.");
     } else {
       globalToast.success(
-        `Round-off set to ₹${rounded.toFixed(2)} to match bill total ₹${billTotal.toFixed(2)}.`,
+        `Round-off set to ${cur}${rounded.toFixed(2)} to match bill total ${cur}${billTotal.toFixed(2)}.`,
       );
     }
   };
@@ -4283,7 +4289,7 @@ const TallySalesBillDetail = () => {
                           )}
                         </span>
                         <span className="font-semibold text-slate-900 dark:text-white">
-                          Subtotal: ₹
+                          Subtotal: {cur}
                           {products
                             .reduce(
                               (sum, product) =>
@@ -4332,7 +4338,7 @@ const TallySalesBillDetail = () => {
                           : `Heads-up: line totals differ from the bill image (${billTaxMatch.mismatches
                               .map(
                                 (k) =>
-                                  `${k.toUpperCase()}: line ₹${lineTaxTotals[k].toFixed(2)} vs bill ₹${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}₹${billTaxMatch.diffs[k].toFixed(2)})`,
+                                  `${k.toUpperCase()}: line ${cur}${lineTaxTotals[k].toFixed(2)} vs bill ${cur}${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}${cur}${billTaxMatch.diffs[k].toFixed(2)})`,
                               )
                               .join(", ")}). This won't block verification — confirm the values are intentional and proceed.`
                       }
@@ -4385,11 +4391,11 @@ const TallySalesBillDetail = () => {
                                   {k}
                                 </div>
                                 <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                                  Line ₹{lineTaxTotals[k].toFixed(2)} · Bill ₹
+                                  Line {cur}{lineTaxTotals[k].toFixed(2)} · Bill {cur}
                                   {billTaxMatch.billValues[k].toFixed(2)}
                                 </div>
                                 <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
-                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}₹
+                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}{cur}
                                   {billTaxMatch.diffs[k].toFixed(2)}
                                 </div>
                               </div>
@@ -4559,7 +4565,7 @@ const TallySalesBillDetail = () => {
                                 Rate
                               </span>
                               <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                Taxable (₹)
+                                Taxable ({cur})
                               </span>
                               <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                                 IGST
@@ -4571,7 +4577,7 @@ const TallySalesBillDetail = () => {
                                 SGST
                               </span>
                               <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">
-                                Total (₹)
+                                Total ({cur})
                               </span>
                             </div>
 
@@ -4595,7 +4601,7 @@ const TallySalesBillDetail = () => {
                                       {Number(b.rate)}%
                                     </span>
                                     <span className="text-[12px] font-mono text-slate-900 dark:text-white pt-[2px]">
-                                      ₹{b.taxable.toFixed(2)}
+                                      {cur}{b.taxable.toFixed(2)}
                                     </span>
                                     {renderEditableTaxCell(b, "igst", {
                                       isApplicable: !isZeroRate && isInterState,
@@ -4613,7 +4619,7 @@ const TallySalesBillDetail = () => {
                                       mixed: b.sgst_ledger_mixed,
                                     })}
                                     <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right pt-[2px]">
-                                      ₹{rowTotal.toFixed(2)}
+                                      {cur}{rowTotal.toFixed(2)}
                                     </span>
                                   </div>
                                 );
@@ -4627,28 +4633,28 @@ const TallySalesBillDetail = () => {
                                 Total
                               </span>
                               <span className="text-[12px] font-mono text-blue-700 dark:text-blue-400">
-                                ₹
+                                {cur}
                                 {taxRateRollup
                                   .reduce((s, b) => s + b.taxable, 0)
                                   .toFixed(2)}
                               </span>
                               <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
                                 {isInterState
-                                  ? `₹${lineTaxTotals.igst.toFixed(2)}`
+                                  ? `${cur}${lineTaxTotals.igst.toFixed(2)}`
                                   : "—"}
                               </span>
                               <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
                                 {!isInterState
-                                  ? `₹${lineTaxTotals.cgst.toFixed(2)}`
+                                  ? `${cur}${lineTaxTotals.cgst.toFixed(2)}`
                                   : "—"}
                               </span>
                               <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
                                 {!isInterState
-                                  ? `₹${lineTaxTotals.sgst.toFixed(2)}`
+                                  ? `${cur}${lineTaxTotals.sgst.toFixed(2)}`
                                   : "—"}
                               </span>
                               <span className="text-[14px] font-mono font-bold text-blue-700 dark:text-blue-400 text-right">
-                                ₹
+                                {cur}
                                 {(isInterState
                                   ? lineTaxTotals.igst
                                   : lineTaxTotals.cgst + lineTaxTotals.sgst
@@ -4698,7 +4704,7 @@ const TallySalesBillDetail = () => {
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount (₹)</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount ({cur})</span>
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
                       </div>
 
@@ -4719,7 +4725,7 @@ const TallySalesBillDetail = () => {
                                   <button
                                     type="button"
                                     onClick={handleAutoFillRoundOff}
-                                    title={`Auto-fill so total matches bill (₹${billTotalMatch.billTotal.toFixed(2)})`}
+                                    title={`Auto-fill so total matches bill (${cur}${billTotalMatch.billTotal.toFixed(2)})`}
                                     className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60 cursor-pointer"
                                   >
                                     <Icon icon="heroicons:sparkles" className="text-[11px]" />
@@ -4807,7 +4813,7 @@ const TallySalesBillDetail = () => {
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span
                               className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Computed total ₹${billTotalMatch.computedTotal.toFixed(2)} differs from the invoice total on the bill (₹${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}₹${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
+                              title={`Computed total ${cur}${billTotalMatch.computedTotal.toFixed(2)} differs from the invoice total on the bill (${cur}${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}${cur}${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
                             >
                               <Icon
                                 icon="heroicons:information-circle"
@@ -4816,8 +4822,8 @@ const TallySalesBillDetail = () => {
                               Differs from bill total
                             </span>
                             <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
-                              Bill ₹{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
-                              {billTotalMatch.diff > 0 ? "+" : ""}₹
+                              Bill {cur}{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
+                              {billTotalMatch.diff > 0 ? "+" : ""}{cur}
                               {billTotalMatch.diff.toFixed(2)}
                             </span>
                           </div>

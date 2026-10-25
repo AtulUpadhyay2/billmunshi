@@ -30,14 +30,14 @@ const forgotPass = () => {
         {/* Form */}
         <div className="flex-1 flex items-center justify-center py-10">
           <div className="w-full max-w-md">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mb-5">
-              <Icon icon="heroicons:lock-closed" className="text-2xl" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mb-4">
+              <Icon icon="heroicons:lock-closed" className="text-xl" />
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Forgot your password?
             </h1>
-            <p className="mt-2 text-base text-slate-600 dark:text-slate-400 mb-7">
+            <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 mb-6">
               No worries — enter your email and we'll send you instructions to reset it.
             </p>
 
@@ -50,7 +50,7 @@ const forgotPass = () => {
               </p>
             </div>
 
-            <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
               Remember your password?{" "}
               <Link
                 to="/auth/login"
@@ -88,7 +88,7 @@ const forgotPass = () => {
             Account recovery
           </span>
 
-          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
             Your data is{" "}
             <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
               always protected.

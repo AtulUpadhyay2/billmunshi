@@ -238,21 +238,21 @@ const CookiePreferences = ({
           <button
             type="button"
             onClick={onRejectAll}
-            className="sm:flex-1 inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="sm:flex-1 inline-flex items-center justify-center h-10 px-4 text-[13px] font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
           >
             Reject all
           </button>
           <button
             type="button"
             onClick={onAcceptAll}
-            className="sm:flex-1 inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="sm:flex-1 inline-flex items-center justify-center h-10 px-4 text-[13px] font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
           >
             Accept all
           </button>
           <button
             type="button"
             onClick={() => onSave(selection)}
-            className="sm:flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
+            className="sm:flex-1 gap-1.5 inline-flex items-center justify-center h-10 px-4 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
           >
             <Icon icon="heroicons:check" className="text-base" />
             Save my choices

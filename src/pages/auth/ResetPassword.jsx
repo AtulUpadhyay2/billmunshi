@@ -28,21 +28,21 @@ const ResetPassword = () => {
 
         <div className="flex-1 flex items-center justify-center py-10">
           <div className="w-full max-w-md">
-            <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/60 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-5">
-              <Icon icon="heroicons:key" className="text-2xl" />
+            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/60 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-4">
+              <Icon icon="heroicons:key" className="text-xl" />
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Choose a new password
             </h1>
-            <p className="mt-2 text-base text-slate-600 dark:text-slate-400 mb-7">
+            <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 mb-6">
               Pick something strong you can remember. You&rsquo;ll be signed in
               right after.
             </p>
 
             <ResetPasswordForm />
 
-            <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
               Didn&rsquo;t request this?{" "}
               <Link
                 to="/auth/login"
@@ -79,7 +79,7 @@ const ResetPassword = () => {
             Secure reset
           </span>
 
-          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
             One more step to get you back{" "}
             <span className="bg-linear-to-r from-orange-300 to-blue-300 bg-clip-text text-transparent">
               in the driver&rsquo;s seat.

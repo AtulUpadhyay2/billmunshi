@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useDarkMode from "@/hooks/useDarkMode";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,12 +9,10 @@ import { toast } from "sonner";
 import { handleApiError } from "@/utils/apiErrorHandler";
 
 // image import
-import LogoWhite from "@/assets/images/logo/logo-white.svg";
-import Logo from "@/assets/images/logo/logo.svg";
+import BrandLogo from "@/components/BrandLogo";
 import Illustration from "@/assets/images/auth/ils1.svg";
 
 const NoOrganization = () => {
-    const [isDark] = useDarkMode();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastChecked, setLastChecked] = useState(null);
     const navigate = useNavigate();
@@ -122,12 +119,8 @@ const NoOrganization = () => {
                     <div className="inner-content h-full flex flex-col bg-white dark:bg-slate-800">
                         <div className="auth-box h-full flex flex-col justify-center">
                             <div className="mobile-logo text-center mb-6 lg:hidden block">
-                                <Link to="/">
-                                    <img
-                                        src={isDark ? LogoWhite : Logo}
-                                        alt=""
-                                        className="mx-auto"
-                                    />
+                                <Link to="/" aria-label="Bill Munshi home">
+                                    <BrandLogo className="justify-center" />
                                 </Link>
                             </div>
 

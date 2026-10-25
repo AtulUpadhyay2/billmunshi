@@ -74,18 +74,25 @@ const CookieBanner = ({ onAcceptAll, onRejectAll, onCustomise }) => {
 
         {/* Equal-width pair: refusing must never look like the lesser
             option, so the only difference is fill vs outline. */}
+        {/* Consent controls sit at 40px, not the workspace's 32px. They
+            are the primary touch target on a page people reach on a
+            phone, 32px is under the ~44px platform minimum, and there
+            is no neighbouring toolbar for them to share a baseline with
+            — the same exception the auth submit button takes. The
+            banner and the preferences dialog now share one geometry;
+            they had drifted to 13px and 14px type on the same box. */}
         <div className="mt-4 flex gap-2">
           <button
             type="button"
             onClick={onRejectAll}
-            className="flex-1 inline-flex items-center justify-center px-3 py-2.5 text-[13px] font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="flex-1 inline-flex items-center justify-center h-10 px-4 text-[13px] font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
           >
             Reject all
           </button>
           <button
             type="button"
             onClick={onAcceptAll}
-            className="flex-1 inline-flex items-center justify-center px-3 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
+            className="flex-1 inline-flex items-center justify-center h-10 px-4 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
           >
             Accept all
           </button>

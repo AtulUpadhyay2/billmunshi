@@ -30,18 +30,18 @@ const login = () => {
         {/* Form */}
         <div className="flex-1 flex items-center justify-center py-10">
           <div className="w-full max-w-md">
-            <div className="mb-8">
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                 Welcome back
               </h1>
-              <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
                 Sign in to your account to continue managing bills with Bill Munshi.
               </p>
             </div>
 
             <LoginForm />
 
-            <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
               Don't have an account?{" "}
               <Link
                 to="/auth/register"
@@ -85,7 +85,7 @@ const login = () => {
             Trusted by accounting teams
           </span>
 
-          <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
             Streamline your{" "}
             <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
               billing management

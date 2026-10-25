@@ -16,8 +16,10 @@ import { apiFetch } from '@/utils/apiClient';
 /** URL slugs the trash API uses for each document type. */
 export const TRASH_TYPES = {
   PURCHASE_VOUCHER: 'purchase-voucher',
+  SALES_VOUCHER: 'sales-voucher',
   JOURNAL_ENTRY: 'journal-entry',
   PAYMENT_VOUCHER: 'payment-voucher',
+  RECEIPT_VOUCHER: 'receipt-voucher',
 };
 
 /**
@@ -28,18 +30,27 @@ export const TRASH_TYPES = {
  */
 export const TRASH_TYPE_TABS = [
   { slug: TRASH_TYPES.PURCHASE_VOUCHER, label: 'Purchase Voucher', list_path: '/tally/vendor-bill' },
+  { slug: TRASH_TYPES.SALES_VOUCHER, label: 'Sales Voucher', list_path: '/tally/sales-bill' },
   { slug: TRASH_TYPES.JOURNAL_ENTRY, label: 'Journal Entry', list_path: '/tally/expense-bill' },
   { slug: TRASH_TYPES.PAYMENT_VOUCHER, label: 'Payment Voucher', list_path: '/tally/payment-voucher' },
+  { slug: TRASH_TYPES.RECEIPT_VOUCHER, label: 'Receipt Voucher', list_path: '/tally/receipt-voucher' },
 ];
 
 /**
  * Every query key the bill lists use, so a restore or purge refreshes the
  * page the document came from as well as the trash itself.
  */
+// These must match the query keys the list hooks actually register.
+// 'tallyPaymentBills' was named here and nowhere else, so restoring or
+// purging a payment voucher refreshed nothing and the list it came from
+// kept showing the stale row until a reload. Sales and receipt were
+// missing outright.
 const BILL_LIST_KEYS = [
   'tallyVendorBills',
+  'tallySalesBills',
   'tallyExpenseBills',
-  'tallyPaymentBills',
+  'tallyPaymentVouchers',
+  'tallyReceiptVouchers',
 ];
 
 const invalidateTrashAndLists = (queryClient, organizationId) => {

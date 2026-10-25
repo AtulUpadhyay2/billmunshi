@@ -3,9 +3,7 @@ import React, { useRef, useEffect, useState } from "react";
 import Navmenu from "./Navmenu";
 import { menuItems } from "@/constants/data";
 import SimpleBar from "simplebar-react";
-import useSemiDark from "@/hooks/useSemiDark";
 import useSkin from "@/hooks/useSkin";
-import useDarkMode from "@/hooks/useDarkMode";
 import { Link } from "react-router-dom";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import Icon from "@/components/ui/Icon";
@@ -15,8 +13,7 @@ import { getFilteredMenuItems } from "@/utils/menuUtils";
 import { ACTIONS, useOrgPermissions } from "@/services/approvalService";
 
 // import images
-import MobileLogo from "@/assets/images/logo/logo-c.svg";
-import MobileLogoWhite from "@/assets/images/logo/logo-c-white.svg";
+import BrandLogo from "@/components/BrandLogo";
 import svgRabitImage from "@/assets/images/svg/rabit.svg";
 
 const MobileMenu = ({ className = "custom-class" }) => {
@@ -32,11 +29,8 @@ const MobileMenu = ({ className = "custom-class" }) => {
     };
     scrollableNodeRef.current.addEventListener("scroll", handleScroll);
   }, [scrollableNodeRef]);
-
-  const [isSemiDark] = useSemiDark();
   // skin
   const [skin] = useSkin();
-  const [isDark] = useDarkMode();
   const [mobileMenu, setMobileMenu] = useMobileMenu();
 
   // Get selected organization from auth state
@@ -66,11 +60,7 @@ const MobileMenu = ({ className = "custom-class" }) => {
         <Link to="/dashboard">
           <div className="flex items-center space-x-4">
             <div className="logo-icon">
-              {!isDark && !isSemiDark ? (
-                <img src={MobileLogo} alt="" />
-              ) : (
-                <img src={MobileLogoWhite} alt="" />
-              )}
+              <BrandLogo variant="mark" />
             </div>
             <div>
               <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
