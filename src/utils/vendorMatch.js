@@ -1,3 +1,5 @@
+import { isValidGstin } from "@/utils/gstin";
+
 /**
  * Client Correction 50: pick the vendor ledger from the dropdown options
  * that matches the bill, instead of leaving it empty when the vendor is
@@ -49,7 +51,14 @@ export const findVendorOption = (options, { id, name, gst } = {}) => {
     // A same-name ledger registered under a DIFFERENT business (other PAN)
     // is not this vendor — e.g. OCR put the customer's name next to the
     // supplier's GSTIN. Same PAN in another state is still fine.
-    const billPan = gstin.length === 15 ? gstin.slice(2, 12) : "";
+    //
+    // Only a GSTIN that passes its own checksum gets to veto, though.
+    // OCR misreads I as T often enough that 07CITPD7209P2ZJ came back as
+    // 07CTTPD7209P2ZJ — still 15 characters, still PAN-shaped, and it
+    // blocked a vendor whose name matched exactly. A GSTIN that fails
+    // its check digit is noise, and noise must not outrank a name.
+    const billPan =
+      gstin.length === 15 && isValidGstin(gstin) ? gstin.slice(2, 12) : "";
     const byName = options.find((v) => {
       if (normalizeVendorName(v.name) !== wanted) return false;
       const ledgerGst = normalizeGst(v.gst_in);

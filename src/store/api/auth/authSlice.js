@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { clearAuthStorage, revokeSession } from "@/utils/authStorage";
 
 const storedUser = JSON.parse(localStorage.getItem("user") || 'null');
 const storedToken = localStorage.getItem("access_token");
@@ -12,7 +13,10 @@ export const authSlice = createSlice({
     user: storedUser || null,
     isAuth: !!(storedUser && storedToken),
     accessToken: storedToken || null,
-    refreshToken: localStorage.getItem("refresh_token") || null,
+    // Not read back from storage: the refresh token lives in an
+    // httpOnly cookie now. Kept in state only for the lifetime of a
+    // login response so existing consumers do not break.
+    refreshToken: null,
     selectedOrganization: storedSelectedOrg || null,
   },
   reducers: {
@@ -48,7 +52,10 @@ export const authSlice = createSlice({
 
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("access_token", access);
-      localStorage.setItem("refresh_token", refresh);
+      // The refresh token is deliberately not persisted — the server
+      // set it as an httpOnly cookie. Clear any copy written by the
+      // previous bundle so a returning browser stops holding one.
+      localStorage.removeItem("refresh_token");
       if (nextSelected) {
         localStorage.setItem("selected_org", JSON.stringify(nextSelected));
       } else {
@@ -119,11 +126,8 @@ export const authSlice = createSlice({
       state.isAuth = false;
       state.selectedOrganization = null;
       
-      // Clear from localStorage
-      localStorage.removeItem("user");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("selected_org");
+      revokeSession();
+      clearAuthStorage();
     },
     forceLogout: (state, action) => {
       // Similar to logOut but can carry additional metadata for forced logouts
@@ -133,11 +137,8 @@ export const authSlice = createSlice({
       state.isAuth = false;
       state.selectedOrganization = null;
       
-      // Clear from localStorage
-      localStorage.removeItem("user");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("selected_org");
+      revokeSession();
+      clearAuthStorage();
       
       // Could redirect to login page with a message
       if (typeof window !== 'undefined' && window.location) {

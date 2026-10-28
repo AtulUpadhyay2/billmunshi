@@ -176,7 +176,16 @@ const ZohoCredentials = () => {
     try {
       const response = await initiateOAuth(orgId);
       if (response.authorization_url) {
-        window.location.href = response.authorization_url;
+        // The URL comes from our own API, so this is only reachable if
+        // the backend is compromised or that field ever becomes
+        // influenced by input. Asserting the host costs nothing and
+        // means a redirect can never leave Zoho's accounts domain.
+        const authUrl = String(response.authorization_url || "");
+        if (!/^https:\/\/accounts\.zoho\.[a-z.]+\//i.test(authUrl)) {
+          toast.error("Zoho returned an unexpected authorization URL. Not redirecting.");
+          return;
+        }
+        window.location.href = authUrl;
       } else {
         toast.error("Failed to initiate OAuth flow");
       }

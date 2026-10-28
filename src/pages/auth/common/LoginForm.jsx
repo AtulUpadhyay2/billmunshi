@@ -68,7 +68,10 @@ const LoginForm = () => {
       };
 
       localStorage.setItem("access_token", loginTokens.access);
-      localStorage.setItem("refresh_token", loginTokens.refresh);
+      // The refresh token is NOT stored. The login response set it as an
+      // httpOnly cookie, which JavaScript cannot read — so an XSS can at
+      // worst steal a short-lived access token instead of the ability to
+      // mint new ones for as long as the refresh token lives.
       toast.success("Login Successful");
 
       const profileResult = await triggerGetProfile();

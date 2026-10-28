@@ -95,7 +95,7 @@ const register = () => {
             {[
               { icon: 'heroicons:bolt', t: '70% time saved', d: 'In bill processing across the team.' },
               { icon: 'heroicons:eye', t: '99% OCR accuracy', d: 'Line items, taxes, and amounts captured.' },
-              { icon: 'heroicons:shield-check', t: 'Enterprise-grade security', d: 'Role-based access &amp; encrypted storage.' },
+              { icon: 'heroicons:shield-check', t: 'Enterprise-grade security', d: 'Role-based access & encrypted storage.' },
             ].map((b, i) => (
               <li key={i} className="flex gap-4 items-start">
                 <span className="shrink-0 w-10 h-10 rounded-lg bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center">
@@ -103,7 +103,7 @@ const register = () => {
                 </span>
                 <div>
                   <div className="font-semibold text-white">{b.t}</div>
-                  <div className="text-sm text-slate-400" dangerouslySetInnerHTML={{ __html: b.d }} />
+                  <div className="text-sm text-slate-400">{b.d}</div>
                 </div>
               </li>
             ))}

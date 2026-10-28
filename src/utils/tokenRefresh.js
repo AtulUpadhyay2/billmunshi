@@ -35,14 +35,17 @@ export const refreshAccessToken = async () => {
     return refreshPromise;
   }
 
-  const refreshToken = localStorage.getItem("refresh_token");
-  if (!refreshToken || !refreshToken.trim()) {
-    handleRefreshFailure();
-    throw new Error("No refresh token available");
-  }
+  // The refresh token now lives in an httpOnly cookie that this code
+  // cannot read — which is the point: a script that gets onto the page
+  // can no longer steal it and mint access tokens indefinitely.
+  //
+  // A value in localStorage means this browser last signed in on the
+  // older bundle. Send it so that session survives the deploy; the
+  // server replies with the cookie and we drop the copy.
+  const legacyToken = localStorage.getItem("refresh_token");
 
   isRefreshing = true;
-  refreshPromise = performRefresh(refreshToken);
+  refreshPromise = performRefresh(legacyToken);
 
   try {
     const result = await refreshPromise;
@@ -55,12 +58,15 @@ export const refreshAccessToken = async () => {
   }
 };
 
-async function performRefresh(refreshToken) {
+async function performRefresh(legacyToken) {
   try {
     const response = await fetch(`${API_CONFIG.BASE_URL}/auth/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh: refreshToken }),
+      // Without this the browser withholds the httpOnly refresh cookie
+      // and every refresh fails as unauthenticated.
+      credentials: "include",
+      body: JSON.stringify(legacyToken ? { refresh: legacyToken } : {}),
     });
 
     if (!response.ok) {
@@ -78,13 +84,15 @@ async function performRefresh(refreshToken) {
     // WITHOUT touching the user object or selectedOrganization (those
     // pathways used to trigger a re-render storm after every refresh).
     localStorage.setItem("access_token", data.access);
-    if (data.refresh) {
-      localStorage.setItem("refresh_token", data.refresh);
-    }
+    // Deliberately NOT stored. The server has put it in an httpOnly
+    // cookie; writing it back to localStorage would undo the whole
+    // point. Any copy left over from the previous bundle is removed
+    // here, so a browser upgrades itself on its first refresh.
+    localStorage.removeItem("refresh_token");
     store.dispatch(
       setTokens({
         access: data.access,
-        refresh: data.refresh || refreshToken,
+        refresh: null,
       }),
     );
 

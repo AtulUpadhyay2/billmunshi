@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Loading from "@/components/Loading";
 import apiClient from "@/utils/apiClient";
 import { cleanGstinInput, gstinFormatError } from "@/utils/gstin";
+import { clearAuthStorage, revokeSession } from "@/utils/authStorage";
 import {
   BADGE,
   BTN_PRIMARY,
@@ -256,8 +257,8 @@ const SelectOrganization = () => {
           <button
             type="button"
             onClick={() => {
-              localStorage.removeItem("access_token");
-              localStorage.removeItem("refresh_token");
+              revokeSession();
+              clearAuthStorage();
               navigate("/auth/login");
             }}
             className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"

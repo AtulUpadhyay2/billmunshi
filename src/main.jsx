@@ -10,6 +10,7 @@ import "./utils/toast"; // Import global toast utility
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { CookieConsentProvider } from "./components/cookies";
+import MaintenanceGate from "./components/MaintenanceGate";
 
 // Devtools are loaded only in development to keep them out of production
 // bundles entirely (Vite tree-shakes the import.meta.env.DEV branch).
@@ -57,7 +58,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               pages, and above <App /> so every route — public or
               authenticated — is covered by the same consent state. */}
           <CookieConsentProvider>
-            <App />
+            {/* Wraps every route. While the backend is in maintenance
+                this renders the maintenance screen instead of the app,
+                so a client sees one clear message rather than a page
+                full of failed requests. Staff are never blocked by the
+                backend, so for them it stays invisible. */}
+            <MaintenanceGate>
+              <App />
+            </MaintenanceGate>
             <Toaster position="top-right" richColors closeButton />
             {ReactQueryDevtools && (
               <React.Suspense fallback={null}>

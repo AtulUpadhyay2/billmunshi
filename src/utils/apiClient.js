@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_CONFIG } from "../config/api";
 import { refreshAccessToken, isTokenExpiredError } from "./tokenRefresh";
+import { reportMaintenanceResponse } from "@/components/MaintenanceGate";
 
 // Create axios instance
 const apiClient = axios.create({
@@ -74,6 +75,14 @@ export const apiFetch = async (endpoint, options = {}) => {
   } catch (error) {
     // Extract meaningful error data including details
     const errorData = error.response?.data || {};
+
+    // The backend returns 503 with maintenance: true while it is down
+    // for work. Telling the gate immediately means the first failed
+    // request flips to the maintenance screen, rather than the user
+    // watching several requests fail until the next status poll.
+    if (error.response?.status === 503 && errorData?.maintenance) {
+      reportMaintenanceResponse(errorData);
+    }
     const errorMessage =
       errorData.message ||
       errorData.detail ||

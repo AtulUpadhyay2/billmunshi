@@ -33,6 +33,7 @@ import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import { currencySymbol } from "@/utils/currency";
 import { findVendorOption } from "@/utils/vendorMatch";
+import { isValidGstin } from "@/utils/gstin";
 import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
@@ -3738,6 +3739,14 @@ const TallyVendorBillDetail = () => {
                             </div>
                           );
                         }
+                        // A GSTIN carries a check digit, so a misread is
+                        // provable rather than a matter of opinion. Saying
+                        // "these two differ" sends the operator looking for
+                        // the wrong vendor; saying "the one we read cannot
+                        // be a real GSTIN" sends them to the one field that
+                        // is actually wrong. OCR reads I as T often enough
+                        // that this is the common case, not the rare one.
+                        const billGstUnreadable = !isValidGstin(billGst);
                         return (
                           <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-[12px] text-rose-800 dark:text-rose-300">
                             <Icon
@@ -3746,14 +3755,26 @@ const TallyVendorBillDetail = () => {
                             />
                             <div className="min-w-0">
                               <div className="font-semibold">
-                                GSTIN from the invoice (GST:{" "}
+                                {billGstUnreadable
+                                  ? "The GSTIN read from the invoice fails its check digit"
+                                  : "GSTIN from the invoice doesn't match Tally"}
+                              </div>
+                              <div className="mt-0.5">
+                                Read from invoice:{" "}
                                 <span className="font-mono">{billGst}</span>
-                                ) doesn't match with Tally
                               </div>
                               <div className="mt-0.5">
                                 Tally vendor GST:{" "}
                                 <span className="font-mono">{tallyGst}</span>
                               </div>
+                              {billGstUnreadable && (
+                                <div className="mt-1 text-[11px] opacity-90">
+                                  It is not a valid GSTIN, so this is almost
+                                  certainly a scan error rather than a
+                                  different party. Check the invoice and
+                                  correct the GST Number field above.
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
