@@ -80,14 +80,29 @@ const seedLedgerCaches = (qc, orgId, ledger, keys) => {
   keys.forEach((key) => {
     qc.setQueryData([key, orgId], (old) => {
       if (!old?.grouped_ledgers) return old;
-      const groupName = ledger.parent_ledger_name || ledger.parent || "Recently added";
-      const group = old.grouped_ledgers[groupName] || [];
-      if (group.some((l) => l.id === ledger.id)) return old;
+
+      // The payload groups by parent name, and each group is an OBJECT
+      // — { parent_id, parent_name, ledger_count, ledgers: [...] } —
+      // not a bare array. The consumer reads `group.ledgers`, so
+      // appending to the group itself would replace a well-formed group
+      // with a list the page cannot read, and the whole dropdown would
+      // empty out. Seed into `ledgers`, and only into a group that is
+      // already there: inventing one would mean inventing a parent id
+      // the server never issued.
+      const groupName = ledger.parent_ledger_name || ledger.parent;
+      const group = groupName ? old.grouped_ledgers[groupName] : null;
+      if (!group || !Array.isArray(group.ledgers)) return old;
+      if (group.ledgers.some((l) => l.id === ledger.id)) return old;
+
       return {
         ...old,
         grouped_ledgers: {
           ...old.grouped_ledgers,
-          [groupName]: [...group, ledger],
+          [groupName]: {
+            ...group,
+            ledgers: [...group.ledgers, ledger],
+            ledger_count: (group.ledger_count || group.ledgers.length) + 1,
+          },
         },
       };
     });

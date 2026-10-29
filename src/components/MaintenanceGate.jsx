@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
+import { useLocation } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 
 /**
@@ -38,12 +39,22 @@ const POLL_WHEN_DOWN = 15_000;
 
 const MaintenanceGate = ({ children }) => {
   const [state, setState] = useState(null);
+  const { pathname } = useLocation();
 
   const check = useCallback(async () => {
     try {
       const base = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+      // Send the token when there is one: the server answers with
+      // `exempt_for_you`, and it can only do that if it knows who is
+      // asking. Anonymous callers still get a useful answer.
+      const token = (() => {
+        try { return localStorage.getItem("access_token"); } catch { return null; }
+      })();
       const res = await fetch(`${base.replace(/\/$/, "")}/maintenance/`, {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (!res.ok) return;
       setState(await res.json());
@@ -56,14 +67,51 @@ const MaintenanceGate = ({ children }) => {
 
   useEffect(() => {
     notifyMaintenance = (payload) =>
-      setState((prev) => ({ ...(prev || {}), ...payload, is_active: true }));
+      setState((prev) => ({
+        ...(prev || {}),
+        ...payload,
+        is_active: true,
+        // A 503 means this caller was NOT let through, whatever a
+        // previous poll said.
+        exempt_for_you: false,
+      }));
     check();
     return () => {
       notifyMaintenance = () => {};
     };
   }, [check]);
 
-  const isDown = Boolean(state?.is_active);
+  // Staff are never blocked by the backend, so blocking them here
+  // would defeat the exemption entirely — the whole point is being able
+  // to walk through a release against production while clients are
+  // still held out.
+  // The sign-in pages stay reachable. Covering them would lock staff
+  // out of the very window the exemption exists for: a fresh browser
+  // has no token, so the server cannot know the visitor is staff until
+  // they have signed in — and they cannot sign in behind this screen.
+  // The backend exempts /api/v1/auth/ for exactly the same reason.
+  //
+  // Nothing is leaked by this: every other route still refuses, and the
+  // API still answers 503 to anyone who is not exempt.
+  // Only the pages somebody needs in order to *authenticate*. Not
+  // every /auth/ route: /auth/select-organization is a workspace-entry
+  // page reached after signing in, and leaving it open lets a client
+  // sit on a normal-looking screen clicking into 503s.
+  const AUTH_ENTRY = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/verify-email",
+  ];
+  // useLocation, not window.location: this component sits above the
+  // routed tree, so reading window.location would evaluate once at
+  // mount and never again — a client who navigated from the sign-in
+  // page into the app would keep the exemption they had on the way in.
+  const onAuthRoute = AUTH_ENTRY.some((p) => pathname.startsWith(p));
+
+  const isDown =
+    Boolean(state?.is_active) && !state?.exempt_for_you && !onAuthRoute;
 
   useEffect(() => {
     const id = setInterval(check, isDown ? POLL_WHEN_DOWN : POLL_WHEN_UP);

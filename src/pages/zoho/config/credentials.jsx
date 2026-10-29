@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
+import { apiFetch } from "@/utils/apiClient";
 import {
   useGetZohoCredentials,
   useInitiateZohoOAuth,
@@ -29,21 +30,37 @@ const maskValue = (value, startChars = 4, endChars = 4) => {
   return `${value.slice(0, startChars)}${"•".repeat(8)}${value.slice(-endChars)}`;
 };
 
-const CredentialField = ({ label, value, mask = false, mono = true }) => {
-  const [revealed, setRevealed] = useState(false);
+/**
+ * One stored credential, shown but never handed back.
+ *
+ * This used to take the real value, hide it behind a reveal button and
+ * offer a Copy button. The server no longer sends the secrets at all —
+ * a Zoho refresh token does not expire and grants full read/write to
+ * the client's books, so it has no business being in the DOM — and the
+ * component follows: it renders the mask the server computed and says
+ * whether anything is set.
+ *
+ * ``copyable`` is for the genuinely public values (client id, redirect
+ * URL) that an admin legitimately needs to paste into Zoho's console.
+ */
+/** Zoho's data centres. Canada is the odd one — zohocloud.ca, not zoho.ca. */
+const ZOHO_REGIONS = [
+  { value: "in", label: "India — books.zoho.in" },
+  { value: "com", label: "United States — books.zoho.com" },
+  { value: "eu", label: "Europe — books.zoho.eu" },
+  { value: "com.au", label: "Australia — books.zoho.com.au" },
+  { value: "jp", label: "Japan — books.zoho.jp" },
+  { value: "ca", label: "Canada — books.zohocloud.ca" },
+  { value: "sa", label: "Saudi Arabia — books.zoho.sa" },
+];
+
+const CredentialField = ({ label, value, isSet = null, copyable = false, mono = true }) => {
   const [copied, setCopied] = useState(false);
 
-  const display = !value
-    ? "—"
-    : mask && !revealed
-      ? maskValue(value)
-      : value;
+  const display = value || (isSet === false ? "Not set" : "\u2014");
 
   const handleCopy = async () => {
-    if (!value) {
-      toast.error("Nothing to copy");
-      return;
-    }
+    if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
@@ -61,33 +78,33 @@ const CredentialField = ({ label, value, mask = false, mono = true }) => {
       </div>
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
         <code
-          className={`flex-1 text-sm ${mono ? "font-mono" : ""} text-slate-800 dark:text-slate-200 truncate select-all`}
+          className={`flex-1 text-sm ${mono ? "font-mono" : ""} ${
+            isSet === false
+              ? "text-slate-400 dark:text-slate-500 italic"
+              : "text-slate-800 dark:text-slate-200"
+          } truncate`}
         >
           {display}
         </code>
-        {mask && value && (
+        {isSet && (
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+            <Icon icon="heroicons:lock-closed" className="text-[11px]" />
+            Stored
+          </span>
+        )}
+        {copyable && value && (
           <button
             type="button"
-            onClick={() => setRevealed((r) => !r)}
-            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-            aria-label={revealed ? "Hide" : "Show"}
-            title={revealed ? "Hide" : "Show"}
+            onClick={handleCopy}
+            className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
-            <Icon icon={revealed ? "heroicons:eye-slash" : "heroicons:eye"} className="text-sm" />
+            <Icon
+              icon={copied ? "heroicons:check" : "heroicons:document-duplicate"}
+              className={`text-xs ${copied ? "text-emerald-600 dark:text-emerald-400" : ""}`}
+            />
+            {copied ? "Copied" : "Copy"}
           </button>
         )}
-        <button
-          type="button"
-          onClick={handleCopy}
-          disabled={!value}
-          className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
-        >
-          <Icon
-            icon={copied ? "heroicons:check" : "heroicons:document-duplicate"}
-            className={`text-xs ${copied ? "text-emerald-600 dark:text-emerald-400" : ""}`}
-          />
-          {copied ? "Copied" : "Copy"}
-        </button>
       </div>
     </div>
   );
@@ -194,7 +211,59 @@ const ZohoCredentials = () => {
     }
   };
 
-  const isConnected = !!(credentials?.accessToken && credentials?.refreshToken);
+  // The browser no longer receives the tokens, so "is there one"
+  // comes from the server's own booleans rather than from a value
+  // this page can inspect.
+  const [region, setRegion] = useState("in");
+  const [savingRegion, setSavingRegion] = useState(false);
+
+  // Keep the picker in step with whatever the server last stored.
+  useEffect(() => {
+    if (credentials?.region) setRegion(credentials.region);
+  }, [credentials?.region]);
+
+  const saveRegion = async () => {
+    setSavingRegion(true);
+    try {
+      await apiFetch(`zoho/org/${orgId}/settings/credentials/`, {
+        method: "PATCH",
+        body: JSON.stringify({ region, organization: orgId }),
+      });
+      toast.success("Data centre saved — reconnect to issue tokens for it.");
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.detail || err?.message || "Could not save the data centre");
+    } finally {
+      setSavingRegion(false);
+    }
+  };
+
+  const [conn, setConn] = useState(null);
+  const [testing, setTesting] = useState(false);
+
+  // "ok" / "bad" only once Zoho has actually been asked; "unknown"
+  // until then, because storing a token proves nothing.
+  const connState = conn == null ? "unknown" : conn.connected ? "ok" : "bad";
+
+  const runConnectionTest = async () => {
+    setTesting(true);
+    try {
+      const res = await apiFetch(
+        `zoho/org/${orgId}/settings/credentials/test/`,
+        { method: "POST" },
+      );
+      setConn(res);
+      (res.connected ? toast.success : toast.error)(res.detail);
+    } catch (err) {
+      const detail = err?.data?.detail || err?.message || "Connection test failed";
+      setConn({ connected: false, detail });
+      toast.error(detail);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const isConnected = !!(credentials?.has_access_token && credentials?.has_refresh_token);
   const showConnect = !isConnected;
 
   if (!orgId) {
@@ -325,26 +394,89 @@ const ZohoCredentials = () => {
         // Connected state — show credentials grid
         <div className="space-y-3">
           {/* Connection summary card */}
+          {/* Connection summary.
+              This used to read "Connected to Zoho Books — Active"
+              whenever tokens existed in our own table. That is a claim
+              about our database, not about Zoho, and it stayed green
+              while every sync came back 400. The card now states only
+              what it knows — credentials are saved — until the test
+              below has actually asked Zoho. */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-                <Icon icon="heroicons:check-badge" className="text-lg" />
+              <div
+                className={`shrink-0 w-10 h-10 rounded-lg ring-1 flex items-center justify-center ${
+                  connState === "ok"
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 ring-emerald-100 dark:ring-emerald-900/60 text-emerald-700 dark:text-emerald-400"
+                    : connState === "bad"
+                      ? "bg-rose-50 dark:bg-rose-950/40 ring-rose-100 dark:ring-rose-900/60 text-rose-700 dark:text-rose-400"
+                      : "bg-slate-50 dark:bg-slate-900/60 ring-slate-200 dark:ring-slate-800 text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                <Icon
+                  icon={
+                    connState === "ok"
+                      ? "heroicons:check-badge"
+                      : connState === "bad"
+                        ? "heroicons:exclamation-triangle"
+                        : "heroicons:key"
+                  }
+                  className="text-lg"
+                />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">
-                    Connected to Zoho Books
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                    {connState === "ok"
+                      ? conn?.organization_name
+                        ? `Connected to ${conn.organization_name}`
+                        : "Connected to Zoho Books"
+                      : connState === "bad"
+                        ? "Connection is not working"
+                        : "Credentials saved"}
                   </h3>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-100 dark:ring-emerald-900/60">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Active
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${
+                      connState === "ok"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
+                        : connState === "bad"
+                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-rose-100 dark:ring-rose-900/60"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 ring-slate-200 dark:ring-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        connState === "ok"
+                          ? "bg-emerald-500"
+                          : connState === "bad"
+                            ? "bg-rose-500"
+                            : "bg-slate-400"
+                      }`}
+                    />
+                    {connState === "ok"
+                      ? "Verified"
+                      : connState === "bad"
+                        ? "Failing"
+                        : "Not tested"}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Last updated: {formatDateTime(credentials.updated_at || credentials.created_at)}
+                  {conn?.detail ||
+                    `Last updated: ${formatDateTime(credentials.updated_at || credentials.created_at)}`}
                 </p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={runConnectionTest}
+              disabled={testing}
+              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 cursor-pointer"
+            >
+              <Icon
+                icon="heroicons:signal"
+                className={`text-sm ${testing ? "animate-pulse" : ""}`}
+              />
+              {testing ? "Testing…" : "Test connection"}
+            </button>
           </div>
 
           {/* Credentials */}
@@ -358,19 +490,86 @@ const ZohoCredentials = () => {
                   OAuth credentials
                 </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Sensitive values are masked — click the eye to reveal.
+                  Secrets are stored on the server and never sent to this page.
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CredentialField label="Client ID" value={credentials.clientId} mask mono />
-              <CredentialField label="Client secret" value={credentials.clientSecret} mask mono />
-              <CredentialField label="Redirect URL" value={credentials.redirectUrl} mono />
-              <CredentialField label="Access token" value={credentials.accessToken} mask mono />
-              <CredentialField label="Refresh token" value={credentials.refreshToken} mask mono />
+              {/* The client id and redirect URL are public OAuth values an
+                  admin pastes into the Zoho console, so they stay copyable. */}
+              <CredentialField label="Client ID" value={credentials.clientId} copyable mono />
+              <CredentialField
+                label="Client secret"
+                value={credentials.clientSecret_masked}
+                isSet={credentials.has_client_secret}
+                mono
+              />
+              <CredentialField label="Redirect URL" value={credentials.redirectUrl} copyable mono />
+              <CredentialField
+                label="Access token"
+                value={credentials.accessToken_masked}
+                isSet={credentials.has_access_token}
+                mono
+              />
+              <CredentialField
+                label="Refresh token"
+                value={credentials.refreshToken_masked}
+                isSet={credentials.has_refresh_token}
+                mono
+              />
               {credentials.organizationId && (
                 <CredentialField label="Zoho organization ID" value={credentials.organizationId} mono />
               )}
+            </div>
+          </div>
+
+          {/* Data centre.
+              Zoho runs independent data centres and an account exists in
+              exactly one. Both the login host and the API host differ
+              per centre, so connecting against the wrong one produces a
+              token that is valid but sees no organisations — which
+              reads as "this account has no Zoho Books organisation"
+              rather than "wrong country". */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <span className="inline-flex w-9 h-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
+                <Icon icon="heroicons:globe-alt" className="text-base" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  Zoho data centre
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Check the address bar when signed in to Zoho Books —
+                  books.zoho.in, books.zoho.com, and so on.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="h-8 px-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                {ZOHO_REGIONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={saveRegion}
+                disabled={savingRegion || region === (credentials.region || "in")}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Icon icon="heroicons:check" className="text-sm" />
+                {savingRegion ? "Saving…" : "Save"}
+              </button>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Changing this means reconnecting — the tokens belong to
+                the old centre.
+              </span>
             </div>
           </div>
 
