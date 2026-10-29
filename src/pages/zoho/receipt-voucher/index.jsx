@@ -8,6 +8,7 @@ import {
   useAnalyzeZohoReceiptBill,
   useSyncZohoReceiptBill,
   useDownloadZohoReceiptReport,
+  useMoveReceiptBills,
 } from "@/services/zoho/zohoReceiptVoucherService";
 import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
@@ -32,9 +33,8 @@ const ZohoReceiptVoucher = () => {
       useAnalyzeBill={useAnalyzeZohoReceiptBill}
       useSyncBill={useSyncZohoReceiptBill}
       useDownloadReport={useDownloadZohoReceiptReport}
-      // A receipt is a payment object, not a bill: the move endpoint
-      // only knows the three bill-shaped types.
-      allowMove={false}
+      useMoveBills={useMoveReceiptBills}
+      moveFrom="receipt"
     />
   );
 };

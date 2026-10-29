@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import Icon from "@/components/ui/Icon";
-import Cleave from "cleave.js/react";
-import "cleave.js/dist/addons/cleave-phone.us";
+import MaskedInput from "@/components/ui/MaskedInput";
 
 const InputGroup = ({
   type,
@@ -108,7 +107,7 @@ const InputGroup = ({
               />
             )}
             {name && isMask && (
-              <Cleave
+              <MaskedInput
                 {...register(name)}
                 {...rest}
                 placeholder={placeholder}
@@ -124,7 +123,7 @@ const InputGroup = ({
               />
             )}
             {!name && isMask && (
-              <Cleave
+              <MaskedInput
                 placeholder={placeholder}
                 options={options}
                 className={`${

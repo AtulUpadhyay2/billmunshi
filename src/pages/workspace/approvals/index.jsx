@@ -197,11 +197,16 @@ const Approvals = () => {
           <p className="p-4 text-xs text-slate-500 dark:text-slate-400">Loading…</p>
         ) : rows.length === 0 ? (
           <div className="p-6 text-center">
+            {/* ``mx-auto``, not ``text-center`` on the parent:
+                Tailwind's preflight gives every svg ``display: block``,
+                so text alignment does nothing to it and the icon sat
+                hard against the left padding while the text below it
+                was centred. */}
             <Icon
               icon="heroicons:check-circle"
-              className="text-2xl text-slate-300 dark:text-slate-600"
+              className="mx-auto text-2xl text-slate-300 dark:text-slate-600"
             />
-            <p className="mt-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <p className="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
               Nothing waiting
             </p>
           </div>

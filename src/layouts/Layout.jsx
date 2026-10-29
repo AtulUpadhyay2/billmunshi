@@ -15,7 +15,6 @@ import MobileMenu from "../components/partials/sidebar/MobileMenu";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import MobileFooter from "@/components/partials/footer/MobileFooter";
 import Loading from "@/components/Loading";
-import { motion } from "framer-motion";
 
 // NOTE: auth gating lives in <RequireAuth> in App.jsx so that the redirect
 // happens *before* this layout (and its children) ever mount. Doing it here
@@ -110,20 +109,27 @@ const Layout = () => {
             }`}
           >
             <Suspense fallback={<Loading />}>
-              {/* Opacity only — deliberately no `y` slide. An animated
-                  transform would make this element the containing block for
-                  `position: fixed`, which is how ConfirmDialog and the
-                  scanner overlays position themselves against the viewport. */}
-              <motion.div
+              {/* A 150ms opacity fade on route change, in CSS.
+
+                  This used an animation library whose only job in the
+                  whole app was this one fade, and which cost 116 kB in
+                  the entry chunk — downloaded on every client's first
+                  visit. The `key` is what replays it: React remounts the
+                  element on a path change, so the animation runs again.
+
+                  Opacity only — deliberately no `y` slide. An animated
+                  transform would make this element the containing block
+                  for `position: fixed`, which is how ConfirmDialog and
+                  the scanner overlays position themselves against the
+                  viewport. Opacity creates a stacking context but not a
+                  containing block, so that reasoning still holds. */}
+              <div
                 ref={nodeRef}
                 key={location.pathname}
-                className="h-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
+                className="h-full route-fade"
               >
                 {<Outlet />}
-              </motion.div>
+              </div>
             </Suspense>
           </div>
         </main>

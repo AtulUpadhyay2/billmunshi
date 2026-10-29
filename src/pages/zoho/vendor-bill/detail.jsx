@@ -5,6 +5,7 @@ import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import CreateZohoContactDialog from "@/components/zoho/CreateZohoContactDialog";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
@@ -117,6 +118,10 @@ const ZohoVendorBillDetail = () => {
 
   // Sync vendor bill mutation
   const { mutateAsync: syncVendorBill } = useSyncVendorBill();
+
+  // Creating the vendor in Zoho from here, rather than sending the
+  // operator to Zoho and back to pick it up.
+  const [isCreateVendorOpen, setIsCreateVendorOpen] = useState(false);
 
   // Fetch vendors list for dropdown
   const { data: vendorsData, isLoading: vendorsLoading } = useGetVendors(
@@ -1451,14 +1456,30 @@ const ZohoVendorBillDetail = () => {
                           />
                         </div>
 
-                        {/* No vendors notification */}
-                        {vendorsData?.results?.length === 0 &&
-                          !vendorsLoading && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                              No vendors found. Please sync vendors from Zoho
-                              first.
-                            </div>
-                          )}
+                        {/* The vendor this bill needs may not exist in
+                            Zoho at all, which used to be a dead end:
+                            "sync vendors first" is no help when there is
+                            nothing to sync. Offered whenever no vendor is
+                            picked, not only when the list is empty — a
+                            workspace with 200 vendors and not this one is
+                            the common case. */}
+                        {!isVerified && !vendorForm.selectedVendor && (
+                          <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                              {vendorsData?.results?.length === 0 && !vendorsLoading
+                                ? "No vendors synced from Zoho yet."
+                                : "Not in the list?"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsCreateVendorOpen(true)}
+                              className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
+                            >
+                              <Icon icon="heroicons:plus-circle" className="text-xs" />
+                              Create vendor in Zoho
+                            </button>
+                          </div>
+                        )}
 
                         {/* Organization Mismatch Warning */}
                         {vendorForm.selectedVendor &&
@@ -2647,6 +2668,29 @@ const ZohoVendorBillDetail = () => {
           </div>
         </div>
       )}
+
+      <CreateZohoContactDialog
+        open={isCreateVendorOpen}
+        onClose={() => setIsCreateVendorOpen(false)}
+        organizationId={selectedOrganization?.id}
+        contactType="vendor"
+        // Read off the bill: the name and GSTIN the document carries are
+        // exactly what the vendor should be created with, and showing
+        // them is also the operator's chance to catch a bad OCR read
+        // before it becomes a permanent master.
+        initialName={vendorForm.vendorName || analysedData?.from?.name || ""}
+        initialGstNo={vendorForm.vendorGST || analysedData?.from?.gstin || ""}
+        billModule="vendor"
+        billId={billId}
+        onCreated={(contact) =>
+          handleVendorSelect({
+            id: contact.id,
+            companyName: contact.company_name,
+            gstNo: contact.gst_no,
+            organization_id: selectedOrganization?.id,
+          })
+        }
+      />
     </div>
   );
 };

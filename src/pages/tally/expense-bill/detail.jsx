@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import BillChecks from "@/components/bills/BillChecks";
-import CurrencyBox from "@/components/bills/CurrencyBox";
+import CurrencyPanel from "@/components/bills/CurrencyPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -182,6 +182,7 @@ const TallyExpenseBillDetail = () => {
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
 
@@ -2607,6 +2608,23 @@ const TallyExpenseBillDetail = () => {
           >
             <Icon icon="heroicons:clock" className="text-sm" />
           </button>
+          {/* Currency sits beside Activity rather than inline above the
+              checks: almost every bill is in rupees, and a full-width
+              strip for a setting nobody changes is a strip wasted. The
+              code on the button keeps a foreign-currency bill visible. */}
+          <button
+            type="button"
+            onClick={() => setIsCurrencyOpen(true)}
+            aria-label="Currency"
+            className="inline-flex items-center justify-center gap-1 h-8 px-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            title="Currency and the rate this voucher posts at"
+          >
+            <Icon icon="heroicons:banknotes" className="text-sm" />
+            {tallyAnalysedData?.currency &&
+              tallyAnalysedData.currency !== "INR" && (
+                <span className="font-mono">{tallyAnalysedData.currency}</span>
+              )}
+          </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
@@ -2949,20 +2967,6 @@ const TallyExpenseBillDetail = () => {
             blocking Verify, then what simply does not add up. Four
             separate banners used to stack here, two of them reporting
             the same arithmetic. */}
-        {/* Currency, and the rate this voucher will post at. Above the
-            checks because it rescales every figure below it: choosing it
-            after reading the totals means reading them all again. */}
-        <CurrencyBox
-          organizationId={selectedOrganization?.id}
-          billId={billId}
-          currency={tallyAnalysedData?.currency}
-          exchangeRate={tallyAnalysedData?.exchange_rate}
-          exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
-          exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
-          exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
-          disabled={isVerified}
-          onChanged={() => refetch()}
-        />
 
         <BillChecks
           blockers={getValidationErrorMessages()}
@@ -4305,6 +4309,21 @@ const TallyExpenseBillDetail = () => {
           </div>
         </div>
       </div>
+
+
+      <CurrencyPanel
+        open={isCurrencyOpen}
+        onClose={() => setIsCurrencyOpen(false)}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        currency={tallyAnalysedData?.currency}
+        exchangeRate={tallyAnalysedData?.exchange_rate}
+        exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
+        exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
+        exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
+        disabled={isVerified}
+        onChanged={() => refetch()}
+      />
 
       <ActivityPanel
         open={isActivityOpen}

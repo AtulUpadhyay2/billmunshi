@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import Icon from "@/components/ui/Icon";
-import Cleave from "cleave.js/react";
-import "cleave.js/dist/addons/cleave-phone.us";
+import MaskedInput from "@/components/ui/MaskedInput";
 const Textinput = ({
   type,
   label,
@@ -81,7 +80,7 @@ const Textinput = ({
           />
         )}
         {name && isMask && (
-          <Cleave
+          <MaskedInput
             {...register(name)}
             {...rest}
             placeholder={placeholder}
@@ -97,7 +96,7 @@ const Textinput = ({
           />
         )}
         {!name && isMask && (
-          <Cleave
+          <MaskedInput
             placeholder={placeholder}
             options={options}
             className={`${

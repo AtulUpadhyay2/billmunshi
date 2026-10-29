@@ -205,3 +205,28 @@ export const useDownloadZohoReceiptReport = () =>
       );
     },
   });
+
+/**
+ * Move selected vouchers into another Zoho voucher type.
+ *
+ * The same endpoint every other bill type uses. This type had no hook
+ * at all, so its page passed `allowMove={false}` and a voucher
+ * uploaded here by mistake could not be moved out — the operator had to
+ * delete it and upload it again, paying for the analysis twice.
+ */
+export const useMoveReceiptBills = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`zoho/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["zohoReceiptBill", variables.organizationId],
+      });
+    },
+  });
+};

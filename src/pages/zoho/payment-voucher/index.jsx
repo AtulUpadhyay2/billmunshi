@@ -8,6 +8,7 @@ import {
   useAnalyzeZohoPaymentBill,
   useSyncZohoPaymentBill,
   useDownloadZohoPaymentReport,
+  useMovePaymentBills,
 } from "@/services/zoho/zohoPaymentVoucherService";
 import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
@@ -32,9 +33,8 @@ const ZohoPaymentVoucher = () => {
       useAnalyzeBill={useAnalyzeZohoPaymentBill}
       useSyncBill={useSyncZohoPaymentBill}
       useDownloadReport={useDownloadZohoPaymentReport}
-      // A payment is a payment object, not a bill: the move endpoint
-      // only knows the three bill-shaped types.
-      allowMove={false}
+      useMoveBills={useMovePaymentBills}
+      moveFrom="payment"
     />
   );
 };

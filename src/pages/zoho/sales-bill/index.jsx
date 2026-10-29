@@ -8,6 +8,7 @@ import {
   useAnalyzeZohoSalesBill,
   useSyncZohoSalesBill,
   useDownloadZohoSalesReport,
+  useMoveSalesBills,
 } from "@/services/zoho/zohoSalesBillService";
 import { useZohoUploadTargets } from "@/services/zoho/useZohoUploadTargets";
 
@@ -32,9 +33,8 @@ const ZohoSalesBill = () => {
       useAnalyzeBill={useAnalyzeZohoSalesBill}
       useSyncBill={useSyncZohoSalesBill}
       useDownloadReport={useDownloadZohoSalesReport}
-      // An invoice carries a customer and revenue ledgers; every move
-      // target on the Zoho side is payables, so there is nowhere to go.
-      allowMove={false}
+      useMoveBills={useMoveSalesBills}
+      moveFrom="sales"
     />
   );
 };

@@ -64,6 +64,61 @@ const NO_UPLOAD_TARGETS = [];
 const useNoUploadTargets = () => NO_UPLOAD_TARGETS;
 
 /*
+ * What each module calls its voucher types, and what a move between
+ * them costs.
+ *
+ * These labels were written inline at the two places that needed them,
+ * and both copies said "Journal Voucher" while sending `expense`. That
+ * is right for Tally, whose expense module *is* the journal entry
+ * screen, and wrong for Zoho, which has separate Expense and Journal
+ * pages — so picking Journal in Zoho produced an Expense bill, and
+ * Zoho's real Journal was unreachable. The third option, Payment, was
+ * offered by both and accepted by neither backend.
+ *
+ * One table per module, read by both the menu and the modal.
+ */
+const MOVE_LABELS = {
+  tally: {
+    vendor: "Purchase Voucher",
+    // Tally has no separate journal module: its expense screen is
+    // titled "Journal Entries".
+    expense: "Journal Entry",
+  },
+  zoho: {
+    vendor: "Purchase Voucher",
+    expense: "Expense",
+    journal: "Journal Voucher",
+    sales: "Sales Invoice",
+    payment: "Payment Voucher",
+    receipt: "Receipt Voucher",
+  },
+};
+
+const MOVE_ICONS = {
+  vendor: "heroicons:receipt-refund",
+  expense: "heroicons:credit-card",
+  journal: "heroicons:book-open",
+  sales: "heroicons:document-currency-rupee",
+  payment: "heroicons:banknotes",
+  receipt: "heroicons:inbox-arrow-down",
+};
+
+/* A voucher records an amount paid or received, not what was bought, so
+   it holds no line items and a move into one discards them. */
+const NO_LINE_ITEMS = new Set(["payment", "receipt"]);
+
+/* Which side of the ledger each type sits on. A vendor is not a
+   customer, so a move across sides cannot carry the party mapping. */
+const LEDGER_SIDE = {
+  vendor: "purchase",
+  expense: "purchase",
+  journal: "purchase",
+  payment: "purchase",
+  sales: "sales",
+  receipt: "sales",
+};
+
+/*
  * Stand-in for pages that cannot move bills anywhere (Sales, Receipt).
  * A hook, not a plain object, so the hook-call order below stays the
  * same whether or not the page passes a real one.
@@ -327,6 +382,10 @@ const BillsList = ({
   // direction args for the move endpoint
   moveFrom,
   moveTo,
+  // Optional. The voucher types this page can move into, as module keys
+  // (["vendor", "journal"]). Omitted, every type this module supports is
+  // offered except the page's own.
+  moveTargets,
   // Moving a voucher between types only makes sense inside one side of
   // the ledger. A sales invoice has a customer and revenue ledgers; a
   // purchase bill has a vendor and expense ledgers, and the move would
@@ -336,6 +395,18 @@ const BillsList = ({
   const navigate = useNavigate();
   const { selectedOrganization } = useSelector((state) => state.auth);
   const { can } = useOrgPermissions();
+
+  // One place decides what a move is called and what it costs, so the
+  // menu, the modal and the toast cannot disagree.
+  const moveLabels = MOVE_LABELS[module] || MOVE_LABELS.zoho;
+  const labelFor = (key) => moveLabels[key] || copy.moveTargetLabel;
+  const resolvedMoveTargets = (
+    moveTargets || Object.keys(moveLabels)
+  ).filter((key) => key !== moveFrom && moveLabels[key]);
+  const moveCost = (key) => ({
+    dropsLines: NO_LINE_ITEMS.has(key) && !NO_LINE_ITEMS.has(moveFrom),
+    dropsParty: LEDGER_SIDE[key] !== LEDGER_SIDE[moveFrom],
+  });
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -719,21 +790,29 @@ const BillsList = ({
     const targetTo =
       (isMoveModalOpen && typeof isMoveModalOpen === "object" && isMoveModalOpen.to) ||
       moveTo;
-    const TARGET_LABELS = {
-      vendor: "Purchase Voucher",
-      expense: "Journal Voucher",
-      payment: "Payment Voucher",
-    };
     try {
-      await moveBills({
+      const result = await moveBills({
         organizationId: selectedOrganization?.id,
         from: moveFrom,
         to: targetTo,
         bill_ids: Array.from(selectedBills),
       });
-      globalToast.success(
-        `${selectedBills.size} bill(s) moved to ${TARGET_LABELS[targetTo] || copy.moveTargetLabel}`,
-      );
+      // The server reports per-bill outcomes: a selection can part
+      // succeed, and a move can complete while leaving line items or
+      // the party mapping behind. Reporting only the count would call
+      // all of that a plain success.
+      const moved = result?.successful_moves ?? selectedBills.size;
+      const failed = result?.failed_moves ?? 0;
+      if (moved) {
+        globalToast.success(`${moved} bill(s) moved to ${labelFor(targetTo)}`);
+      }
+      if (result?.warning) globalToast.warning(result.warning);
+      if (failed) {
+        const why = result?.errors?.[0]?.error;
+        globalToast.error(
+          `${failed} bill(s) could not be moved${why ? `: ${why}` : "."}`,
+        );
+      }
       setIsMoveModalOpen(false);
       setSelectedBills(new Set());
       refetch();
@@ -846,48 +925,38 @@ const BillsList = ({
                   anchor="bottom end"
                   className="mt-1 w-52 z-50 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg dark:shadow-black/40 focus:outline-none py-1"
                 >
-                  {moveFrom !== "vendor" && (
-                    <MenuItem>
-                      {({ focus }) => (
-                        <button
-                          type="button"
-                          onClick={() => setIsMoveModalOpen({ to: "vendor" })}
-                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
-                        >
-                          <Icon icon="heroicons:receipt-refund" className="text-sm text-blue-600" />
-                          Move to Purchase Voucher
-                        </button>
-                      )}
-                    </MenuItem>
-                  )}
-                  {moveFrom !== "expense" && (
-                    <MenuItem>
-                      {({ focus }) => (
-                        <button
-                          type="button"
-                          onClick={() => setIsMoveModalOpen({ to: "expense" })}
-                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
-                        >
-                          <Icon icon="heroicons:book-open" className="text-sm text-blue-600" />
-                          Move to Journal Voucher
-                        </button>
-                      )}
-                    </MenuItem>
-                  )}
-                  {moveFrom !== "payment" && (
-                    <MenuItem>
-                      {({ focus }) => (
-                        <button
-                          type="button"
-                          onClick={() => setIsMoveModalOpen({ to: "payment" })}
-                          className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
-                        >
-                          <Icon icon="heroicons:banknotes" className="text-sm text-blue-600" />
-                          Move to Payment Voucher
-                        </button>
-                      )}
-                    </MenuItem>
-                  )}
+                  {resolvedMoveTargets.map((key) => {
+                    const cost = moveCost(key);
+                    return (
+                      <MenuItem key={key}>
+                        {({ focus }) => (
+                          <button
+                            type="button"
+                            onClick={() => setIsMoveModalOpen({ to: key })}
+                            className={`w-full text-left px-2.5 py-1.5 text-xs font-medium flex items-start gap-2 ${focus ? "bg-slate-50 dark:bg-slate-800" : ""} text-slate-900 dark:text-white`}
+                          >
+                            <Icon
+                              icon={MOVE_ICONS[key] || "heroicons:arrow-right-circle"}
+                              className="text-sm text-blue-600 mt-0.5 shrink-0"
+                            />
+                            <span className="min-w-0">
+                              Move to {labelFor(key)}
+                              {/* Said on the option itself, not only in
+                                  the modal: the cost belongs with the
+                                  choice. */}
+                              {(cost.dropsLines || cost.dropsParty) && (
+                                <span className="block text-[10px] font-normal text-amber-700 dark:text-amber-500">
+                                  {cost.dropsLines
+                                    ? "line items will not carry over"
+                                    : "party mapping will not carry over"}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        )}
+                      </MenuItem>
+                    );
+                  })}
                   {bulkTrashableIds.length > 0 && (
                     <>
                       <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
@@ -1357,15 +1426,10 @@ const BillsList = ({
       {/* Move modal — target label reflects the destination chosen from
           the dropdown ({to: 'vendor'|'expense'|'payment'}). */}
       {(() => {
-        const TARGET_LABELS = {
-          vendor: "Purchase Voucher",
-          expense: "Journal Voucher",
-          payment: "Payment Voucher",
-        };
         const chosenTo =
           (isMoveModalOpen && typeof isMoveModalOpen === "object" && isMoveModalOpen.to) ||
           moveTo;
-        const chosenLabel = TARGET_LABELS[chosenTo] || copy.moveTargetLabel;
+        const chosenLabel = labelFor(chosenTo);
         return (
       <Modal
         activeModal={!!isMoveModalOpen}
@@ -1383,6 +1447,40 @@ const BillsList = ({
               <span className="font-semibold">{chosenLabel}</span>.
             </div>
           </div>
+          {/* What the move cannot carry, before it happens. The move
+              deletes the source, so this is the last point at which the
+              operator can decide it is not what they wanted. */}
+          {(() => {
+            const cost = moveCost(chosenTo);
+            if (!cost.dropsLines && !cost.dropsParty) return null;
+            return (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60">
+                <Icon
+                  icon="heroicons:exclamation-triangle"
+                  className="text-amber-600 dark:text-amber-500 text-base shrink-0 mt-0.5"
+                />
+                <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {cost.dropsLines && (
+                    <div>
+                      A {chosenLabel} holds no line items, so the bill's
+                      lines and their ledger mapping will not be carried
+                      over.
+                    </div>
+                  )}
+                  {cost.dropsParty && (
+                    <div className={cost.dropsLines ? "mt-1" : undefined}>
+                      This moves the bill to the other side of the ledger,
+                      so the vendor or customer selection will be cleared
+                      and needs choosing again.
+                    </div>
+                  )}
+                  <div className="mt-1 font-semibold">
+                    The analysis and every other mapping are kept.
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"

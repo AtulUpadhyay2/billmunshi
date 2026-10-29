@@ -36,8 +36,14 @@ const TallyPaymentVoucher = () => {
       useSyncBill={useSyncTallyPaymentVoucher}
       useMoveBills={useMoveTallyPaymentVouchers}
       useDownloadReport={useDownloadTallyPaymentReport}
-      moveFrom="expense"
-      moveTo="vendor"
+      // Move is off here, not configured. This page was sending
+      // moveFrom="expense" while listing payment vouchers, so the
+      // backend looked the selected ids up in the expense table and
+      // found nothing — the menu could only ever fail. Tally's move
+      // endpoint accepts vendor and expense only, so there is no
+      // correct value to send for a payment voucher. Turn this back on
+      // once that endpoint knows about payment vouchers.
+      allowMove={false}
     />
   );
 };

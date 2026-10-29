@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import BillChecks from "@/components/bills/BillChecks";
-import CurrencyBox from "@/components/bills/CurrencyBox";
+import TaxBaseToggle from "@/components/bills/TaxBaseToggle";
+import CurrencyPanel from "@/components/bills/CurrencyPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
@@ -37,6 +38,13 @@ import { isValidGstin } from "@/utils/gstin";
 import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
+import {
+  resolveTaxableBase,
+  lineTaxableValue,
+  grossOfLines,
+  taxOnLine,
+  netOfTax,
+} from "@/utils/taxBase";
 import { toast } from "sonner";
 import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 import {
@@ -120,18 +128,36 @@ const reconcileLine = (rawPrice, rawQty, rawAmount) => {
  * up showing ₹8221.45 of IGST against ₹48500.00 of taxable at 18% (18% of
  * 48500 is ₹8730.00). Hoisted so the hydration pass can apply the same rule.
  */
-const computeLineTax = (amount, rateText, isInterState) => {
-  const match = rateText ? String(rateText).match(/([\d.]+)/) : null;
-  const rate = match ? Number(match[1]) : 0;
-  const base = parseFloat(amount) || 0;
-  const total = (base * rate) / 100;
+const computeLineTax = (
+  amount,
+  rateText,
+  isInterState,
+  taxableValue,
+  inclusive,
+) => {
+  const rate = rateText ? Number(String(rateText).match(/([\d.]+)/)?.[1] || 0) : 0;
+  const amt = parseFloat(amount) || 0;
+  // What this line is actually taxed on. Equal to its own amount on an
+  // ordinary bill; lower or higher once a pre-tax discount or taxable
+  // freight has moved the base, and lower again when the amount
+  // already holds its GST (see utils/taxBase.js).
+  const base =
+    taxableValue === undefined || taxableValue === null
+      ? amt
+      : parseFloat(taxableValue) || 0;
+  const total = taxOnLine(base, rateText, inclusive);
 
-  if (!rate || !base) return { cgst: "0.00", sgst: "0.00", igst: "0.00" };
+  if (!rate || !amt || !base)
+    return { cgst: "0.00", sgst: "0.00", igst: "0.00" };
   if (isInterState)
     return { cgst: "0.00", sgst: "0.00", igst: total.toFixed(2) };
+  // Round one half and give the other the remainder. Rounding both
+  // independently turns a 18.91 total into 9.46 + 9.46 = 18.92 — a
+  // paisa the bill never charged, on every line with odd paise.
+  const cgst = Math.round((total / 2) * 100) / 100;
   return {
-    cgst: (total / 2).toFixed(2),
-    sgst: (total / 2).toFixed(2),
+    cgst: cgst.toFixed(2),
+    sgst: (total - cgst).toFixed(2),
     igst: "0.00",
   };
 };
@@ -218,6 +244,7 @@ const TallyVendorBillDetail = () => {
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
 
@@ -249,6 +276,13 @@ const TallyVendorBillDetail = () => {
     dateIssued: "",
     dueDate: "",
     selectedVendor: null,
+    // Printed on the invoice and extracted since e-invoicing went in,
+    // but never returned to this screen — so a misread place of supply
+    // could not be corrected by the one person looking at the invoice.
+    placeOfSupply: "",
+    irn: "",
+    ackNo: "",
+    reverseCharge: false,
     is_tax: "TDS", // Default to TDS
   });
 
@@ -282,6 +316,13 @@ const TallyVendorBillDetail = () => {
     freightLedgerId: null,
     round_off: "",
     roundOffLedgerId: null,
+    // Whether GST is charged before or after these two come off/on.
+    // They change the value GST is charged on, so they are part of the
+    // bill the operator has to agree with, not a hidden setting.
+    discountBeforeTax: false,
+    freightTaxable: false,
+    // MRP-priced lines hold their own GST.
+    linesIncludeGst: false,
   });
 
   // State for notes
@@ -481,6 +522,34 @@ const TallyVendorBillDetail = () => {
     }));
   }, [lineTaxTotals.cgst, lineTaxTotals.sgst, lineTaxTotals.igst, products]);
 
+  // The taxable base currently in force, and each line's share of it.
+  //
+  // Both toggles on the Adjustments rows feed this: until they did, the
+  // operator could flip "off sub-total" / "off total" and watch nothing
+  // move, because every figure on the screen came from amount x rate.
+  // The flag was stored and only a re-analysis ever acted on it.
+  const taxBasis = useMemo(() => {
+    const gross = grossOfLines(products);
+    return {
+      gross,
+      inclusive: Boolean(billSummaryForm.linesIncludeGst),
+      base: resolveTaxableBase({
+        gross,
+        discount: billSummaryForm.discount,
+        freight: billSummaryForm.freight,
+        discountBeforeTax: billSummaryForm.discountBeforeTax,
+        freightTaxable: billSummaryForm.freightTaxable,
+      }),
+    };
+  }, [
+    products,
+    billSummaryForm.discount,
+    billSummaryForm.freight,
+    billSummaryForm.discountBeforeTax,
+    billSummaryForm.freightTaxable,
+    billSummaryForm.linesIncludeGst,
+  ]);
+
   // Group line items by GST rate for the read-only Tax-by-rate rollup table.
   // The bucket also carries the currently-effective CGST/SGST/IGST ledger so
   // the inline dropdowns can show a real "selected" value. When the products
@@ -517,7 +586,11 @@ const TallyVendorBillDetail = () => {
           _igst_cleared: true,
         };
       }
-      buckets[rateKey].taxable += parseFloat(p.amount) || 0;
+      buckets[rateKey].taxable += netOfTax(
+        lineTaxableValue(p.amount, taxBasis.gross, taxBasis.base),
+        p.gst,
+        taxBasis.inclusive,
+      );
       buckets[rateKey].cgst += parseFloat(p.cgst) || 0;
       buckets[rateKey].sgst += parseFloat(p.sgst) || 0;
       buckets[rateKey].igst += parseFloat(p.igst) || 0;
@@ -549,7 +622,7 @@ const TallyVendorBillDetail = () => {
         return b;
       })
       .sort((a, b) => Number(a.rate) - Number(b.rate));
-  }, [products, rateLedgerMap]);
+  }, [products, rateLedgerMap, taxBasis]);
 
   // Update mutation
   const { mutateAsync: updateVendorBill } = useUpdateTallyVendorBill();
@@ -673,6 +746,47 @@ const TallyVendorBillDetail = () => {
     if ((products || []).length > 0) interStateRef.current = seeded;
     return seeded;
   }, [tallyAnalysedData, products]);
+
+  // Whether a taxable base couples the lines together. Only then does
+  // one line's amount change what another is taxed on.
+  const baseCouplesLines = () =>
+    Boolean(
+      billSummaryForm.discountBeforeTax ||
+        billSummaryForm.freightTaxable ||
+        billSummaryForm.linesIncludeGst,
+    );
+
+  // Re-tax every line against the base. Whole-list, not per-line: the
+  // base is shared out by each line's share of the gross, so one line's
+  // amount changing re-prices all of them.
+  //
+  // *overrides* lets a handler pass the value it is about to set, since
+  // the state it reads has not updated yet at that point.
+  const applyLineTaxes = (list, overrides = {}) => {
+    const gross = grossOfLines(list);
+    const base = resolveTaxableBase({
+      gross,
+      discount: overrides.discount ?? billSummaryForm.discount,
+      freight: overrides.freight ?? billSummaryForm.freight,
+      discountBeforeTax:
+        overrides.discountBeforeTax ?? billSummaryForm.discountBeforeTax,
+      freightTaxable:
+        overrides.freightTaxable ?? billSummaryForm.freightTaxable,
+    });
+    const inclusive = Boolean(
+      overrides.linesIncludeGst ?? billSummaryForm.linesIncludeGst,
+    );
+    return (list || []).map((p) => ({
+      ...p,
+      ...computeLineTax(
+        p.amount,
+        p.gst,
+        isInterStateSupply,
+        lineTaxableValue(p.amount, gross, base),
+        inclusive,
+      ),
+    }));
+  };
 
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
@@ -1090,6 +1204,10 @@ const TallyVendorBillDetail = () => {
                 ? new Date(data.dateIssued).toISOString().split("T")[0]
                 : "")),
         selectedVendor: null, // Will be set in the next useEffect
+        placeOfSupply: tally?.place_of_supply || "",
+        irn: tally?.irn || "",
+        ackNo: tally?.ack_no || "",
+        reverseCharge: Boolean(tally?.is_reverse_charge),
         is_tax: "TDS", // Default to TDS
       });
 
@@ -1129,6 +1247,9 @@ const TallyVendorBillDetail = () => {
         freightLedgerId: tally?.freight_taxes || null,
         round_off: roundOffAmount.toString(),
         roundOffLedgerId: tally?.round_off_taxes || null,
+        discountBeforeTax: Boolean(tally?.discount_before_tax),
+        freightTaxable: Boolean(tally?.freight_taxable),
+        linesIncludeGst: Boolean(tally?.lines_include_gst),
       });
 
       // Seed notes from backend so re-opening a bill shows what the
@@ -1180,6 +1301,12 @@ const TallyVendorBillDetail = () => {
               item.amount,
             ),
             gst: item.product_gst || "",
+            // Read off the invoice line. Carried through state and
+            // the verify payload so a re-save does not blank them,
+            // and the voucher can fall back to them when the stock
+            // item master has no HSN of its own.
+            hsn: item.hsn || "",
+            unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
             igst_ledger: item.igst_ledger || null,
@@ -1840,22 +1967,16 @@ const TallyVendorBillDetail = () => {
     if (lineTaxNormalisedRef.current || isVerified) return;
     if (products.length === 0) return;
 
-    const interState = isInterStateSupply;
-
-    let changed = false;
-    const normalised = products.map((product) => {
-      const tax = computeLineTax(product.amount, product.gst, interState);
-      const differs = ["cgst", "sgst", "igst"].some(
+    const retaxed = applyLineTaxes(products);
+    const changed = retaxed.some((p, i) =>
+      ["cgst", "sgst", "igst"].some(
         (k) =>
-          Math.abs((parseFloat(product[k]) || 0) - parseFloat(tax[k])) > 0.01,
-      );
-      if (!differs) return product;
-      changed = true;
-      return { ...product, ...tax };
-    });
+          Math.abs((parseFloat(products[i][k]) || 0) - parseFloat(p[k])) > 0.01,
+      ),
+    );
 
     lineTaxNormalisedRef.current = true;
-    if (changed) setProducts(normalised);
+    if (changed) setProducts(retaxed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, isVerified, tallyAnalysedData, isInterStateSupply]);
 
@@ -2130,6 +2251,14 @@ const TallyVendorBillDetail = () => {
       ...prev,
       [name]: value,
     }));
+    // A discount that comes off before GST, or freight that is taxable,
+    // is part of the base — so editing its amount re-prices every line.
+    if (
+      (name === "discount" && billSummaryForm.discountBeforeTax) ||
+      (name === "freight" && billSummaryForm.freightTaxable)
+    ) {
+      setProducts((prev) => applyLineTaxes(prev, { [name]: value }));
+    }
   };
 
   // Handle tax ledger selections
@@ -2353,6 +2482,12 @@ const TallyVendorBillDetail = () => {
                 item.amount,
               ),
               gst: item.product_gst || "",
+              // Read off the invoice line. Carried through state and
+              // the verify payload so a re-save does not blank them,
+              // and the voucher can fall back to them when the stock
+              // item master has no HSN of its own.
+              hsn: item.hsn || "",
+              unit: item.unit || "",
               cgst_ledger: item.cgst_ledger || null,
               sgst_ledger: item.sgst_ledger || null,
               igst_ledger: item.igst_ledger || null,
@@ -2362,6 +2497,54 @@ const TallyVendorBillDetail = () => {
             };
           });
         });
+      } else if (
+        !tally?.consolidated_product &&
+        products.length > 0
+      ) {
+        // Nothing stored to consolidate into — roll the rows on screen
+        // up instead of leaving them alone. The toggle used to flip the
+        // label and the badge and change nothing else, and verify then
+        // posted every individual row as a "consolidated" one, so the
+        // bill came back with as many consolidated rows as it had
+        // lines. One row is what consolidating means.
+        const rates = new Set(products.map((r) => r.gst).filter(Boolean));
+        const uniform = rates.size === 1;
+        setProducts((prev) => {
+          const sum = (key) =>
+            prev.reduce((total, row) => total + (parseFloat(row[key]) || 0), 0);
+          const amount = sum("amount");
+          const first = prev[0] || {};
+          return [
+            {
+              id: `consolidated-${Date.now()}`,
+              item_id: null,
+              item_name: null,
+              item_details: `Consolidated (${prev.length} items)`,
+              // Carry the ledger and rate forward only when every line
+              // agreed on them. A mixed-rate bill has no single answer
+              // and guessing one would post the wrong tax.
+              tax_ledger: uniform ? first.tax_ledger || "" : "",
+              tax_ledger_id: uniform ? first.tax_ledger_id || null : null,
+              price: amount.toFixed(2),
+              quantity: "1",
+              amount: amount.toFixed(2),
+              hsn: "",
+              unit: "",
+              gst: uniform ? first.gst || "" : "",
+              cgst_ledger: uniform ? first.cgst_ledger || null : null,
+              sgst_ledger: uniform ? first.sgst_ledger || null : null,
+              igst_ledger: uniform ? first.igst_ledger || null : null,
+              igst: sum("igst").toFixed(2),
+              cgst: sum("cgst").toFixed(2),
+              sgst: sum("sgst").toFixed(2),
+            },
+          ];
+        });
+        if (!uniform) {
+          toast.warning(
+            "Lines carry more than one GST rate — pick a rate and ledger for the consolidated row.",
+          );
+        }
       } else if (tally?.consolidated_product) {
         setProducts([
           {
@@ -2399,6 +2582,12 @@ const TallyVendorBillDetail = () => {
             tax_ledger_id: item.tax_ledger_id || null,
             ...reconcileLine(item.price, item.quantity, item.amount),
             gst: item.product_gst || "",
+            // Read off the invoice line. Carried through state and
+            // the verify payload so a re-save does not blank them,
+            // and the voucher can fall back to them when the stock
+            // item master has no HSN of its own.
+            hsn: item.hsn || "",
+            unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
             igst_ledger: item.igst_ledger || null,
@@ -2468,6 +2657,17 @@ const TallyVendorBillDetail = () => {
         field === "amount" ||
         field === "gst"
       ) {
+        // With a taxable base in force the lines are coupled — each
+        // one's share of the gross decides its taxable value — so one
+        // amount changing re-prices all of them.
+        //
+        // Without one they are independent, and re-taxing the whole
+        // list would quietly undo a per-bucket override made in the
+        // Tax-by-rate table: the operator nudges the 18% CGST to match
+        // the invoice, edits an unrelated line, and their correction is
+        // gone. So the ordinary bill keeps the one-line rule.
+        if (baseCouplesLines()) return applyLineTaxes(updated);
+
         const tax = computeLineTax(
           updated[index].amount,
           updated[index].gst,
@@ -2564,6 +2764,8 @@ const TallyVendorBillDetail = () => {
         // Correction 39: new manual rows start at qty 1.
         quantity: "1",
         amount: "",
+        hsn: "",
+        unit: "",
         gst: "",
         igst: 0.0,
         cgst: 0.0,
@@ -2574,7 +2776,14 @@ const TallyVendorBillDetail = () => {
 
   const removeProduct = (index) => {
     if (products.length > 1) {
-      setProducts((prev) => prev.filter((_, i) => i !== index));
+      // Re-spread after the list changes, for the same reason the edit
+      // handler does: the base is shared out by each line's share of
+      // the gross. With no base in force the remaining lines are
+      // untouched, so any per-bucket override on them survives.
+      setProducts((prev) => {
+        const left = prev.filter((_, i) => i !== index);
+        return baseCouplesLines() ? applyLineTaxes(left) : left;
+      });
     }
   };
 
@@ -2690,6 +2899,18 @@ const TallyVendorBillDetail = () => {
             freight:   _ledgerBlock(billSummaryForm.freight, freightLedger),
             round_off: _ledgerBlock(billSummaryForm.round_off, roundOffLedger),
           },
+          // Sent at the top of analyzed_data, not inside `taxes`: these
+          // are not amounts with a ledger, they decide what GST is
+          // charged on. The backend reads them from here.
+          discount_before_tax: Boolean(billSummaryForm.discountBeforeTax),
+          freight_taxable: Boolean(billSummaryForm.freightTaxable),
+          lines_include_gst: Boolean(billSummaryForm.linesIncludeGst),
+          // Decides IGST vs CGST+SGST, so it is the operator's to
+          // correct rather than something extraction decides alone.
+          place_of_supply: vendorForm.placeOfSupply || "",
+          irn: vendorForm.irn || "",
+          ack_no: vendorForm.ackNo || "",
+          is_reverse_charge: Boolean(vendorForm.reverseCharge),
 
           // Send products to the appropriate key based on consolidate status
           ...(isConsolidated
@@ -2707,6 +2928,8 @@ const TallyVendorBillDetail = () => {
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
+                    hsn: product.hsn || "",
+                    unit: product.unit || "",
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
@@ -2735,6 +2958,8 @@ const TallyVendorBillDetail = () => {
                     quantity: parseFloat(product.quantity) || 0,
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
+                    hsn: product.hsn || "",
+                    unit: product.unit || "",
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
                     sgst: parseFloat(product.sgst) || 0.0,
@@ -3243,6 +3468,23 @@ const TallyVendorBillDetail = () => {
           >
             <Icon icon="heroicons:clock" className="text-sm" />
           </button>
+          {/* Currency sits beside Activity rather than inline above the
+              checks: almost every bill is in rupees, and a full-width
+              strip for a setting nobody changes is a strip wasted. The
+              code on the button keeps a foreign-currency bill visible. */}
+          <button
+            type="button"
+            onClick={() => setIsCurrencyOpen(true)}
+            aria-label="Currency"
+            className="inline-flex items-center justify-center gap-1 h-8 px-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+            title="Currency and the rate this voucher posts at"
+          >
+            <Icon icon="heroicons:banknotes" className="text-sm" />
+            {tallyAnalysedData?.currency &&
+              tallyAnalysedData.currency !== "INR" && (
+                <span className="font-mono">{tallyAnalysedData.currency}</span>
+              )}
+          </button>
           <span className="hidden md:inline w-px h-6 bg-slate-200 dark:bg-slate-700" />
           <button
             type="button"
@@ -3333,24 +3575,13 @@ const TallyVendorBillDetail = () => {
             blocking Verify, then what simply does not add up. Four
             separate banners used to stack here, two of them reporting
             the same arithmetic. */}
-        {/* Currency, and the rate this voucher will post at. Above the
-            checks because it rescales every figure below it: choosing it
-            after reading the totals means reading them all again. */}
-        <CurrencyBox
-          organizationId={selectedOrganization?.id}
-          billId={billId}
-          currency={tallyAnalysedData?.currency}
-          exchangeRate={tallyAnalysedData?.exchange_rate}
-          exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
-          exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
-          exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
-          disabled={isVerified}
-          onChanged={() => refetch()}
-        />
 
         <BillChecks
           blockers={getValidationErrorMessages()}
           isVerified={isVerified}
+          // The server's own arithmetic checks, stored on the bill at
+          // analysis time and until now never rendered anywhere.
+          checks={analysedData?._extraction_checks}
         />
 
 
@@ -3916,6 +4147,93 @@ const TallyVendorBillDetail = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Place of supply, reverse charge and the e-invoice
+                      references. All four are read off the invoice and
+                      stored; none of them reached this screen, so the
+                      field that decides IGST vs CGST+SGST was settled
+                      by extraction alone with nobody able to see it. */}
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Place of Supply
+                      </label>
+                      <input
+                        type="text"
+                        value={vendorForm.placeOfSupply}
+                        onChange={(e) =>
+                          handleFormChange("placeOfSupply", e.target.value)
+                        }
+                        placeholder="As printed on the invoice"
+                        maxLength={120}
+                        disabled={isVerified}
+                        className={`${CONTROL} ${
+                          isVerified
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                      />
+                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        Decides IGST vs CGST+SGST.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        IRN
+                      </label>
+                      <input
+                        type="text"
+                        value={vendorForm.irn}
+                        onChange={(e) => handleFormChange("irn", e.target.value)}
+                        placeholder="e-invoice reference number"
+                        maxLength={64}
+                        disabled={isVerified}
+                        className={`${CONTROL} font-mono text-[11px] ${
+                          isVerified
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Ack No.
+                      </label>
+                      <input
+                        type="text"
+                        value={vendorForm.ackNo}
+                        onChange={(e) =>
+                          handleFormChange("ackNo", e.target.value)
+                        }
+                        placeholder="e-invoice acknowledgement"
+                        maxLength={32}
+                        disabled={isVerified}
+                        className={`${CONTROL} font-mono text-[11px] ${
+                          isVerified
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Reverse Charge
+                      </label>
+                      <div className="pt-1">
+                        <TaxBaseToggle
+                          value={vendorForm.reverseCharge}
+                          disabled={isVerified}
+                          beforeLabel="RCM"
+                          afterLabel="Normal"
+                          beforeTitle="Tax on this bill is payable by us, not the supplier"
+                          afterTitle="The supplier charges the GST in the usual way"
+                          onChange={(v) =>
+                            handleFormChange("reverseCharge", v)
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -3996,6 +4314,15 @@ const TallyVendorBillDetail = () => {
                             <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
                               Item Details
                             </th>
+                            {/* HSN was read off every line and stored,
+                                but never shown or sent back — so the
+                                voucher could only take it from the stock
+                                item master, blank whenever the item was
+                                unmapped. GSTR-1's HSN summary is built
+                                from this field. */}
+                            <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
+                              HSN / SAC
+                            </th>
                             <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[150px]">
                               Purchase Ledger{" "}
                               <span className="text-red-500">*</span>
@@ -4036,7 +4363,9 @@ const TallyVendorBillDetail = () => {
                                       product.item_name || product.item_details || ""
                                     }
                                     itemDefaultGstRate={product.gst || ""}
-                                    itemDefaultHsnCode={product.hsn_code || ""}
+                                    itemDefaultHsnCode={
+                                      product.hsn_code || product.hsn || ""
+                                    }
                                     className={`relative ${
                                       !product.item_id && !isVerified
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
@@ -4096,6 +4425,29 @@ const TallyVendorBillDetail = () => {
                                       : ""
                                   }`}
                                   rows={2}
+                                />
+                              </td>
+
+                              {/* HSN / SAC */}
+                              <td className="px-3 py-2">
+                                <input
+                                  type="text"
+                                  value={product.hsn || ""}
+                                  onChange={(e) =>
+                                    handleProductChange(
+                                      index,
+                                      "hsn",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="HSN"
+                                  maxLength={16}
+                                  disabled={isVerified}
+                                  className={`${CONTROL} font-mono ${
+                                    isVerified
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                                      : ""
+                                  }`}
                                 />
                               </td>
 
@@ -4209,6 +4561,32 @@ const TallyVendorBillDetail = () => {
                                   min="0"
                                   step="0.01"
                                 />
+                                {/* What this line is actually taxed on,
+                                    shown only when it differs from the
+                                    amount — a pre-tax discount, taxable
+                                    freight or MRP pricing all move it,
+                                    and the rollup was the only place
+                                    that said so. */}
+                                {(() => {
+                                  const taxable = netOfTax(
+                                    lineTaxableValue(
+                                      product.amount,
+                                      taxBasis.gross,
+                                      taxBasis.base,
+                                    ),
+                                    product.gst,
+                                    taxBasis.inclusive,
+                                  );
+                                  const amount = parseFloat(product.amount) || 0;
+                                  if (!amount || Math.abs(taxable - amount) < 0.01)
+                                    return null;
+                                  return (
+                                    <div className="mt-1 text-right text-[10px] text-slate-500 dark:text-slate-400">
+                                      Taxable {cur}
+                                      {taxable.toFixed(2)}
+                                    </div>
+                                  );
+                                })()}
                               </td>
 
                               {/* GST % */}
@@ -4321,6 +4699,33 @@ const TallyVendorBillDetail = () => {
                               minimumFractionDigits: 2,
                             })}
                         </span>
+                      </div>
+                      {/* Whether that sub-total already holds its GST.
+                          Sits here, not in Adjustments: it is a reading
+                          of the line amounts themselves. An MRP-priced
+                          retail or pharmacy bill is the common case, and
+                          without it those lines get taxed twice. */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          Line amounts
+                        </span>
+                        <TaxBaseToggle
+                          value={billSummaryForm.linesIncludeGst}
+                          disabled={isVerified}
+                          beforeLabel="Include GST"
+                          afterLabel="Before GST"
+                          beforeTitle="The printed line amounts already contain their GST (MRP pricing)"
+                          afterTitle="GST is added on top of the printed line amounts"
+                          onChange={(v) => {
+                            setBillSummaryForm((prev) => ({
+                              ...prev,
+                              linesIncludeGst: v,
+                            }));
+                            setProducts((prev) =>
+                              applyLineTaxes(prev, { linesIncludeGst: v }),
+                            );
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -4712,8 +5117,8 @@ const TallyVendorBillDetail = () => {
                   // editable here.
                   const rows = [
                     { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
-                    { key: "discount", label: "Discount", required: parseFloat(billSummaryForm.discount || 0) !== 0, missing: parseFloat(billSummaryForm.discount || 0) !== 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
-                    { key: "freight", label: "Freight / Delivery", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
+                    { key: "discount", label: "Discount", taxBase: "discount", required: parseFloat(billSummaryForm.discount || 0) !== 0, missing: parseFloat(billSummaryForm.discount || 0) !== 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
+                    { key: "freight", label: "Freight / Delivery", taxBase: "freight", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
                     { key: "round_off", label: "Round off", required: parseFloat(billSummaryForm.round_off || 0) !== 0, missing: parseFloat(billSummaryForm.round_off || 0) !== 0 && !billSummaryForm.roundOffLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
                   ];
 
@@ -4736,7 +5141,8 @@ const TallyVendorBillDetail = () => {
                             key={r.key}
                             className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 items-center"
                           >
-                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex flex-col items-start gap-0.5">
+                              <span className="flex items-center gap-1">
                               {r.label}
                               {r.required && <span className="text-rose-500">*</span>}
                               {r.key === "round_off" &&
@@ -4753,6 +5159,49 @@ const TallyVendorBillDetail = () => {
                                     Auto-fill
                                   </button>
                                 )}
+                              </span>
+                              {/* Only on the two rows where it changes
+                                  the GST base. Shown even at a zero
+                                  amount: an operator correcting the
+                                  amount needs to set the basis too. */}
+                              {r.taxBase === "discount" && (
+                                <TaxBaseToggle
+                                  value={billSummaryForm.discountBeforeTax}
+                                  disabled={isVerified}
+                                  beforeTitle="Discount comes off the sub-total, then GST is charged on what is left"
+                                  afterTitle="GST is charged on the full sub-total, then the discount comes off the total"
+                                  onChange={(v) => {
+                                    setBillSummaryForm((prev) => ({
+                                      ...prev,
+                                      discountBeforeTax: v,
+                                    }));
+                                    setProducts((prev) =>
+                                      applyLineTaxes(prev, {
+                                        discountBeforeTax: v,
+                                      }),
+                                    );
+                                  }}
+                                />
+                              )}
+                              {r.taxBase === "freight" && (
+                                <TaxBaseToggle
+                                  value={billSummaryForm.freightTaxable}
+                                  disabled={isVerified}
+                                  beforeTitle="Freight is part of the value GST is charged on"
+                                  afterTitle="Freight is added to the total after GST"
+                                  onChange={(v) => {
+                                    setBillSummaryForm((prev) => ({
+                                      ...prev,
+                                      freightTaxable: v,
+                                    }));
+                                    setProducts((prev) =>
+                                      applyLineTaxes(prev, {
+                                        freightTaxable: v,
+                                      }),
+                                    );
+                                  }}
+                                />
+                              )}
                             </label>
                             <input
                               type="number"
@@ -4916,6 +5365,21 @@ const TallyVendorBillDetail = () => {
           </div>
         </div>
       </div>
+
+
+      <CurrencyPanel
+        open={isCurrencyOpen}
+        onClose={() => setIsCurrencyOpen(false)}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        currency={tallyAnalysedData?.currency}
+        exchangeRate={tallyAnalysedData?.exchange_rate}
+        exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
+        exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
+        exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
+        disabled={isVerified}
+        onChanged={() => refetch()}
+      />
 
       <ActivityPanel
         open={isActivityOpen}

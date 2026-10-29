@@ -5,6 +5,7 @@ import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
+import CreateZohoContactDialog from "@/components/zoho/CreateZohoContactDialog";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import useSidebar from "@/hooks/useSidebar";
@@ -114,6 +115,11 @@ const ZohoSalesBillDetail = () => {
   const { mutateAsync: syncSalesBill } = useSyncZohoSalesBill();
 
   // Fetch customers list for dropdown
+  // Creating the customer in Zoho from here. The screen already told
+  // the operator to "add new customer" without giving them any way to
+  // do it.
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+
   const { data: customersData, isLoading: customersLoading } =
     useGetAllCustomers(selectedOrganization?.id);
 
@@ -1183,14 +1189,29 @@ const ZohoSalesBillDetail = () => {
                           />
                         </div>
 
-                        {/* No customers notification */}
-                        {customersData?.results?.length === 0 &&
-                          !customersLoading && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                              No customers found. Please sync customers from
-                              Zoho first.
-                            </div>
-                          )}
+                        {/* Offered whenever no customer is picked, not
+                            only when the list is empty: a workspace with
+                            200 customers and not this one is the common
+                            case, and "sync customers first" is no help
+                            when the customer is not in Zoho at all. */}
+                        {!isSynced && !customerForm.selectedCustomer && (
+                          <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                              {customersData?.results?.length === 0 &&
+                              !customersLoading
+                                ? "No customers synced from Zoho yet."
+                                : "Not in the list?"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsCreateCustomerOpen(true)}
+                              className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
+                            >
+                              <Icon icon="heroicons:plus-circle" className="text-xs" />
+                              Create customer in Zoho
+                            </button>
+                          </div>
+                        )}
 
                         {/* Customer Not Found Warning */}
                         {analysedData?.to?.name &&
@@ -2060,6 +2081,29 @@ const ZohoSalesBillDetail = () => {
           </div>
         </div>
       )}
+
+      <CreateZohoContactDialog
+        open={isCreateCustomerOpen}
+        onClose={() => setIsCreateCustomerOpen(false)}
+        organizationId={selectedOrganization?.id}
+        contactType="customer"
+        // On a sales invoice the other party is the recipient, so "to"
+        // is the customer. Shown before anything is created: the values
+        // came from OCR, and a bad read here becomes a permanent master.
+        initialName={customerForm.customerName || analysedData?.to?.name || ""}
+        initialGstNo={customerForm.customerGST || analysedData?.to?.gstin || ""}
+        initialPlaceOfSupply={customerForm.placeOfSupply || ""}
+        billModule="sales"
+        billId={billId}
+        onCreated={(contact) =>
+          handleCustomerSelect({
+            id: contact.id,
+            companyName: contact.company_name,
+            gstNo: contact.gst_no,
+            organization_id: selectedOrganization?.id,
+          })
+        }
+      />
     </div>
   );
 };

@@ -59,12 +59,14 @@ const groupActions = (actions = [], groupOrder = []) => {
 /** Tick / cross cell for the comparison matrix. */
 const AllowCell = ({ allowed, label }) => (
   <td className="px-3 py-1.5 text-center">
+    {/* ``mx-auto`` because Tailwind's preflight makes every svg a
+        block, so the cell's ``text-center`` never moved it. */}
     <Icon
       icon={allowed ? "heroicons:check-circle-solid" : "heroicons:minus-small"}
       className={
         allowed
-          ? "text-sm text-emerald-600 dark:text-emerald-500"
-          : "text-sm text-slate-300 dark:text-slate-600"
+          ? "mx-auto text-sm text-emerald-600 dark:text-emerald-500"
+          : "mx-auto text-sm text-slate-300 dark:text-slate-600"
       }
       aria-hidden="true"
     />

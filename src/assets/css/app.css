@@ -5439,3 +5439,16 @@ html[dir="rtl"] .recharts-yAxis .recharts-text {
     @apply border-l-2 border-gray-500 pl-5 text-xl  italic;
   }
 }
+
+/* Route transition. Reuses the fade-in keyframe above; the element is
+   remounted on every path change, which is what replays it. Honours a
+   reduced-motion preference, which the library this replaced did not. */
+.route-fade {
+  animation: fade-in 0.15s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-fade {
+    animation: none;
+  }
+}
