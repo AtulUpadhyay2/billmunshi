@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import { currencySymbol } from "@/utils/currency";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -19,7 +30,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { CONTROL, CONTROL_NUM, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, CONTROL, CONTROL_NUM, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 // Mirrors ZOHO_PAYMENT_MODE_CHOICES on the backend. Zoho rejects a mode it
 // does not know, so the list is fixed rather than free text.
@@ -38,6 +49,8 @@ const ZohoReceiptVoucherDetail = () => {
   const navigate = useNavigate();
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
+  // Zoho bills carry no currency of their own, so they are rupees.
+  const cur = currencySymbol();
 
   // A receipt is a payment object, not a bill: party, amount, date, mode
   // and the account the money arrived into. There is no product grid.
@@ -67,6 +80,10 @@ const ZohoReceiptVoucherDetail = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, and whether the scan pane is
+  // open. Both are view state only.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
 
   const [verificationStatus, setVerificationStatus] = useState(null); // 'success', 'error', or null
   const [verificationMessage, setVerificationMessage] = useState("");
@@ -107,7 +124,10 @@ const ZohoReceiptVoucherDetail = () => {
     receiptData?.status === "Synced" || receiptData?.status === "Posted";
 
   // Allow editing for verified vouchers (the operator can verify again)
-  const isVerified = isSynced; // Only truly locked after sync
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted, because after that the figures are history.
+  const isLocked = isSynced; // Only truly locked after sync
 
   // Validation — the same three things the sync payload builder refuses on.
   const isPartyRequired = !receiptForm.selectedParty;
@@ -647,10 +667,20 @@ const ZohoReceiptVoucherDetail = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Document pane - sticky on large screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+                  <BillChecks
+                  blockers={getValidationErrorMessages()}
+                  isLocked={isLocked}
+                />
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {receiptData?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -748,17 +778,149 @@ const ZohoReceiptVoucherDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Form column */}
-          <div className="lg:w-2/3">
+        }
+      >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
-              {/* Receipt header */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                {/* What the Verify button is waiting on, and nothing
-                    else — the advisory checks are deliberately not shown. */}
-                {/* Approval. Renders nothing unless the workspace has
-                    require_bill_approval on, so this is invisible by default. */}
+              {/* The voucher opens the way the paper does: the party
+                  on the left, what it comes to on the right. The name
+                  IS the picker. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Received from
+                  </div>
+                  <div className="space-y-2">
+                    <div
+                      className={`${
+                        isPartyRequired && !isLocked
+                          ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                          : ""
+                      }`}
+                    >
+                      <SearchableDropdown
+                        options={
+                          partiesData?.results?.map((party) => ({
+                            value: party.id,
+                            label: party.companyName,
+                            gstNo: party.gstNo,
+                          })) || []
+                        }
+                        value={
+                          typeof receiptForm.selectedParty === "object" &&
+                          receiptForm.selectedParty !== null
+                            ? receiptForm.selectedParty.id
+                            : receiptForm.selectedParty || ""
+                        }
+                        onChange={(value) => {
+                          if (value === null || value === "") {
+                            handlePartySelect(null);
+                          } else {
+                            const party = partiesData?.results?.find(
+                              (p) => p.id === value,
+                            );
+                            if (party) handlePartySelect(party);
+                          }
+                        }}
+                        onClear={() => handlePartySelect(null)}
+                        placeholder="Select a customer..."
+                        searchPlaceholder="Search customers..."
+                        loading={partiesLoading}
+                        loadingMessage="Loading customers..."
+                        disabled={isLocked}
+                        noOptionsMessage="No customers found"
+                        renderOption={(option) => (
+                          <div>
+                            <div className="font-medium">{option.label}</div>
+                            {option.gstNo && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                GST: {option.gstNo}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+
+                    {partiesData?.results?.length === 0 &&
+                      !partiesLoading && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
+                          No customers found. Please sync customers from
+                          Zoho first.
+                        </div>
+                      )}
+
+                    {analysedData?.to?.name &&
+                      !receiptForm.selectedParty && (
+                        <div className="mt-2">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                            <Icon
+                              icon="heroicons:exclamation-triangle"
+                              className="w-3 h-3"
+                            />
+                            Customer not found in the list, please add new
+                            customer
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                    </div>
+
+                    {/* Bank / cash account */}
+                    <div className="relative">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Deposit To Account <span className="text-rose-500">*</span>
+                  </label>
+                  <div
+                    className={`${
+                      isAccountRequired && !isLocked
+                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                        : ""
+                    }`}
+                  >
+                    <SearchableDropdown
+                      options={
+                        chartOfAccountsData?.results?.map((account) => ({
+                          value: account.id,
+                          label: account.accountName,
+                        })) || []
+                      }
+                      value={receiptForm.selectedAccount || ""}
+                      onChange={(value) =>
+                        handleFormChange("selectedAccount", value || null)
+                      }
+                      onClear={() =>
+                        handleFormChange("selectedAccount", null)
+                      }
+                      placeholder="Select bank or cash account..."
+                      searchPlaceholder="Search accounts..."
+                      loading={chartOfAccountsLoading}
+                      loadingMessage="Loading accounts..."
+                      noOptionsMessage="No accounts found"
+                      disabled={isLocked}
+                    />
+                  </div>
+                  {/* Analysis never guesses this: the account is not
+                      printed on the document. */}
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    The account the money arrived into.
+                  </p>
+                    </div>
+
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Receipt total
+                  </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {Number(parseFloat(receiptForm.amount) || 0).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              {/* The fields of the voucher. No heading and no icon: the
+                  grid below says what it holds. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
                 <div className="mb-3">
                   <ApprovalPanel
                     organizationId={selectedOrganization?.id}
@@ -766,232 +928,88 @@ const ZohoReceiptVoucherDetail = () => {
                   />
                 </div>
 
-                <BillChecks
-                  blockers={getValidationErrorMessages()}
-                  isVerified={isVerified}
-                />
+                <FieldGrid>
+                  <FieldCell label="Deposit to account">
+                    <SearchableDropdown
+                      options={
+                        chartOfAccountsData?.results?.map((account) => ({
+                          value: account.id,
+                          label: account.accountName,
+                        })) || []
+                      }
+                      value={receiptForm.selectedAccount || ""}
+                      onChange={(value) =>
+                        handleFormChange("selectedAccount", value || null)
+                      }
+                      onClear={() => handleFormChange("selectedAccount", null)}
+                      placeholder="Select bank or cash account..."
+                      searchPlaceholder="Search accounts..."
+                      loading={chartOfAccountsLoading}
+                      loadingMessage="Loading accounts..."
+                      noOptionsMessage="No accounts found"
+                      disabled={isLocked}
+                    />
+                  </FieldCell>
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Party */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Customer <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="space-y-2">
-                        <div
-                          className={`${
-                            isPartyRequired && !isVerified
-                              ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                              : ""
-                          }`}
-                        >
-                          <SearchableDropdown
-                            options={
-                              partiesData?.results?.map((party) => ({
-                                value: party.id,
-                                label: party.companyName,
-                                gstNo: party.gstNo,
-                              })) || []
-                            }
-                            value={
-                              typeof receiptForm.selectedParty === "object" &&
-                              receiptForm.selectedParty !== null
-                                ? receiptForm.selectedParty.id
-                                : receiptForm.selectedParty || ""
-                            }
-                            onChange={(value) => {
-                              if (value === null || value === "") {
-                                handlePartySelect(null);
-                              } else {
-                                const party = partiesData?.results?.find(
-                                  (p) => p.id === value,
-                                );
-                                if (party) handlePartySelect(party);
-                              }
-                            }}
-                            onClear={() => handlePartySelect(null)}
-                            placeholder="Select a customer..."
-                            searchPlaceholder="Search customers..."
-                            loading={partiesLoading}
-                            loadingMessage="Loading customers..."
-                            disabled={isVerified}
-                            noOptionsMessage="No customers found"
-                            renderOption={(option) => (
-                              <div>
-                                <div className="font-medium">{option.label}</div>
-                                {option.gstNo && (
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    GST: {option.gstNo}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          />
-                        </div>
+                  <FieldCell label="Reference number">
+                    <input
+                      type="text"
+                      value={receiptForm.referenceNumber}
+                      onChange={(e) =>
+                        handleFormChange("referenceNumber", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                        {partiesData?.results?.length === 0 &&
-                          !partiesLoading && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700">
-                              No customers found. Please sync customers from
-                              Zoho first.
-                            </div>
-                          )}
+                  <FieldCell label="Receipt date">
+                    <input
+                      type="date"
+                      value={receiptForm.billDate}
+                      onChange={(e) =>
+                        handleFormChange("billDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                        {analysedData?.to?.name &&
-                          !receiptForm.selectedParty && (
-                            <div className="mt-2">
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                                <Icon
-                                  icon="heroicons:exclamation-triangle"
-                                  className="w-3 h-3"
-                                />
-                                Customer not found in the list, please add new
-                                customer
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                    </div>
+                  <FieldCell label="Payment mode">
+                    <SearchableDropdown
+                      options={PAYMENT_MODES}
+                      value={receiptForm.paymentMode || ""}
+                      onChange={(value) =>
+                        handleFormChange("paymentMode", value || "Cash")
+                      }
+                      onClear={() => handleFormChange("paymentMode", "Cash")}
+                      placeholder="Select payment mode..."
+                      searchPlaceholder="Search modes..."
+                      disabled={isLocked}
+                    />
+                  </FieldCell>
 
-                    {/* Bank / cash account */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Deposit To Account <span className="text-rose-500">*</span>
-                      </label>
-                      <div
-                        className={`${
-                          isAccountRequired && !isVerified
-                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                            : ""
-                        }`}
-                      >
-                        <SearchableDropdown
-                          options={
-                            chartOfAccountsData?.results?.map((account) => ({
-                              value: account.id,
-                              label: account.accountName,
-                            })) || []
-                          }
-                          value={receiptForm.selectedAccount || ""}
-                          onChange={(value) =>
-                            handleFormChange("selectedAccount", value || null)
-                          }
-                          onClear={() =>
-                            handleFormChange("selectedAccount", null)
-                          }
-                          placeholder="Select bank or cash account..."
-                          searchPlaceholder="Search accounts..."
-                          loading={chartOfAccountsLoading}
-                          loadingMessage="Loading accounts..."
-                          noOptionsMessage="No accounts found"
-                          disabled={isVerified}
-                        />
-                      </div>
-                      {/* Analysis never guesses this: the account is not
-                          printed on the document. */}
-                      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        The account the money arrived into.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* Reference number */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Reference Number
-                      </label>
-                      <input
-                        type="text"
-                        name="referenceNumber"
-                        value={receiptForm.referenceNumber}
-                        onChange={(e) =>
-                          handleFormChange("referenceNumber", e.target.value)
-                        }
-                        placeholder="Enter reference number"
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-
-                    {/* Date */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Receipt Date <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="billDate"
-                        value={receiptForm.billDate}
-                        onChange={(e) =>
-                          handleDateChange("billDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.billDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                        disabled={isVerified}
-                      />
-                      {dateErrors.billDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <Icon
-                            icon="heroicons:exclamation-circle"
-                            className="w-3.5 h-3.5"
-                          />
-                          {dateErrors.billDate}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Payment mode */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Payment Mode
-                      </label>
-                      <SearchableDropdown
-                        options={PAYMENT_MODES}
-                        value={receiptForm.paymentMode || ""}
-                        onChange={(value) =>
-                          handleFormChange("paymentMode", value || "Cash")
-                        }
-                        onClear={() => handleFormChange("paymentMode", "Cash")}
-                        placeholder="Select payment mode..."
-                        searchPlaceholder="Search modes..."
-                        disabled={isVerified}
-                      />
-                    </div>
-
-                    {/* Party GST — read-only context from the master */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                      </label>
-                      <input
-                        type="text"
-                        name="partyGST"
-                        value={receiptForm.partyGST}
-                        onChange={(e) =>
-                          handleFormChange("partyGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-                  </div>
-                </div>
+                  <FieldCell label="GST number">
+                    <input
+                      type="text"
+                      value={receiptForm.partyGST}
+                      onChange={(e) =>
+                        handleFormChange("partyGST", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={`${FLAT_FIELD} font-mono`}
+                    />
+                  </FieldCell>
+                </FieldGrid>
               </div>
 
               {/* Amount section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:banknotes" className="text-sm" />
-                  </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Amount Received
                   </h3>
@@ -1015,7 +1033,7 @@ const ZohoReceiptVoucherDetail = () => {
                             }
                             placeholder="0.00"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1034,7 +1052,7 @@ const ZohoReceiptVoucherDetail = () => {
                             }
                             placeholder="0.00"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1064,7 +1082,7 @@ const ZohoReceiptVoucherDetail = () => {
                             }
                             placeholder="0.00"
                             className="w-32 px-2 py-1 text-center text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                         <div className="text-[10px] text-blue-700/80 dark:text-blue-400/80 mt-1">
@@ -1080,9 +1098,6 @@ const ZohoReceiptVoucherDetail = () => {
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                      <Icon icon="heroicons:link" className="text-sm" />
-                    </span>
                     <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                       Applied Invoices
                     </h3>
@@ -1091,7 +1106,7 @@ const ZohoReceiptVoucherDetail = () => {
                     onClick={addAppliedDoc}
                     className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                     title="Add"
-                    disabled={isVerified}
+                    disabled={isLocked}
                   >
                     <Icon icon="heroicons:plus" className="w-4 h-4" />
                   </button>
@@ -1121,7 +1136,7 @@ const ZohoReceiptVoucherDetail = () => {
                           }
                           placeholder="Zoho invoice ID"
                           className={CONTROL}
-                          disabled={isVerified}
+                          disabled={isLocked}
                         />
                         <input
                           type="number"
@@ -1137,13 +1152,13 @@ const ZohoReceiptVoucherDetail = () => {
                           className={CONTROL_NUM}
                           min="0"
                           step="0.01"
-                          disabled={isVerified}
+                          disabled={isLocked}
                         />
                         <button
                           onClick={() => removeAppliedDoc(index)}
                           className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
                           title="Remove"
-                          disabled={isVerified}
+                          disabled={isLocked}
                         >
                           <Icon icon="heroicons:trash" className="w-4 h-4" />
                         </button>
@@ -1174,14 +1189,11 @@ const ZohoReceiptVoucherDetail = () => {
                     className={`${CONTROL_TEXTAREA} h-24`}
                     placeholder="Add notes or comments..."
                     rows={4}
-                    disabled={isVerified}
+                    disabled={isLocked}
                   />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
       <ActivityPanel
         open={isActivityOpen}

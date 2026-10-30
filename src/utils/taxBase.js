@@ -38,10 +38,30 @@ export const lineTaxableValue = (amount, gross, base) => {
   return (amt / gross) * base;
 };
 
-/** Sum of the line amounts the base is spread across. */
+/**
+ * What one line contributes to the taxable value.
+ *
+ * A discount shown against the line itself comes off before anything
+ * else — GST on that line is charged on what is left, which is what
+ * makes it different from a discount on the bill as a whole. The sign
+ * the operator typed is ignored: a discount is a reduction either way,
+ * and reading the sign as a decision would make the same keystroke
+ * subtract on one bill and add on the next.
+ */
+export const netLineAmount = (product) => {
+  const amount = Math.max(parseFloat(product?.amount) || 0, 0);
+  const discount = Math.abs(parseFloat(product?.discount) || 0);
+  return Math.max(amount - discount, 0);
+};
+
+/** Sum of what the lines contribute, after their own discounts. */
 export const grossOfLines = (products) =>
+  (products || []).reduce((sum, p) => sum + netLineAmount(p), 0);
+
+/** Every line discount on the bill, as one positive figure. */
+export const totalLineDiscount = (products) =>
   (products || []).reduce(
-    (sum, p) => sum + Math.max(parseFloat(p.amount) || 0, 0),
+    (sum, p) => sum + Math.abs(parseFloat(p?.discount) || 0),
     0,
   );
 

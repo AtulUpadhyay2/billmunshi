@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import { currencySymbol } from "@/utils/currency";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -23,7 +34,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 const ZohoVendorBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -31,6 +42,11 @@ const ZohoVendorBillDetail = () => {
   const navigate = useNavigate();
   const { id: billId } = useParams(); // Fix: The route param is 'id', not 'billId'
   const { selectedOrganization } = useSelector((state) => state.auth);
+  // Zoho bills carry no currency of their own — the Zoho models have
+  // no ForeignCurrencyMixin — so they are rupees, and this is the
+  // helper's default. Written through the helper rather than a bare
+  // "₹" so that adding the field later changes one line.
+  const cur = currencySymbol();
 
   // Form state for vendor information
   const [vendorForm, setVendorForm] = useState({
@@ -87,6 +103,10 @@ const ZohoVendorBillDetail = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, and whether the scan pane is
+  // open. Both are view state only.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
 
   // State for verification
   const [verificationStatus, setVerificationStatus] = useState(null); // 'success', 'error', or null
@@ -157,7 +177,10 @@ const ZohoVendorBillDetail = () => {
     vendorBillData?.status === "Synced" || vendorBillData?.status === "Posted";
 
   // Allow editing for verified bills (user can verify multiple times)
-  const isVerified = isSynced; // Only truly locked after sync
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted, because after that the figures are history.
+  const isLocked = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isVendorRequired = !vendorForm.selectedVendor;
@@ -1138,10 +1161,20 @@ const ZohoVendorBillDetail = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+                  <BillChecks
+                  blockers={getValidationErrorMessages()}
+                  isLocked={isLocked}
+                />
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {vendorBillData?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -1361,15 +1394,187 @@ const ZohoVendorBillDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scrollable Content Column */}
-          <div className="lg:w-2/3">
+        }
+      >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
-              {/* Vendor Information Section */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                {/* What the Verify button is waiting on, and nothing
-                    else — the advisory checks are deliberately not shown. */}
+              {/* The voucher opens the way the paper does: who it is
+                  from on the left, what it comes to on the right. The
+                  name IS the picker — it was printed nowhere and
+                  offered only as a "Vendor *" dropdown below. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Bill from
+                  </div>
+                  <div className="space-y-2">
+                    <div
+                      className={`${
+                        isVendorRequired && !isLocked
+                          ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                          : ""
+                      }`}
+                    >
+                      <SearchableDropdown
+                        options={
+                          vendorsData?.results?.map((vendor) => ({
+                            value: vendor.id,
+                            label: vendor.companyName,
+                            gstNo: vendor.gstNo,
+                          })) || []
+                        }
+                        value={
+                          // If selectedVendor is an object, use its id
+                          // If selectedVendor is a string (from zohoData), use it directly
+                          typeof vendorForm.selectedVendor === "object" &&
+                          vendorForm.selectedVendor !== null
+                            ? vendorForm.selectedVendor.id
+                            : vendorForm.selectedVendor || ""
+                        }
+                        onChange={(value) => {
+                          if (value === null || value === "") {
+                            // Clear vendor selection
+                            handleVendorSelect(null);
+                          } else {
+                            const selectedVendor =
+                              vendorsData?.results?.find(
+                                (v) => v.id === value,
+                              );
+                            if (selectedVendor) {
+                              handleVendorSelect(selectedVendor);
+                            }
+                          }
+                        }}
+                        onClear={() => {
+                          // Explicitly clear vendor selection
+                          handleVendorSelect(null);
+                        }}
+                        placeholder="Select a vendor..."
+                        searchPlaceholder="Search vendors..."
+                        loading={vendorsLoading}
+                        loadingMessage="Loading vendors..."
+                        disabled={isLocked}
+                        noOptionsMessage="No vendors found"
+                        renderOption={(option) => (
+                          <div>
+                            <div className="font-medium">
+                              {option.label}
+                            </div>
+                            {option.gstNo && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                GST: {option.gstNo}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+
+                    {/* The vendor this bill needs may not exist in
+                        Zoho at all, which used to be a dead end:
+                        "sync vendors first" is no help when there is
+                        nothing to sync. Offered whenever no vendor is
+                        picked, not only when the list is empty — a
+                        workspace with 200 vendors and not this one is
+                        the common case. */}
+                    {!isLocked && !vendorForm.selectedVendor && (
+                      <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                          {vendorsData?.results?.length === 0 && !vendorsLoading
+                            ? "No vendors synced from Zoho yet."
+                            : "Not in the list?"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreateVendorOpen(true)}
+                          className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
+                        >
+                          <Icon icon="heroicons:plus-circle" className="text-xs" />
+                          Create vendor in Zoho
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Organization Mismatch Warning */}
+                    {vendorForm.selectedVendor &&
+                      typeof vendorForm.selectedVendor === "object" &&
+                      vendorForm.selectedVendor.organization_id !==
+                        selectedOrganization?.id && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
+                          <svg
+                            className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                          </svg>
+                          <span>
+                            <strong>Warning:</strong> The selected vendor
+                            belongs to a different organization. This may
+                            cause issues during sync.
+                          </span>
+                        </div>
+                      )}
+
+                    {/* Vendor Not Found Warning */}
+                    {analysedData?.to?.name &&
+                      !vendorForm.selectedVendor && (
+                        <div className="mt-2">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                            <svg
+                              className="w-3 h-3 mr-1.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                              />
+                            </svg>
+                            Vendor not found in the list, please add new
+                            vendor
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Bill total
+                  </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {Number(parseFloat(billSummaryForm.total) || 0).toFixed(2)}
+                  </div>
+                  {vendorBillData?.status && (
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Status:{" "}
+                      <span
+                        className={`${BADGE} ${
+                          isLocked
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        }`}
+                      >
+                        {vendorBillData.status}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* The fields of the voucher. No heading and no icon: the
+                  grid below says what it holds. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
                 {/* Approval. Renders nothing unless the workspace has
                     require_bill_approval on, so this is invisible by default. */}
                 <div className="mb-3">
@@ -1378,290 +1583,65 @@ const ZohoVendorBillDetail = () => {
                     billId={billId}
                   />
                 </div>
+                <FieldGrid>
+                  <FieldCell label="Invoice number">
+                    <input
+                      type="text"
+                      name="invoiceNumber"
+                      value={vendorForm.invoiceNumber}
+                      onChange={(e) =>
+                        handleFormChange("invoiceNumber", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                <BillChecks
-                  blockers={getValidationErrorMessages()}
-                  isVerified={isVerified}
-                />
+                  <FieldCell label="Bill date" error={dateErrors.dateIssued}>
+                    <input
+                      type="date"
+                      name="dateIssued"
+                      value={vendorForm.dateIssued}
+                      onChange={(e) =>
+                        handleDateChange("dateIssued", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                {/* Simple Form Fields */}
-                <div className="space-y-3">
-                  {/* First Row: Vendor and Invoice Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Vendor Selection Field */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Vendor <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="space-y-2">
-                        <div
-                          className={`${
-                            isVendorRequired && !isVerified
-                              ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                              : ""
-                          }`}
-                        >
-                          <SearchableDropdown
-                            options={
-                              vendorsData?.results?.map((vendor) => ({
-                                value: vendor.id,
-                                label: vendor.companyName,
-                                gstNo: vendor.gstNo,
-                              })) || []
-                            }
-                            value={
-                              // If selectedVendor is an object, use its id
-                              // If selectedVendor is a string (from zohoData), use it directly
-                              typeof vendorForm.selectedVendor === "object" &&
-                              vendorForm.selectedVendor !== null
-                                ? vendorForm.selectedVendor.id
-                                : vendorForm.selectedVendor || ""
-                            }
-                            onChange={(value) => {
-                              if (value === null || value === "") {
-                                // Clear vendor selection
-                                handleVendorSelect(null);
-                              } else {
-                                const selectedVendor =
-                                  vendorsData?.results?.find(
-                                    (v) => v.id === value,
-                                  );
-                                if (selectedVendor) {
-                                  handleVendorSelect(selectedVendor);
-                                }
-                              }
-                            }}
-                            onClear={() => {
-                              // Explicitly clear vendor selection
-                              handleVendorSelect(null);
-                            }}
-                            placeholder="Select a vendor..."
-                            searchPlaceholder="Search vendors..."
-                            loading={vendorsLoading}
-                            loadingMessage="Loading vendors..."
-                            disabled={isVerified}
-                            noOptionsMessage="No vendors found"
-                            renderOption={(option) => (
-                              <div>
-                                <div className="font-medium">
-                                  {option.label}
-                                </div>
-                                {option.gstNo && (
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    GST: {option.gstNo}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          />
-                        </div>
+                  <FieldCell label="Due date" error={dateErrors.dueDate}>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      value={vendorForm.dueDate}
+                      onChange={(e) =>
+                        handleDateChange("dueDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                        {/* The vendor this bill needs may not exist in
-                            Zoho at all, which used to be a dead end:
-                            "sync vendors first" is no help when there is
-                            nothing to sync. Offered whenever no vendor is
-                            picked, not only when the list is empty — a
-                            workspace with 200 vendors and not this one is
-                            the common case. */}
-                        {!isVerified && !vendorForm.selectedVendor && (
-                          <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                              {vendorsData?.results?.length === 0 && !vendorsLoading
-                                ? "No vendors synced from Zoho yet."
-                                : "Not in the list?"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setIsCreateVendorOpen(true)}
-                              className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
-                            >
-                              <Icon icon="heroicons:plus-circle" className="text-xs" />
-                              Create vendor in Zoho
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Organization Mismatch Warning */}
-                        {vendorForm.selectedVendor &&
-                          typeof vendorForm.selectedVendor === "object" &&
-                          vendorForm.selectedVendor.organization_id !==
-                            selectedOrganization?.id && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
-                              <svg
-                                className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                />
-                              </svg>
-                              <span>
-                                <strong>Warning:</strong> The selected vendor
-                                belongs to a different organization. This may
-                                cause issues during sync.
-                              </span>
-                            </div>
-                          )}
-
-                        {/* Vendor Not Found Warning */}
-                        {analysedData?.to?.name &&
-                          !vendorForm.selectedVendor && (
-                            <div className="mt-2">
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                                <svg
-                                  className="w-3 h-3 mr-1.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                                  />
-                                </svg>
-                                Vendor not found in the list, please add new
-                                vendor
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-
-                    {/* Invoice Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Invoice Number <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="invoiceNumber"
-                        value={vendorForm.invoiceNumber}
-                        onChange={(e) =>
-                          handleFormChange("invoiceNumber", e.target.value)
-                        }
-                        placeholder="Enter invoice number"
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Second Row: GST, Date Issued, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* GST Number Field */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                        {/* {zohoData?.vendor === null && vendorForm.selectedVendor && (
-                                                    <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
-                                                )} */}
-                      </label>
-                      <input
-                        type="text"
-                        name="vendorGST"
-                        value={vendorForm.vendorGST}
-                        onChange={(e) =>
-                          handleFormChange("vendorGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        className={`${CONTROL} `}
-                        readOnly={
-                          zohoData?.vendor === null && vendorForm.selectedVendor
-                        }
-                        disabled={isVerified}
-                      />
-                    </div>
-
-                    {/* Date Issued Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Date Issued <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="dateIssued"
-                        value={vendorForm.dateIssued}
-                        onChange={(e) =>
-                          handleDateChange("dateIssued", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dateIssued
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                        disabled={isVerified}
-                      />
-                      {dateErrors.dateIssued && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dateIssued}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Due Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={vendorForm.dueDate || ""}
-                        onChange={(e) =>
-                          handleDateChange("dueDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dueDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                        disabled={isVerified}
-                      />
-                      {dateErrors.dueDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dueDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  <FieldCell label="GST number">
+                    <input
+                      type="text"
+                      name="vendorGST"
+                      value={vendorForm.vendorGST}
+                      onChange={(e) =>
+                        handleFormChange("vendorGST", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={`${FLAT_FIELD} font-mono`}
+                    />
+                  </FieldCell>
+                </FieldGrid>
               </div>
 
               {/* Product Information Section */}
@@ -1670,11 +1650,8 @@ const ZohoVendorBillDetail = () => {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:list-bullet" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                        Products Details
+                        Line items
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1686,7 +1663,7 @@ const ZohoVendorBillDetail = () => {
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           activeClass="bg-blue-600"
                         />
                       </div>
@@ -1694,7 +1671,7 @@ const ZohoVendorBillDetail = () => {
                         onClick={addProduct}
                         className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                         title="Add"
-                        disabled={isVerified}
+                        disabled={isLocked}
                       >
                         <svg
                           className="w-4 h-4"
@@ -1769,7 +1746,7 @@ const ZohoVendorBillDetail = () => {
                                   placeholder="Enter item details..."
                                   className={CONTROL_TEXTAREA}
                                   rows={2}
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1777,7 +1754,7 @@ const ZohoVendorBillDetail = () => {
                               <td className="relative px-3 py-2">
                                 <div
                                   className={`${
-                                    !product.chart_of_accounts && !isVerified
+                                    !product.chart_of_accounts && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -1811,7 +1788,7 @@ const ZohoVendorBillDetail = () => {
                                     loading={chartOfAccountsLoading}
                                     loadingMessage="Loading accounts..."
                                     noOptionsMessage="No accounts found"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   />
                                 </div>
                               </td>
@@ -1820,7 +1797,7 @@ const ZohoVendorBillDetail = () => {
                               <td className="relative px-3 py-2">
                                 <div
                                   className={`${
-                                    !product.taxes && !isVerified
+                                    !product.taxes && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -1848,7 +1825,7 @@ const ZohoVendorBillDetail = () => {
                                     loading={taxesLoading}
                                     loadingMessage="Loading taxes..."
                                     noOptionsMessage="No taxes found"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   />
                                 </div>
                               </td>
@@ -1866,7 +1843,7 @@ const ZohoVendorBillDetail = () => {
                                     )
                                   }
                                   className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded focus:ring-blue-500 focus:ring-2"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1893,7 +1870,7 @@ const ZohoVendorBillDetail = () => {
                                   searchPlaceholder="Search eligibility..."
                                   optionLabelKey="label"
                                   optionValueKey="value"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1913,7 +1890,7 @@ const ZohoVendorBillDetail = () => {
                                   className={CONTROL_NUM}
                                   min="0"
                                   step="0.01"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1933,7 +1910,7 @@ const ZohoVendorBillDetail = () => {
                                   className={`${CONTROL_NUM} text-center`}
                                   min="0"
                                   step="1"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1951,12 +1928,12 @@ const ZohoVendorBillDetail = () => {
 
                               {/* Actions */}
                               <td className="px-3 py-2 text-center">
-                                {products.length > 1 && !isVerified && (
+                                {products.length > 1 && !isLocked && (
                                   <button
                                     onClick={() => removeProduct(index)}
                                     className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
                                     title="Remove Product"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   >
                                     <svg
                                       className="w-4 h-4"
@@ -2008,9 +1985,6 @@ const ZohoVendorBillDetail = () => {
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:document-text" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Tax Deduction/Collection
                       </h3>
@@ -2039,7 +2013,7 @@ const ZohoVendorBillDetail = () => {
                               handleFormChange("is_tax", e.target.value)
                             }
                             className="w-4 h-4 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-slate-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="tax-not-applicable"
@@ -2064,7 +2038,7 @@ const ZohoVendorBillDetail = () => {
                               handleFormChange("is_tax", e.target.value)
                             }
                             className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="tax-tds"
@@ -2089,7 +2063,7 @@ const ZohoVendorBillDetail = () => {
                               handleFormChange("is_tax", e.target.value)
                             }
                             className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-green-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="tax-tcs"
@@ -2133,7 +2107,7 @@ const ZohoVendorBillDetail = () => {
                             loading={tdsTcsLoading}
                             loadingMessage={`Loading ${vendorForm.is_tax} rates...`}
                             noOptionsMessage={`No ${vendorForm.is_tax} rates found`}
-                            disabled={isVerified}
+                            disabled={isLocked}
                             renderOption={(option) => (
                               <div>
                                 <div className="font-medium">
@@ -2161,9 +2135,6 @@ const ZohoVendorBillDetail = () => {
                   {/* Discount section */}
                   <div className="mt-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:tag" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Discount
                       </h3>
@@ -2191,7 +2162,7 @@ const ZohoVendorBillDetail = () => {
                               )
                             }
                             className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="discount-inr"
@@ -2221,7 +2192,7 @@ const ZohoVendorBillDetail = () => {
                               )
                             }
                             className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-green-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="discount-percentage"
@@ -2257,7 +2228,7 @@ const ZohoVendorBillDetail = () => {
                             : "Enter amount"
                         }
                         className={CONTROL}
-                        disabled={isVerified}
+                        disabled={isLocked}
                         min="0"
                         step={
                           discountForm.discount_type === "Percentage"
@@ -2287,13 +2258,13 @@ const ZohoVendorBillDetail = () => {
                     <div className="relative">
                       <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                         Discount Account
-                        {isDiscountAccountRequired() && !isVerified && (
+                        {isDiscountAccountRequired() && !isLocked && (
                           <span className="text-red-500 text-xs ml-1">*</span>
                         )}
                       </label>
                       <div
                         className={`${
-                          isDiscountAccountRequired() && !isVerified
+                          isDiscountAccountRequired() && !isLocked
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
@@ -2320,7 +2291,7 @@ const ZohoVendorBillDetail = () => {
                           loading={chartOfAccountsLoading}
                           loadingMessage="Loading accounts..."
                           noOptionsMessage="No accounts found"
-                          disabled={isVerified}
+                          disabled={isLocked}
                         />
                       </div>
                     </div>
@@ -2334,12 +2305,6 @@ const ZohoVendorBillDetail = () => {
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:calculator" className="text-sm" />
-                      </span>
-                      <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                        Tax and Other Items
-                      </h3>
                     </div>
                 </div>
 
@@ -2362,7 +2327,7 @@ const ZohoVendorBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -2381,7 +2346,7 @@ const ZohoVendorBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -2400,7 +2365,7 @@ const ZohoVendorBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -2424,7 +2389,7 @@ const ZohoVendorBillDetail = () => {
                             }
                             placeholder="0.00"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -2450,7 +2415,7 @@ const ZohoVendorBillDetail = () => {
                               }
                               placeholder="0.00"
                               className="w-32 px-2 py-1 text-center text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              disabled={isVerified}
+                              disabled={isLocked}
                             />
                           </div>
                           <div className="text-[10px] text-blue-700/80 dark:text-blue-400/80 mt-1">
@@ -2472,7 +2437,7 @@ const ZohoVendorBillDetail = () => {
                         placeholder="Enter adjustment description..."
                         className={CONTROL_TEXTAREA}
                         rows={3}
-                        disabled={isVerified}
+                        disabled={isLocked}
                       />
                     </div>
                   </div>
@@ -2500,14 +2465,12 @@ const ZohoVendorBillDetail = () => {
                     className={`${CONTROL_TEXTAREA} h-24`}
                     placeholder="Add notes or comments..."
                     rows={4}
-                    disabled={isVerified}
+                    disabled={isLocked}
                   />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
       <ActivityPanel
         open={isActivityOpen}

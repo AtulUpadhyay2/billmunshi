@@ -56,6 +56,14 @@ const SearchableDropdown = ({
   // the positioning wrapper). Used to square off the trailing corners
   // when the dropdown is the first half of an input group.
   triggerClassName = "",
+  // Replaces the default trigger skin outright. Appending to
+  // ``triggerClassName`` cannot reliably override a utility that is
+  // already in TRIGGER — which of two Tailwind classes wins depends on
+  // the order they are generated in, not the order they are written.
+  // The one caller that needs a different skin (the vendor name at the
+  // head of a bill, which reads as the document's title rather than as
+  // a form control) passes its own.
+  triggerSkin,
   size = "md",
   optionLabelKey = "label",
   optionValueKey = "value",
@@ -219,10 +227,12 @@ const SearchableDropdown = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled || loading}
-        className={`${TRIGGER} ${
-          selectedOption
-            ? "text-slate-900 dark:text-white"
-            : "text-slate-400 dark:text-slate-500"
+        className={`${triggerSkin || TRIGGER} ${
+          triggerSkin
+            ? ""
+            : selectedOption
+              ? "text-slate-900 dark:text-white"
+              : "text-slate-400 dark:text-slate-500"
         } ${triggerClassName}`}
       >
         <span className={`flex-1 min-w-0 truncate ${sizeStyle.label}`}>

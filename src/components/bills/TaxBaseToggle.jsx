@@ -15,19 +15,28 @@ import React from "react";
  * invoice freight *inside* taxable value, so the opposite error
  * under-claims it.
  *
- * Two labelled segments rather than a checkbox: "before GST" and
- * "after GST" are two readings of the document, and a checkbox would
- * make one of them the unlabelled default. Both rows use the same two
- * words — the question is the same one either way, "is GST worked out
- * after this amount, or before it?" — and the longer sentence lives in
- * the tooltip, where it does not wrap the row.
+ * Two labelled segments rather than a switch: neither reading is the
+ * default. One vendor takes the discount off the sub-total and taxes
+ * what is left, the next taxes the sub-total and then takes the
+ * discount off the total — both are ordinary. A switch would make one
+ * of them an unlabelled "off", which is this choice being made
+ * silently. (Where there *is* a plain default — lines taxed on top,
+ * the supplier charging the GST — the page uses a switch instead.)
+ *
+ * The words are "Before GST" and "After GST", the same pair on both
+ * rows, because the question is the same one either way: is this
+ * amount in the figure GST is worked out on, or applied after it. The
+ * earlier pair, "GST After" and "Post GST", both contained the word
+ * GST and differed only in word order, which is no distinction at all
+ * at 10px. The longer sentence lives in the tooltip, where it does not
+ * wrap the row.
  */
 const TaxBaseToggle = ({
   value,
   onChange,
   disabled,
-  beforeLabel = "GST After",
-  afterLabel = "Post GST",
+  beforeLabel = "Before GST",
+  afterLabel = "After GST",
   beforeTitle,
   afterTitle,
 }) => {

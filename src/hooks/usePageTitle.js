@@ -36,7 +36,8 @@ const usePageTitle = () => {
         document.title = pageTitle;
         return;
       } else if (
-        path.includes("/tally/expense-bill/") &&
+        (path.includes("/tally/journal-entry/") ||
+          path.includes("/tally/expense-bill/")) &&
         path.split("/").length === 4
       ) {
         pageTitle = `Bill Munshi | Tally Journal Entry`;

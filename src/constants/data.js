@@ -179,7 +179,7 @@ export const menuItems = [
     title: "Journal Entry",
     isHide: true,
     icon: "heroicons-outline:clipboard",
-    link: "/tally/expense-bill",
+    link: "/tally/journal-entry",
   },
 
 
@@ -333,7 +333,7 @@ export const topMenu = [
       },
       {
         childtitle: "Journal Entry",
-        childlink: "/tally/expense-bill",
+        childlink: "/tally/journal-entry",
         childicon: "heroicons-outline:clipboard",
       },
       {

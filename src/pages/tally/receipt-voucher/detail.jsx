@@ -2,12 +2,23 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import CurrencyPanel from "@/components/bills/CurrencyPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
 import { apiFetch } from "@/utils/apiClient";
 import { currencySymbol } from "@/utils/currency";
+import { useForexRates, useSetBillCurrency } from "@/services/forexService";
 import SearchableDropdown from "@/components/ui/SearchableDropdown";
 import Switch from "@/components/ui/Switch";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -124,9 +135,25 @@ const TallyReceiptVoucherDetail = () => {
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, and whether the scan pane is
+  // open. Both are view state only.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
+
+  // Changing the currency goes through the forex endpoint, not the
+  // verify payload: that endpoint is what freezes the rate the voucher
+  // posts at.
+  const { data: forexData } = useForexRates(selectedOrganization?.id, {
+    enabled: Boolean(selectedOrganization?.id),
+  });
+  const { mutateAsync: setBillCurrency, isPending: currencySaving } =
+    useSetBillCurrency(selectedOrganization?.id, billId);
+  const currencyOptions = forexData?.currencies?.length
+    ? forexData.currencies
+    : [{ code: "INR", label: "Indian Rupee" }];
 
   // Form state for bill information
   const [billForm, setBillForm] = useState({
@@ -310,7 +337,10 @@ const TallyReceiptVoucherDetail = () => {
   const cur = currencySymbol(tallyAnalysedData?.currency);
 
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
-  const isVerified = billInfo?.tally_synced === true;
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted to Tally, because after that the figures are history.
+  const isLocked = billInfo?.tally_synced === true;
 
   // Bill-image vs user-edited tax reconciliation. ``analysed_data``
   // carries the raw CGST/SGST/IGST values extracted from the original
@@ -2516,12 +2546,12 @@ const TallyReceiptVoucherDetail = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={isVerifying || isVerified || hasValidationErrors()}
+            disabled={isVerifying || isLocked || hasValidationErrors()}
             className={BTN_SOFT}
             title={
               isVerifying
                 ? "Verifying…"
-                : isVerified
+                : isLocked
                   ? "Bill already synced"
                   : hasValidationErrors()
                     ? "Resolve validation issues before verifying"
@@ -2529,17 +2559,17 @@ const TallyReceiptVoucherDetail = () => {
             }
           >
             <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-sm ${isVerifying ? "animate-spin" : ""}`} />
-            {isVerifying ? "Verifying…" : isVerified ? "Verified" : "Verify"}
+            {isVerifying ? "Verifying…" : isLocked ? "Verified" : "Verify"}
           </button>
           <button
             type="button"
             onClick={handleSync}
-            disabled={isSyncing || isVerified || billInfo?.status !== "Verified"}
+            disabled={isSyncing || isLocked || billInfo?.status !== "Verified"}
             className={`group ${BTN_PRIMARY}`}
             title={
               isSyncing
                 ? "Syncing…"
-                : isVerified
+                : isLocked
                   ? "Bill already synced"
                   : billInfo?.status !== "Verified"
                     ? "Bill must be verified before sync"
@@ -2618,11 +2648,20 @@ const TallyReceiptVoucherDetail = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+          <BillChecks
+          blockers={getValidationErrorMessages()}
+          isLocked={isLocked}
+        />
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -2834,344 +2873,272 @@ const TallyReceiptVoucherDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scrollable Content Column */}
-          <div className="lg:w-2/3">
+        }
+      >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
-              {/* Bill Information Section */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:document-text" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Bill Information
-                  </h3>
-                </div>
-
-        {/* Everything the operator must look at, in one box: what is
-            blocking Verify, then what simply does not add up. Four
-            separate banners used to stack here, two of them reporting
-            the same arithmetic. */}
-
-        <BillChecks
-          blockers={getValidationErrorMessages()}
-          isVerified={isVerified}
-        />
-
-
-
-                {/* Bill Form Fields */}
-                <div className="space-y-3">
-                  {/* First Row: Customer, Receipt Mode and Bill Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                    {/* Customer — plain customer-ledger identification picker
-                        (Correction 26 renamed this from "Payable / Paid
-                        via (Bank / Cash)"). Its name/GST is never sent to
-                        Tally in the sync XML; the actual Bank/Cash
-                        posting ledger is the separate Receipt Mode field
-                        below. User picks this manually, no auto-fill
-                        from analysed customer OCR. */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Customer <span className="text-rose-500">*</span>
-                      </label>
-                      <QuickAddGroup
-                        kind="customer"
-                        onCreated={handleCustomerCreated}
-                        disabled={isVerified}
-                        title="Customer ledger not in the list? Create one"
-                        // Correction 30: seed from the bill's OCR data, not
-                        // from `billForm.customerName` — that holds the matched
-                        // Tally customer once one is selected.
-                        customerDefaultName={analysedData?.to?.name || ""}
-                        customerDefaultGstIn={
-                          analysedData?.to?.gst_number || ""
-                        }
-                        className={`mb-2 ${
-                          isCustomerRequired && !isVerified
-                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                            : ""
-                        }`}
-                      >
-                        <SearchableDropdown
-                          triggerClassName="rounded-r-none"
-                          options={customerOptions}
-                          value={billForm.selectedCustomer?.id || null}
-                          onChange={handleCustomerSelect}
-                          onClear={handleCustomerClear}
-                          placeholder="Search and select customer..."
-                          searchPlaceholder="Type to search customers..."
-                          optionLabelKey="name"
-                          optionValueKey="id"
-                          loading={customerLedgersLoading}
-                          disabled={isVerified}
-                          renderOption={(customer) => (
-                            <div className="flex flex-col py-1">
-                              <div className="font-medium text-slate-900 dark:text-white text-sm">
-                                {customer.name}
-                              </div>
-                              {customer.gst_in && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  GST: {customer.gst_in}
-                                </div>
-                              )}
-                              {/* {customer.parent_name && (
-                                                                <div className="text-xs text-blue-600">{customer.parent_name}</div>
-                                                            )} */}
+              {/* The voucher opens the way the paper does: the party
+                  on the left, what it comes to on the right. The name
+                  IS the picker — the same control, dressed as the
+                  document's title. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Received from
+                  </div>
+                  <QuickAddGroup
+                    kind="customer"
+                    onCreated={handleCustomerCreated}
+                    disabled={isLocked}
+                    title="Customer ledger not in the list? Create one"
+                    // Correction 30: seed from the bill's OCR data, not
+                    // from `billForm.customerName` — that holds the matched
+                    // Tally customer once one is selected.
+                    customerDefaultName={analysedData?.to?.name || ""}
+                    customerDefaultGstIn={
+                      analysedData?.to?.gst_number || ""
+                    }
+                    className={`mb-2 ${
+                      isCustomerRequired && !isLocked
+                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                        : ""
+                    }`}
+                  >
+                    <SearchableDropdown
+                      triggerClassName="rounded-r-none"
+                      options={customerOptions}
+                      value={billForm.selectedCustomer?.id || null}
+                      onChange={handleCustomerSelect}
+                      onClear={handleCustomerClear}
+                      placeholder="Search and select customer..."
+                      searchPlaceholder="Type to search customers..."
+                      optionLabelKey="name"
+                      optionValueKey="id"
+                      loading={customerLedgersLoading}
+                      disabled={isLocked}
+                      renderOption={(customer) => (
+                        <div className="flex flex-col py-1">
+                          <div className="font-medium text-slate-900 dark:text-white text-sm">
+                            {customer.name}
+                          </div>
+                          {customer.gst_in && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              GST: {customer.gst_in}
                             </div>
                           )}
-                        />
-                      </QuickAddGroup>
-
-                      {/* Organization Mismatch Warning */}
-                      {/* {billForm.selectedCustomer &&
-                        billForm.selectedCustomer.organization_id !==
-                          selectedOrganization?.id && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
-                            <svg
-                              className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                              />
-                            </svg>
-                            <span>
-                              <strong>Warning:</strong> The selected customer
-                              belongs to a different organization. This may
-                              cause issues during sync.
-                            </span>
-                          </div>
-                        )} */}
-
-                      {/* Customer Not Found Warning */}
-                      {analysedData?.to?.name && !billForm.selectedCustomer && (
-                        <div className="mt-3">
-                          <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
-                            <svg
-                              className="w-3 h-3 mr-1.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                              />
-                            </svg>
-                            Customer not found in the list, please add new customer
-                          </div>
+                          {/* {customer.parent_name && (
+                                                            <div className="text-xs text-blue-600">{customer.parent_name}</div>
+                                                        )} */}
                         </div>
                       )}
+                    />
+                  </QuickAddGroup>
 
-                      {/* OCR customer cross-check (name vs GSTIN, customer vs customer) */}
-                      <OcrVendorWarnings
-                        analysedData={analysedData}
-                        organization={selectedOrganization}
-                      />
-                    </div>
+                  {/* Organization Mismatch Warning */}
+                  {/* {billForm.selectedCustomer &&
+                    billForm.selectedCustomer.organization_id !==
+                      selectedOrganization?.id && (
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
+                        <svg
+                          className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <span>
+                          <strong>Warning:</strong> The selected customer
+                          belongs to a different organization. This may
+                          cause issues during sync.
+                        </span>
+                      </div>
+                    )} */}
 
-                    {/* Receipt Mode — the actual Bank/Cash ledger this
-                        receipt is made through (Correction 26). Options
-                        are scoped to TallyConfig.receipt_parents. This
-                        is the ledger emitted as the Bank/Cash posting in the
-                        sync XML — required for verify + sync. */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Receipt Mode <span className="text-rose-500">*</span>
-                      </label>
-                      <div
-                        className={
-                          isReceiptModeRequired && !isVerified
-                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                            : ""
-                        }
-                      >
-                        <SearchableDropdown
-                          options={receiptModeOptions}
-                          value={billForm.selectedReceiptMode?.id || null}
-                          onChange={handleReceiptModeSelect}
-                          onClear={handleReceiptModeClear}
-                          placeholder="Search and select receipt mode..."
-                          searchPlaceholder="Type to search receipt mode ledgers..."
-                          optionLabelKey="name"
-                          optionValueKey="id"
-                          loading={receiptModeLedgersLoading}
-                          disabled={isVerified}
-                          renderOption={(mode) => (
-                            <div className="flex flex-col py-1">
-                              <div className="font-medium text-slate-900 dark:text-white text-sm">
-                                {mode.name}
-                              </div>
-                              {mode.parent_name && (
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                  {mode.parent_name}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        />
+                  {/* Customer Not Found Warning */}
+                  {analysedData?.to?.name && !billForm.selectedCustomer && (
+                    <div className="mt-3">
+                      <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
+                        <svg
+                          className="w-3 h-3 mr-1.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                        Customer not found in the list, please add new customer
                       </div>
                     </div>
+                  )}
 
-                    {/* Bill Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Bill Number
-                      </label>
-                      <input
-                        type="text"
-                        name="billNumber"
-                        value={billForm.billNumber}
-                        onChange={(e) =>
-                          handleFormChange("billNumber", e.target.value)
-                        }
-                        placeholder="Enter bill number"
-                        disabled={isVerified}
-                        className={`${CONTROL} ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
-                      />
+                  {/* OCR customer cross-check (name vs GSTIN, customer vs customer) */}
+                  <OcrVendorWarnings
+                    analysedData={analysedData}
+                    organization={selectedOrganization}
+                  />
+
+                  {analysedData?.to?.address && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 max-w-[46ch]">
+                      {analysedData.to.address}
                     </div>
+                  )}
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Receipt total
                   </div>
-
-                  {/* Second Row: Customer GST, Bill Date, Due Date */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* GST Number Field */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                      </label>
-                      <input
-                        type="text"
-                        name="customerGST"
-                        value={billForm.customerGST}
-                        onChange={(e) =>
-                          handleFormChange("customerGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        disabled={isVerified}
-                        className={`${CONTROL} `}
-                        readOnly={
-                          billForm.selectedCustomer &&
-                          billForm.selectedCustomer.gst_in &&
-                          !isVerified
-                        }
-                      />
-                    </div>
-
-                    {/* Bill Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Bill Date
-                      </label>
-                      <input
-                        type="date"
-                        name="billDate"
-                        value={billForm.billDate}
-                        onChange={(e) =>
-                          handleDateChange("billDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        placeholder="DD-MM-YYYY"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.billDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                      />
-                      {dateErrors.billDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.billDate}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Due Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={billForm.dueDate}
-                        onChange={(e) =>
-                          handleDateChange("dueDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        placeholder="DD-MM-YYYY"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dueDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                      />
-                      {dateErrors.dueDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dueDate}
-                        </p>
-                      )}
-                    </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {Number(parseFloat(billForm.totalAmount) || 0).toFixed(2)}
                   </div>
+                  {billInfo?.status && (
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Status:{" "}
+                      <span
+                        className={`${BADGE} ${
+                          isLocked
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        }`}
+                      >
+                        {billInfo.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Expense Items Section */}
+              {/* The fields of the voucher. No heading and no icon: the
+                  fields below say what they hold. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
+                <FieldGrid>
+                  <FieldCell label="Bill number">
+                    <input
+                      type="text"
+                      value={billForm.billNumber}
+                      onChange={(e) =>
+                        handleFormChange("billNumber", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+
+                  <FieldCell label="Bill date" error={dateErrors.billDate}>
+                    <input
+                      type="date"
+                      value={billForm.billDate}
+                      onChange={(e) =>
+                        handleDateChange("billDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+
+                  <FieldCell label="Due date" error={dateErrors.dueDate}>
+                    <input
+                      type="date"
+                      value={billForm.dueDate}
+                      onChange={(e) =>
+                        handleDateChange("dueDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+
+                  <FieldCell
+                    label="Receipt Mode"
+                    hint="The Bank or Cash ledger this actually posts to"
+                  >
+                    <SearchableDropdown
+                      options={receiptModeOptions}
+                      value={billForm.selectedReceiptMode?.id || null}
+                      onChange={handleReceiptModeSelect}
+                      onClear={handleReceiptModeClear}
+                      placeholder="Select…"
+                      searchPlaceholder="Search ledgers…"
+                      optionLabelKey="name"
+                      optionValueKey="id"
+                      disabled={isLocked}
+                      size="sm"
+                    />
+                  </FieldCell>
+
+                  <FieldCell label="GST number">
+                    <input
+                      type="text"
+                      value={billForm.customerGST}
+                      onChange={(e) =>
+                        handleFormChange("customerGST", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={`${FLAT_FIELD} font-mono`}
+                    />
+                  </FieldCell>
+
+                  <FieldCell
+                    label="Currency"
+                    hint={
+                      tallyAnalysedData?.currency &&
+                      tallyAnalysedData.currency !== "INR"
+                        ? `1 ${tallyAnalysedData.currency} = ${tallyAnalysedData.exchange_rate} INR`
+                        : "Vouchers post to Tally in rupees"
+                    }
+                  >
+                    <select
+                      value={tallyAnalysedData?.currency || "INR"}
+                      disabled={isLocked || currencySaving}
+                      aria-label="Currency"
+                      onChange={async (e) => {
+                        const code = e.target.value;
+                        try {
+                          await setBillCurrency({ currency: code });
+                          refetch();
+                        } catch (err) {
+                          toast.error(
+                            err?.data?.detail ||
+                              err?.message ||
+                              `Could not set the currency to ${code}.`,
+                          );
+                        }
+                      }}
+                      className={FLAT_FIELD}
+                    >
+                      {currencyOptions.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} — {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FieldCell>
+                </FieldGrid>
+              </div>
+
+              {/* Line Items Section */}
               <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:list-bullet" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                        Credit / Debit items
+                        Line items
                         {isConsolidated && (
                           <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold normal-case tracking-normal">
                             Consolidated
@@ -3180,23 +3147,19 @@ const TallyReceiptVoucherDetail = () => {
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
-                      {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-md border border-slate-200 dark:border-slate-800">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Consolidate items
-                        </span>
+                      <SwitchPill label="Consolidate items">
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           activeClass="bg-blue-600"
                         />
-                      </div>
+                      </SwitchPill>
                       <button
                         onClick={addExpenseItem}
-                        disabled={isVerified}
+                        disabled={isLocked}
                         className={`inline-flex items-center justify-center h-8 w-8 p-0 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${
-                          isVerified
+                          isLocked
                             ? "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
                             : ""
                         }`}
@@ -3267,9 +3230,9 @@ const TallyReceiptVoucherDetail = () => {
                                         )
                                       }
                                       placeholder="Enter item details..."
-                                      disabled={isVerified}
+                                      disabled={isLocked}
                                       className={`${CONTROL_TEXTAREA} ${
-                                        isVerified
+                                        isLocked
                                           ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                           : ""
                                       }`}
@@ -3281,7 +3244,7 @@ const TallyReceiptVoucherDetail = () => {
                                 <td className="px-3 py-2">
                                   <QuickAddGroup
                                     kind="ledger"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     // Line-item column = Expense Ledger. Was
                                     // wired to Bank / Cash by mistake so the
                                     // + icon opened the wrong modal.
@@ -3289,7 +3252,7 @@ const TallyReceiptVoucherDetail = () => {
                                     ledgerTitle="Add New Expense Ledger"
                                     title="Ledger not in the list? Create one"
                                     className={`${
-                                      !item.chart_of_accounts_id && !isVerified
+                                      !item.chart_of_accounts_id && !isLocked
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                         : ""
                                     }`}
@@ -3312,7 +3275,7 @@ const TallyReceiptVoucherDetail = () => {
                                       optionLabelKey="name"
                                       optionValueKey="id"
                                       loading={ledgersLoading}
-                                      disabled={isVerified}
+                                      disabled={isLocked}
                                       renderOption={(ledger) => (
                                         <div className="flex flex-col py-1">
                                           <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -3336,9 +3299,9 @@ const TallyReceiptVoucherDetail = () => {
                                       )
                                     }
                                     placeholder="0.00"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={`${CONTROL_NUM} ${
-                                      isVerified
+                                      isLocked
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
@@ -3358,9 +3321,9 @@ const TallyReceiptVoucherDetail = () => {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={`${CONTROL_SELECT} text-center ${
-                                      isVerified
+                                      isLocked
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
@@ -3376,9 +3339,9 @@ const TallyReceiptVoucherDetail = () => {
                                   {expenseItems.length > 1 && (
                                     <button
                                       onClick={() => removeExpenseItem(index)}
-                                      disabled={isVerified}
+                                      disabled={isLocked}
                                       className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
-                                        isVerified
+                                        isLocked
                                           ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                           : ""
                                       }`}
@@ -3436,15 +3399,12 @@ const TallyReceiptVoucherDetail = () => {
                 </div>
               </div>
 
-              {/* Bill Summary - Tax and Other Items */}
+              {/* Tax and the other postings. No heading: the tables
+                  below name themselves, and a heading over them made
+                  the GST table read as a sub-part of something rather
+                  than as part of the voucher. */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:calculator" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Tax and Other Items
-                  </h3>
 
                   {/* Bill-image reconciliation badge — informational only.
                       Flags drift between the values printed on the original
@@ -3562,20 +3522,14 @@ const TallyReceiptVoucherDetail = () => {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                            <Icon icon="heroicons:list-bullet" className="text-[12px]" />
-                          </span>
-                          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                            GST Items
-                          </h4>
                           <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                            Verify GST amount and ledgers · one row per (rate, ledger)
+                            One row per GST rate and ledger
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={handleGstLineAdd}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Icon icon="heroicons:plus" className="text-[12px]" />
@@ -3583,7 +3537,7 @@ const TallyReceiptVoucherDetail = () => {
                         </button>
                       </div>
 
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
+                      <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                         {/* Header */}
                         <div className="hidden md:grid grid-cols-[80px_80px_110px_minmax(180px,1fr)_100px_40px] gap-2 px-2 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Rate</span>
@@ -3610,7 +3564,7 @@ const TallyReceiptVoucherDetail = () => {
                               const missingLedger =
                                 amountVal !== 0 &&
                                 !line.ledger_id &&
-                                !isVerified;
+                                !isLocked;
                               return (
                                 <div
                                   key={line.id}
@@ -3626,7 +3580,7 @@ const TallyReceiptVoucherDetail = () => {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={gstSelectCls}
                                   >
                                     {withCurrentRate(
@@ -3656,7 +3610,7 @@ const TallyReceiptVoucherDetail = () => {
                                         null,
                                       );
                                     }}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={gstSelectCls}
                                   >
                                     <option value="CGST">CGST</option>
@@ -3667,7 +3621,7 @@ const TallyReceiptVoucherDetail = () => {
                                   {/* Amount — typing-friendly editable */}
                                   <EditableTaxAmount
                                     value={line.amount}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     onCommit={(v) =>
                                       handleGstLineChange(line.id, "amount", v)
                                     }
@@ -3703,7 +3657,7 @@ const TallyReceiptVoucherDetail = () => {
                                       optionLabelKey="name"
                                       optionValueKey="id"
                                       loading={loadingForType(line.tax_type)}
-                                      disabled={isVerified}
+                                      disabled={isLocked}
                                       size="sm"
                                     />
                                   </div>
@@ -3718,7 +3672,7 @@ const TallyReceiptVoucherDetail = () => {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={gstSelectCls}
                                   >
                                     <option value="debit">Debit</option>
@@ -3731,7 +3685,7 @@ const TallyReceiptVoucherDetail = () => {
                                     onClick={() =>
                                       handleGstLineRemove(line.id)
                                     }
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     title="Remove this GST line"
                                     className="inline-flex items-center justify-center w-7 h-7 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
@@ -3852,7 +3806,7 @@ const TallyReceiptVoucherDetail = () => {
                     // overflow-visible (not -hidden) so the inline ledger
                     // dropdown panels can render outside the card without
                     // getting clipped.
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
+                    <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                       {/* Header */}
                       <div className="hidden md:grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
                         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
@@ -3890,7 +3844,7 @@ const TallyReceiptVoucherDetail = () => {
                             ) : (
                               <EditableTaxAmount
                                 value={taxSummaryForm[r.amountField]}
-                                disabled={isVerified}
+                                disabled={isLocked}
                                 onCommit={(v) =>
                                   handleTaxSummaryChange(r.amountField, v)
                                 }
@@ -3914,7 +3868,7 @@ const TallyReceiptVoucherDetail = () => {
                                 optionLabelKey="name"
                                 optionValueKey="id"
                                 loading={r.loading}
-                                disabled={isVerified}
+                                disabled={isLocked}
                                 renderOption={(ledger) => (
                                   <div className="flex flex-col py-1">
                                     <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -3926,7 +3880,7 @@ const TallyReceiptVoucherDetail = () => {
                               />
                               );
                               const ringed =
-                                r.missing && !isVerified
+                                r.missing && !isLocked
                                   ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                   : "";
                               return r.noQuickAdd ? (
@@ -3934,7 +3888,7 @@ const TallyReceiptVoucherDetail = () => {
                               ) : (
                                 <QuickAddGroup
                                   kind="ledger"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   ledgerDefaultParent={
                                     r.quickAddParent || "Indirect Expenses"
                                   }
@@ -3954,7 +3908,7 @@ const TallyReceiptVoucherDetail = () => {
                               onChange={(e) =>
                                 handleTaxSummaryChange(r.typeField, e.target.value)
                               }
-                              disabled={isVerified}
+                              disabled={isLocked}
                               className={selectCls}
                               style={{
                                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
@@ -3980,62 +3934,81 @@ const TallyReceiptVoucherDetail = () => {
                             amount, instead of twice. */}
                       </div>
 
-                      {/* Total row */}
-                      <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
-                          Total amount
-                        </span>
-                        <input
-                          type="text"
-                          name="totalAmount"
-                          value={billForm.totalAmount}
-                          readOnly
-                          tabIndex={-1}
-                          title="The invoice total as read from the bill — not directly editable."
-                          placeholder="0.00"
-                          className={`${CONTROL_NUM} text-left font-bold text-blue-700 dark:text-blue-400 cursor-default select-text ${
-                            billTotalMatch.hasBillValue && !billTotalMatch.isMatch
-                              ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
-                              : "border-blue-200 dark:border-blue-900/60"
-                          }`}
-                        />
-                        {/* Correction 46 — amber when the rows don't add up to
-                            the invoice total. Unlike before, this does block
-                            verification: the figures have to agree. */}
-                        {billTotalMatch.hasBillValue &&
-                        !billTotalMatch.isMatch ? (
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span
-                              className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Line items + GST + round off + other adjustment comes to ${cur}${billTotalMatch.currentTotal.toFixed(2)}, but the invoice total is ${cur}${billTotalMatch.billTotal.toFixed(2)} — off by ${billTotalMatch.diff > 0 ? "+" : ""}${cur}${billTotalMatch.diff.toFixed(2)}. Adjust Round Off or Other Adjustment so the two agree.`}
-                            >
-                              <Icon
-                                icon="heroicons:information-circle"
-                                className="text-[12px]"
+                      {/* Totals, bottom-right like the printed voucher
+                          and like every other voucher in the product.
+                          This was a blue band with the figure in an
+                          input and the agreement as a caption beside
+                          it — a different shape for the same job. */}
+                      {(() => {
+                        const money = (v) =>
+                          (parseFloat(v) || 0).toFixed(2);
+                        const lines = expenseItems.reduce(
+                          (sum, it) => sum + (parseFloat(it.amount) || 0),
+                          0,
+                        );
+                        const gst = (gstLines || []).reduce(
+                          (sum, l) => sum + (parseFloat(l.amount) || 0),
+                          0,
+                        );
+                        const agrees = billTotalMatch.isMatch;
+                        return (
+                          <div className="flex justify-end px-3 pt-4 pb-3">
+                            <div className="w-full sm:max-w-[340px]">
+                              <TotalLine
+                                label="Line items"
+                                note={`${expenseItems.length} item${expenseItems.length === 1 ? "" : "s"}`}
+                                cur={cur}
+                                value={money(lines)}
                               />
-                              Invoice total doesn't agree
-                            </span>
-                            <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
-                              Bill {cur}{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
-                              {billTotalMatch.diff > 0 ? "+" : ""}{cur}
-                              {billTotalMatch.diff.toFixed(2)}
-                            </span>
+                              {gst !== 0 && (
+                                <TotalLine label="GST" cur={cur} value={money(gst)} />
+                              )}
+                              {parseFloat(taxSummaryForm.other_adjustment) ? (
+                                <TotalLine
+                                  label="Other adjustment"
+                                  note={taxSummaryForm.other_adjustment_debit_or_credit}
+                                  cur={cur}
+                                  value={money(taxSummaryForm.other_adjustment)}
+                                />
+                              ) : null}
+                              {parseFloat(taxSummaryForm.round_off) ? (
+                                <TotalLine
+                                  label="Round off"
+                                  cur={cur}
+                                  value={money(taxSummaryForm.round_off)}
+                                />
+                              ) : null}
+                              <TotalLine
+                                grand
+                                label="Amount received"
+                                cur={cur}
+                                value={money(amountPaidComputed)}
+                              />
+                              {billTotalMatch.hasBillValue && (
+                                <>
+                                  <TotalLine
+                                    compare
+                                    label="Printed on the bill"
+                                    cur={cur}
+                                    value={billTotalMatch.billTotal.toFixed(2)}
+                                  />
+                                  <TotalLine
+                                    compare
+                                    label="Difference"
+                                    cur={agrees ? "" : cur}
+                                    tone={agrees ? "ok" : "bad"}
+                                    value={
+                                      agrees
+                                        ? "none — matches the bill"
+                                        : `${billTotalMatch.diff > 0 ? "+" : "−"}${Math.abs(billTotalMatch.diff).toFixed(2)}`
+                                    }
+                                  />
+                                </>
+                              )}
+                            </div>
                           </div>
-                        ) : billTotalMatch.hasBillValue ? (
-                          <span className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 text-[10.5px] font-bold uppercase tracking-wide">
-                            <Icon
-                              icon="heroicons:check-circle"
-                              className="text-[12px]"
-                            />
-                            Agrees with invoice total
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
-                            Including all taxes &amp; adjustments
-                          </span>
-                        )}
-                        <span />
-                      </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
@@ -4060,9 +4033,9 @@ const TallyReceiptVoucherDetail = () => {
                       }/tally/receipt-voucher/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
-                    disabled={isVerified}
+                    disabled={isLocked}
                     className={`${CONTROL_TEXTAREA} h-24 ${
-                      isVerified
+                      isLocked
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
@@ -4082,9 +4055,7 @@ const TallyReceiptVoucherDetail = () => {
               />
             </div>
 
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
 
       <CurrencyPanel
@@ -4097,7 +4068,7 @@ const TallyReceiptVoucherDetail = () => {
         exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
         exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
         exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
-        disabled={isVerified}
+        disabled={isLocked}
         onChanged={() => refetch()}
       />
 

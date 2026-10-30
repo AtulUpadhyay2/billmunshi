@@ -246,6 +246,15 @@ function App() {
             path="tally/sales-bill/:id"
             element={<TallySalesBillDetail />}
           />
+          {/* Journal Entry. ``expense-bill`` is kept as an alias, not
+              redirected: the narration on every voucher already posted
+              to Tally carries that URL, and those links have to keep
+              working. */}
+          <Route path="tally/journal-entry" element={<TallyExpenseBill />} />
+          <Route
+            path="tally/journal-entry/:id"
+            element={<TallyExpenseBillDetail />}
+          />
           <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
           <Route
             path="tally/expense-bill/:id"

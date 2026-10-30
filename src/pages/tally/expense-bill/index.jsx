@@ -25,7 +25,7 @@ const TallyExpenseBill = () => {
         subtitle: "Create journal entry in Tally by BM automation.",
         billLabel: "journal entry",
         moveTargetLabel: "Purchase Voucher",
-        detailRoute: "/tally/expense-bill",
+        detailRoute: "/tally/journal-entry",
         uploadTitle: "Upload journal entries",
       }}
       useGetBills={useGetTallyExpenseBills}

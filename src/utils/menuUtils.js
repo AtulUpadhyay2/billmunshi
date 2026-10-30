@@ -116,10 +116,13 @@ export const getFilteredMenuItems = (enabledModules = [], isAdmin = true) => {
         return enabledModuleNames.includes("tally");
       }
 
-      // Handle Tally Journal Entry (which has link tally/expense-bill)
+      // Handle Tally Journal Entry. ``expense-bill`` is the old path,
+      // still routed so existing links keep working, so both are
+      // accepted here.
       if (
         item.title === "Journal Entry" &&
-        item.link === "/tally/expense-bill"
+        (item.link === "/tally/journal-entry" ||
+          item.link === "/tally/expense-bill")
       ) {
         return enabledModuleNames.includes("tally");
       }

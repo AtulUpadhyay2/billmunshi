@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import TaxBaseToggle from "@/components/bills/TaxBaseToggle";
 import CurrencyPanel from "@/components/bills/CurrencyPanel";
 import { useNavigate, useParams } from "react-router-dom";
@@ -33,6 +43,7 @@ import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
 import { currencySymbol } from "@/utils/currency";
+import { useForexRates, useSetBillCurrency } from "@/services/forexService";
 import { findVendorOption } from "@/utils/vendorMatch";
 import { isValidGstin } from "@/utils/gstin";
 import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
@@ -42,15 +53,16 @@ import {
   resolveTaxableBase,
   lineTaxableValue,
   grossOfLines,
+  netLineAmount,
+  totalLineDiscount,
   taxOnLine,
   netOfTax,
 } from "@/utils/taxBase";
 import { toast } from "sonner";
-import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
-  isLegacyGstRate,
   withCurrentRate,
 } from "@/constants/gstRates";
 
@@ -244,9 +256,27 @@ const TallySalesBillDetail = () => {
   const [collapsed, setMenuCollapsed] = useSidebar();
   const navigate = useNavigate();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, whether the scan pane is open,
+  // and which optional adjustment rows the operator opened by hand.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
+  const [openAdjustments, setOpenAdjustments] = useState([]);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
+
+  // Changing the currency goes through the forex endpoint, not the
+  // verify payload: that endpoint is what freezes the rate the voucher
+  // posts at, and writing the code alone would leave every figure
+  // restated by whatever rate happened to be stored.
+  const { data: forexData } = useForexRates(selectedOrganization?.id, {
+    enabled: Boolean(selectedOrganization?.id),
+  });
+  const { mutateAsync: setBillCurrency, isPending: currencySaving } =
+    useSetBillCurrency(selectedOrganization?.id, billId);
+  const currencyOptions = forexData?.currencies?.length
+    ? forexData.currencies
+    : [{ code: "INR", label: "Indian Rupee" }];
 
   // Refs to track if initial matching has been done
   const customerMatchedRef = useRef(false);
@@ -587,7 +617,7 @@ const TallySalesBillDetail = () => {
         };
       }
       buckets[rateKey].taxable += netOfTax(
-        lineTaxableValue(p.amount, taxBasis.gross, taxBasis.base),
+        lineTaxableValue(netLineAmount(p), taxBasis.gross, taxBasis.base),
         p.gst,
         taxBasis.inclusive,
       );
@@ -725,7 +755,10 @@ const TallySalesBillDetail = () => {
   );
 
   // Disable inputs only when bill is fully posted to Tally (tally_synced is true)
-  const isVerified = billInfo?.tally_synced === true;
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted to Tally, because after that the figures are history.
+  const isLocked = billInfo?.tally_synced === true;
 
   // Inter-state supply ⇒ IGST; intra-state ⇒ CGST + SGST split.
   //
@@ -782,7 +815,7 @@ const TallySalesBillDetail = () => {
         p.amount,
         p.gst,
         isInterStateSupply,
-        lineTaxableValue(p.amount, gross, base),
+        lineTaxableValue(netLineAmount(p), gross, base),
         inclusive,
       ),
     }));
@@ -1306,6 +1339,7 @@ const TallySalesBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
+            discount: item.discount ?? "",
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -1969,7 +2003,7 @@ const TallySalesBillDetail = () => {
   // "differs from bill" banner rather than being hidden by this pass.
   const lineTaxNormalisedRef = useRef(false);
   useEffect(() => {
-    if (lineTaxNormalisedRef.current || isVerified) return;
+    if (lineTaxNormalisedRef.current || isLocked) return;
     if (products.length === 0) return;
 
     const retaxed = applyLineTaxes(products);
@@ -1983,7 +2017,7 @@ const TallySalesBillDetail = () => {
     lineTaxNormalisedRef.current = true;
     if (changed) setProducts(retaxed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, isVerified, tallyAnalysedData, isInterStateSupply]);
+  }, [products, isLocked, tallyAnalysedData, isInterStateSupply]);
 
   useEffect(() => {
     if (stockItemsInitialMatchedRef.current) return; // Skip if already matched
@@ -2101,9 +2135,22 @@ const TallySalesBillDetail = () => {
     const freight = parseFloat(billSummaryForm.freight) || 0;
     const discount = parseFloat(billSummaryForm.discount) || 0;
     const roundOff = parseFloat(billSummaryForm.round_off) || 0;
+    // Discounts shown against individual lines. ``subtotal`` is the sum
+    // of the printed line amounts, so these have to come off here —
+    // they already came off what GST was charged on, but not off what
+    // the bill comes to.
+    const lineDiscounts = totalLineDiscount(products);
 
     const nextTotal = (
-      subtotal + cgst + sgst + igst + cess + discount + freight + roundOff
+      subtotal +
+      cgst +
+      sgst +
+      igst +
+      cess +
+      discount +
+      freight +
+      roundOff -
+      lineDiscounts
     ).toFixed(2);
 
     setBillSummaryForm((prev) =>
@@ -2118,6 +2165,7 @@ const TallySalesBillDetail = () => {
     billSummaryForm.freight,
     billSummaryForm.discount,
     billSummaryForm.round_off,
+    products,
   ]);
 
   // Handle form input changes
@@ -2492,6 +2540,7 @@ const TallySalesBillDetail = () => {
               // and the voucher can fall back to them when the stock
               // item master has no HSN of its own.
               hsn: item.hsn || "",
+              discount: item.discount ?? "",
               unit: item.unit || "",
               cgst_ledger: item.cgst_ledger || null,
               sgst_ledger: item.sgst_ledger || null,
@@ -2592,6 +2641,7 @@ const TallySalesBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
+            discount: item.discount ?? "",
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -2660,6 +2710,7 @@ const TallySalesBillDetail = () => {
         field === "price" ||
         field === "quantity" ||
         field === "amount" ||
+        field === "discount" ||
         field === "gst"
       ) {
         // With a taxable base in force the lines are coupled — each
@@ -2673,10 +2724,14 @@ const TallySalesBillDetail = () => {
         // gone. So the ordinary bill keeps the one-line rule.
         if (baseCouplesLines()) return applyLineTaxes(updated);
 
+        // The net amount, not the printed one: a discount against
+        // this line comes off before GST is worked out on it, and this
+        // path runs whenever no bill-level base couples the lines.
         const tax = computeLineTax(
           updated[index].amount,
           updated[index].gst,
           isInterStateSupply,
+          netLineAmount(updated[index]),
         );
         updated[index].cgst = tax.cgst;
         updated[index].sgst = tax.sgst;
@@ -2771,6 +2826,7 @@ const TallySalesBillDetail = () => {
         amount: "",
         hsn: "",
         unit: "",
+        discount: "",
         gst: "",
         igst: 0.0,
         cgst: 0.0,
@@ -2934,6 +2990,7 @@ const TallySalesBillDetail = () => {
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
                     hsn: product.hsn || "",
+                    discount: parseFloat(product.discount) || 0,
                     unit: product.unit || "",
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
@@ -2964,6 +3021,7 @@ const TallySalesBillDetail = () => {
                     amount: parseFloat(product.amount) || 0,
                     product_gst: product.gst || null,
                     hsn: product.hsn || "",
+                    discount: parseFloat(product.discount) || 0,
                     unit: product.unit || "",
                     igst: parseFloat(product.igst) || 0.0,
                     cgst: parseFloat(product.cgst) || 0.0,
@@ -3494,12 +3552,12 @@ const TallySalesBillDetail = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={isVerifying || isVerified || hasValidationErrors()}
+            disabled={isVerifying || isLocked || hasValidationErrors()}
             className={BTN_SOFT}
             title={
               isVerifying
                 ? "Verifying…"
-                : isVerified
+                : isLocked
                   ? "Bill already synced"
                   : hasValidationErrors()
                     ? getValidationErrorMessages().join(" · ")
@@ -3507,17 +3565,17 @@ const TallySalesBillDetail = () => {
             }
           >
             <Icon icon={isVerifying ? "heroicons:arrow-path" : "heroicons:check-badge"} className={`text-sm ${isVerifying ? "animate-spin" : ""}`} />
-            {isVerifying ? "Verifying…" : isVerified ? "Verified" : "Verify"}
+            {isVerifying ? "Verifying…" : isLocked ? "Verified" : "Verify"}
           </button>
           <button
             type="button"
             onClick={handleSync}
-            disabled={isSyncing || isVerified || billInfo?.status !== "Verified"}
+            disabled={isSyncing || isLocked || billInfo?.status !== "Verified"}
             className={`group ${BTN_PRIMARY}`}
             title={
               isSyncing
                 ? "Syncing…"
-                : isVerified
+                : isLocked
                   ? "Bill already synced"
                   : billInfo?.status !== "Verified"
                     ? "Bill must be verified before sync"
@@ -3572,29 +3630,23 @@ const TallySalesBillDetail = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-        {/* OCR sanity banner — flags a leading-digit miss on a 7-8 digit
-            amount (Corrections 14 + 24). Sourced from the backend
-            sanity check stashed on analysedData._ocr_sanity. */}
-        {/* Everything the operator must look at, in one box: what is
-            blocking Verify, then what simply does not add up. Four
-            separate banners used to stack here, two of them reporting
-            the same arithmetic. */}
-
-        <BillChecks
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+          <BillChecks
           blockers={getValidationErrorMessages()}
-          isVerified={isVerified}
+          isLocked={isLocked}
           // The server's own arithmetic checks, stored on the bill at
           // analysis time and until now never rendered anywhere.
           checks={analysedData?._extraction_checks}
         />
-
-
-
-
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {billInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -3814,216 +3866,269 @@ const TallySalesBillDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scrollable Content Column */}
-          <div className="lg:w-2/3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-              {/* Customer Information Section */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:building-office-2" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Bill from
-                  </h3>
-                </div>
-
-                {/* Simple Form Fields */}
-                <div className="space-y-3">
-                  {/* First Row: Customer and Invoice Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Customer Selection Field */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Customer <span className="text-rose-500">*</span>
-                      </label>
-                      <QuickAddGroup
-                        kind="customer"
-                        onCreated={handleCustomerCreated}
-                        disabled={isVerified}
-                        title="Customer not in the list? Create one"
-                        // Seed the New Customer modal with what OCR parsed
-                        // from the bill so the user doesn't retype either.
-                        customerDefaultName={analysedData?.to?.name || ""}
-                        customerDefaultGstIn={
-                          analysedData?.to?.gst_number || ""
-                        }
-                        className={`mb-2 ${
-                          isCustomerRequired && !isVerified
-                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                            : ""
-                        }`}
-                      >
-                        <SearchableDropdown
-                          triggerClassName="rounded-r-none"
-                          options={customerOptions}
-                          value={customerForm.selectedCustomer?.id || null}
-                          onChange={handleCustomerSelect}
-                          onClear={handleCustomerClear}
-                          placeholder="Search and select customer..."
-                          searchPlaceholder="Type to search customers..."
-                          optionLabelKey="name"
-                          optionValueKey="id"
-                          loading={customerLedgersLoading}
-                          disabled={isVerified}
-                          renderOption={(customer) => (
-                            <div className="flex flex-col py-1">
-                              <div className="font-medium text-slate-900 dark:text-white">
-                                {customer.name}
-                              </div>
-                              {customer.gst_in && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  GST: {customer.gst_in}
-                                </div>
-                              )}
-                              {/* {customer.parent_name && (
-                                                            <div className="text-xs text-blue-600">{customer.parent_name}</div>
-                                                        )} */}
+        }
+      >
+              {/* The voucher opens the way the paper does: who it was
+                  billed to on the left, what it comes to on the right.
+                  The customer name IS the picker — it used to be
+                  offered as a "Customer *" dropdown in a section of
+                  its own while the name was printed nowhere. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Bill to
+                  </div>
+                  <QuickAddGroup
+                    kind="customer"
+                    onCreated={handleCustomerCreated}
+                    disabled={isLocked}
+                    title="Customer not in the list? Create one"
+                    // Seed the New Customer modal with what OCR parsed
+                    // from the bill so the user doesn't retype either.
+                    customerDefaultName={analysedData?.to?.name || ""}
+                    customerDefaultGstIn={
+                      analysedData?.to?.gst_number || ""
+                    }
+                    className={`mb-2 ${
+                      isCustomerRequired && !isLocked
+                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                        : ""
+                    }`}
+                  >
+                    <SearchableDropdown
+                      triggerClassName="rounded-r-none"
+                      options={customerOptions}
+                      value={customerForm.selectedCustomer?.id || null}
+                      onChange={handleCustomerSelect}
+                      onClear={handleCustomerClear}
+                      placeholder="Search and select customer..."
+                      searchPlaceholder="Type to search customers..."
+                      optionLabelKey="name"
+                      optionValueKey="id"
+                      loading={customerLedgersLoading}
+                      disabled={isLocked}
+                      renderOption={(customer) => (
+                        <div className="flex flex-col py-1">
+                          <div className="font-medium text-slate-900 dark:text-white">
+                            {customer.name}
+                          </div>
+                          {customer.gst_in && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              GST: {customer.gst_in}
                             </div>
                           )}
-                        />
-                      </QuickAddGroup>
+                          {/* {customer.parent_name && (
+                                                        <div className="text-xs text-blue-600">{customer.parent_name}</div>
+                                                    )} */}
+                        </div>
+                      )}
+                    />
+                  </QuickAddGroup>
 
-                      {/* Organization Mismatch Warning */}
-                      {/* {customerForm.selectedCustomer &&
-                        customerForm.selectedCustomer.organization_id !==
-                          selectedOrganization?.id && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
-                            <svg
-                              className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                              />
-                            </svg>
-                            <span>
-                              <strong>Warning:</strong> The selected customer
-                              belongs to a different organization. This may
-                              cause issues during sync.
-                            </span>
-                          </div>
-                        )} */}
+                  {/* Organization Mismatch Warning */}
+                  {/* {customerForm.selectedCustomer &&
+                    customerForm.selectedCustomer.organization_id !==
+                      selectedOrganization?.id && (
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
+                        <svg
+                          className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <span>
+                          <strong>Warning:</strong> The selected customer
+                          belongs to a different organization. This may
+                          cause issues during sync.
+                        </span>
+                      </div>
+                    )} */}
 
-                      {/* Customer Not Found Warning */}
-                      {analysedData?.to?.name &&
-                        !customerForm.selectedCustomer && (
-                          <div className="mt-3">
-                            <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
-                              <svg
-                                className="w-3 h-3 mr-1.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                                />
-                              </svg>
-                              Customer not found in the list, please add new
-                              customer
-                            </div>
-                          </div>
-                        )}
-
-                      {/* OCR customer cross-check (name vs GSTIN, customer vs customer) */}
-                      <OcrVendorWarnings
-                        analysedData={analysedData}
-                        organization={selectedOrganization}
-                      />
-
-                      {/* Customer GST match indicator. Green tick when the
-                          picked Tally customer's GSTIN matches the bill GST;
-                          rose banner listing both values when they differ.
-                          Case- and whitespace-insensitive comparison. */}
-                      {(() => {
-                        const billGst = (
-                          analysedData?.to?.gst_number || ""
-                        )
-                          .trim()
-                          .toUpperCase();
-                        const tallyGst = (
-                          customerForm.selectedCustomer?.gst_in || ""
-                        )
-                          .trim()
-                          .toUpperCase();
-                        if (
-                          !customerForm.selectedCustomer ||
-                          !billGst ||
-                          !tallyGst
-                        ) {
-                          return null;
-                        }
-                        if (billGst === tallyGst) {
-                          return (
-                            <div className={`mt-3 ${BADGE} bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60`}>
-                              <Icon
-                                icon="heroicons:check-circle"
-                                className="text-sm"
-                              />
-                              GSTIN matches Tally customer
-                            </div>
-                          );
-                        }
-                        // A GSTIN carries a check digit, so a misread
-                        // is provable rather than a matter of opinion.
-                        // Saying "these two differ" sends the operator
-                        // looking for the wrong customer; saying "the
-                        // one we read cannot be a real GSTIN" sends
-                        // them to the one field that is actually wrong.
-                        // The vendor screen has said this for a while;
-                        // this one only ever said "doesn't match".
-                        const billGstUnreadable = !isValidGstin(billGst);
-                        return (
-                          <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-[12px] text-rose-800 dark:text-rose-300">
-                            <Icon
-                              icon="heroicons:exclamation-triangle"
-                              className="text-base shrink-0 mt-0.5"
+                  {/* Customer Not Found Warning */}
+                  {analysedData?.to?.name &&
+                    !customerForm.selectedCustomer && (
+                      <div className="mt-3">
+                        <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
+                          <svg
+                            className="w-3 h-3 mr-1.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
                             />
-                            <div className="min-w-0">
-                              <div className="font-semibold">
-                                {billGstUnreadable
-                                  ? "The GSTIN read from the invoice fails its check digit"
-                                  : "GSTIN from the invoice doesn't match Tally"}
-                              </div>
-                              <div className="mt-0.5">
-                                Read from invoice:{" "}
-                                <span className="font-mono">{billGst}</span>
-                              </div>
-                              <div className="mt-0.5">
-                                Tally customer GST:{" "}
-                                <span className="font-mono">{tallyGst}</span>
-                              </div>
-                              {billGstUnreadable && (
-                                <div className="mt-1 text-[11px] opacity-90">
-                                  It is not a valid GSTIN, so this is
-                                  almost certainly a scan error rather
-                                  than a different party. Check the
-                                  invoice and correct the GST Number
-                                  field above.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
+                          </svg>
+                          Customer not found in the list, please add new
+                          customer
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Invoice Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Invoice Number
-                      </label>
+                  {/* OCR customer cross-check (name vs GSTIN, customer vs customer) */}
+                  <OcrVendorWarnings
+                    analysedData={analysedData}
+                    organization={selectedOrganization}
+                  />
+
+                  {/* Customer GST match indicator. Green tick when the
+                      picked Tally customer's GSTIN matches the bill GST;
+                      rose banner listing both values when they differ.
+                      Case- and whitespace-insensitive comparison. */}
+                  {(() => {
+                    const billGst = (
+                      analysedData?.to?.gst_number || ""
+                    )
+                      .trim()
+                      .toUpperCase();
+                    const tallyGst = (
+                      customerForm.selectedCustomer?.gst_in || ""
+                    )
+                      .trim()
+                      .toUpperCase();
+                    if (
+                      !customerForm.selectedCustomer ||
+                      !billGst ||
+                      !tallyGst
+                    ) {
+                      return null;
+                    }
+                    if (billGst === tallyGst) {
+                      return (
+                        <div className={`mt-3 ${BADGE} bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60`}>
+                          <Icon
+                            icon="heroicons:check-circle"
+                            className="text-sm"
+                          />
+                          GSTIN matches Tally customer
+                        </div>
+                      );
+                    }
+                    // A GSTIN carries a check digit, so a misread
+                    // is provable rather than a matter of opinion.
+                    // Saying "these two differ" sends the operator
+                    // looking for the wrong customer; saying "the
+                    // one we read cannot be a real GSTIN" sends
+                    // them to the one field that is actually wrong.
+                    // The vendor screen has said this for a while;
+                    // this one only ever said "doesn't match".
+                    const billGstUnreadable = !isValidGstin(billGst);
+                    return (
+                      <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-[12px] text-rose-800 dark:text-rose-300">
+                        <Icon
+                          icon="heroicons:exclamation-triangle"
+                          className="text-base shrink-0 mt-0.5"
+                        />
+                        <div className="min-w-0">
+                          <div className="font-semibold">
+                            {billGstUnreadable
+                              ? "The GSTIN read from the invoice fails its check digit"
+                              : "GSTIN from the invoice doesn't match Tally"}
+                          </div>
+                          <div className="mt-0.5">
+                            Read from invoice:{" "}
+                            <span className="font-mono">{billGst}</span>
+                          </div>
+                          <div className="mt-0.5">
+                            Tally customer GST:{" "}
+                            <span className="font-mono">{tallyGst}</span>
+                          </div>
+                          {billGstUnreadable && (
+                            <div className="mt-1 text-[11px] opacity-90">
+                              It is not a valid GSTIN, so this is
+                              almost certainly a scan error rather
+                              than a different party. Check the
+                              invoice and correct the GST Number
+                              field above.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {analysedData?.to?.address && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 max-w-[46ch]">
+                      {analysedData.to.address}
+                    </div>
+                  )}
+                  <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                    <input
+                      type="text"
+                      name="customerGST"
+                      value={customerForm.customerGST}
+                      onChange={(e) =>
+                        handleFormChange("customerGST", e.target.value)
+                      }
+                      placeholder="GSTIN not on the bill"
+                      aria-label="GST number"
+                      disabled={isLocked}
+                      readOnly={
+                        customerForm.selectedCustomer &&
+                        customerForm.selectedCustomer.gst_in &&
+                        !isLocked
+                      }
+                      className={`${FLAT_FIELD} font-mono text-xs! font-normal! w-[22ch]`}
+                    />
+                    {customerForm.customerGST &&
+                      (isValidGstin(customerForm.customerGST) ? (
+                        <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                          ✓ valid
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-mono text-rose-600 dark:text-rose-400">
+                          fails its check digit
+                        </span>
+                      ))}
+                  </div>
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Invoice total
+                  </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {toMoneyString(billSummaryForm.total, "0.00")}
+                  </div>
+                  {billInfo?.status && (
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Status:{" "}
+                      <span
+                        className={`${BADGE} ${
+                          isLocked
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        }`}
+                      >
+                        {billInfo.status}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* The fields of the voucher. No heading and no icon: the
+                  grid below says what it holds. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="space-y-3">
+                  {/* Every scalar field on the voucher, in one bordered
+                      grid. They used to run across three rows of
+                      differing column counts, which made the invoice
+                      number read as part of the customer picker and
+                      pushed place of supply — the field that decides
+                      IGST vs CGST+SGST — to the very bottom. */}
+                  <FieldGrid>
+                    <FieldCell label="Invoice number">
                       <input
                         type="text"
                         name="invoiceNumber"
@@ -4031,49 +4136,13 @@ const TallySalesBillDetail = () => {
                         onChange={(e) =>
                           handleFormChange("invoiceNumber", e.target.value)
                         }
-                        placeholder="Enter invoice number"
-                        disabled={isVerified}
-                        className={`${CONTROL} ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
+                        placeholder="not on the bill"
+                        disabled={isLocked}
+                        className={FLAT_FIELD}
                       />
-                    </div>
-                  </div>
+                    </FieldCell>
 
-                  {/* Second Row: GST, Date Issued, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* GST Number Field */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                        {/* {customerForm.selectedCustomer && customerForm.selectedCustomer.gst_in && (
-                                                    <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
-                                                )} */}
-                      </label>
-                      <input
-                        type="text"
-                        name="customerGST"
-                        value={customerForm.customerGST}
-                        onChange={(e) =>
-                          handleFormChange("customerGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        disabled={isVerified}
-                        className={`${CONTROL} `}
-                        readOnly={
-                          customerForm.selectedCustomer &&
-                          customerForm.selectedCustomer.gst_in &&
-                          !isVerified
-                        }
-                      />
-                    </div>
-                    {/* Date Issued Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Date Issued
-                      </label>
+                    <FieldCell label="Bill date" hint={dateErrors.dateIssued}>
                       <input
                         type="date"
                         name="dateIssued"
@@ -4083,39 +4152,16 @@ const TallySalesBillDetail = () => {
                         }
                         min="1900-01-01"
                         max="2100-12-31"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
+                        disabled={isLocked}
+                        className={`${FLAT_FIELD} ${
                           dateErrors.dateIssued
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
+                            ? "border-rose-500 dark:border-rose-500"
+                            : ""
                         }`}
                       />
-                      {dateErrors.dateIssued && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dateIssued}
-                        </p>
-                      )}
-                    </div>{" "}
-                    {/* Due Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Due Date
-                      </label>
+                    </FieldCell>
+
+                    <FieldCell label="Due date" hint={dateErrors.dueDate}>
                       <input
                         type="date"
                         name="dueDate"
@@ -4125,122 +4171,95 @@ const TallySalesBillDetail = () => {
                         }
                         min="1900-01-01"
                         max="2100-12-31"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
+                        disabled={isLocked}
+                        className={`${FLAT_FIELD} ${
                           dateErrors.dueDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
+                            ? "border-rose-500 dark:border-rose-500"
+                            : ""
                         }`}
                       />
-                      {dateErrors.dueDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dueDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                    </FieldCell>
 
-                  {/* Place of supply, reverse charge and the e-invoice
-                      references. All four are read off the invoice and
-                      stored; none of them reached this screen, so the
-                      field that decides IGST vs CGST+SGST was settled
-                      by extraction alone with nobody able to see it. */}
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Place of Supply
-                      </label>
+
+                    <FieldCell
+                      label="Place of supply"
+                      hint="Decides IGST vs CGST+SGST"
+                    >
                       <input
                         type="text"
                         value={customerForm.placeOfSupply}
                         onChange={(e) =>
                           handleFormChange("placeOfSupply", e.target.value)
                         }
-                        placeholder="As printed on the invoice"
+                        placeholder="as printed"
                         maxLength={120}
-                        disabled={isVerified}
-                        className={`${CONTROL} ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
+                        disabled={isLocked}
+                        className={FLAT_FIELD}
                       />
-                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-                        Decides IGST vs CGST+SGST.
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        IRN
-                      </label>
+                    </FieldCell>
+
+                    <FieldCell
+                      label="Currency"
+                      hint={
+                        tallyAnalysedData?.currency &&
+                        tallyAnalysedData.currency !== "INR"
+                          ? `1 ${tallyAnalysedData.currency} = ${tallyAnalysedData.exchange_rate} INR${tallyAnalysedData.exchange_rate_reference ? ` · ${tallyAnalysedData.exchange_rate_reference}` : ""}`
+                          : "Vouchers post to Tally in rupees"
+                      }
+                    >
+                      <select
+                        value={tallyAnalysedData?.currency || "INR"}
+                        disabled={isLocked || currencySaving}
+                        aria-label="Currency"
+                        onChange={async (e) => {
+                          const code = e.target.value;
+                          try {
+                            await setBillCurrency({ currency: code });
+                            refetch();
+                          } catch (err) {
+                            toast.error(
+                              err?.data?.detail ||
+                                err?.message ||
+                                `Could not set the currency to ${code}.`,
+                            );
+                          }
+                        }}
+                        className={FLAT_FIELD}
+                      >
+                        {currencyOptions.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} — {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </FieldCell>
+
+                    <FieldCell label="IRN">
                       <input
                         type="text"
                         value={customerForm.irn}
                         onChange={(e) => handleFormChange("irn", e.target.value)}
-                        placeholder="e-invoice reference number"
+                        placeholder="not an e-invoice"
                         maxLength={64}
-                        disabled={isVerified}
-                        className={`${CONTROL} font-mono text-[11px] ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
+                        disabled={isLocked}
+                        className={`${FLAT_FIELD} font-mono text-[11px]`}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Ack No.
-                      </label>
+                    </FieldCell>
+
+                    <FieldCell label="Ack no.">
                       <input
                         type="text"
                         value={customerForm.ackNo}
                         onChange={(e) =>
                           handleFormChange("ackNo", e.target.value)
                         }
-                        placeholder="e-invoice acknowledgement"
+                        placeholder="not an e-invoice"
                         maxLength={32}
-                        disabled={isVerified}
-                        className={`${CONTROL} font-mono text-[11px] ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
+                        disabled={isLocked}
+                        className={`${FLAT_FIELD} font-mono text-[11px]`}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Reverse Charge
-                      </label>
-                      <div className="pt-1">
-                        <TaxBaseToggle
-                          value={customerForm.reverseCharge}
-                          disabled={isVerified}
-                          beforeLabel="RCM"
-                          afterLabel="Normal"
-                          beforeTitle="Tax on this invoice is payable by the recipient, not by us"
-                          afterTitle="The supplier charges the GST in the usual way"
-                          onChange={(v) =>
-                            handleFormChange("reverseCharge", v)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    </FieldCell>
+                  </FieldGrid>
                 </div>
               </div>
 
@@ -4250,9 +4269,6 @@ const TallySalesBillDetail = () => {
                 <div>
                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:list-bullet" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Line items{" "}
                         {isConsolidated && (
@@ -4263,23 +4279,61 @@ const TallySalesBillDetail = () => {
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
-                      {/* Consolidate Toggle Switch */}
-                      <div className="flex items-center gap-2 h-8 px-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-800">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Consolidate Items
-                        </span>
+                      {/* Three switches, and all three decide how the
+                          lines below post rather than what the invoice
+                          says — which is why they sit together here and
+                          not among the invoice references. */}
+                      <SwitchPill
+                        label="Lines include GST"
+                        title="The printed line amounts already contain their GST (MRP pricing)"
+                      >
+                        <Switch
+                          value={billSummaryForm.linesIncludeGst}
+                          onChange={() => {
+                            const v = !billSummaryForm.linesIncludeGst;
+                            setBillSummaryForm((prev) => ({
+                              ...prev,
+                              linesIncludeGst: v,
+                            }));
+                            setProducts((prev) =>
+                              applyLineTaxes(prev, { linesIncludeGst: v }),
+                            );
+                          }}
+                          disabled={isLocked}
+                          activeClass="bg-blue-600"
+                        />
+                      </SwitchPill>
+
+                      <SwitchPill
+                        label="Reverse charge"
+                        title="Tax on this invoice is payable by the recipient, not by us"
+                      >
+                        <Switch
+                          value={customerForm.reverseCharge}
+                          onChange={() =>
+                            handleFormChange(
+                              "reverseCharge",
+                              !customerForm.reverseCharge,
+                            )
+                          }
+                          disabled={isLocked}
+                          activeClass="bg-blue-600"
+                        />
+                      </SwitchPill>
+
+                      <SwitchPill label="Consolidate Items">
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           activeClass="bg-blue-600"
                         />
-                      </div>
+                      </SwitchPill>
                       <button
                         onClick={addProduct}
-                        disabled={isVerified}
+                        disabled={isLocked}
                         className={`inline-flex items-center justify-center h-8 w-8 p-0 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${
-                          isVerified
+                          isLocked
                             ? "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
                             : ""
                         }`}
@@ -4343,6 +4397,14 @@ const TallySalesBillDetail = () => {
                             <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
                               Amount
                             </th>
+                            {/* A discount against this one line, which
+                                comes off before GST is worked out on
+                                it. Different from the bill-level
+                                discount below, which is spread across
+                                every line. */}
+                            <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[90px]">
+                              Discount
+                            </th>
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
                               GST % <span className="text-red-500">*</span>
                             </th>
@@ -4362,7 +4424,7 @@ const TallySalesBillDetail = () => {
                                 <td className="px-3 py-2">
                                   <QuickAddGroup
                                     kind="item"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     title="Item not in the list? Create one"
                                     // Seed the New Item modal with OCR-derived
                                     // fields from this line so the user doesn't retype.
@@ -4374,7 +4436,7 @@ const TallySalesBillDetail = () => {
                                       product.hsn_code || product.hsn || ""
                                     }
                                     className={`relative ${
-                                      !product.item_id && !isVerified
+                                      !product.item_id && !isLocked
                                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                         : ""
                                     }`}
@@ -4393,7 +4455,7 @@ const TallySalesBillDetail = () => {
                                       optionLabelKey="name"
                                       optionValueKey="id"
                                       loading={mastersLoading}
-                                      disabled={isVerified}
+                                      disabled={isLocked}
                                       renderOption={(stockItem) => (
                                         <div className="flex flex-col py-1">
                                           <div className="font-medium text-slate-900 dark:text-white">
@@ -4425,9 +4487,9 @@ const TallySalesBillDetail = () => {
                                     )
                                   }
                                   placeholder="Enter item details..."
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_TEXTAREA} ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -4449,9 +4511,9 @@ const TallySalesBillDetail = () => {
                                   }
                                   placeholder="HSN"
                                   maxLength={16}
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL} font-mono ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -4462,12 +4524,12 @@ const TallySalesBillDetail = () => {
                               <td className="px-3 py-2">
                                 <QuickAddGroup
                                   kind="ledger"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   ledgerDefaultParent="Sales Accounts"
                                   ledgerTitle="Add New Sales Ledger"
                                   title="Ledger not in the list? Create one"
                                   className={`relative ${
-                                    !product.tax_ledger_id && !isVerified
+                                    !product.tax_ledger_id && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -4485,7 +4547,7 @@ const TallySalesBillDetail = () => {
                                     optionLabelKey="name"
                                     optionValueKey="id"
                                     loading={taxLedgersLoading}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     renderOption={(taxLedger) => (
                                       <div className="flex flex-col py-1">
                                         <div className="font-medium text-slate-900 dark:text-white">
@@ -4511,9 +4573,9 @@ const TallySalesBillDetail = () => {
                                     )
                                   }
                                   placeholder="0.00"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_NUM} ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -4535,9 +4597,9 @@ const TallySalesBillDetail = () => {
                                     )
                                   }
                                   placeholder="0"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_NUM} text-center ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -4559,9 +4621,9 @@ const TallySalesBillDetail = () => {
                                     )
                                   }
                                   placeholder="0.00"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_NUM} ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -4577,7 +4639,7 @@ const TallySalesBillDetail = () => {
                                 {(() => {
                                   const taxable = netOfTax(
                                     lineTaxableValue(
-                                      product.amount,
+                                      netLineAmount(product),
                                       taxBasis.gross,
                                       taxBasis.base,
                                     ),
@@ -4596,11 +4658,36 @@ const TallySalesBillDetail = () => {
                                 })()}
                               </td>
 
+                              {/* Line discount */}
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={product.discount ?? ""}
+                                  onChange={(e) =>
+                                    handleProductChange(
+                                      index,
+                                      "discount",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="0.00"
+                                  disabled={isLocked}
+                                  title="Comes off this line before GST is charged on it"
+                                  className={`${CONTROL_NUM} ${
+                                    isLocked
+                                      ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
+                                      : ""
+                                  }`}
+                                />
+                              </td>
+
                               {/* GST % */}
                               <td className="px-3 py-2">
                                 <div
                                   className={`${
-                                    !product.gst && !isVerified
+                                    !product.gst && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -4614,9 +4701,9 @@ const TallySalesBillDetail = () => {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={`${CONTROL_SELECT} text-center ${
-                                      isVerified
+                                      isLocked
                                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                         : ""
                                     }`}
@@ -4644,9 +4731,9 @@ const TallySalesBillDetail = () => {
                                 {products.length > 1 && (
                                   <button
                                     onClick={() => removeProduct(index)}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
-                                      isVerified
+                                      isLocked
                                         ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                         : ""
                                     }`}
@@ -4707,615 +4794,427 @@ const TallySalesBillDetail = () => {
                             })}
                         </span>
                       </div>
-                      {/* Whether that sub-total already holds its GST.
-                          Sits here, not in Adjustments: it is a reading
-                          of the line amounts themselves. An MRP-priced
-                          retail or pharmacy bill is the common case, and
-                          without it those lines get taxed twice. */}
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                          Line amounts
-                        </span>
-                        <TaxBaseToggle
-                          value={billSummaryForm.linesIncludeGst}
-                          disabled={isVerified}
-                          beforeLabel="Include GST"
-                          afterLabel="Before GST"
-                          beforeTitle="The printed line amounts already contain their GST (MRP pricing)"
-                          afterTitle="GST is added on top of the printed line amounts"
-                          onChange={(v) => {
-                            setBillSummaryForm((prev) => ({
-                              ...prev,
-                              linesIncludeGst: v,
-                            }));
-                            setProducts((prev) =>
-                              applyLineTaxes(prev, { linesIncludeGst: v }),
-                            );
-                          }}
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Tax summary by rate (derived from line items, read-only) */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:chart-pie" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    GST Items
-                  </h3>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    Verify GST amount and ledgers
-                  </span>
-
-                  {/* Bill-image reconciliation badge — informational only.
-                      Flags drift between the values printed on the original
-                      invoice and the user-edited line totals. Mismatch
-                      shows in AMBER (warning), not red (error) — it does
-                      NOT block verification. Hidden when the bill image
-                      had no tax values to extract. */}
-                  {billTaxMatch.hasBillValues && (
-                    <span
-                      className={`ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold uppercase tracking-wide ring-1 ${
-                        billTaxMatch.isMatch
-                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-200 dark:ring-emerald-900/60"
-                          : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-900/60"
-                      }`}
-                      title={
-                        billTaxMatch.isMatch
-                          ? "Line item taxes match the values printed on the original bill."
-                          : `Heads-up: line totals differ from the bill image (${billTaxMatch.mismatches
-                              .map(
-                                (k) =>
-                                  `${k.toUpperCase()}: line ${cur}${lineTaxTotals[k].toFixed(2)} vs bill ${cur}${billTaxMatch.billValues[k].toFixed(2)} (Δ ${billTaxMatch.diffs[k] > 0 ? "+" : ""}${cur}${billTaxMatch.diffs[k].toFixed(2)})`,
-                              )
-                              .join(", ")}). This won't block verification — confirm the values are intentional and proceed.`
-                      }
-                    >
-                      <Icon
-                        icon={
-                          billTaxMatch.isMatch
-                            ? "heroicons:check-circle"
-                            : "heroicons:information-circle"
-                        }
-                        className="text-[12px]"
-                      />
-                      {billTaxMatch.isMatch
-                        ? "Matches bill"
-                        : `Differs from bill · ${billTaxMatch.mismatches
-                            .map((k) => k.toUpperCase())
-                            .join(" + ")}`}
-                    </span>
-                  )}
-                </div>
-
-                {/* Detail row on bill mismatch — informational warning,
-                    NOT an error. The operator can verify regardless;
-                    this just surfaces the gap so they can sanity-check. */}
-                {billTaxMatch.hasBillValues && !billTaxMatch.isMatch && (
-                  <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2">
-                    <div className="flex items-start gap-2">
-                      <Icon
-                        icon="heroicons:information-circle"
-                        className="text-amber-600 dark:text-amber-400 text-base mt-0.5 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[12px] font-semibold text-amber-800 dark:text-amber-300 mb-0.5">
-                          Heads-up: GST line totals doesn't match with Bill. Please
-                          verify before proceeding further.
-                        </div>
-                        {/* Correction 45: only the tax types that actually differ.
-                            A row like "IGST Line ₹0.00 · Bill ₹0.00" is
-                            not a discrepancy and reading it as one
-                            sent people hunting for a problem that
-                            was never there. */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-[11px]">
-                          {billTaxMatch.mismatches.map((k) => {
-                            return (
-                              <div
-                                key={k}
-                                className="rounded-md px-2 py-1.5 ring-1 bg-white dark:bg-slate-900 ring-amber-200 dark:ring-amber-900/60"
-                              >
-                                <div className="font-bold uppercase text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">
-                                  {k}
-                                </div>
-                                <div className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                                  Line {cur}{lineTaxTotals[k].toFixed(2)} · Bill {cur}
-                                  {billTaxMatch.billValues[k].toFixed(2)}
-                                </div>
-                                <div className="font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-0.5">
-                                  Δ {billTaxMatch.diffs[k] > 0 ? "+" : ""}{cur}
-                                  {billTaxMatch.diffs[k].toFixed(2)}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
+              {/* Totals.
+                  This one block replaces what used to be two sections —
+                  "GST Items" and "Adjustments" — plus a read-only
+                  summary underneath them. The same six or seven figures
+                  appeared three times on the screen, each time in a
+                  different shape, and the operator had to hold them in
+                  their head to see whether they agreed.
+                  Here each figure appears once, carrying the ledger it
+                  will post to, in the order a printed voucher reads. */}
+              <div className="px-5 py-5 border-b border-slate-200 dark:border-slate-800">
                 {(() => {
-                  // Detect any line that has a GST rate but no rate→ledger mapping configured
-                  const unmappedRates = taxRateRollup
-                    .filter((b) => Number(b.rate) > 0)
-                    .filter((b) => !rateLedgerMap[b.rate]);
-                  const missingMappingRates = unmappedRates
-                    .filter((b) => !isLegacyGstRate(b.rate))
-                    .map((b) => `${Number(b.rate)}%`);
-                  // 12% / 28% no longer have a row in Tally setup, so
-                  // "configure them there" would be a dead end.
-                  const legacyUnmappedRates = unmappedRates
-                    .filter((b) => isLegacyGstRate(b.rate))
-                    .map((b) => `${Number(b.rate)}%`);
+                  const money = (v) => (parseFloat(v) || 0).toFixed(2);
+                  const interState = isInterStateSupply;
 
-                  if (taxRateRollup.length === 0) {
-                    return (
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-[12px] text-slate-500 dark:text-slate-400">
-                        No line items added yet. Add line items above to see the
-                        tax breakdown.
-                      </div>
-                    );
-                  }
-
-                  const isInterState = isInterStateSupply;
-
-                  return (
-                    <>
-                      {missingMappingRates.length > 0 && (
-                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 flex items-start gap-2">
-                          <Icon
-                            icon="heroicons:exclamation-triangle"
-                            className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
-                          />
-                          <div className="text-[12px] text-amber-800 dark:text-amber-300">
-                            <span className="font-semibold">
-                              Missing rate-ledger mapping
-                            </span>{" "}
-                            for {missingMappingRates.join(", ")}. Configure them
-                            in <span className="font-semibold">Tally setup → Tax &amp; Adjustments</span> before verifying.
-                          </div>
-                        </div>
-                      )}
-                      {legacyUnmappedRates.length > 0 && (
-                        <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 flex items-start gap-2">
-                          <Icon
-                            icon="heroicons:exclamation-triangle"
-                            className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
-                          />
-                          <div className="text-[12px] text-amber-800 dark:text-amber-300">
-                            <span className="font-semibold">
-                              {legacyUnmappedRates.join(", ")}{" "}
-                              {legacyUnmappedRates.length > 1
-                                ? "are old GST rates"
-                                : "is an old GST rate"}
-                            </span>{" "}
-                            — from 22 Sep 2025 the slabs are 5%, 18% and 40%.
-                            Check the rate on these lines against the bill. For
-                            an older bill, pick its tax ledgers in the table
-                            below before verifying.
-                          </div>
-                        </div>
-                      )}
-
-                      {(() => {
-                        // All 3 tax columns (IGST · CGST · SGST) stay
-                        // visible. Inapplicable columns shrink to a 38px
-                        // "—" placeholder so the applicable column(s) get
-                        // full editable width (input + ledger dropdown)
-                        // without pushing the Total column out of the card.
-                        const cols = isInterState
-                          ? "grid-cols-1 md:grid-cols-[50px_90px_minmax(190px,1fr)_38px_38px_90px]"
-                          : "grid-cols-1 md:grid-cols-[50px_90px_38px_minmax(190px,1fr)_minmax(190px,1fr)_90px]";
-
-                        // Editable amount + ledger cell. When the tax type
-                        // doesn't apply on this bill (e.g. IGST on an
-                        // intrastate bill) we render just a muted dash so
-                        // the column still appears in the header for
-                        // consistency, while the actual editable widget
-                        // stays out of the way.
-                        const renderEditableTaxCell = (
-                          bucket,
-                          taxType,
-                          { isApplicable, options, mixed },
-                        ) => {
-                          if (!isApplicable) {
-                            return (
-                              <span className="italic text-slate-300 dark:text-slate-600 text-[11px] text-center">
-                                —
-                              </span>
-                            );
-                          }
-                          const amountVal = bucket[taxType] || 0;
-                          const ledgerId = bucket[`${taxType}_ledger_id`];
-                          return (
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                              <div className="flex items-stretch gap-1 min-w-0">
-                                <div className="w-[70px] shrink-0">
-                                  <EditableTaxAmount
-                                    value={amountVal}
-                                    disabled={isVerified}
-                                    onCommit={(v) =>
-                                      handleSummaryTaxAmountChange(
-                                        bucket.rate,
-                                        taxType,
-                                        v,
-                                      )
-                                    }
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-[110px]">
-                                  <SearchableDropdown
-                                    options={options}
-                                    value={ledgerId || null}
-                                    onChange={(id) =>
-                                      handleSummaryTaxLedgerChange(
-                                        bucket.rate,
-                                        taxType,
-                                        id,
-                                      )
-                                    }
-                                    onClear={() =>
-                                      handleSummaryTaxLedgerChange(
-                                        bucket.rate,
-                                        taxType,
-                                        null,
-                                      )
-                                    }
-                                    placeholder={`Select ${taxType.toUpperCase()} ledger…`}
-                                    searchPlaceholder={`Search ${taxType.toUpperCase()} ledgers…`}
-                                    optionLabelKey="name"
-                                    optionValueKey="id"
-                                    disabled={isVerified}
-                                    size="sm"
-                                    className="tax-summary-ledger-dropdown"
-                                  />
-                                </div>
-                              </div>
-                              {mixed && (
-                                <span className="text-[10px] italic text-amber-600 dark:text-amber-400">
-                                  Mixed ledgers across lines
-                                </span>
-                              )}
-                            </div>
-                          );
-                        };
-
-                        return (
-                          // overflow-visible (not -hidden) so the inline
-                          // ledger dropdown panel can render outside the
-                          // card without getting clipped.
-                          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
-                            <div
-                              className={`hidden md:grid ${cols} gap-2 px-2 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg`}
-                            >
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                Rate
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                Taxable ({cur})
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                IGST
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                CGST
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                SGST
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 text-right">
-                                Total ({cur})
-                              </span>
-                            </div>
-
-                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                              {taxRateRollup.map((b) => {
-                                const isZeroRate =
-                                  Number(b.rate) === 0 ||
-                                  b.rate === "Exempted" ||
-                                  b.rate === "N/A";
-                                const rowTotal = isZeroRate
-                                  ? 0
-                                  : isInterState
-                                    ? b.igst || 0
-                                    : (b.cgst || 0) + (b.sgst || 0);
-                                return (
-                                  <div
-                                    key={b.rate}
-                                    className={`grid ${cols} gap-2 px-2 py-2 items-center`}
-                                  >
-                                    <span className="inline-flex w-fit items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[11px] font-bold">
-                                      {Number(b.rate)}%
-                                    </span>
-                                    <span className="text-[12px] font-mono text-slate-900 dark:text-white pt-[2px]">
-                                      {cur}{b.taxable.toFixed(2)}
-                                    </span>
-                                    {renderEditableTaxCell(b, "igst", {
-                                      isApplicable: !isZeroRate && isInterState,
-                                      options: igstLedgerOptions,
-                                      mixed: b.igst_ledger_mixed,
-                                    })}
-                                    {renderEditableTaxCell(b, "cgst", {
-                                      isApplicable: !isZeroRate && !isInterState,
-                                      options: cgstLedgerOptions,
-                                      mixed: b.cgst_ledger_mixed,
-                                    })}
-                                    {renderEditableTaxCell(b, "sgst", {
-                                      isApplicable: !isZeroRate && !isInterState,
-                                      options: sgstLedgerOptions,
-                                      mixed: b.sgst_ledger_mixed,
-                                    })}
-                                    <span className="text-[13px] font-mono font-semibold text-slate-900 dark:text-white text-right pt-[2px]">
-                                      {cur}{rowTotal.toFixed(2)}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            <div
-                              className={`grid ${cols} gap-2 px-2 py-2.5 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t border-blue-100 dark:border-blue-900/60 rounded-b-lg`}
-                            >
-                              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
-                                Total
-                              </span>
-                              <span className="text-[12px] font-mono text-blue-700 dark:text-blue-400">
-                                {cur}
-                                {taxRateRollup
-                                  .reduce((s, b) => s + b.taxable, 0)
-                                  .toFixed(2)}
-                              </span>
-                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
-                                {isInterState
-                                  ? `${cur}${lineTaxTotals.igst.toFixed(2)}`
-                                  : "—"}
-                              </span>
-                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
-                                {!isInterState
-                                  ? `${cur}${lineTaxTotals.cgst.toFixed(2)}`
-                                  : "—"}
-                              </span>
-                              <span className="text-[13px] font-mono font-bold text-blue-700 dark:text-blue-400">
-                                {!isInterState
-                                  ? `${cur}${lineTaxTotals.sgst.toFixed(2)}`
-                                  : "—"}
-                              </span>
-                              <span className="text-[14px] font-mono font-bold text-blue-700 dark:text-blue-400 text-right">
-                                {cur}
-                                {(isInterState
-                                  ? lineTaxTotals.igst
-                                  : lineTaxTotals.cgst + lineTaxTotals.sgst
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </>
+                  const subtotal = products.reduce(
+                    (sum, p) => sum + (parseFloat(p.amount) || 0),
+                    0,
                   );
-                })()}
-              </div>
+                  // Summed over every line, not over the rate buckets.
+                  // ``taxRateRollup`` drops any line whose GST rate is
+                  // not set yet, so taking the sub-total from it made
+                  // such a line vanish from the sub-total entirely the
+                  // moment the inclusive switch was turned on — not
+                  // just its tax, its whole amount. A line with no rate
+                  // is simply taxed at nothing, so netOfTax returns it
+                  // unchanged.
+                  const taxable = products.reduce(
+                    (sum, p) =>
+                      sum +
+                      netOfTax(
+                        lineTaxableValue(
+                          netLineAmount(p),
+                          taxBasis.gross,
+                          taxBasis.base,
+                        ),
+                        p.gst,
+                        taxBasis.inclusive,
+                      ),
+                    0,
+                  );
 
-              {/* Bill Summary - Tax and Other Items */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:calculator" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Adjustments
-                  </h3>
-                </div>
+                  const rated = taxRateRollup.filter(
+                    (b) => Number(b.rate) > 0,
+                  );
 
-                {(() => {
-                  const amountCls =
-                    "w-full px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+                  const unmapped = rated
+                    .filter((b) =>
+                      interState
+                        ? !b.igst_ledger_id
+                        : !b.cgst_ledger_id || !b.sgst_ledger_id,
+                    )
+                    .map((b) => `${Number(b.rate)}%`);
 
-                  // CGST / SGST / IGST were removed from this panel — they are
-                  // now derived per-line item from the GST rate column (read-only
-                  // rollup is rendered above this block). Only the bill-level
-                  // adjustments (cess, discount, freight, round-off) remain
-                  // editable here.
-                  const rows = [
-                    { key: "cess", label: "Cess", required: parseFloat(billSummaryForm.cess || 0) > 0, missing: isCessLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.cessLedgerId, onSelect: handleCessLedgerSelect, onClear: handleCessLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Cess ledger" },
-                    { key: "discount", label: "Discount", taxBase: "discount", required: parseFloat(billSummaryForm.discount || 0) !== 0, missing: parseFloat(billSummaryForm.discount || 0) !== 0 && !billSummaryForm.discountLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.discountLedgerId, onSelect: handleDiscountLedgerSelect, onClear: handleDiscountLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Discount ledger" },
-                    { key: "freight", label: "Freight / Delivery", taxBase: "freight", required: parseFloat(billSummaryForm.freight || 0) > 0, missing: isFreightLedgerRequired(), options: discountLedgerOptions, ledgerId: billSummaryForm.freightLedgerId, onSelect: handleFreightLedgerSelect, onClear: handleFreightLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Freight ledger" },
-                    { key: "round_off", label: "Round off", required: parseFloat(billSummaryForm.round_off || 0) !== 0, missing: parseFloat(billSummaryForm.round_off || 0) !== 0 && !billSummaryForm.roundOffLedgerId && !isVerified, options: discountLedgerOptions, ledgerId: billSummaryForm.roundOffLedgerId, onSelect: handleRoundOffLedgerSelect, onClear: handleRoundOffLedgerClear, loading: purchaseLedgersLoading || expenseLedgersLoading, placeholder: "Round-off ledger" },
+                  const ADJUSTMENTS = [
+                    {
+                      key: "cess",
+                      label: "Cess",
+                      ledgerId: billSummaryForm.cessLedgerId,
+                      onSelect: handleCessLedgerSelect,
+                      onClear: handleCessLedgerClear,
+                      placeholder: "Cess ledger",
+                      needsLedger: isCessLedgerRequired(),
+                    },
+                    {
+                      key: "discount",
+                      label: "Discount",
+                      taxBase: "discount",
+                      ledgerId: billSummaryForm.discountLedgerId,
+                      onSelect: handleDiscountLedgerSelect,
+                      onClear: handleDiscountLedgerClear,
+                      placeholder: "Discount ledger",
+                      needsLedger:
+                        parseFloat(billSummaryForm.discount || 0) !== 0 &&
+                        !billSummaryForm.discountLedgerId &&
+                        !isLocked,
+                    },
+                    {
+                      key: "freight",
+                      label: "Freight / delivery",
+                      taxBase: "freight",
+                      ledgerId: billSummaryForm.freightLedgerId,
+                      onSelect: handleFreightLedgerSelect,
+                      onClear: handleFreightLedgerClear,
+                      placeholder: "Freight ledger",
+                      needsLedger: isFreightLedgerRequired(),
+                    },
+                    {
+                      key: "round_off",
+                      label: "Round off",
+                      ledgerId: billSummaryForm.roundOffLedgerId,
+                      onSelect: handleRoundOffLedgerSelect,
+                      onClear: handleRoundOffLedgerClear,
+                      placeholder: "Round-off ledger",
+                      needsLedger:
+                        parseFloat(billSummaryForm.round_off || 0) !== 0 &&
+                        !billSummaryForm.roundOffLedgerId &&
+                        !isLocked,
+                    },
                   ];
 
-                  return (
-                    // overflow-visible (not -hidden) so the inline ledger
-                    // dropdown panels can render outside the card without
-                    // getting clipped.
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible">
-                      {/* Header */}
-                      <div className="hidden md:grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 rounded-t-lg">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Other items</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Amount ({cur})</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Ledger account</span>
-                      </div>
-
-                      {/* Rows */}
-                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {rows.map((r) => (
-                          <div
-                            key={r.key}
-                            className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-2 items-center"
-                          >
-                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex flex-col items-start gap-0.5">
-                              <span className="flex items-center gap-1">
-                              {r.label}
-                              {r.required && <span className="text-rose-500">*</span>}
-                              {r.key === "round_off" &&
-                                !isVerified &&
-                                billTotalMatch.hasBillValue &&
-                                !billTotalMatch.isMatch && (
-                                  <button
-                                    type="button"
-                                    onClick={handleAutoFillRoundOff}
-                                    title={`Auto-fill so total matches bill (${cur}${billTotalMatch.billTotal.toFixed(2)})`}
-                                    className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-amber-100 dark:hover:bg-amber-950/60 cursor-pointer"
-                                  >
-                                    <Icon icon="heroicons:sparkles" className="text-[11px]" />
-                                    Auto-fill
-                                  </button>
-                                )}
-                              </span>
-                              {/* Only on the two rows where it changes
-                                  the GST base. Shown even at a zero
-                                  amount: an operator correcting the
-                                  amount needs to set the basis too. */}
-                              {r.taxBase === "discount" && (
-                                <TaxBaseToggle
-                                  value={billSummaryForm.discountBeforeTax}
-                                  disabled={isVerified}
-                                  beforeTitle="Discount comes off the sub-total, then GST is charged on what is left"
-                                  afterTitle="GST is charged on the full sub-total, then the discount comes off the total"
-                                  onChange={(v) => {
-                                    setBillSummaryForm((prev) => ({
-                                      ...prev,
+                  // A row with no amount is not part of this bill, so it
+                  // shows as an "add" link instead of four empty
+                  // controls. Every bill used to carry all four whether
+                  // it had them or not.
+                  const used = ADJUSTMENTS.filter(
+                    (r) =>
+                      parseFloat(billSummaryForm[r.key] || 0) !== 0 ||
+                      openAdjustments.includes(r.key),
+                  );
+                  const unused = ADJUSTMENTS.filter(
+                    (r) => !used.includes(r),
+                  );
+                  // One adjustment row. Pulled out of the map so the
+                  // pre-tax ones can be rendered above the tax lines
+                  // and the rest below, from the same definition.
+                  const adjustmentLine = (row) => (
+                        <TotalLine
+                          key={row.key}
+                          label={row.label}
+                          control={ledgerPick(row)}
+                          extra={
+                            row.taxBase === "discount" ? (
+                              <TaxBaseToggle
+                                value={billSummaryForm.discountBeforeTax}
+                                disabled={isLocked}
+                                beforeTitle="Discount comes off the sub-total, then GST is charged on what is left"
+                                afterTitle="GST is charged on the full sub-total, then the discount comes off the total"
+                                onChange={(v) => {
+                                  setBillSummaryForm((prev) => ({
+                                    ...prev,
+                                    discountBeforeTax: v,
+                                  }));
+                                  setProducts((prev) =>
+                                    applyLineTaxes(prev, {
                                       discountBeforeTax: v,
-                                    }));
-                                    setProducts((prev) =>
-                                      applyLineTaxes(prev, {
-                                        discountBeforeTax: v,
-                                      }),
-                                    );
-                                  }}
-                                />
-                              )}
-                              {r.taxBase === "freight" && (
-                                <TaxBaseToggle
-                                  value={billSummaryForm.freightTaxable}
-                                  disabled={isVerified}
-                                  beforeTitle="Freight is part of the value GST is charged on"
-                                  afterTitle="Freight is added to the total after GST"
-                                  onChange={(v) => {
-                                    setBillSummaryForm((prev) => ({
-                                      ...prev,
-                                      freightTaxable: v,
-                                    }));
-                                    setProducts((prev) =>
-                                      applyLineTaxes(prev, {
-                                        freightTaxable: v,
-                                      }),
-                                    );
-                                  }}
-                                />
-                              )}
-                            </label>
+                                    }),
+                                  );
+                                }}
+                              />
+                            ) : row.taxBase === "freight" ? (
+                              <TaxBaseToggle
+                                value={billSummaryForm.freightTaxable}
+                                disabled={isLocked}
+                                beforeTitle="Freight is part of the value GST is charged on"
+                                afterTitle="Freight is added to the total after GST"
+                                onChange={(v) => {
+                                  setBillSummaryForm((prev) => ({
+                                    ...prev,
+                                    freightTaxable: v,
+                                  }));
+                                  setProducts((prev) =>
+                                    applyLineTaxes(prev, { freightTaxable: v }),
+                                  );
+                                }}
+                              />
+                            ) : row.key === "round_off" &&
+                              !isLocked &&
+                              billTotalMatch.hasBillValue &&
+                              !billTotalMatch.isMatch ? (
+                              <button
+                                type="button"
+                                onClick={handleAutoFillRoundOff}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-amber-100 cursor-pointer"
+                                title={`Auto-fill so the total matches the bill (${cur}${billTotalMatch.billTotal.toFixed(2)})`}
+                              >
+                                Auto-fill
+                              </button>
+                            ) : null
+                          }
+                          amount={
                             <input
                               type="number"
-                              name={r.key}
-                              value={billSummaryForm[r.key]}
-                              onChange={(e) => handleBillSummaryChange(r.key, e.target.value)}
-                              placeholder="0.00"
-                              disabled={isVerified}
-                              className={amountCls}
-                            />
-                            <QuickAddGroup
-                              kind="ledger"
-                              disabled={isVerified}
-                              ledgerDefaultParent={r.quickAddParent || "Indirect Expenses"}
-                              ledgerTitle={`Add New ${r.label} Ledger`}
-                              title="Ledger not in the list? Create one"
-                              onCreated={(ledger) =>
-                                ledger?.id && r.onSelect(ledger.id)
+                              step="0.01"
+                              value={billSummaryForm[row.key]}
+                              onChange={(e) =>
+                                handleBillSummaryChange(row.key, e.target.value)
                               }
-                              className={`relative ${
-                                r.missing && !isVerified
-                                  ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                                  : ""
-                              }`}
-                            >
-                              <SearchableDropdown
-                                triggerClassName="rounded-r-none"
-                                options={r.options}
-                                value={r.ledgerId || null}
-                                onChange={r.onSelect}
-                                onClear={r.onClear}
-                                placeholder={
-                                  r.required ? `Select ${r.placeholder}*` : `Select ${r.placeholder}`
-                                }
-                                searchPlaceholder={`Search ${r.placeholder.toLowerCase()}…`}
-                                optionLabelKey="name"
-                                optionValueKey="id"
-                                loading={r.loading}
-                                disabled={isVerified}
-                                renderOption={(ledger) => (
-                                  <div className="flex flex-col py-1">
-                                    <div className="font-medium text-slate-900 dark:text-white text-sm">
-                                      {ledger.name}
-                                    </div>
-                                  </div>
-                                )}
-                                className="text-xs"
-                              />
-                            </QuickAddGroup>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Total row */}
-                      <div className="grid grid-cols-[140px_160px_1fr] gap-3 px-3 py-3 items-center bg-blue-50/60 dark:bg-blue-950/30 border-t-2 border-blue-100 dark:border-blue-900/60 rounded-b-lg">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-400">
-                          Total amount
-                        </span>
-                        <input
-                          type="number"
-                          name="total"
-                          value={billSummaryForm.total}
-                          readOnly
-                          tabIndex={-1}
-                          placeholder="0.00"
-                          title="Computed automatically from subtotal + taxes + adjustments"
-                          className={`${CONTROL_READONLY} font-mono tabular-nums font-bold text-blue-700 dark:text-blue-400 ${
-                            billTotalMatch.hasBillValue && !billTotalMatch.isMatch
-                              ? "border-amber-300 dark:border-amber-700 ring-1 ring-amber-200 dark:ring-amber-900/60"
-                              : "border-blue-200 dark:border-blue-900/60"
-                          }`}
-                        />
-                        {/* Caption — switches to an amber heads-up when
-                            the computed total drifts from the OCR-extracted
-                            invoice total by more than ±₹1. Informational
-                            only; does not block verification. */}
-                        {billTotalMatch.hasBillValue &&
-                        !billTotalMatch.isMatch ? (
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span
-                              className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-900/60 text-[10.5px] font-bold uppercase tracking-wide"
-                              title={`Computed total ${cur}${billTotalMatch.computedTotal.toFixed(2)} differs from the invoice total on the bill (${cur}${billTotalMatch.billTotal.toFixed(2)}) by ${billTotalMatch.diff > 0 ? "+" : ""}${cur}${billTotalMatch.diff.toFixed(2)}. This won't block verification.`}
-                            >
-                              <Icon
-                                icon="heroicons:information-circle"
-                                className="text-[12px]"
-                              />
-                              Differs from bill total
-                            </span>
-                            <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 truncate">
-                              Bill {cur}{billTotalMatch.billTotal.toFixed(2)} · Δ{" "}
-                              {billTotalMatch.diff > 0 ? "+" : ""}{cur}
-                              {billTotalMatch.diff.toFixed(2)}
-                            </span>
-                          </div>
-                        ) : billTotalMatch.hasBillValue ? (
-                          <span className="inline-flex w-fit items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-900/60 text-[10.5px] font-bold uppercase tracking-wide">
-                            <Icon
-                              icon="heroicons:check-circle"
-                              className="text-[12px]"
+                              placeholder="0.00"
+                              disabled={isLocked}
+                              className={TOTALS_AMOUNT}
                             />
-                            Matches bill total
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-blue-700/80 dark:text-blue-400/80">
-                            Auto-calculated · Subtotal + taxes + adjustments
-                          </span>
+                          }
+                        />
+                  );
+
+                  // A discount taken before GST, or freight that is
+                  // taxed, belongs ABOVE the tax lines — that is what
+                  // 'Before GST' means, and showing them underneath
+                  // said the opposite of the label beside them.
+                  const preTax = used.filter(
+                    (r) =>
+                      (r.key === "discount" &&
+                        billSummaryForm.discountBeforeTax) ||
+                      (r.key === "freight" &&
+                        billSummaryForm.freightTaxable),
+                  );
+                  const postTax = used.filter(
+                    (r) => !preTax.includes(r),
+                  );
+
+
+                  const ledgerPick = (row) => (
+                    <QuickAddGroup
+                      kind="ledger"
+                      disabled={isLocked}
+                      title="Ledger not in the list? Create one"
+                      className={
+                        row.needsLedger
+                          ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                          : ""
+                      }
+                    >
+                      <SearchableDropdown
+                        options={discountLedgerOptions}
+                        value={row.ledgerId || null}
+                        onChange={row.onSelect}
+                        onClear={row.onClear}
+                        placeholder={row.placeholder}
+                        searchPlaceholder="Search ledgers…"
+                        optionLabelKey="name"
+                        optionValueKey="id"
+                        loading={purchaseLedgersLoading || expenseLedgersLoading}
+                        disabled={isLocked}
+                        size="sm"
+                        triggerClassName="rounded-r-none"
+                      />
+                    </QuickAddGroup>
+                  );
+
+                  const taxPick = (bucket, taxType, options) => (
+                    <SearchableDropdown
+                      options={options}
+                      value={bucket[`${taxType}_ledger_id`] || null}
+                      onChange={(id) =>
+                        handleSummaryTaxLedgerChange(bucket.rate, taxType, id)
+                      }
+                      onClear={() =>
+                        handleSummaryTaxLedgerChange(bucket.rate, taxType, null)
+                      }
+                      placeholder={`${taxType.toUpperCase()} ledger`}
+                      searchPlaceholder={`Search ${taxType.toUpperCase()} ledgers…`}
+                      optionLabelKey="name"
+                      optionValueKey="id"
+                      disabled={isLocked}
+                      size="sm"
+                    />
+                  );
+
+                  const diff = billTotalMatch.diff;
+                  const agrees = billTotalMatch.isMatch;
+
+                  return (
+                    <div className="flex justify-end">
+                      <div className="w-full lg:max-w-[640px]">
+                        {unmapped.length > 0 && (
+                          <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-300">
+                            <span className="font-semibold">
+                              No tax ledger mapped
+                            </span>{" "}
+                            for {unmapped.join(", ")}. Set it once in{" "}
+                            <span className="font-semibold">
+                              Tally setup → Tax &amp; Adjustments
+                            </span>{" "}
+                            and every bill at that rate is done.
+                          </div>
+                        )}
+
+                        <TotalLine
+                          label="Sub Total"
+                          note={`${products.length} item${products.length === 1 ? "" : "s"}`}
+                          cur={cur}
+                          value={money(subtotal)}
+                        />
+
+                        {totalLineDiscount(products) > 0 && (
+                          <TotalLine
+                            label="Line discounts"
+                            note="already off each line"
+                            cur={cur}
+                            value={`-${money(totalLineDiscount(products))}`}
+                          />
+                        )}
+
+                        {/* Anything taken before GST is applied comes
+                            first, then the value GST is actually worked
+                            out on, then the tax. Read in that order the
+                            stack proves its own arithmetic; the pre-tax
+                            discount used to sit below the tax lines,
+                            which said the opposite of its own label. */}
+                        {preTax.map(adjustmentLine)}
+
+                        {/* Only on a mixed-rate bill, and only when it
+                            differs from the sub-total. On a single-rate
+                            bill the tax rows below already say what
+                            they were charged on, so this would be the
+                            same figure a third time. */}
+                        {rated.length > 1 &&
+                          (preTax.length > 0 ||
+                            billSummaryForm.linesIncludeGst) && (
+                          <TotalLine
+                            label="Taxable value"
+                            note="what GST is charged on"
+                            cur={cur}
+                            value={money(taxable)}
+                          />
+                        )}
+
+                        {rated.length === 0 && (
+                          <TotalLine
+                            label="GST"
+                            note="no taxable lines"
+                            cur={cur}
+                            value="0.00"
+                          />
+                        )}
+
+                        {rated.map((b) =>
+                          interState ? (
+                            <TotalLine
+                              key={`igst-${b.rate}`}
+                              label="IGST"
+                              rate={`${Number(b.rate)}% on ${cur}${(b.taxable || 0).toFixed(2)}`}
+                              cur={cur}
+                              control={taxPick(b, "igst", igstLedgerOptions)}
+                              amount={
+                                <EditableTaxAmount
+                                  value={b.igst || 0}
+                                  disabled={isLocked}
+                                  onCommit={(v) =>
+                                    handleSummaryTaxAmountChange(b.rate, "igst", v)
+                                  }
+                                />
+                              }
+                            />
+                          ) : (
+                            <React.Fragment key={`gst-${b.rate}`}>
+                              <TotalLine
+                                label="CGST"
+                                rate={`${Number(b.rate)}% on ${cur}${(b.taxable || 0).toFixed(2)}`}
+                                cur={cur}
+                                control={taxPick(b, "cgst", cgstLedgerOptions)}
+                                amount={
+                                  <EditableTaxAmount
+                                    value={b.cgst || 0}
+                                    disabled={isLocked}
+                                    onCommit={(v) =>
+                                      handleSummaryTaxAmountChange(b.rate, "cgst", v)
+                                    }
+                                  />
+                                }
+                              />
+                              <TotalLine
+                                label="SGST"
+                                rate={`${Number(b.rate)}% on ${cur}${(b.taxable || 0).toFixed(2)}`}
+                                cur={cur}
+                                control={taxPick(b, "sgst", sgstLedgerOptions)}
+                                amount={
+                                  <EditableTaxAmount
+                                    value={b.sgst || 0}
+                                    disabled={isLocked}
+                                    onCommit={(v) =>
+                                      handleSummaryTaxAmountChange(b.rate, "sgst", v)
+                                    }
+                                  />
+                                }
+                              />
+                            </React.Fragment>
+                          ),
+                        )}
+
+                        {postTax.map(adjustmentLine)}
+
+                        {unused.length > 0 && !isLocked && (
+                          <div className="flex flex-wrap gap-2 py-2">
+                            {unused.map((row) => (
+                              <button
+                                key={row.key}
+                                type="button"
+                                onClick={() =>
+                                  setOpenAdjustments((prev) => [...prev, row.key])
+                                }
+                                className="text-[11.5px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                              >
+                                + {row.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        <TotalLine
+                          grand
+                          label="Total"
+                          cur={cur}
+                          value={money(billSummaryForm.total)}
+                        />
+
+                        {billTotalMatch.hasBillValue && (
+                          <>
+                            <TotalLine
+                              compare
+                              label="Printed on the bill"
+                              cur={cur}
+                              value={billTotalMatch.billTotal.toFixed(2)}
+                            />
+                            <TotalLine
+                              compare
+                              label="Difference"
+                              cur={agrees ? "" : cur}
+                              tone={agrees ? "ok" : "bad"}
+                              value={
+                                agrees
+                                  ? "none — matches the bill"
+                                  : `${diff > 0 ? "+" : "−"}${Math.abs(diff).toFixed(2)}`
+                              }
+                            />
+                          </>
                         )}
                       </div>
                     </div>
@@ -5327,9 +5226,6 @@ const TallySalesBillDetail = () => {
               <div className="p-5">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                      <Icon icon="heroicons:pencil-square" className="text-sm" />
-                    </span>
                     <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                       Notes
                     </label>
@@ -5347,9 +5243,9 @@ const TallySalesBillDetail = () => {
                       }/tally/sales-bill/${billId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
-                    disabled={isVerified}
+                    disabled={isLocked}
                     className={`${CONTROL_TEXTAREA} h-24 ${
-                      isVerified
+                      isLocked
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
@@ -5358,7 +5254,6 @@ const TallySalesBillDetail = () => {
                   />
                 </div>
               </div>
-            </div>
 
             {/* Approval. Renders nothing unless the workspace has
                 require_bill_approval on, so this is invisible by default. */}
@@ -5369,9 +5264,7 @@ const TallySalesBillDetail = () => {
               />
             </div>
 
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
 
       <CurrencyPanel
@@ -5384,7 +5277,7 @@ const TallySalesBillDetail = () => {
         exchangeRateSource={tallyAnalysedData?.exchange_rate_source}
         exchangeRateReference={tallyAnalysedData?.exchange_rate_reference}
         exchangeRateAt={tallyAnalysedData?.exchange_rate_at}
-        disabled={isVerified}
+        disabled={isLocked}
         onChanged={() => refetch()}
       />
 

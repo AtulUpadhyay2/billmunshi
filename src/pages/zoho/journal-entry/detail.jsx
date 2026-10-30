@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import { currencySymbol } from "@/utils/currency";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -22,7 +33,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 const ZohoJournalEntryDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -30,6 +41,8 @@ const ZohoJournalEntryDetail = () => {
   const navigate = useNavigate();
   const { id: journalEntryId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
+  // Zoho bills carry no currency of their own, so they are rupees.
+  const cur = currencySymbol();
 
   // Form state for journal entry information
   const [journalEntryForm, setJournalEntryForm] = useState({
@@ -85,6 +98,10 @@ const ZohoJournalEntryDetail = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, and whether the scan pane is
+  // open. Both are view state only.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
 
   // State for verification loading
   const [isVerifying, setIsVerifying] = useState(false);
@@ -155,7 +172,10 @@ const ZohoJournalEntryDetail = () => {
     journalInfo?.status === "Synced" || journalInfo?.status === "Posted";
 
   // Allow editing for verified bills (user can verify multiple times)
-  const isVerified = isSynced; // Only truly locked after sync
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted, because after that the figures are history.
+  const isLocked = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isVendorRequired = !journalEntryForm.selectedVendor;
@@ -926,7 +946,7 @@ const ZohoJournalEntryDetail = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={isVerifying || isVerified || hasValidationErrors()}
+            disabled={isVerifying || isLocked || hasValidationErrors()}
             className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60 hover:bg-blue-100 dark:hover:bg-blue-950/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all cursor-pointer"
             title={
               isVerifying
@@ -946,12 +966,12 @@ const ZohoJournalEntryDetail = () => {
           <button
             type="button"
             onClick={handleSync}
-            disabled={isSyncing || isVerified || journalInfo?.status !== "Verified"}
+            disabled={isSyncing || isLocked || journalInfo?.status !== "Verified"}
             className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
             title={
               isSyncing
                 ? "Syncing…"
-                : isVerified
+                : isLocked
                   ? "Entry already synced"
                   : journalInfo?.status !== "Verified"
                     ? "Entry must be verified before sync"
@@ -964,244 +984,20 @@ const ZohoJournalEntryDetail = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-        {/* legacy-block-removed-start */}
-        {false && (
-          <div className="hidden">
-            <button
-              onClick={handleBackClick}
-              title="Back"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={journalEntryId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+                  <BillChecks
+                  blockers={getValidationErrorMessages()}
+                  isLocked={isLocked}
                 />
-              </svg>
-              Back
-            </button>
-            <button
-              onClick={() =>
-                navigate(`/zoho/journal-entry/${journalEntryData?.next_bill}`)
-              }
-              disabled={!journalEntryData?.next_bill}
-              className="group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                journalEntryData?.next_bill
-                  ? "Go to next entry"
-                  : "No next entry available"
-              }
-            >
-              Next
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isVerifying || isVerified || hasValidationErrors()}
-              className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isVerified
-                  ? "bg-gray-400 hover:bg-gray-400"
-                  : hasValidationErrors()
-                    ? "bg-gray-400 hover:bg-gray-400"
-                    : ""
-              }`}
-              title={
-                isVerifying
-                  ? "Verifying..."
-                  : isSynced
-                    ? "Entry already synced/posted - cannot verify again"
-                    : hasValidationErrors()
-                      ? "Please select vendor and chart of accounts for all items"
-                      : journalInfo?.status === "Verified"
-                        ? "Re-verify Entry (you can verify multiple times)"
-                        : "Verify Entry"
-              }
-            >
-              {isVerifying ? (
-                <svg
-                  className="w-4 h-4 animate-spin"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              ) : isVerified ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              )}
-              {isVerifying
-                ? "Verifying..."
-                : journalInfo?.status === "Verified"
-                  ? "Re-verify"
-                  : "Verify"}
-            </button>
-            {/* Sync Button - Always show but only enable when status is Verified */}
-            <button
-              onClick={handleSync}
-              disabled={
-                isSyncing || isVerified || journalInfo?.status !== "Verified"
-              }
-              className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200 active:scale-95 ${
-                isSyncing || isVerified || journalInfo?.status !== "Verified"
-                  ? "text-slate-400 dark:text-slate-500 bg-gray-25 border-slate-100 dark:border-slate-800 cursor-not-allowed opacity-75"
-                  : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:border-slate-700 hover:shadow-md focus:ring-slate-500"
-              }`}
-              title={
-                isSyncing
-                  ? "Syncing in progress..."
-                  : isVerified
-                    ? "Entry already synced/posted"
-                    : journalInfo?.status !== "Verified"
-                      ? "Entry must be verified before sync"
-                      : "Sync with Zoho"
-              }
-            >
-              {isSyncing ? (
-                <svg
-                  className="w-4 h-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                  className="w-4 h-4 group-hover:scale-110 transition-transform duration-200"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                  />
-                </svg>
-              )}
-              {isSyncing ? "Syncing..." : "Sync"}
-            </button>
-          </div>
-        )}
-        {/* legacy-block-removed-end */}
-        {/* Bootstrap-style Error Alert */}
-        {errorAlert.show && (
-          <div
-            className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg relative"
-            role="alert"
-          >
-            <div className="flex items-start">
-              <svg
-                className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="flex-1">
-                <strong className="font-medium">Verification Error:</strong>
-                <div className="mt-1 text-sm">{errorAlert.message}</div>
-              </div>
-              <button
-                onClick={() => setErrorAlert({ show: false, message: "" })}
-                className="ml-4 text-red-500 hover:text-red-700 focus:outline-none"
-                aria-label="Close alert"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {journalInfo?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -1421,210 +1217,84 @@ const ZohoJournalEntryDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scrollable Content Column */}
-          <div className="lg:w-2/3">
+        }
+      >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
-              {/* Bill Information Section */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:document-text" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Bill Information
-                  </h3>
-                </div>
-
-                {/* What the Verify button is waiting on, and nothing
-                    else — the advisory checks are deliberately not shown. */}
-                {/* Approval. Renders nothing unless the workspace has
-                    require_bill_approval on, so this is invisible by default. */}
-                <div className="mb-3">
-                  <ApprovalPanel
-                    organizationId={selectedOrganization?.id}
-                    billId={billId}
-                  />
-                </div>
-
-                <BillChecks
-                  blockers={getValidationErrorMessages()}
-                  isVerified={isVerified}
-                />
-
-                {/* Bill Form Fields */}
-                <div className="space-y-3">
-                  {/* First Row: Vendor and Bill Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Vendor Selection Field */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Vendor <span className="text-rose-500">*</span>
-                      </label>
-                      <div
-                        className={`${
-                          isVendorRequired && !isVerified
-                            ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                            : ""
-                        }`}
-                      >
-                        <SearchableDropdown
-                          options={vendorsData?.results || []}
-                          value={journalEntryForm.selectedVendor?.id || null}
-                          onChange={handleVendorSelect}
-                          onClear={handleVendorClear}
-                          placeholder="Search and select vendor..."
-                          searchPlaceholder="Type to search vendors..."
-                          optionLabelKey="companyName"
-                          optionValueKey="id"
-                          loading={vendorsLoading}
-                          disabled={isVerified}
-                          renderOption={(vendor) => (
-                            <div className="flex flex-col py-1">
-                              <div className="font-medium text-slate-900 dark:text-white text-sm">
-                                {vendor.companyName}
-                              </div>
-                              {vendor.gstNo && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  GST: {vendor.gstNo}
-                                </div>
-                              )}
+              {/* The voucher opens the way the paper does: the party
+                  on the left, what it comes to on the right. The name
+                  IS the picker. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Party
+                  </div>
+                  <div
+                    className={`${
+                      isVendorRequired && !isLocked
+                        ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                        : ""
+                    }`}
+                  >
+                    <SearchableDropdown
+                      options={vendorsData?.results || []}
+                      value={journalEntryForm.selectedVendor?.id || null}
+                      onChange={handleVendorSelect}
+                      onClear={handleVendorClear}
+                      placeholder="Search and select vendor..."
+                      searchPlaceholder="Type to search vendors..."
+                      optionLabelKey="companyName"
+                      optionValueKey="id"
+                      loading={vendorsLoading}
+                      disabled={isLocked}
+                      renderOption={(vendor) => (
+                        <div className="flex flex-col py-1">
+                          <div className="font-medium text-slate-900 dark:text-white text-sm">
+                            {vendor.companyName}
+                          </div>
+                          {vendor.gstNo && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              GST: {vendor.gstNo}
                             </div>
                           )}
-                          className="mb-2"
-                        />
+                        </div>
+                      )}
+                      className="mb-2"
+                    />
+                  </div>
+
+                  {/* Organization Mismatch Warning */}
+                  {journalEntryForm.selectedVendor &&
+                    journalEntryForm.selectedVendor.organization_id !==
+                      selectedOrganization?.id && (
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
+                        <svg
+                          className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <span>
+                          <strong>Warning:</strong> The selected vendor
+                          belongs to a different organization. This may
+                          cause issues during sync.
+                        </span>
                       </div>
+                    )}
 
-                      {/* Organization Mismatch Warning */}
-                      {journalEntryForm.selectedVendor &&
-                        journalEntryForm.selectedVendor.organization_id !==
-                          selectedOrganization?.id && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-700 flex items-start gap-2">
-                            <svg
-                              className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                              />
-                            </svg>
-                            <span>
-                              <strong>Warning:</strong> The selected vendor
-                              belongs to a different organization. This may
-                              cause issues during sync.
-                            </span>
-                          </div>
-                        )}
-
-                      {/* Vendor Not Found Warning */}
-                      {analysedData?.from?.name &&
-                        !journalEntryForm.selectedVendor && (
-                          <div className="mt-3">
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                              <svg
-                                className="w-3 h-3 mr-1.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                                />
-                              </svg>
-                              Vendor not found in the list, please add new
-                              vendor
-                            </div>
-                          </div>
-                        )}
-                    </div>
-
-                    {/* Bill Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Bill Number
-                      </label>
-                      <input
-                        type="text"
-                        name="referenceNumber"
-                        value={journalEntryForm.referenceNumber}
-                        onChange={(e) =>
-                          handleFormChange("referenceNumber", e.target.value)
-                        }
-                        placeholder="Enter bill number"
-                        disabled={isVerified}
-                        className={`${CONTROL} ${
-                          isVerified
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                            : ""
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Second Row: GST, Bill Date, Due Date in 4 columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* GST Number Field */}
-                    <div className="lg:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                        {/* {journalEntryForm.selectedVendor && (
-                                                    <span className="ml-1 text-xs text-green-600">(Auto-filled)</span>
-                                                )} */}
-                      </label>
-                      <input
-                        type="text"
-                        name="vendorGST"
-                        value={journalEntryForm.vendorGST}
-                        onChange={(e) =>
-                          handleFormChange("vendorGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        disabled={isVerified}
-                        className={`${CONTROL} `}
-                        readOnly={
-                          journalEntryForm.selectedVendor &&
-                          journalEntryForm.selectedVendor.gstNo
-                        }
-                      />
-                    </div>
-
-                    {/* Bill Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Bill Date
-                      </label>
-                      <input
-                        type="date"
-                        name="entryDate"
-                        value={journalEntryForm.entryDate}
-                        onChange={(e) =>
-                          handleDateChange("entryDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        placeholder="DD-MM-YYYY"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.entryDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                      />
-                      {dateErrors.entryDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  {/* Vendor Not Found Warning */}
+                  {analysedData?.from?.name &&
+                    !journalEntryForm.selectedVendor && (
+                      <div className="mt-3">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                           <svg
-                            className="w-3.5 h-3.5"
+                            className="w-3 h-3 mr-1.5"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1633,71 +1303,102 @@ const ZohoJournalEntryDetail = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
                             />
                           </svg>
-                          {dateErrors.entryDate}
-                        </p>
-                      )}
-                    </div>
+                          Vendor not found in the list, please add new
+                          vendor
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Due Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={journalEntryForm.dueDate}
-                        onChange={(e) =>
-                          handleDateChange("dueDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        placeholder="DD-MM-YYYY"
-                        disabled={isVerified}
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dueDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : isVerified
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
-                              : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                      />
-                      {dateErrors.dueDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {dateErrors.dueDate}
-                        </p>
-                      )}
-                    </div>
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Entry total
                   </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {Number(parseFloat(journalEntryForm.totalAmount) || 0).toFixed(2)}
+                  </div>
+                  {journalEntryData?.status && (
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Status:{" "}
+                      <span
+                        className={`${BADGE} ${
+                          isLocked
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        }`}
+                      >
+                        {journalEntryData.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Journal Entry Items Section */}
+              {/* The fields of the voucher. No heading and no icon: the
+                  grid below says what it holds. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="mb-3">
+                  <ApprovalPanel
+                    organizationId={selectedOrganization?.id}
+                    billId={journalEntryId}
+                  />
+                </div>
+
+                <FieldGrid>
+                  <FieldCell label="Bill number">
+                    <input
+                      type="text"
+                      value={journalEntryForm.billNumber}
+                      onChange={(e) =>
+                        handleFormChange("billNumber", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+
+                  <FieldCell label="Bill date" error={dateErrors.billDate}>
+                    <input
+                      type="date"
+                      value={journalEntryForm.billDate}
+                      onChange={(e) =>
+                        handleDateChange("billDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+
+                  <FieldCell label="Due date" error={dateErrors.dueDate}>
+                    <input
+                      type="date"
+                      value={journalEntryForm.dueDate}
+                      onChange={(e) =>
+                        handleDateChange("dueDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+                </FieldGrid>
+              </div>
+
+              {/* Line items Section */}
               <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:document-text" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                        Journal Entry Items
+                        Line items
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1709,15 +1410,15 @@ const ZohoJournalEntryDetail = () => {
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           activeClass="bg-blue-600"
                         />
                       </div>
                       <button
                         onClick={addJournalLineItem}
-                        disabled={isVerified}
+                        disabled={isLocked}
                         className={`inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200 ${
-                          isVerified
+                          isLocked
                             ? "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400"
                             : ""
                         }`}
@@ -1740,7 +1441,7 @@ const ZohoJournalEntryDetail = () => {
                     </div>
                   </div>
 
-                  {/* Enhanced Journal Entry Items Table - Scrollable */}
+                  {/* Enhanced Line items Table - Scrollable */}
                   <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                     <div className="overflow-x-auto max-h-[600px] overflow-y-auto min-h-[350px]">
                       <table className="w-full min-w-[1000px]">
@@ -1783,9 +1484,9 @@ const ZohoJournalEntryDetail = () => {
                                     setJournalLineItems(newItems);
                                   }}
                                   placeholder="Enter item details..."
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_TEXTAREA} ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -1796,7 +1497,7 @@ const ZohoJournalEntryDetail = () => {
                               <td className="px-3 py-2">
                                 <div
                                   className={`${
-                                    !item.chart_of_accounts_id && !isVerified
+                                    !item.chart_of_accounts_id && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -1825,7 +1526,7 @@ const ZohoJournalEntryDetail = () => {
                                     optionLabelKey="accountName"
                                     optionValueKey="id"
                                     loading={chartOfAccountsLoading}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     renderOption={(account) => (
                                       <div className="flex flex-col py-1">
                                         <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -1852,9 +1553,9 @@ const ZohoJournalEntryDetail = () => {
                                     setJournalLineItems(newItems);
                                   }}
                                   placeholder="0.00"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL_NUM} ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -1875,9 +1576,9 @@ const ZohoJournalEntryDetail = () => {
                                     };
                                     setJournalLineItems(newItems);
                                   }}
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                   className={`${CONTROL} text-center ${
-                                    isVerified
+                                    isLocked
                                       ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                       : ""
                                   }`}
@@ -1892,9 +1593,9 @@ const ZohoJournalEntryDetail = () => {
                                 {journalLineItems.length > 1 && (
                                   <button
                                     onClick={() => removeJournalLineItem(index)}
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                     className={`inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors ${
-                                      isVerified
+                                      isLocked
                                         ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                         : ""
                                     }`}
@@ -1922,7 +1623,7 @@ const ZohoJournalEntryDetail = () => {
                       </table>
                     </div>
 
-                    {/* Journal Entry Items Summary */}
+                    {/* Line items Summary */}
                     <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-600 dark:text-slate-400">
@@ -1937,12 +1638,6 @@ const ZohoJournalEntryDetail = () => {
               {/* Tax and Other Items Section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:calculator" className="text-sm" />
-                  </span>
-                  <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Tax and Other Items
-                  </h3>
                 </div>
 
                 <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
@@ -1965,7 +1660,7 @@ const ZohoJournalEntryDetail = () => {
                           optionLabelKey="accountName"
                           optionValueKey="id"
                           loading={chartOfAccountsLoading}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
                               <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -1985,9 +1680,9 @@ const ZohoJournalEntryDetail = () => {
                               e.target.value,
                             )
                           }
-                          disabled={isVerified}
+                          disabled={isLocked}
                           className={`${CONTROL} text-center ${
-                            isVerified
+                            isLocked
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
@@ -2007,9 +1702,9 @@ const ZohoJournalEntryDetail = () => {
                               handleTaxSummaryChange("cgst", e.target.value)
                             }
                             placeholder="0.00"
-                            disabled={isVerified}
+                            disabled={isLocked}
                             className={`${CONTROL_NUM} ${
-                              isVerified
+                              isLocked
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
@@ -2036,7 +1731,7 @@ const ZohoJournalEntryDetail = () => {
                           optionLabelKey="accountName"
                           optionValueKey="id"
                           loading={chartOfAccountsLoading}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
                               <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -2056,9 +1751,9 @@ const ZohoJournalEntryDetail = () => {
                               e.target.value,
                             )
                           }
-                          disabled={isVerified}
+                          disabled={isLocked}
                           className={`${CONTROL} text-center ${
-                            isVerified
+                            isLocked
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
@@ -2078,9 +1773,9 @@ const ZohoJournalEntryDetail = () => {
                               handleTaxSummaryChange("sgst", e.target.value)
                             }
                             placeholder="0.00"
-                            disabled={isVerified}
+                            disabled={isLocked}
                             className={`${CONTROL_NUM} ${
-                              isVerified
+                              isLocked
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
@@ -2107,7 +1802,7 @@ const ZohoJournalEntryDetail = () => {
                           optionLabelKey="accountName"
                           optionValueKey="id"
                           loading={chartOfAccountsLoading}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           renderOption={(account) => (
                             <div className="flex flex-col py-1">
                               <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -2127,9 +1822,9 @@ const ZohoJournalEntryDetail = () => {
                               e.target.value,
                             )
                           }
-                          disabled={isVerified}
+                          disabled={isLocked}
                           className={`${CONTROL} text-center ${
-                            isVerified
+                            isLocked
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                               : ""
                           }`}
@@ -2149,9 +1844,9 @@ const ZohoJournalEntryDetail = () => {
                               handleTaxSummaryChange("igst", e.target.value)
                             }
                             placeholder="0.00"
-                            disabled={isVerified}
+                            disabled={isLocked}
                             className={`${CONTROL_NUM} ${
-                              isVerified
+                              isLocked
                                 ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800"
                                 : ""
                             }`}
@@ -2195,7 +1890,7 @@ const ZohoJournalEntryDetail = () => {
                               optionLabelKey="accountName"
                               optionValueKey="id"
                               loading={chartOfAccountsLoading}
-                              disabled={isVerified}
+                              disabled={isLocked}
                               renderOption={(account) => (
                                 <div className="flex flex-col py-1">
                                   <div className="font-medium text-slate-900 dark:text-white text-sm">
@@ -2218,9 +1913,9 @@ const ZohoJournalEntryDetail = () => {
                                 e.target.value,
                               )
                             }
-                            disabled={isVerified}
+                            disabled={isLocked}
                             className={`${CONTROL} text-center ${
-                              isVerified
+                              isLocked
                                 ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                                 : ""
                             }`}
@@ -2270,9 +1965,9 @@ const ZohoJournalEntryDetail = () => {
                       }/zoho/journal-entry/${journalEntryId}\n\n`
                     }
                     onChange={(e) => setNotes(e.target.value)}
-                    disabled={isVerified}
+                    disabled={isLocked}
                     className={`${CONTROL_TEXTAREA} h-24 ${
-                      isVerified
+                      isLocked
                         ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-60"
                         : ""
                     }`}
@@ -2282,9 +1977,7 @@ const ZohoJournalEntryDetail = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
       <ActivityPanel
         open={isActivityOpen}

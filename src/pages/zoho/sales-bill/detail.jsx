@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import BillChecks from "@/components/bills/BillChecks";
+import BillRecordLayout from "@/components/bills/BillRecordLayout";
+import { currencySymbol } from "@/utils/currency";
+import {
+  FLAT_FIELD,
+  FieldCell,
+  FieldGrid,
+  PARTY_TITLE_SKIN,
+  TotalLine,
+  TOTALS_AMOUNT,
+  SwitchPill,
+} from "@/components/bills/VoucherFields";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -22,7 +33,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BADGE, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 const ZohoSalesBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -30,6 +41,10 @@ const ZohoSalesBillDetail = () => {
   const navigate = useNavigate();
   const { id: billId } = useParams();
   const { selectedOrganization } = useSelector((state) => state.auth);
+  // Zoho bills carry no currency of their own, so they are rupees —
+  // the helper's default. Written through it so that adding the field
+  // later changes one line.
+  const cur = currencySymbol();
 
   // Form state for customer information. A sales invoice is the purchase
   // bill read from the other end: the organisation issued it, so the party
@@ -82,6 +97,10 @@ const ZohoSalesBillDetail = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  // Which tab of the record is showing, and whether the scan pane is
+  // open. Both are view state only.
+  const [recordTab, setRecordTab] = useState("bill");
+  const [scanOpen, setScanOpen] = useState(true);
 
   // State for verification
   const [verificationStatus, setVerificationStatus] = useState(null); // 'success', 'error', or null
@@ -141,7 +160,10 @@ const ZohoSalesBillDetail = () => {
     salesBillData?.status === "Synced" || salesBillData?.status === "Posted";
 
   // Allow editing for verified bills (user can verify multiple times)
-  const isVerified = isSynced; // Only truly locked after sync
+  // Locked, not "verified": a verified bill can be corrected and
+  // verified again. What closes the voucher for editing is it having
+  // been posted, because after that the figures are history.
+  const isLocked = isSynced; // Only truly locked after sync
 
   // Validation helper functions
   const isCustomerRequired = !customerForm.selectedCustomer;
@@ -992,10 +1014,20 @@ const ZohoSalesBillDetail = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 md:p-4">
-        <div className="flex flex-col lg:flex-row gap-4 relative">
-          {/* Bill Photo/Image/PDF Section - Fixed/Sticky on Large Screens */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-4 lg:self-start">
+      <BillRecordLayout
+        tab={recordTab}
+        onTabChange={setRecordTab}
+        organizationId={selectedOrganization?.id}
+        billId={billId}
+        scanOpen={scanOpen}
+        onToggleScan={() => setScanOpen((v) => !v)}
+        notice={
+                  <BillChecks
+                  blockers={getValidationErrorMessages()}
+                  isLocked={isLocked}
+                />
+        }
+        scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {salesBillData?.file ? (
                 <div className="w-full h-full flex flex-col">
@@ -1100,15 +1132,144 @@ const ZohoSalesBillDetail = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Scrollable Content Column */}
-          <div className="lg:w-2/3">
+        }
+      >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-visible">
-              {/* Customer Information Section */}
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800">
-                {/* What the Verify button is waiting on, and nothing
-                    else — the advisory checks are deliberately not shown. */}
+              {/* The voucher opens the way the paper does: who it was
+                  billed to on the left, what it comes to on the right.
+                  The customer name IS the picker. */}
+              <div className="px-5 pt-4 pb-3 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Bill to
+                  </div>
+                  <div className="space-y-2">
+                    <div
+                      className={`${
+                        isCustomerRequired && !isLocked
+                          ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                          : ""
+                      }`}
+                    >
+                      <SearchableDropdown
+                        options={
+                          customersData?.results?.map((customer) => ({
+                            value: customer.id,
+                            label: customer.companyName,
+                            gstNo: customer.gstNo,
+                          })) || []
+                        }
+                        value={
+                          typeof customerForm.selectedCustomer ===
+                            "object" &&
+                          customerForm.selectedCustomer !== null
+                            ? customerForm.selectedCustomer.id
+                            : customerForm.selectedCustomer || ""
+                        }
+                        onChange={(value) => {
+                          if (value === null || value === "") {
+                            handleCustomerSelect(null);
+                          } else {
+                            const selectedCustomer =
+                              customersData?.results?.find(
+                                (c) => c.id === value,
+                              );
+                            if (selectedCustomer) {
+                              handleCustomerSelect(selectedCustomer);
+                            }
+                          }
+                        }}
+                        onClear={() => handleCustomerSelect(null)}
+                        placeholder="Select a customer..."
+                        searchPlaceholder="Search customers..."
+                        loading={customersLoading}
+                        loadingMessage="Loading customers..."
+                        disabled={isLocked}
+                        noOptionsMessage="No customers found"
+                        renderOption={(option) => (
+                          <div>
+                            <div className="font-medium">
+                              {option.label}
+                            </div>
+                            {option.gstNo && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                GST: {option.gstNo}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+
+                    {/* Offered whenever no customer is picked, not
+                        only when the list is empty: a workspace with
+                        200 customers and not this one is the common
+                        case, and "sync customers first" is no help
+                        when the customer is not in Zoho at all. */}
+                    {!isSynced && !customerForm.selectedCustomer && (
+                      <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                          {customersData?.results?.length === 0 &&
+                          !customersLoading
+                            ? "No customers synced from Zoho yet."
+                            : "Not in the list?"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreateCustomerOpen(true)}
+                          className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
+                        >
+                          <Icon icon="heroicons:plus-circle" className="text-xs" />
+                          Create customer in Zoho
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Customer Not Found Warning */}
+                    {analysedData?.to?.name &&
+                      !customerForm.selectedCustomer && (
+                        <div className="mt-2">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                            <Icon
+                              icon="heroicons:exclamation-triangle"
+                              className="w-3 h-3"
+                            />
+                            Customer not found in the list, please add new
+                            customer
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                </div>
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
+                    Invoice total
+                  </div>
+                  <div className="text-2xl font-black tabular-nums tracking-tight text-slate-900 dark:text-white">
+                    {cur}
+                    {Number(parseFloat(billSummaryForm.total) || 0).toFixed(2)}
+                  </div>
+                  {salesBillData?.status && (
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Status:{" "}
+                      <span
+                        className={`${BADGE} ${
+                          isLocked
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                        }`}
+                      >
+                        {salesBillData.status}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* The fields of the voucher. No heading and no icon: the
+                  grid below says what it holds. */}
+              <div className="px-5 pb-4 border-b border-t border-slate-200 dark:border-slate-800 pt-3">
                 {/* Approval. Renders nothing unless the workspace has
                     require_bill_approval on, so this is invisible by default. */}
                 <div className="mb-3">
@@ -1117,245 +1278,81 @@ const ZohoSalesBillDetail = () => {
                     billId={billId}
                   />
                 </div>
+                <FieldGrid>
+                  <FieldCell label="Invoice number">
+                    <input
+                      type="text"
+                      name="invoiceNumber"
+                      value={customerForm.invoiceNumber}
+                      onChange={(e) =>
+                        handleFormChange("invoiceNumber", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                <BillChecks
-                  blockers={getValidationErrorMessages()}
-                  isVerified={isVerified}
-                />
+                  <FieldCell label="Bill date" error={dateErrors.dateIssued}>
+                    <input
+                      type="date"
+                      name="dateIssued"
+                      value={customerForm.dateIssued}
+                      onChange={(e) =>
+                        handleDateChange("dateIssued", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                <div className="space-y-3">
-                  {/* First Row: Customer and Invoice Number */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {/* Customer Selection Field */}
-                    <div className="relative">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Customer <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="space-y-2">
-                        <div
-                          className={`${
-                            isCustomerRequired && !isVerified
-                              ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
-                              : ""
-                          }`}
-                        >
-                          <SearchableDropdown
-                            options={
-                              customersData?.results?.map((customer) => ({
-                                value: customer.id,
-                                label: customer.companyName,
-                                gstNo: customer.gstNo,
-                              })) || []
-                            }
-                            value={
-                              typeof customerForm.selectedCustomer ===
-                                "object" &&
-                              customerForm.selectedCustomer !== null
-                                ? customerForm.selectedCustomer.id
-                                : customerForm.selectedCustomer || ""
-                            }
-                            onChange={(value) => {
-                              if (value === null || value === "") {
-                                handleCustomerSelect(null);
-                              } else {
-                                const selectedCustomer =
-                                  customersData?.results?.find(
-                                    (c) => c.id === value,
-                                  );
-                                if (selectedCustomer) {
-                                  handleCustomerSelect(selectedCustomer);
-                                }
-                              }
-                            }}
-                            onClear={() => handleCustomerSelect(null)}
-                            placeholder="Select a customer..."
-                            searchPlaceholder="Search customers..."
-                            loading={customersLoading}
-                            loadingMessage="Loading customers..."
-                            disabled={isVerified}
-                            noOptionsMessage="No customers found"
-                            renderOption={(option) => (
-                              <div>
-                                <div className="font-medium">
-                                  {option.label}
-                                </div>
-                                {option.gstNo && (
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    GST: {option.gstNo}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          />
-                        </div>
+                  <FieldCell label="Due date" error={dateErrors.dueDate}>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      value={customerForm.dueDate}
+                      onChange={(e) =>
+                        handleDateChange("dueDate", e.target.value)
+                      }
+                      min="1900-01-01"
+                      max="2100-12-31"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
 
-                        {/* Offered whenever no customer is picked, not
-                            only when the list is empty: a workspace with
-                            200 customers and not this one is the common
-                            case, and "sync customers first" is no help
-                            when the customer is not in Zoho at all. */}
-                        {!isSynced && !customerForm.selectedCustomer && (
-                          <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
-                              {customersData?.results?.length === 0 &&
-                              !customersLoading
-                                ? "No customers synced from Zoho yet."
-                                : "Not in the list?"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setIsCreateCustomerOpen(true)}
-                              className="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline"
-                            >
-                              <Icon icon="heroicons:plus-circle" className="text-xs" />
-                              Create customer in Zoho
-                            </button>
-                          </div>
-                        )}
+                  <FieldCell label="GST number">
+                    <input
+                      type="text"
+                      name="customerGST"
+                      value={customerForm.customerGST}
+                      onChange={(e) =>
+                        handleFormChange("customerGST", e.target.value)
+                      }
+                      placeholder="not on the bill"
+                      disabled={isLocked}
+                      className={`${FLAT_FIELD} font-mono`}
+                    />
+                  </FieldCell>
 
-                        {/* Customer Not Found Warning */}
-                        {analysedData?.to?.name &&
-                          !customerForm.selectedCustomer && (
-                            <div className="mt-2">
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                                <Icon
-                                  icon="heroicons:exclamation-triangle"
-                                  className="w-3 h-3"
-                                />
-                                Customer not found in the list, please add new
-                                customer
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-
-                    {/* Invoice Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Invoice Number <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="invoiceNumber"
-                        value={customerForm.invoiceNumber}
-                        onChange={(e) =>
-                          handleFormChange("invoiceNumber", e.target.value)
-                        }
-                        placeholder="Enter invoice number"
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Second Row: GST, Place of supply, Date Issued, Due Date */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* GST Number Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        GST Number
-                      </label>
-                      <input
-                        type="text"
-                        name="customerGST"
-                        value={customerForm.customerGST}
-                        onChange={(e) =>
-                          handleFormChange("customerGST", e.target.value)
-                        }
-                        placeholder="Enter GST number"
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-
-                    {/* Place of Supply Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Place of Supply
-                      </label>
-                      <input
-                        type="text"
-                        name="placeOfSupply"
-                        value={customerForm.placeOfSupply}
-                        onChange={(e) =>
-                          handleFormChange(
-                            "placeOfSupply",
-                            e.target.value.toUpperCase(),
-                          )
-                        }
-                        placeholder="e.g. KA"
-                        maxLength={10}
-                        className={CONTROL}
-                        disabled={isVerified}
-                      />
-                    </div>
-
-                    {/* Date Issued Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Date Issued <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="dateIssued"
-                        value={customerForm.dateIssued}
-                        onChange={(e) =>
-                          handleDateChange("dateIssued", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dateIssued
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                        disabled={isVerified}
-                      />
-                      {dateErrors.dateIssued && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <Icon
-                            icon="heroicons:exclamation-circle"
-                            className="w-3.5 h-3.5"
-                          />
-                          {dateErrors.dateIssued}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Due Date Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        value={customerForm.dueDate || ""}
-                        onChange={(e) =>
-                          handleDateChange("dueDate", e.target.value)
-                        }
-                        min="1900-01-01"
-                        max="2100-12-31"
-                        className={`${CONTROL_VALIDATED} ${
-                          dateErrors.dueDate
-                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500"
-                        }`}
-                        disabled={isVerified}
-                      />
-                      {dateErrors.dueDate && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                          <Icon
-                            icon="heroicons:exclamation-circle"
-                            className="w-3.5 h-3.5"
-                          />
-                          {dateErrors.dueDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  <FieldCell
+                    label="Place of supply"
+                    hint="Decides IGST vs CGST+SGST"
+                  >
+                    <input
+                      type="text"
+                      value={customerForm.placeOfSupply}
+                      onChange={(e) =>
+                        handleFormChange("placeOfSupply", e.target.value)
+                      }
+                      placeholder="as printed"
+                      disabled={isLocked}
+                      className={FLAT_FIELD}
+                    />
+                  </FieldCell>
+                </FieldGrid>
               </div>
 
               {/* Product Information Section */}
@@ -1363,9 +1360,6 @@ const ZohoSalesBillDetail = () => {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                        <Icon icon="heroicons:list-bullet" className="text-sm" />
-                      </span>
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                         Line Items
                       </h3>
@@ -1379,7 +1373,7 @@ const ZohoSalesBillDetail = () => {
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
-                          disabled={isVerified}
+                          disabled={isLocked}
                           activeClass="bg-blue-600"
                         />
                       </div>
@@ -1387,7 +1381,7 @@ const ZohoSalesBillDetail = () => {
                         onClick={addProduct}
                         className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500 transition-all duration-200"
                         title="Add"
-                        disabled={isVerified}
+                        disabled={isLocked}
                       >
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                       </button>
@@ -1444,7 +1438,7 @@ const ZohoSalesBillDetail = () => {
                                   placeholder="Enter item details..."
                                   className={CONTROL_TEXTAREA}
                                   rows={2}
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1452,7 +1446,7 @@ const ZohoSalesBillDetail = () => {
                               <td className="relative px-3 py-2">
                                 <div
                                   className={`${
-                                    !product.chart_of_accounts && !isVerified
+                                    !product.chart_of_accounts && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -1486,7 +1480,7 @@ const ZohoSalesBillDetail = () => {
                                     loading={chartOfAccountsLoading}
                                     loadingMessage="Loading accounts..."
                                     noOptionsMessage="No accounts found"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   />
                                 </div>
                               </td>
@@ -1495,7 +1489,7 @@ const ZohoSalesBillDetail = () => {
                               <td className="relative px-3 py-2">
                                 <div
                                   className={`${
-                                    !product.taxes && !isVerified
+                                    !product.taxes && !isLocked
                                       ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                                       : ""
                                   }`}
@@ -1523,7 +1517,7 @@ const ZohoSalesBillDetail = () => {
                                     loading={taxesLoading}
                                     loadingMessage="Loading taxes..."
                                     noOptionsMessage="No taxes found"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   />
                                 </div>
                               </td>
@@ -1544,7 +1538,7 @@ const ZohoSalesBillDetail = () => {
                                   className={CONTROL_NUM}
                                   min="0"
                                   step="0.01"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1564,7 +1558,7 @@ const ZohoSalesBillDetail = () => {
                                   className={`${CONTROL_NUM} text-center`}
                                   min="0"
                                   step="1"
-                                  disabled={isVerified}
+                                  disabled={isLocked}
                                 />
                               </td>
 
@@ -1582,12 +1576,12 @@ const ZohoSalesBillDetail = () => {
 
                               {/* Actions */}
                               <td className="px-3 py-2 text-center">
-                                {products.length > 1 && !isVerified && (
+                                {products.length > 1 && !isLocked && (
                                   <button
                                     onClick={() => removeProduct(index)}
                                     className="inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
                                     title="Remove Item"
-                                    disabled={isVerified}
+                                    disabled={isLocked}
                                   >
                                     <Icon
                                       icon="heroicons:trash"
@@ -1629,9 +1623,6 @@ const ZohoSalesBillDetail = () => {
               {/* Discount Section */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:tag" className="text-sm" />
-                  </span>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
                     Discount
                   </h3>
@@ -1659,7 +1650,7 @@ const ZohoSalesBillDetail = () => {
                               )
                             }
                             className="w-4 h-4 text-blue-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-blue-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="discount-inr"
@@ -1689,7 +1680,7 @@ const ZohoSalesBillDetail = () => {
                               )
                             }
                             className="w-4 h-4 text-green-600 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-green-500 focus:ring-2 transition-colors"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                           <label
                             htmlFor="discount-percentage"
@@ -1725,7 +1716,7 @@ const ZohoSalesBillDetail = () => {
                             : "Enter amount"
                         }
                         className={CONTROL}
-                        disabled={isVerified}
+                        disabled={isLocked}
                         min="0"
                         step="0.01"
                       />
@@ -1751,13 +1742,13 @@ const ZohoSalesBillDetail = () => {
                     <div className="relative">
                       <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                         Discount Account
-                        {isDiscountAccountRequired() && !isVerified && (
+                        {isDiscountAccountRequired() && !isLocked && (
                           <span className="text-red-500 text-xs ml-1">*</span>
                         )}
                       </label>
                       <div
                         className={`${
-                          isDiscountAccountRequired() && !isVerified
+                          isDiscountAccountRequired() && !isLocked
                             ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                             : ""
                         }`}
@@ -1784,7 +1775,7 @@ const ZohoSalesBillDetail = () => {
                           loading={chartOfAccountsLoading}
                           loadingMessage="Loading accounts..."
                           noOptionsMessage="No accounts found"
-                          disabled={isVerified}
+                          disabled={isLocked}
                         />
                       </div>
                     </div>
@@ -1796,12 +1787,6 @@ const ZohoSalesBillDetail = () => {
               <div className="p-5 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                      <Icon icon="heroicons:calculator" className="text-sm" />
-                    </span>
-                    <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                      Tax and Other Items
-                    </h3>
                   </div>
                 </div>
 
@@ -1824,7 +1809,7 @@ const ZohoSalesBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1843,7 +1828,7 @@ const ZohoSalesBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1862,7 +1847,7 @@ const ZohoSalesBillDetail = () => {
                             }
                             placeholder="0"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1886,7 +1871,7 @@ const ZohoSalesBillDetail = () => {
                             }
                             placeholder="0.00"
                             className="w-32 px-2 py-1 text-right border-0 border-b border-slate-200 dark:border-slate-700 bg-transparent focus:border-blue-500 focus:outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isVerified}
+                            disabled={isLocked}
                           />
                         </div>
                       </div>
@@ -1912,7 +1897,7 @@ const ZohoSalesBillDetail = () => {
                               }
                               placeholder="0.00"
                               className="w-32 px-2 py-1 text-center text-base font-bold font-mono text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              disabled={isVerified}
+                              disabled={isLocked}
                             />
                           </div>
                           <div className="text-[10px] text-blue-700/80 dark:text-blue-400/80 mt-1">
@@ -1934,7 +1919,7 @@ const ZohoSalesBillDetail = () => {
                         placeholder="Enter adjustment description..."
                         className={CONTROL_TEXTAREA}
                         rows={3}
-                        disabled={isVerified}
+                        disabled={isLocked}
                       />
                     </div>
                   </div>
@@ -1962,14 +1947,12 @@ const ZohoSalesBillDetail = () => {
                     className={`${CONTROL_TEXTAREA} h-24`}
                     placeholder="Add notes or comments..."
                     rows={4}
-                    disabled={isVerified}
+                    disabled={isLocked}
                   />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </BillRecordLayout>
 
       <ActivityPanel
         open={isActivityOpen}
