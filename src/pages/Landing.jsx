@@ -425,12 +425,23 @@ const Landing = () => {
                         <div className="order-2 md:order-1">
                             <div className="relative">
                                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900">
-                                    <img
-                                        src="/accountants_dashboard_illustration.png"
-                                        alt="Accountants managing multiple clients with dashboard"
-                                        className="w-full h-full object-cover"
-                                        loading="lazy"
-                                    />
+                                    {/* WebP first, PNG kept as the fallback for
+                                        anything that cannot read it. The pair
+                                        was 1.1MB of PNG for two decorative
+                                        illustrations; as WebP it is 150kB. */}
+                                    <picture>
+                                        <source
+                                            srcSet="/accountants_dashboard_illustration.webp"
+                                            type="image/webp"
+                                        />
+                                        <img
+                                            src="/accountants_dashboard_illustration.png"
+                                            alt="Accountants managing multiple clients with dashboard"
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            decoding="async"
+                                        />
+                                    </picture>
                                 </div>
                             </div>
                         </div>
@@ -463,12 +474,23 @@ const Landing = () => {
                         <div>
                             <div className="relative">
                                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900">
-                                    <img
-                                        src="/business_owner_expenses_illustration.png"
-                                        alt="Business owners managing expenses and receipts"
-                                        className="w-full h-full object-cover"
-                                        loading="lazy"
-                                    />
+                                    {/* WebP first, PNG kept as the fallback for
+                                        anything that cannot read it. The pair
+                                        was 1.1MB of PNG for two decorative
+                                        illustrations; as WebP it is 150kB. */}
+                                    <picture>
+                                        <source
+                                            srcSet="/business_owner_expenses_illustration.webp"
+                                            type="image/webp"
+                                        />
+                                        <img
+                                            src="/business_owner_expenses_illustration.png"
+                                            alt="Business owners managing expenses and receipts"
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            decoding="async"
+                                        />
+                                    </picture>
                                 </div>
                             </div>
                         </div>

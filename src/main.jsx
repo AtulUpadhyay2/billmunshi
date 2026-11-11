@@ -11,6 +11,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { CookieConsentProvider } from "./components/cookies";
 import MaintenanceGate from "./components/MaintenanceGate";
+import { addCollection } from "@iconify/react";
+import offlineIcons from "./icons/offline";
+
+// Register every icon the interface uses before React renders one.
+//
+// `@iconify/react` otherwise fetches icon data from api.iconify.design on
+// first use. A cold load of the landing page spent three cross-origin
+// requests on it, the icons arrived after the text they belong to, and
+// the whole interface quietly depended on a third-party CDN being up.
+//
+// `scripts/build-icon-bundle.mjs` writes `icons/offline.js` from the names
+// the source actually mentions — run `npm run icons` after adding one.
+// An icon that is not in the bundle still resolves over the network, so a
+// missed name degrades rather than disappears.
+offlineIcons.forEach(addCollection);
 
 // Devtools are loaded only in development to keep them out of production
 // bundles entirely (Vite tree-shakes the import.meta.env.DEV branch).
