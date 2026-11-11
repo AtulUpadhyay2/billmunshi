@@ -468,7 +468,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
             type="button"
             onClick={handleConfirm}
             disabled={isProcessing || !enhancedSrc}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-md shadow-sm shadow-orange-500/20 ring-1 ring-orange-600/20 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-md shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20 cursor-pointer"
           >
             <Icon icon="heroicons:check" className="text-sm" />
             Apply scan

@@ -31,7 +31,7 @@ const btnBase =
 const btnNeutral =
   `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
 const btnPrimary =
-  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20`;
+  `${btnBase} text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20`;
 
 /* ------------------------------------------------------------------ */
 /*  Field labels & metadata                                           */
@@ -905,7 +905,7 @@ const TallySetup = () => {
                   disabled={
                     upsertGstRateMappingsMutation.isPending || isLoadingGstRateMappings
                   }
-                  className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 rounded-md shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20 transition-all cursor-pointer"
                 >
                   {upsertGstRateMappingsMutation.isPending ? (
                     <>
@@ -1063,7 +1063,7 @@ const TallySetup = () => {
                   type="button"
                   onClick={handleSaveAdditionalAdjustments}
                   disabled={createOrUpdateConfigMutation.isPending || isLoadingAllLedgers}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-60 rounded-md shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-md shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20 transition-all cursor-pointer"
                 >
                   {createOrUpdateConfigMutation.isPending ? (
                     <>

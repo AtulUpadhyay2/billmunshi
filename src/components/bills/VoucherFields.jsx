@@ -39,7 +39,7 @@ export const FieldCell = ({ label, hint, error, children }) => (
   <div className="bg-white dark:bg-slate-900 px-2.5 py-1.5 min-w-0">
     <span
       title={hint || undefined}
-      className={`block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 mb-0.5 ${
+      className={`block text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400 mb-1 ${
         hint ? "cursor-help" : ""
       }`}
     >
@@ -48,7 +48,7 @@ export const FieldCell = ({ label, hint, error, children }) => (
     </span>
     {children}
     {error && (
-      <p className="mt-0.5 text-[10.5px] font-semibold text-rose-600 dark:text-rose-400">
+      <p className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
         {error}
       </p>
     )}
@@ -82,7 +82,7 @@ export const FieldGrid = ({ children }) => (
  */
 export const PARTY_TITLE_SKIN =
   "w-full flex items-center text-left rounded-md px-1.5 -ml-1.5 py-0.5 " +
-  "text-lg md:text-xl font-black tracking-tight " +
+  "text-lg md:text-xl font-semibold tracking-tight " +
   "text-slate-900 dark:text-white " +
   "bg-transparent border border-transparent " +
   "hover:border-slate-300 dark:hover:border-slate-600 " +
@@ -121,15 +121,15 @@ export const TotalLine = ({
       grand
         ? "border-t-2 border-slate-300 dark:border-slate-600 mt-2 pt-3"
         : compare
-          ? "border-t border-dashed border-slate-300 dark:border-slate-600 mt-1.5 pt-2 text-[12px]"
+          ? "border-t border-dashed border-slate-300 dark:border-slate-600 mt-1.5 pt-2 text-[11px]"
           : "py-1.5"
     }`}
   >
     <span
       className={`shrink-0 ${
         grand
-          ? "text-[13px] font-bold text-slate-900 dark:text-white"
-          : "text-[12px] text-slate-600 dark:text-slate-400"
+          ? "text-[13px] font-semibold text-slate-900 dark:text-white"
+          : "text-[13px] text-slate-600 dark:text-slate-400"
       } ${control ? "w-[132px]" : ""}`}
     >
       {label}
@@ -138,7 +138,7 @@ export const TotalLine = ({
           the rate as much as the amount; they were only derivable by
           reading three other lines. */}
       {rate && (
-        <span className="block font-mono text-[10.5px] text-slate-400 dark:text-slate-500">
+        <span className="block font-mono text-[11px] text-slate-400 dark:text-slate-500">
           {rate}
         </span>
       )}
@@ -158,12 +158,12 @@ export const TotalLine = ({
         amount ? "w-[104px]" : ""
       } ${
         grand
-          ? "text-[16px] font-bold text-slate-900 dark:text-white"
+          ? "text-[15px] font-semibold text-slate-900 dark:text-white"
           : tone === "bad"
-            ? "text-[12px] font-bold text-rose-600 dark:text-rose-400"
+            ? "text-[13px] font-semibold text-rose-600 dark:text-rose-400"
             : tone === "ok"
-              ? "text-[12px] font-bold text-emerald-600 dark:text-emerald-400"
-              : "text-[12.5px] text-slate-800 dark:text-slate-200"
+              ? "text-[13px] font-semibold text-emerald-600 dark:text-emerald-400"
+              : "text-[13px] text-slate-800 dark:text-slate-200"
       }`}
     >
       {amount || (

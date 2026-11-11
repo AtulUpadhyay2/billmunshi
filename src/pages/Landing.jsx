@@ -188,8 +188,8 @@ const Landing = () => {
             <div className="bg-slate-950 text-slate-300 text-[13px]">
                 <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-center gap-2 text-center">
                     <span className="relative inline-flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60 animate-ping"></span>
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
                     </span>
                     <span className="text-slate-400">All systems operational</span>
                     <span className="text-slate-700 hidden sm:inline">·</span>
@@ -206,7 +206,7 @@ const Landing = () => {
                 <div className="container mx-auto px-4 sm:px-6 py-3.5">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="flex items-center gap-2.5 group">
-                            <div className="w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all duration-300">
+                            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/20 group-hover:shadow-md transition-all duration-300">
                                 <Icon icon="heroicons:document-text" className="text-lg text-white" />
                             </div>
                             <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
@@ -230,7 +230,7 @@ const Landing = () => {
                             </Link>
                             <Link
                                 to="/auth/register"
-                                className="group inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-all duration-200 shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20"
+                                className="group inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 ring-1 ring-blue-700/20"
                             >
                                 Start for Free
                                 <Icon icon="heroicons:arrow-right" className="text-sm group-hover:translate-x-0.5 transition-transform" />
@@ -252,27 +252,14 @@ const Landing = () => {
                         <div className="md:hidden mt-4 pb-2 space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
                             <Link to="/book-demo" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-center text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">Book a Demo</Link>
                             <Link to="/auth/login" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-center text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">Sign In</Link>
-                            <Link to="/auth/register" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-semibold text-center text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30">Start for Free</Link>
+                            <Link to="/auth/register" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-semibold text-center text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/20">Start for Free</Link>
                         </div>
                     )}
                 </div>
             </nav>
 
             {/* ===================== HERO ===================== */}
-            <section className="relative overflow-hidden bg-linear-to-b from-white via-slate-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-                {/* Subtle grid pattern */}
-                <div
-                    aria-hidden="true"
-                    className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15] mask-[radial-gradient(ellipse_60%_50%_at_50%_30%,black_30%,transparent_75%)]"
-                    style={{
-                        backgroundImage:
-                            'linear-gradient(to right, rgb(15 23 42 / 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgb(15 23 42 / 0.06) 1px, transparent 1px)',
-                        backgroundSize: '56px 56px',
-                    }}
-                />
-                {/* Soft brand glow */}
-                <div aria-hidden="true" className="absolute top-0 left-1/2 -translate-x-1/2 w-240 h-160 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
-
+            <section className="relative overflow-hidden bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6 pt-10 sm:pt-16 md:pt-20 pb-14 sm:pb-16 md:pb-24 relative">
                     <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
                         {/* min-w-0: grid items default to min-width:auto, so the
@@ -285,10 +272,8 @@ const Landing = () => {
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI-powered OCR with native Tally &amp; Zoho sync</span>
                             </div>
 
-                            <h1 className="mt-5 sm:mt-6 text-[1.75rem] sm:text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1] text-slate-900 dark:text-white">
-                                <span className="bg-linear-to-r from-slate-900 via-blue-800 to-slate-900 dark:from-white dark:via-blue-300 dark:to-white bg-clip-text text-transparent">
-                                    Tired of manually recording &amp; organizing bills or expenses?
-                                </span>
+                            <h1 className="mt-5 sm:mt-6 text-[1.75rem] sm:text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] font-semibold tracking-tight leading-[1.15] sm:leading-[1.1] text-slate-900 dark:text-white">
+                                Tired of manually recording &amp; organizing bills or expenses?
                             </h1>
 
                             <p className="mt-3.5 sm:mt-4 text-[15px] sm:text-base md:text-[17px] text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
@@ -299,7 +284,7 @@ const Landing = () => {
                             <div className="mt-8 flex flex-col sm:flex-row gap-3">
                                 <Link
                                     to="/auth/register"
-                                    className="group inline-flex items-center justify-center gap-2 px-5 py-3 text-[15px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20"
+                                    className="group inline-flex items-center justify-center gap-2 px-5 py-3 text-[15px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-200 ring-1 ring-blue-700/20"
                                 >
                                     <span>Start for Free</span>
                                     <Icon icon="heroicons:arrow-right" className="text-lg group-hover:translate-x-0.5 transition-transform" />
@@ -315,11 +300,11 @@ const Landing = () => {
 
                             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" />
+                                    <Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" />
                                     No credit card required
                                 </span>
                                 <span className="inline-flex items-center gap-1.5">
-                                    <Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" />
+                                    <Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" />
                                     Cancel anytime
                                 </span>
                             </div>
@@ -331,9 +316,7 @@ const Landing = () => {
                             the grid column past the screen edge. */}
                         <div className="lg:col-span-5 min-w-0 animate-fade-in" aria-hidden="true">
                             <div className="relative">
-                                {/* Decorative gradient ring */}
-                                <div className="absolute -inset-px rounded-3xl bg-linear-to-br from-blue-500/30 via-transparent to-orange-500/20 blur-sm" />
-                                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl shadow-slate-900/10 dark:shadow-slate-950/40 p-3">
+                                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-900/5 dark:shadow-none p-3">
                                     {/* Window chrome */}
                                     <div className="flex items-center justify-between px-3 py-2">
                                         <div className="flex gap-1.5">
@@ -351,7 +334,7 @@ const Landing = () => {
                                                 <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">This month</div>
                                                 <div className="text-lg font-bold text-slate-900 dark:text-white">Vendor Bills</div>
                                             </div>
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
                                                 <Icon icon="heroicons:arrow-trending-up" className="text-xs" /> +24%
                                             </span>
                                         </div>
@@ -369,9 +352,9 @@ const Landing = () => {
                                                     <div className="text-xs font-mono text-slate-500 dark:text-slate-400">{row.amt}</div>
                                                 </div>
                                                 <span className={`text-[11px] font-semibold px-2 py-1 rounded-full
-                                                    ${row.tone === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400' : ''}
+                                                    ${row.tone === 'success' ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' : ''}
                                                     ${row.tone === 'info' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400' : ''}
-                                                    ${row.tone === 'warn' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400' : ''}`}>
+                                                    ${row.tone === 'warn' ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' : ''}`}>
                                                     {row.state}
                                                 </span>
                                             </div>
@@ -386,7 +369,7 @@ const Landing = () => {
                                             { num: '0', lbl: 'Manual entries' },
                                         ].map((k, i) => (
                                             <div key={i} className="bg-slate-900 dark:bg-slate-800 px-3 py-3 text-center">
-                                                <div className="text-base font-extrabold tracking-tight">{k.num}</div>
+                                                <div className="text-base font-semibold tracking-tight">{k.num}</div>
                                                 <div className="text-[10px] uppercase tracking-wider text-slate-400">{k.lbl}</div>
                                             </div>
                                         ))}
@@ -395,14 +378,14 @@ const Landing = () => {
 
                                 {/* Floating badges */}
                                 <div className="absolute -left-4 top-10 hidden md:flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-lg">
-                                    <Icon icon="heroicons:check-badge" className="text-emerald-500 text-lg" />
+                                    <Icon icon="heroicons:check-badge" className="text-slate-400 dark:text-slate-500 text-lg" />
                                     <div>
                                         <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Synced to</div>
                                         <div className="text-xs font-semibold text-slate-900 dark:text-white">Tally ERP</div>
                                     </div>
                                 </div>
                                 <div className="absolute -right-4 -bottom-4 hidden md:flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-lg">
-                                    <Icon icon="heroicons:bolt" className="text-orange-500 text-lg" />
+                                    <Icon icon="heroicons:bolt" className="text-blue-600 text-lg" />
                                     <div>
                                         <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Auto-extract</div>
                                         <div className="text-xs font-semibold text-slate-900 dark:text-white">Line items + GST</div>
@@ -419,7 +402,7 @@ const Landing = () => {
                                 <div className="inline-flex w-10 h-10 mb-3 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 group-hover:scale-110 transition-transform duration-300">
                                     <Icon icon={s.icon} className="text-xl" />
                                 </div>
-                                <div className="text-[26px] md:text-3xl font-extrabold tracking-tight bg-linear-to-br from-slate-900 to-blue-700 dark:from-white dark:to-blue-300 bg-clip-text text-transparent">{s.value}</div>
+                                <div className="text-[26px] md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{s.value}</div>
                                 <div className="mt-1 text-sm text-slate-600 dark:text-slate-400 font-medium">{s.label}</div>
                             </div>
                         ))}
@@ -431,8 +414,8 @@ const Landing = () => {
             <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center mb-10 md:mb-12">
-                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
-                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="block w-10 h-0.5 mb-5 mx-auto rounded-full bg-blue-600 dark:bg-blue-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">
                             How it helps
                         </h2>
                     </div>
@@ -441,7 +424,6 @@ const Landing = () => {
                     <div className="grid md:grid-cols-2 gap-10 md:gap-16 mb-20 md:mb-24 items-center">
                         <div className="order-2 md:order-1">
                             <div className="relative">
-                                <div className="absolute -inset-2 bg-linear-to-br from-blue-500/15 to-transparent rounded-3xl blur-xl" aria-hidden="true" />
                                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900">
                                     <img
                                         src="/accountants_dashboard_illustration.png"
@@ -472,7 +454,7 @@ const Landing = () => {
                             <ul className="space-y-5">
                                 {ownerPoints.map((p, i) => (
                                     <li key={i} className="flex gap-4">
-                                        <span className="shrink-0 w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/60 text-orange-700 dark:text-orange-400 flex items-center justify-center font-bold text-sm">{i + 1}</span>
+                                        <span className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-sm">{i + 1}</span>
                                         <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed pt-0.5">{p}</p>
                                     </li>
                                 ))}
@@ -480,7 +462,6 @@ const Landing = () => {
                         </div>
                         <div>
                             <div className="relative">
-                                <div className="absolute -inset-2 bg-linear-to-br from-orange-500/15 to-transparent rounded-3xl blur-xl" aria-hidden="true" />
                                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900">
                                     <img
                                         src="/business_owner_expenses_illustration.png"
@@ -499,8 +480,8 @@ const Landing = () => {
             <section data-reveal className="py-12 sm:py-16 md:py-20 bg-slate-50 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center mb-10 md:mb-12">
-                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
-                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="block w-10 h-0.5 mb-5 mx-auto rounded-full bg-blue-600 dark:bg-blue-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">
                             Three Steps Automation
                         </h2>
                     </div>
@@ -511,7 +492,7 @@ const Landing = () => {
                             phone the line would run through nothing. */}
                         <div
                             aria-hidden="true"
-                            className="hidden md:block absolute top-12 left-[16.6%] right-[16.6%] h-px bg-linear-to-r from-transparent via-blue-200 dark:via-blue-900 to-transparent"
+                            className="hidden md:block absolute top-12 left-[16.6%] right-[16.6%] h-px bg-slate-200 dark:bg-slate-800"
                         />
                         {[
                             { n: '01', icon: 'heroicons:arrow-up-tray', title: 'Upload', desc: 'Drop a PDF, photo or email attachment. We handle the rest.' },
@@ -520,7 +501,7 @@ const Landing = () => {
                         ].map((s, i) => (
                             <div key={i} className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-7 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-blue-200 dark:hover:border-blue-900 transition-all duration-300">
                                 <span className="absolute top-5 right-5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold font-mono">{s.n}</span>
-                                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center mb-5">
+                                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center mb-5">
                                     <Icon icon={s.icon} className="text-2xl" />
                                 </div>
                                 <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5 tracking-tight">{s.title}</h4>
@@ -532,17 +513,7 @@ const Landing = () => {
                     {/* Video placeholder */}
                     <div className="max-w-4xl mx-auto mt-14">
                         <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-2xl border border-slate-200 dark:border-slate-800">
-                            <div className="relative rounded-xl overflow-hidden bg-linear-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900" style={{ paddingBottom: '56.25%' }}>
-                                <div
-                                    aria-hidden="true"
-                                    className="absolute inset-0 opacity-30"
-                                    style={{
-                                        backgroundImage:
-                                            'linear-gradient(to right, rgb(148 163 184 / 0.18) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.18) 1px, transparent 1px)',
-                                        backgroundSize: '40px 40px',
-                                    }}
-                                />
-                                <div aria-hidden="true" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
+                            <div className="relative rounded-xl overflow-hidden bg-slate-900 dark:bg-slate-950" style={{ paddingBottom: '56.25%' }}>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                                     <button
                                         type="button"
@@ -563,8 +534,8 @@ const Landing = () => {
             <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center max-w-3xl mx-auto mb-10 md:mb-12">
-                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
-                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="block w-10 h-0.5 mb-5 mx-auto rounded-full bg-blue-600 dark:bg-blue-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">
                             About BillMunshi
                         </h2>
                         <p className="mt-4 text-lg md:text-xl text-slate-600 dark:text-slate-400">
@@ -578,7 +549,7 @@ const Landing = () => {
                                 key={i}
                                 className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 md:p-8 hover:border-blue-200 dark:hover:border-blue-900 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300"
                             >
-                                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-50 to-white dark:from-blue-950 dark:to-slate-900 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-300">
+                                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-300">
                                     <Icon icon={c.icon} className="text-2xl" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
@@ -601,7 +572,7 @@ const Landing = () => {
                             <Icon icon="heroicons:link" className="text-sm" />
                             Integrations
                         </span>
-                        <h2 className="mt-5 text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                        <h2 className="mt-5 text-2xl md:text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white leading-tight">
                             Connect Your Tools
                         </h2>
                         <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
@@ -623,37 +594,37 @@ const Landing = () => {
                                     <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Zoho Books</div>
                                     <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Full Integration</div>
                                 </div>
-                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                     Connected
                                 </span>
                             </div>
                             <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Push vendor &amp; expense bills directly</li>
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Real-time chart of accounts sync</li>
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Tax &amp; GST mapping preserved</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Push vendor &amp; expense bills directly</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Real-time chart of accounts sync</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Tax &amp; GST mapping preserved</li>
                             </ul>
                         </div>
 
                         {/* Tally ERP */}
-                        <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 md:p-8 hover:border-emerald-200 dark:hover:border-emerald-900 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
+                        <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 md:p-8 hover:border-blue-200 dark:hover:border-blue-900 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
-                                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-100 dark:ring-emerald-900/60 flex items-center justify-center">
-                                    <Icon icon="heroicons:calculator" className="text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400" />
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl bg-blue-50 dark:bg-blue-950/50 ring-1 ring-blue-100 dark:ring-blue-900/60 flex items-center justify-center">
+                                    <Icon icon="heroicons:calculator" className="text-2xl sm:text-3xl text-blue-700 dark:text-blue-400" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Tally ERP</div>
-                                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Complete Support</div>
+                                    <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Complete Support</div>
                                 </div>
-                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                     Connected
                                 </span>
                             </div>
                             <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Native XML voucher posting</li>
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Ledger, master &amp; cost-centre mapping</li>
-                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-emerald-500 text-base" /> Round-off &amp; auto-reconciliation</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Native XML voucher posting</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Ledger, master &amp; cost-centre mapping</li>
+                                <li className="flex items-center gap-2"><Icon icon="heroicons:check-circle" className="text-slate-400 dark:text-slate-500 text-base" /> Round-off &amp; auto-reconciliation</li>
                             </ul>
                         </div>
                     </div>
@@ -681,19 +652,14 @@ const Landing = () => {
             {/* ===================== CTA ===================== */}
             <section data-reveal className="py-12 sm:py-16 md:py-20 bg-white dark:bg-slate-950">
                 <div className="container mx-auto px-4 sm:px-6">
-                    <div className="relative bg-linear-to-br from-slate-900 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 md:p-16 text-center overflow-hidden shadow-2xl border border-slate-800">
-                        <div aria-hidden="true" className="absolute inset-0 opacity-60">
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/25 rounded-full blur-3xl" />
-                            <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
-                        </div>
-
+                    <div className="relative bg-slate-900 dark:bg-slate-900 rounded-2xl p-6 sm:p-8 md:p-16 text-center overflow-hidden border border-slate-800">
                         <div className="relative z-10 max-w-3xl mx-auto">
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold text-white">
                                 <Icon icon="heroicons:rocket-launch" className="text-blue-400" />
                                 Get Started Today
                             </span>
 
-                            <h2 className="mt-6 text-2xl md:text-[2rem] font-extrabold tracking-tight text-white leading-tight">
+                            <h2 className="mt-6 text-2xl md:text-[2rem] font-semibold tracking-tight text-white leading-tight">
                                 Ready to upgrade the way you manage accounting.
                             </h2>
 
@@ -704,7 +670,7 @@ const Landing = () => {
                             <div className="mt-8 sm:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
                                 <Link
                                     to="/auth/register"
-                                    className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-base shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-200 ring-1 ring-orange-600/30"
+                                    className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-base shadow-xl shadow-blue-600/25 hover:shadow-2xl hover:shadow-blue-600/25 transition-all duration-200 ring-1 ring-blue-700/20"
                                 >
                                     <span>Start for Free</span>
                                     <Icon icon="heroicons:arrow-right" className="text-lg group-hover:translate-x-0.5 transition-transform" />
@@ -719,11 +685,11 @@ const Landing = () => {
 
                             <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
                                 <div className="inline-flex items-center gap-2">
-                                    <Icon icon="heroicons:check-badge" className="text-emerald-400 text-base" />
+                                    <Icon icon="heroicons:check-badge" className="text-slate-500 text-base" />
                                     No credit card required
                                 </div>
                                 <div className="inline-flex items-center gap-2">
-                                    <Icon icon="heroicons:check-badge" className="text-emerald-400 text-base" />
+                                    <Icon icon="heroicons:check-badge" className="text-slate-500 text-base" />
                                     Cancel anytime
                                 </div>
                             </div>
@@ -740,8 +706,8 @@ const Landing = () => {
                             <Icon icon="heroicons:question-mark-circle" className="text-blue-600 dark:text-blue-400 text-sm" />
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Got Questions?</span>
                         </div>
-                        <span aria-hidden="true" className="block w-12 h-1 mb-4 mx-auto rounded-full bg-linear-to-r from-blue-500 to-orange-500" />
-                        <h2 className="text-2xl md:text-[2rem] font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="block w-10 h-0.5 mb-5 mx-auto rounded-full bg-blue-600 dark:bg-blue-500" />
+                        <h2 className="text-2xl md:text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">
                             FAQs
                         </h2>
                         <p className="mt-3.5 text-[15px] md:text-base text-slate-600 dark:text-slate-400">
@@ -790,7 +756,7 @@ const Landing = () => {
                     <div className="grid grid-cols-2 md:grid-cols-12 gap-8 sm:gap-10 pb-10 border-b border-slate-800">
                         <div className="col-span-2 md:col-span-5">
                             <Link to="/" className="inline-flex items-center gap-2.5 group">
-                                <div className="w-9 h-9 bg-linear-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/30">
+                                <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm ring-1 ring-blue-700/30">
                                     <Icon icon="heroicons:document-text" className="text-lg text-white" />
                                 </div>
                                 <span className="text-xl font-bold text-white tracking-tight">Bill Munshi</span>
@@ -837,8 +803,8 @@ const Landing = () => {
                         <p>© {new Date().getFullYear()} Bill Munshi. All rights reserved.</p>
                         <div className="flex items-center gap-2">
                             <span className="relative inline-flex h-1.5 w-1.5">
-                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60 animate-ping"></span>
+                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-500"></span>
                             </span>
                             All systems operational
                         </div>

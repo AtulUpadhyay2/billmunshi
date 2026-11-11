@@ -756,7 +756,7 @@ const ZohoExpenseBillDetail = () => {
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 ring-1 ring-orange-600/20 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/20 ring-1 ring-blue-700/20 cursor-pointer"
           >
             <Icon icon="heroicons:arrow-path" className="text-sm" />
             Try again
@@ -869,7 +869,7 @@ const ZohoExpenseBillDetail = () => {
             type="button"
             onClick={handleSync}
             disabled={isSyncing || isLocked || billInfo?.status !== "Verified"}
-            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="group inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 ring-1 ring-blue-700/20 transition-all cursor-pointer"
             title={
               isSyncing
                 ? "Syncing…"

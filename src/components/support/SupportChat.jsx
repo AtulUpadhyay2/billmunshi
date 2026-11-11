@@ -133,12 +133,12 @@ export const SupportChatPanel = ({ open, onClose }) => {
       aria-label="Chat with support"
       className="fixed z-[99990] bottom-4 right-4 left-4 sm:left-auto sm:w-[360px] max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800"
     >
-      <div className="flex items-center justify-between gap-2 px-4 py-3 bg-orange-500 text-white rounded-t-2xl">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 bg-blue-600 text-white rounded-t-2xl">
         <div className="flex items-center gap-2 min-w-0">
           <Icon icon="heroicons:chat-bubble-left-right" className="text-lg shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold leading-tight">Chat with support</p>
-            <p className="text-[11px] text-orange-50/90 leading-tight">We usually reply within a few hours</p>
+            <p className="text-[11px] text-blue-50/90 leading-tight">We usually reply within a few hours</p>
           </div>
         </div>
         <button
@@ -243,7 +243,7 @@ export const SupportChatLauncher = () => {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with support"
-          className="fixed z-[99990] bottom-5 right-5 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/40 ring-1 ring-orange-600/20 cursor-pointer"
+          className="fixed z-[99990] bottom-5 right-5 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/25 ring-1 ring-blue-700/20 cursor-pointer"
         >
           <Icon icon="heroicons:chat-bubble-left-right" className="text-xl" />
           Chat with us

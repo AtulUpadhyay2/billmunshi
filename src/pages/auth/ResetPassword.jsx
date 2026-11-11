@@ -28,11 +28,11 @@ const ResetPassword = () => {
 
         <div className="flex-1 flex items-center justify-center py-10">
           <div className="w-full max-w-md">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/60 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 ring-1 ring-blue-100 dark:ring-blue-900/60 text-blue-700 dark:text-blue-400 flex items-center justify-center mb-4">
               <Icon icon="heroicons:key" className="text-xl" />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
               Choose a new password
             </h1>
             <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 mb-6">
@@ -70,18 +70,16 @@ const ResetPassword = () => {
             backgroundSize: "48px 48px",
           }}
         />
-        <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-orange-500/25 rounded-full blur-3xl" />
-        <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white">
           <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
-            <Icon icon="heroicons:lock-closed" className="text-sm text-orange-300" />
+            <Icon icon="heroicons:lock-closed" className="text-sm text-blue-300" />
             Secure reset
           </span>
 
-          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-semibold tracking-tight leading-[1.15] text-white">
             One more step to get you back{" "}
-            <span className="bg-linear-to-r from-orange-300 to-blue-300 bg-clip-text text-transparent">
+            <span className="text-white">
               in the driver&rsquo;s seat.
             </span>
           </h2>

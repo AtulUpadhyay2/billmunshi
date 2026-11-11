@@ -68,7 +68,7 @@ const Navmenu = ({ menus, collapsed = false }) => {
                   <span className="flex-1 truncate">{item.title}</span>
                 )}
                 {!collapsed && item.badge && (
-                  <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 text-[10px] font-bold">
+                  <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 text-[10px] font-bold">
                     {item.badge}
                   </span>
                 )}

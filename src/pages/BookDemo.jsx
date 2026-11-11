@@ -178,7 +178,7 @@ const BookDemo = () => {
                             Schedule your demo
                         </span>
 
-                        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                             Book a live demo
                         </h1>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 mb-5">
@@ -323,7 +323,7 @@ const BookDemo = () => {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="group sm:flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 transition-all duration-200 ring-1 ring-orange-600/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-orange-500"
+                                    className="group sm:flex-2 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 transition-all duration-200 ring-1 ring-blue-700/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
                                 >
                                     {isLoading ? (
                                         <>
@@ -367,23 +367,21 @@ const BookDemo = () => {
                         backgroundSize: '48px 48px',
                     }}
                 />
-                <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl" />
-                <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
 
                 <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white overflow-y-auto py-10">
                     <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
-                        <Icon icon="heroicons:gift" className="text-sm text-orange-300" />
+                        <Icon icon="heroicons:gift" className="text-sm text-blue-300" />
                         Limited time offer
                     </span>
 
-                    <h2 className="mt-6 text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.1] text-white">
+                    <h2 className="mt-6 text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.1] text-white">
                         See it for yourself in{" "}
-                        <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
+                        <span className="text-white">
                             30 minutes.
                         </span>
                     </h2>
                     <p className="mt-5 text-lg text-slate-300 max-w-md leading-relaxed">
-                        Process up to <span className="font-semibold text-orange-300">50 bills/month</span> for free with <span className="font-semibold text-orange-300">1GB</span> storage — for the first 100 users.
+                        Process up to <span className="font-semibold text-blue-300">50 bills/month</span> for free with <span className="font-semibold text-blue-300">1GB</span> storage — for the first 100 users.
                     </p>
 
                     <ul className="mt-8 space-y-3.5 max-w-md">
@@ -407,10 +405,10 @@ const BookDemo = () => {
 
                     <div className="mt-8 flex items-center gap-x-5 gap-y-2 flex-wrap text-xs text-slate-400">
                         <span className="inline-flex items-center gap-1.5">
-                            <Icon icon="heroicons:clock" className="text-emerald-400 text-sm" /> Reply within 24h
+                            <Icon icon="heroicons:clock" className="text-slate-400 text-sm" /> Reply within 24h
                         </span>
                         <span className="inline-flex items-center gap-1.5">
-                            <Icon icon="heroicons:shield-check" className="text-emerald-400 text-sm" /> No commitment
+                            <Icon icon="heroicons:shield-check" className="text-slate-400 text-sm" /> No commitment
                         </span>
                     </div>
                 </div>

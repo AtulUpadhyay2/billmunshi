@@ -12,7 +12,7 @@ const btnBase =
 const btnNeutral =
   `${btnBase} text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800`;
 const btnPrimary =
-  `${btnBase} text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30 ring-1 ring-orange-600/20 disabled:cursor-not-allowed`;
+  `${btnBase} text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20 disabled:cursor-not-allowed`;
 
 const thBase =
   "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";

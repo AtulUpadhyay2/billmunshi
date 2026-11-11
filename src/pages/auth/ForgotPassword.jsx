@@ -34,7 +34,7 @@ const forgotPass = () => {
               <Icon icon="heroicons:lock-closed" className="text-xl" />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
               Forgot your password?
             </h1>
             <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 mb-6">
@@ -79,18 +79,16 @@ const forgotPass = () => {
             backgroundSize: '48px 48px',
           }}
         />
-        <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl" />
-        <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white">
           <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
-            <Icon icon="heroicons:shield-check" className="text-sm text-emerald-400" />
+            <Icon icon="heroicons:shield-check" className="text-sm text-blue-300" />
             Account recovery
           </span>
 
-          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-semibold tracking-tight leading-[1.15] text-white">
             Your data is{" "}
-            <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
+            <span className="text-white">
               always protected.
             </span>
           </h2>

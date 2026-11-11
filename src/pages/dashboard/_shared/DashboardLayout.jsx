@@ -196,7 +196,7 @@ const ModuleSummaryCard = ({
           <button
             type="button"
             onClick={primaryAction.onClick}
-            className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm shadow-orange-500/20 ring-1 ring-orange-600/20 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20 transition-all cursor-pointer"
           >
             <Icon icon={primaryAction.icon || "heroicons:arrow-up-tray"} className="text-sm" />
             {primaryAction.label}

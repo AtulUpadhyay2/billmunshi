@@ -31,7 +31,7 @@ const login = () => {
         <div className="flex-1 flex items-center justify-center py-10">
           <div className="w-full max-w-md">
             <div className="mb-6">
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                 Welcome back
               </h1>
               <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
@@ -72,22 +72,20 @@ const login = () => {
           }}
         />
         {/* Glow orbs */}
-        <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl" />
-        <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white">
           {/* Pill */}
           <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
             <span className="relative inline-flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60 animate-ping"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-500"></span>
             </span>
             Trusted by accounting teams
           </span>
 
-          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-semibold tracking-tight leading-[1.15] text-white">
             Streamline your{" "}
-            <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
+            <span className="text-white">
               billing management
             </span>
           </h2>
@@ -118,9 +116,9 @@ const login = () => {
                     <div className="text-[10px] font-mono text-white/60">{row.amt}</div>
                   </div>
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full
-                    ${row.tone === 'success' ? 'bg-emerald-500/20 text-emerald-300' : ''}
+                    ${row.tone === 'success' ? 'bg-white/10 text-slate-300' : ''}
                     ${row.tone === 'info' ? 'bg-blue-500/20 text-blue-300' : ''}
-                    ${row.tone === 'warn' ? 'bg-amber-500/20 text-amber-300' : ''}`}>
+                    ${row.tone === 'warn' ? 'bg-white/10 text-slate-300' : ''}`}>
                     {row.tone === 'success' ? 'Synced' : row.tone === 'info' ? 'Approved' : 'Review'}
                   </span>
                 </div>
@@ -131,10 +129,10 @@ const login = () => {
           {/* Trust footer */}
           <div className="mt-10 flex items-center gap-x-6 gap-y-2 flex-wrap text-xs text-slate-400">
             <span className="inline-flex items-center gap-1.5">
-              <Icon icon="heroicons:shield-check" className="text-emerald-400 text-base" /> Enterprise-grade security
+              <Icon icon="heroicons:shield-check" className="text-slate-400 text-base" /> Enterprise-grade security
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Icon icon="heroicons:lock-closed" className="text-emerald-400 text-base" /> Encrypted at rest
+              <Icon icon="heroicons:lock-closed" className="text-slate-400 text-base" /> Encrypted at rest
             </span>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import PerBill from "@/components/bills/PerBill";
 
 // Dashboard
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -183,17 +184,23 @@ function App() {
           <Route path="zoho/vendor-bill" element={<ZohoVendorBill />} />
           <Route
             path="zoho/vendor-bill/:id"
-            element={<ZohoVendorBillDetail />}
+            element={
+              <PerBill><ZohoVendorBillDetail /></PerBill>
+            }
           />
           <Route path="zoho/expense-bill" element={<ZohoExpenseBill />} />
           <Route
             path="zoho/expense-bill/:id"
-            element={<ZohoExpenseBillDetail />}
+            element={
+              <PerBill><ZohoExpenseBillDetail /></PerBill>
+            }
           />
           <Route path="zoho/sales-bill" element={<ZohoSalesBill />} />
           <Route
             path="zoho/sales-bill/:id"
-            element={<ZohoSalesBillDetail />}
+            element={
+              <PerBill><ZohoSalesBillDetail /></PerBill>
+            }
           />
           <Route
             path="zoho/receipt-voucher"
@@ -201,7 +208,9 @@ function App() {
           />
           <Route
             path="zoho/receipt-voucher/:id"
-            element={<ZohoReceiptVoucherDetail />}
+            element={
+              <PerBill><ZohoReceiptVoucherDetail /></PerBill>
+            }
           />
           <Route
             path="zoho/payment-voucher"
@@ -209,12 +218,16 @@ function App() {
           />
           <Route
             path="zoho/payment-voucher/:id"
-            element={<ZohoPaymentVoucherDetail />}
+            element={
+              <PerBill><ZohoPaymentVoucherDetail /></PerBill>
+            }
           />
           <Route path="zoho/journal-entry" element={<ZohoJournalEntry />} />
           <Route
             path="zoho/journal-entry/:id"
-            element={<ZohoJournalEntryDetail />}
+            element={
+              <PerBill><ZohoJournalEntryDetail /></PerBill>
+            }
           />
           <Route path="zoho/config/credentials" element={<ZohoCredentials />} />
           <Route
@@ -231,7 +244,9 @@ function App() {
           <Route path="tally/vendor-bill" element={<TallyVendorBill />} />
           <Route
             path="tally/vendor-bill/:id"
-            element={<TallyVendorBillDetail />}
+            element={
+              <PerBill><TallyVendorBillDetail /></PerBill>
+            }
           />
           <Route path="tally/sales-bill" element={<TallySalesBill />} />
           <Route
@@ -240,11 +255,15 @@ function App() {
           />
           <Route
             path="tally/receipt-voucher/:id"
-            element={<TallyReceiptVoucherDetail />}
+            element={
+              <PerBill><TallyReceiptVoucherDetail /></PerBill>
+            }
           />
           <Route
             path="tally/sales-bill/:id"
-            element={<TallySalesBillDetail />}
+            element={
+              <PerBill><TallySalesBillDetail /></PerBill>
+            }
           />
           {/* Journal Entry. ``expense-bill`` is kept as an alias, not
               redirected: the narration on every voucher already posted
@@ -253,17 +272,23 @@ function App() {
           <Route path="tally/journal-entry" element={<TallyExpenseBill />} />
           <Route
             path="tally/journal-entry/:id"
-            element={<TallyExpenseBillDetail />}
+            element={
+              <PerBill><TallyExpenseBillDetail /></PerBill>
+            }
           />
           <Route path="tally/expense-bill" element={<TallyExpenseBill />} />
           <Route
             path="tally/expense-bill/:id"
-            element={<TallyExpenseBillDetail />}
+            element={
+              <PerBill><TallyExpenseBillDetail /></PerBill>
+            }
           />
           <Route path="tally/payment-voucher" element={<TallyPaymentVoucher />} />
           <Route
             path="tally/payment-voucher/:id"
-            element={<TallyPaymentVoucherDetail />}
+            element={
+              <PerBill><TallyPaymentVoucherDetail /></PerBill>
+            }
           />
           {/* Approvals, Trash, Activity and Accuracy read across Tally
               AND Zoho — they are keyed on the organisation, not a module —

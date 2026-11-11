@@ -65,8 +65,8 @@ const VerifyEmail = ({ mode = "account" }) => {
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 p-8 text-center">
         <div className="flex justify-center mb-5">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 bg-linear-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-orange-600/20">
-              <span className="text-white font-extrabold text-sm">BM</span>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-blue-700/20">
+              <span className="text-white font-semibold text-sm">BM</span>
             </div>
             <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               Bill Munshi

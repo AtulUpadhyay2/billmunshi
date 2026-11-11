@@ -31,12 +31,12 @@ const register = () => {
         <div className="flex-1 flex items-center justify-center py-6">
           <div className="w-full max-w-xl">
             {/* Eyebrow offer pill */}
-            <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/60 rounded-full text-[11px] font-semibold text-orange-700 dark:text-orange-400 mb-3">
+            <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/60 rounded-full text-[11px] font-semibold text-blue-700 dark:text-blue-400 mb-3">
               <Icon icon="heroicons:gift" className="text-xs" />
               First 100 users get 50 bills/mo + 1GB free
             </span>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
               Create your account
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 mb-5">
@@ -71,8 +71,6 @@ const register = () => {
             backgroundSize: '48px 48px',
           }}
         />
-        <div aria-hidden="true" className="absolute top-0 right-0 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl" />
-        <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-16 text-white">
           <span className="self-start inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-semibold">
@@ -80,9 +78,9 @@ const register = () => {
             Get started today
           </span>
 
-          <h2 className="mt-5 text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white">
+          <h2 className="mt-5 text-3xl xl:text-4xl font-semibold tracking-tight leading-[1.15] text-white">
             Automate your{" "}
-            <span className="bg-linear-to-r from-blue-400 to-orange-300 bg-clip-text text-transparent">
+            <span className="text-white">
               accounting workflow.
             </span>
           </h2>
@@ -111,10 +109,10 @@ const register = () => {
 
           <div className="mt-10 flex items-center gap-x-6 gap-y-2 flex-wrap text-xs text-slate-400">
             <span className="inline-flex items-center gap-1.5">
-              <Icon icon="heroicons:check-circle" className="text-emerald-400 text-base" /> No credit card required
+              <Icon icon="heroicons:check-circle" className="text-slate-400 text-base" /> No credit card required
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Icon icon="heroicons:check-circle" className="text-emerald-400 text-base" /> Cancel anytime
+              <Icon icon="heroicons:check-circle" className="text-slate-400 text-base" /> Cancel anytime
             </span>
           </div>
         </div>

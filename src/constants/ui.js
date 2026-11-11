@@ -250,9 +250,9 @@ export const BTN_BASE_SHAPE = `${BTN_BASE} ${BTN_MD}`;
 
 /** Primary action. One per view, usually the far right of the toolbar. */
 export const BTN_PRIMARY =
-  `${BTN_BASE} ${BTN_MD} text-white bg-orange-500 hover:bg-orange-600 ` +
-  "shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 " +
-  "ring-1 ring-orange-600/20";
+  `${BTN_BASE} ${BTN_MD} text-white bg-blue-600 hover:bg-blue-700 ` +
+  "shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 " +
+  "ring-1 ring-blue-700/20";
 
 /** Default action: outlined, sits on the page background. */
 export const BTN_SECONDARY =
@@ -292,9 +292,9 @@ export const BTN_DANGER =
  * the four auth forms at `BTN_PRIMARY` and delete this.
  */
 export const BTN_PRIMARY_CTA =
-  `${BTN_BASE} h-10 px-4 text-xs text-white bg-orange-500 hover:bg-orange-600 ` +
-  "shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 " +
-  "ring-1 ring-orange-600/20";
+  `${BTN_BASE} h-10 px-4 text-xs text-white bg-blue-600 hover:bg-blue-700 ` +
+  "shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 " +
+  "ring-1 ring-blue-700/20";
 
 /** Icon-only button on the 32px tier — square, so it stays a circle-ish box. */
 export const BTN_ICON =
