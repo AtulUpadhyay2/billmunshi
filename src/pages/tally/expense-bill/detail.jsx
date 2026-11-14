@@ -26,7 +26,7 @@ import {
 } from "@/services/tally/tallyExpenseBillService";
 import {
   useGetTallyVendorLedgers,
-  useGetTallyTaxLedgers,
+  useGetTallyTdsLedgers,
   useGetTallyExpenseChartOfAccountsLedgers,
   useGetTallyCgstLedgers,
   useGetTallySgstLedgers,
@@ -336,8 +336,16 @@ const TallyExpenseBillDetail = () => {
     });
 
   // Fetch tax ledgers for tax selection dropdown
-  const { data: taxLedgersData, isLoading: taxLedgersLoading } =
-    useGetTallyTaxLedgers(selectedOrganization?.id, {
+  // The TDS ledger, scoped by `tds_parents`.
+  //
+  // This read `chart_of_accounts_parents` — the purchase group — which
+  // is not where a TDS ledger lives. Both groups happened to be
+  // configured on some setups, so it offered the wrong ledgers; on a
+  // setup with no purchase accounts it offered none, and the TDS line
+  // could not be completed at all. These options feed only the TDS
+  // picker, so the rename follows the fix.
+  const { data: tdsLedgersData, isLoading: tdsLedgersLoading } =
+    useGetTallyTdsLedgers(selectedOrganization?.id, {
       enabled: !!selectedOrganization?.id,
     });
 
@@ -803,11 +811,11 @@ const TallyExpenseBillDetail = () => {
   );
 
   // Process tax ledgers data for dropdown
-  const processTaxLedgers = () => {
-    if (!taxLedgersData?.grouped_ledgers) return [];
+  const processTdsLedgers = () => {
+    if (!tdsLedgersData?.grouped_ledgers) return [];
 
     const taxLedgers = [];
-    Object.values(taxLedgersData.grouped_ledgers).forEach((group) => {
+    Object.values(tdsLedgersData.grouped_ledgers).forEach((group) => {
       if (group.ledgers && Array.isArray(group.ledgers)) {
         group.ledgers.forEach((ledger) => {
           taxLedgers.push({
@@ -825,9 +833,9 @@ const TallyExpenseBillDetail = () => {
     return taxLedgers;
   };
 
-  const taxLedgerOptions = useMemo(
-    () => processTaxLedgers(),
-    [taxLedgersData],
+  const tdsLedgerOptions = useMemo(
+    () => processTdsLedgers(),
+    [tdsLedgersData],
   );
 
   // Process CGST ledgers data for dropdown
@@ -1305,7 +1313,7 @@ const TallyExpenseBillDetail = () => {
         !taxSummaryForm.tdsLedgerId &&
         !cleared.has("tds")
       ) {
-        const matchedTdsLedger = taxLedgerOptions.find(
+        const matchedTdsLedger = tdsLedgerOptions.find(
           (ledger) => ledger.id === tallyAnalysedData.tds_taxes,
         );
         if (matchedTdsLedger) {
@@ -1354,7 +1362,7 @@ const TallyExpenseBillDetail = () => {
     cgstLedgerOptions,
     sgstLedgerOptions,
     igstLedgerOptions,
-    taxLedgerOptions,
+    tdsLedgerOptions,
     ledgerOptions,
     tallyAnalysedData,
     taxSummaryForm.cgstLedgerId,
@@ -2140,7 +2148,7 @@ const TallyExpenseBillDetail = () => {
       "IGST",
       taxSummaryForm.igstLedgerId,
     );
-    const tdsLedger = taxLedgerOptions.find(
+    const tdsLedger = tdsLedgerOptions.find(
       (ledger) => ledger.id === taxSummaryForm.tdsLedgerId,
     );
     const otherAdjustmentLedger = ledgerOptions.find(
@@ -3954,7 +3962,7 @@ const TallyExpenseBillDetail = () => {
                           >
                             <SearchableDropdown
                               triggerClassName="rounded-r-none"
-                              options={taxLedgerOptions}
+                              options={tdsLedgerOptions}
                               value={taxSummaryForm.tdsLedgerId || null}
                               onChange={handleTdsLedgerSelect}
                               onClear={handleTdsLedgerClear}
@@ -3966,7 +3974,7 @@ const TallyExpenseBillDetail = () => {
                               searchPlaceholder="Search tds ledger…"
                               optionLabelKey="name"
                               optionValueKey="id"
-                              loading={taxLedgersLoading}
+                              loading={tdsLedgersLoading}
                               disabled={isLocked}
                               renderOption={(ledger) => (
                                 <div className="flex flex-col py-1">

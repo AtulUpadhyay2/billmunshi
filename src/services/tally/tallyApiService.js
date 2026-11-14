@@ -351,6 +351,36 @@ export const useGetTallyPurchaseLedgers = (organizationId, options = {}) => {
 };
 
 /**
+ * Get Tally TDS ledgers for an organization.
+ *
+ * Scoped by `tds_parents`, which is what the backend resolves a TDS
+ * ledger against (the 'TDS' entry in views/helpers.py). The journal's
+ * TDS picker used to read `chart_of_accounts_parents` — the PURCHASE
+ * group — so on any setup where those two groups differ it offered the
+ * wrong ledgers, and on a setup with no purchase accounts it offered
+ * none at all.
+ */
+export const useGetTallyTdsLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallyTdsLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/configs/ledgers/?parent_type=tds_parents`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
+/**
  * Get Tally CGST ledgers for an organization
  */
 export const useGetTallyCgstLedgers = (organizationId, options = {}) => {

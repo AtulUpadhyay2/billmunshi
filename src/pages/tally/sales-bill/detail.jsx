@@ -29,7 +29,6 @@ import {
 import {
   useGetTallyLedgers,
   useGetTallyCustomerLedgers,
-  useGetTallyTaxLedgers,
   useGetTallyCgstLedgers,
   useGetTallySgstLedgers,
   useGetTallyIgstLedgers,
@@ -419,9 +418,18 @@ const TallySalesBillDetail = () => {
       enabled: !!selectedOrganization?.id,
     });
 
-  // Fetch tax ledgers for product tax selection dropdown
+  // The ledger each invoice line posts to — scoped by `sales_coa_parents`.
+  //
+  // This read `chart_of_accounts_parents`, which is the PURCHASE group.
+  // On a sales-only setup that group is empty, so the "Select sales
+  // ledger..." dropdown offered nothing at all and the invoice could not
+  // be completed — and on a setup that has both, it offered purchase
+  // accounts, which posts revenue to the wrong side of the books.
+  //
+  // The backend has always scoped the sales side correctly (see the
+  // 'SALES' entry in views/helpers.py). Only this page disagreed.
   const { data: taxLedgersData, isLoading: taxLedgersLoading } =
-    useGetTallyTaxLedgers(selectedOrganization?.id, {
+    useGetTallySalesLedgers(selectedOrganization?.id, {
       enabled: !!selectedOrganization?.id,
     });
 
