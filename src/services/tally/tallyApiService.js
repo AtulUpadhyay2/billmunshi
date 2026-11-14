@@ -43,8 +43,29 @@ export const useCreateOrUpdateTallyConfig = () => {
       return response;
     },
     onSuccess: (data, variables) => {
-      // Invalidate the config query to refetch
       queryClient.invalidateQueries({ queryKey: ['tallyConfig', variables.organizationId] });
+
+      // Every ledger dropdown is scoped by one of the config's parent
+      // groups, so changing the config changes what belongs in them.
+      //
+      // Only the config query was invalidated here. With `staleTime` at
+      // five minutes and `refetchOnMount` off, an operator who had just
+      // configured "Customer ledgers" went back to the invoice and saw
+      // the same empty picker they came from — for five minutes, or
+      // until they reloaded the page. The configuration had saved; it
+      // just could not be seen to have saved.
+      //
+      // Matched on the key rather than listed one by one: a thirteenth
+      // dropdown added later is covered without anybody remembering to
+      // come back here. The two vouchers that build their own query
+      // inline (receipt/payment mode) follow the same naming and are
+      // caught too.
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey?.[0];
+          return typeof key === 'string' && /^tally.*Ledgers$/.test(key);
+        },
+      });
     },
   });
 };

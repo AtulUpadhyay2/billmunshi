@@ -404,7 +404,7 @@ export const useSyncCustomers = () => {
 export const useGetVendorCredits = (organizationId, options = {}) => {
   return useQuery({
     queryKey: ["zohoVendorCredits", organizationId],
-    queryFn: () => apiFetch(`zoho/${organizationId}/vendor-credits/`),
+    queryFn: () => apiFetch(`zoho/org/${organizationId}/vendor-credits/`),
     enabled: !!organizationId,
     ...options,
   });
@@ -416,7 +416,7 @@ export const useSyncVendorCredits = () => {
 
   return useMutation({
     mutationFn: (organizationId) =>
-      apiFetch(`zoho/${organizationId}/vendor-credits/sync/`, {
+      apiFetch(`zoho/org/${organizationId}/vendor-credits/sync/`, {
         method: "POST",
       }),
     onSuccess: (data, organizationId) => {

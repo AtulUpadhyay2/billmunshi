@@ -124,10 +124,13 @@ export const menuItems = [
         childtitle: "Customer List",
         childlink: "/zoho/customers",
       },
-      // {
-      //   childtitle: "Vendors Credits",
-      //   childlink: "zoho/vendors-credits",
-      // }
+      {
+        // Hidden until 2026-11-15 because the page called an endpoint
+        // nobody had written, so it only ever showed a 404. The endpoint
+        // exists now (zoho/org/<id>/vendor-credits/) and the page works.
+        childtitle: "Vendors Credits",
+        childlink: "/zoho/vendors-credits",
+      },
     ],
   },
 
