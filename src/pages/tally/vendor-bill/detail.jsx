@@ -1820,6 +1820,47 @@ const TallyVendorBillDetail = () => {
     billSummaryForm.roundOffLedgerId,
   ]);
 
+  // The configured adjustment ledgers, finally read.
+  //
+  // TallyConfig has carried a ledger per adjustment for a while. The
+  // setup page saved them and displayed them, and no voucher ever
+  // looked at them: the operator mapped "Discount" to a ledger and
+  // every bill still opened with the field blank. This fills a slot
+  // the bill itself did not already name.
+  //
+  // A purchase reads the PURCHASE slots — the original
+  // five fields, which keep their names and their meaning.
+  useEffect(() => {
+    const cfg = configResponse?.data;
+    if (!cfg) return;
+    const cleared = userClearedLedgersRef.current;
+    const updates = {};
+    const slots = [
+      ["discount", "discountLedgerId", cfg.discount_ledger],
+      ["cess", "cessLedgerId", cfg.cess_ledger],
+      ["freight", "freightLedgerId", cfg.freight_ledger],
+      ["round_off", "roundOffLedgerId", cfg.round_off_ledger],
+    ];
+    slots.forEach(([name, formKey, ledgerId]) => {
+      if (!ledgerId || billSummaryForm[formKey] || cleared.has(name)) return;
+      // Only offer a ledger the dropdown actually lists, or the field
+      // would hold an id with no label and render blank.
+      if (discountLedgerOptions.some((o) => o.id === ledgerId)) {
+        updates[formKey] = ledgerId;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      setBillSummaryForm((prev) => ({ ...prev, ...updates }));
+    }
+  }, [
+    configResponse,
+    discountLedgerOptions,
+    billSummaryForm.discountLedgerId,
+    billSummaryForm.cessLedgerId,
+    billSummaryForm.freightLedgerId,
+    billSummaryForm.roundOffLedgerId,
+  ]);
+
   // Auto-select freight ledger when FREIGHT amount > 0 (not discount).
   // Previous logic keyed off discount by mistake; discount and freight
   // are independent adjustments and a bill can have one without the
@@ -3876,6 +3917,11 @@ const TallyVendorBillDetail = () => {
                 <div className="min-w-0">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
                     Bill from
+                  
+                    {/* The party is required on every voucher; the
+                        label says so rather than waiting for verify
+                        to reject the bill. */}
+                    <span aria-hidden="true" title="Required" className="text-rose-500 dark:text-rose-400">*</span>
                   </div>
                   {/* The vendor name IS the picker. It used to be
                       printed here and offered again as a "Vendor *"

@@ -25,6 +25,27 @@ import { GST_RATE_PERCENTS } from "@/constants/gstRates";
 // bills at those rates still resolve their ledgers.
 const GST_RATES = GST_RATE_PERCENTS.map((r) => r.toFixed(2));
 
+// The six columns of the tax ledger mapping.
+//
+// Input is the GST we pay a supplier and claim back; output is the GST
+// we charge a customer and owe. They are different ledgers in every
+// chart of accounts, and until now one slot per rate served both — so a
+// sale could post its tax to an input-credit ledger. The figures still
+// balanced, which is why nothing on the voucher looked wrong, and the
+// rate-wise summary GSTR-1 is filed from was wrong by the whole line.
+//
+// Everything in the section — state, save payload, the configured
+// count, the table — is derived from this list, so a seventh column
+// would be one entry rather than four edits.
+const GST_MAPPING_COLUMNS = [
+  { key: "cgst_ledger", tax: "cgst", label: "CGST Input", direction: "input" },
+  { key: "cgst_output_ledger", tax: "cgst", label: "CGST Output", direction: "output" },
+  { key: "sgst_ledger", tax: "sgst", label: "SGST Input", direction: "input" },
+  { key: "sgst_output_ledger", tax: "sgst", label: "SGST Output", direction: "output" },
+  { key: "igst_ledger", tax: "igst", label: "IGST Input", direction: "input" },
+  { key: "igst_output_ledger", tax: "igst", label: "IGST Output", direction: "output" },
+];
+
 // Shared app scale — mirrors pages/_shared/BillsList.jsx.
 const btnBase =
   "inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50";
@@ -44,20 +65,20 @@ const TAX_FIELDS = [
 ];
 
 const ACCOUNT_FIELDS = [
-  { key: "vendor_parents", display: "vendor_parent_names", label: "Vendor ledgers", icon: "heroicons:building-storefront" },
-  { key: "chart_of_accounts_parents", display: "coa_parent_names", label: "Purchase parent ledger", icon: "heroicons:shopping-cart" },
-  { key: "chart_of_accounts_expense_parents", display: "expense_coa_parent_names", label: "Expense parent ledger", icon: "heroicons:credit-card" },
-  { key: "payment_parents", display: "payment_parent_names", label: "Payment ledgers", icon: "heroicons:banknotes" },
+  { side: "purchase", key: "vendor_parents", display: "vendor_parent_names", label: "Vendor ledgers", icon: "heroicons:building-storefront" },
+  { side: "purchase", key: "chart_of_accounts_parents", display: "coa_parent_names", label: "Purchase parent ledger", icon: "heroicons:shopping-cart" },
+  { side: "purchase", key: "chart_of_accounts_expense_parents", display: "expense_coa_parent_names", label: "Expense parent ledger", icon: "heroicons:credit-card" },
+  { side: "purchase", key: "payment_parents", display: "payment_parent_names", label: "Payment ledgers", icon: "heroicons:banknotes" },
   // Sales side. Deliberately separate from the purchase groups: a
   // customer offered as a vendor, or a purchase account offered on a
   // sales line, posts revenue to the wrong side of the books.
-  { key: "customer_parents", display: "customer_parent_names", label: "Customer ledgers", icon: "heroicons:user-group" },
-  { key: "sales_coa_parents", display: "sales_coa_parent_names", label: "Sales parent ledger", icon: "heroicons:currency-rupee" },
-  { key: "receipt_parents", display: "receipt_parent_names", label: "Receipt ledgers", icon: "heroicons:arrow-down-tray" },
+  { side: "sales", key: "customer_parents", display: "customer_parent_names", label: "Customer ledgers", icon: "heroicons:user-group" },
+  { side: "sales", key: "sales_coa_parents", display: "sales_coa_parent_names", label: "Sales parent ledger", icon: "heroicons:currency-rupee" },
+  { side: "sales", key: "receipt_parents", display: "receipt_parent_names", label: "Receipt ledgers", icon: "heroicons:arrow-down-tray" },
   // Where the reverse-charge liability sits. Its own group because the
   // input-credit ledger and the payable ledger are different accounts
   // even though both live under Duties & Taxes.
-  { key: "rcm_parents", display: "rcm_parent_names", label: "RCM payable ledgers", icon: "heroicons:arrows-right-left" },
+  { side: "purchase", key: "rcm_parents", display: "rcm_parent_names", label: "RCM payable ledgers", icon: "heroicons:arrows-right-left" },
 ];
 
 // "Additional Adjustments Mapping" — Cess / Discount / Freight / Round Off / TDS
@@ -67,6 +88,8 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
   {
     key: "cess_ledger",
     display: "cess_ledger_name",
+    salesKey: "cess_ledger_sales",
+    salesDisplay: "cess_ledger_sales_name",
     label: "Cess",
     hint: "Ledger stamped on lines flagged as Cess.",
     icon: "heroicons:receipt-percent",
@@ -75,6 +98,8 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
   {
     key: "discount_ledger",
     display: "discount_ledger_name",
+    salesKey: "discount_ledger_sales",
+    salesDisplay: "discount_ledger_sales_name",
     label: "Discount",
     hint: "Ledger stamped when the bill carries a discount line.",
     icon: "heroicons:tag",
@@ -83,6 +108,8 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
   {
     key: "freight_ledger",
     display: "freight_ledger_name",
+    salesKey: "freight_ledger_sales",
+    salesDisplay: "freight_ledger_sales_name",
     label: "Freight Charges",
     hint: "Ledger stamped on freight / delivery / shipping lines.",
     icon: "heroicons:truck",
@@ -91,6 +118,8 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
   {
     key: "round_off_ledger",
     display: "round_off_ledger_name",
+    salesKey: "round_off_ledger_sales",
+    salesDisplay: "round_off_ledger_sales_name",
     label: "Round Off",
     hint: "Ledger used for the paise-adjustment entry that balances the voucher.",
     icon: "heroicons:calculator",
@@ -99,6 +128,8 @@ const ADDITIONAL_ADJUSTMENT_FIELDS = [
   {
     key: "tds_ledger",
     display: "tds_ledger_name",
+    salesKey: "tds_ledger_sales",
+    salesDisplay: "tds_ledger_sales_name",
     label: "TDS",
     hint: "Ledger applied when TDS is deducted at source.",
     icon: "heroicons:document-currency-rupee",
@@ -121,7 +152,29 @@ const ADDITIONAL_ADJUSTMENT_AUTO_RULES = {
   ],
   round_off_ledger: ["rounding difference", "round off", "round diff"],
   tds_ledger: ["tds payable"],
+
+  // The sales side wants different ledgers, and the keywords say so: a
+  // discount a supplier gives us is income ("discount received"), a
+  // discount we give a customer is an expense ("discount allowed"), and
+  // freight we pay in is inward while freight we charge out is outward.
+  cess_ledger_sales: ["cess on sales", "output cess", "cess"],
+  discount_ledger_sales: ["discount allowed", "sales discount", "discount on sales"],
+  freight_ledger_sales: [
+    "freight outward",
+    "freight on sales",
+    "delivery charges",
+    "freight charges",
+  ],
+  round_off_ledger_sales: ["rounding difference", "round off", "round diff"],
+  tds_ledger_sales: ["tds receivable", "tds on sales", "tds"],
 };
+
+// Both slots of every adjustment, flattened — what the state, the save
+// payload and the configured count are all built from.
+const ADJUSTMENT_SLOT_KEYS = ADDITIONAL_ADJUSTMENT_FIELDS.flatMap((f) => [
+  f.key,
+  f.salesKey,
+]);
 
 const normalizeLedgerName = (name) =>
   String(name || "")
@@ -257,6 +310,18 @@ const TallySetup = () => {
   const cgstLedgerOptions = useMemo(() => flattenLedgers(cgstLedgersData), [cgstLedgersData]);
   const sgstLedgerOptions = useMemo(() => flattenLedgers(sgstLedgersData), [sgstLedgersData]);
   const igstLedgerOptions = useMemo(() => flattenLedgers(igstLedgersData), [igstLedgersData]);
+  // Both the input and the output column for a tax pick from the same
+  // group of ledgers — "Input CGST 18%" and "Output CGST 18%" both live
+  // under Duties & Taxes. Which one is which is the operator's call,
+  // which is the whole point of the two columns.
+  const ledgerOptionsByTax = useMemo(
+    () => ({
+      cgst: cgstLedgerOptions,
+      sgst: sgstLedgerOptions,
+      igst: igstLedgerOptions,
+    }),
+    [cgstLedgerOptions, sgstLedgerOptions, igstLedgerOptions],
+  );
 
   const [rateMapState, setRateMapState] = useState({});
   useEffect(() => {
@@ -264,11 +329,10 @@ const TallySetup = () => {
     const map = {};
     GST_RATES.forEach((r) => {
       const existing = list.find((m) => Number(m.rate) === Number(r));
-      map[r] = {
-        cgst_ledger: existing?.cgst_ledger || null,
-        sgst_ledger: existing?.sgst_ledger || null,
-        igst_ledger: existing?.igst_ledger || null,
-      };
+      map[r] = GST_MAPPING_COLUMNS.reduce(
+        (row, col) => ({ ...row, [col.key]: existing?.[col.key] || null }),
+        {},
+      );
     });
     setRateMapState(map);
   }, [gstRateMappingsResponse]);
@@ -282,12 +346,12 @@ const TallySetup = () => {
 
   const handleSaveRateMappings = async () => {
     try {
-      const mappings = GST_RATES.map((r) => ({
-        rate: r,
-        cgst_ledger: rateMapState[r]?.cgst_ledger || null,
-        sgst_ledger: rateMapState[r]?.sgst_ledger || null,
-        igst_ledger: rateMapState[r]?.igst_ledger || null,
-      }));
+      const mappings = GST_RATES.map((r) =>
+        GST_MAPPING_COLUMNS.reduce(
+          (row, col) => ({ ...row, [col.key]: rateMapState[r]?.[col.key] || null }),
+          { rate: r },
+        ),
+      );
       await upsertGstRateMappingsMutation.mutateAsync({
         organizationId: selectedOrganization.id,
         mappings,
@@ -307,12 +371,7 @@ const TallySetup = () => {
     return GST_RATES.reduce((count, r) => {
       const m = rateMapState[r];
       if (!m) return count;
-      return (
-        count +
-        (m.cgst_ledger ? 1 : 0) +
-        (m.sgst_ledger ? 1 : 0) +
-        (m.igst_ledger ? 1 : 0)
-      );
+      return count + GST_MAPPING_COLUMNS.filter((col) => m[col.key]).length;
     }, 0);
   }, [rateMapState]);
 
@@ -320,14 +379,14 @@ const TallySetup = () => {
   // Every adjustment is a SINGLE Ledger FK (picked from the org's full
   // Chart of Accounts), NOT a set of ParentLedgers.
   const [additionalAdjustmentsState, setAdditionalAdjustmentsState] = useState(() =>
-    ADDITIONAL_ADJUSTMENT_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: null }), {})
+    ADJUSTMENT_SLOT_KEYS.reduce((acc, key) => ({ ...acc, [key]: null }), {})
   );
 
   useEffect(() => {
     if (config) {
       setAdditionalAdjustmentsState(
-        ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-          (acc, f) => ({ ...acc, [f.key]: config[f.key] || null }),
+        ADJUSTMENT_SLOT_KEYS.reduce(
+          (acc, key) => ({ ...acc, [key]: config[key] || null }),
           {}
         )
       );
@@ -347,8 +406,8 @@ const TallySetup = () => {
 
   const handleSaveAdditionalAdjustments = async () => {
     try {
-      const payload = ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-        (acc, f) => ({ ...acc, [f.key]: additionalAdjustmentsState[f.key] || null }),
+      const payload = ADJUSTMENT_SLOT_KEYS.reduce(
+        (acc, key) => ({ ...acc, [key]: additionalAdjustmentsState[key] || null }),
         {}
       );
       await createOrUpdateConfigMutation.mutateAsync({
@@ -372,8 +431,8 @@ const TallySetup = () => {
 
   const additionalAdjustmentsConfigured = useMemo(() => {
     if (!config) return 0;
-    return ADDITIONAL_ADJUSTMENT_FIELDS.reduce(
-      (sum, f) => sum + (config[f.key] ? 1 : 0),
+    return ADJUSTMENT_SLOT_KEYS.reduce(
+      (sum, key) => sum + (config[key] ? 1 : 0),
       0
     );
   }, [config]);
@@ -425,10 +484,12 @@ const TallySetup = () => {
     if (!config || !allLedgerOptions.length) return;
     if (isAutoPickDone(selectedOrganization?.id)) return;
     const picks = {};
-    ADDITIONAL_ADJUSTMENT_FIELDS.forEach((f) => {
-      if (config[f.key] || userTouchedAdjustmentsRef.current.has(f.key)) return;
-      const ledgerId = findAutoLedger(f.key, allLedgerOptions);
-      if (ledgerId) picks[f.key] = ledgerId;
+    // Both slots of each adjustment — the purchase one and the sales
+    // one — each matched against its own keywords.
+    ADJUSTMENT_SLOT_KEYS.forEach((key) => {
+      if (config[key] || userTouchedAdjustmentsRef.current.has(key)) return;
+      const ledgerId = findAutoLedger(key, allLedgerOptions);
+      if (ledgerId) picks[key] = ledgerId;
     });
     if (!Object.keys(picks).length) return;
     setAdditionalAdjustmentsState((prev) => {
@@ -922,79 +983,59 @@ const TallySetup = () => {
               </div>
             </div>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-              <div className="hidden md:grid grid-cols-[80px_1fr_1fr_1fr] gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+              {/* Six columns now, so the header only draws where there
+                  is room for it; narrower screens get the labels on the
+                  selects themselves. */}
+              <div className="hidden xl:grid grid-cols-[70px_repeat(6,minmax(0,1fr))] gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                   Rate
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  CGST ledger
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  SGST ledger
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  IGST ledger
-                </span>
+                {GST_MAPPING_COLUMNS.map((col) => (
+                  <span
+                    key={col.key}
+                    className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400"
+                  >
+                    {col.label}
+                  </span>
+                ))}
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {GST_RATES.map((rate) => (
                   <div
                     key={rate}
-                    className="grid grid-cols-1 md:grid-cols-[80px_1fr_1fr_1fr] gap-2 px-3 py-2 items-center"
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[70px_repeat(6,minmax(0,1fr))] gap-2 px-3 py-2 items-center"
                   >
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center justify-center w-9 h-6 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[11px] font-bold">
                         {Number(rate)}%
                       </span>
                     </div>
-                    <ReactSelect
-                      options={cgstLedgerOptions}
-                      value={
-                        cgstLedgerOptions.find(
-                          (o) => o.value === rateMapState[rate]?.cgst_ledger
-                        ) || null
-                      }
-                      onChange={(opt) =>
-                        handleRateLedgerChange(rate, "cgst_ledger", opt?.value || null)
-                      }
-                      isClearable
-                      placeholder="Select CGST ledger…"
-                      styles={selectStyles}
-                      menuPlacement="auto"
-                      menuPosition="fixed"
-                    />
-                    <ReactSelect
-                      options={sgstLedgerOptions}
-                      value={
-                        sgstLedgerOptions.find(
-                          (o) => o.value === rateMapState[rate]?.sgst_ledger
-                        ) || null
-                      }
-                      onChange={(opt) =>
-                        handleRateLedgerChange(rate, "sgst_ledger", opt?.value || null)
-                      }
-                      isClearable
-                      placeholder="Select SGST ledger…"
-                      styles={selectStyles}
-                      menuPlacement="auto"
-                      menuPosition="fixed"
-                    />
-                    <ReactSelect
-                      options={igstLedgerOptions}
-                      value={
-                        igstLedgerOptions.find(
-                          (o) => o.value === rateMapState[rate]?.igst_ledger
-                        ) || null
-                      }
-                      onChange={(opt) =>
-                        handleRateLedgerChange(rate, "igst_ledger", opt?.value || null)
-                      }
-                      isClearable
-                      placeholder="Select IGST ledger…"
-                      styles={selectStyles}
-                      menuPlacement="auto"
-                      menuPosition="fixed"
-                    />
+                    {GST_MAPPING_COLUMNS.map((col) => {
+                      const options = ledgerOptionsByTax[col.tax] || [];
+                      return (
+                        <div key={col.key} className="min-w-0">
+                          <span className="xl:hidden block mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                            {col.label}
+                          </span>
+                          <ReactSelect
+                            options={options}
+                            value={
+                              options.find(
+                                (o) => o.value === rateMapState[rate]?.[col.key],
+                              ) || null
+                            }
+                            onChange={(opt) =>
+                              handleRateLedgerChange(rate, col.key, opt?.value || null)
+                            }
+                            isClearable
+                            placeholder={`Select ${col.label} ledger…`}
+                            styles={selectStyles}
+                            menuPlacement="auto"
+                            menuPosition="fixed"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -1009,7 +1050,7 @@ const TallySetup = () => {
                   Select Parent Ledgers
                 </h2>
                 <Tooltip
-                  content="Select ledgers for vendors, purchase, expenses and payments."
+                  content="Select parent ledgers per side of the books. Purchase covers vendors, purchase and expense accounts, payments and RCM; Sales covers customers, sales accounts and receipts."
                   placement="right"
                   arrow
                 >
@@ -1022,13 +1063,44 @@ const TallySetup = () => {
                 {accountConfigured} mapped
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {ACCOUNT_FIELDS.map((f) => (
-                <React.Fragment key={f.key}>
-                  {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}
-                </React.Fragment>
-              ))}
-            </div>
+            {/* Purchase and sales, apart.
+                These were one flat run of eight cards, and the two
+                sides of the books read as one list: a customer group
+                sat beside a vendor group with nothing saying which was
+                which. Splitting them is also what makes it obvious
+                when one side has been configured and the other has
+                not — which is exactly the state that sends a sales
+                line to a purchase ledger. */}
+            {[
+              { side: "purchase", title: "Purchase", icon: "heroicons:shopping-cart" },
+              { side: "sales", title: "Sales", icon: "heroicons:currency-rupee" },
+            ].map(({ side, title, icon }) => {
+              const fields = ACCOUNT_FIELDS.filter((f) => f.side === side);
+              const mapped = fields.reduce(
+                (sum, f) => sum + (config[f.display]?.length || 0),
+                0,
+              );
+              return (
+                <div key={side} className="mb-4 last:mb-0">
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Icon icon={icon} className="text-sm text-slate-400 dark:text-slate-500" />
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-400">
+                      {title}
+                    </h3>
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                      {mapped} mapped
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {fields.map((f) => (
+                      <React.Fragment key={f.key}>
+                        {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </section>
 
 
@@ -1085,7 +1157,10 @@ const TallySetup = () => {
                   Adjustment
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                  Ledger
+                  Purchase ledger
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Sales ledger
                 </span>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1093,13 +1168,18 @@ const TallySetup = () => {
                   const chipCls =
                     ADJUSTMENT_COLOR_CLASSES[f.color] ||
                     ADJUSTMENT_COLOR_CLASSES.blue;
-                  const currentId = additionalAdjustmentsState[f.key] || null;
-                  const currentOption =
-                    allLedgerOptions.find((o) => o.value === currentId) || null;
+                  // One row, two ledgers. A discount a supplier gives
+                  // us is income and a discount we give a customer is an
+                  // expense; a single slot could only ever be right for
+                  // one side of the books.
+                  const slots = [
+                    { key: f.key, side: "purchase" },
+                    { key: f.salesKey, side: "sales" },
+                  ];
                   return (
                     <div
                       key={f.key}
-                      className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 px-5 py-4 items-start md:items-center hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
+                      className="grid grid-cols-1 md:grid-cols-[240px_1fr_1fr] gap-4 px-5 py-4 items-start md:items-center hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
                     >
                       <div className="flex items-start gap-3 min-w-0">
                         <span
@@ -1110,7 +1190,8 @@ const TallySetup = () => {
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap text-[13px] font-semibold text-slate-900 dark:text-white">
                             {f.label}
-                            {autoSelectedAdjustments[f.key] && (
+                            {(autoSelectedAdjustments[f.key] ||
+                              autoSelectedAdjustments[f.salesKey]) && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 ring-1 ring-amber-100 dark:ring-amber-900/60">
                                 Auto-selected
                               </span>
@@ -1122,39 +1203,57 @@ const TallySetup = () => {
                         </div>
                       </div>
                       {isLoadingAllLedgers ? (
-                        <div className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                        <>
+                          <div className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                          <div className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                        </>
                       ) : (
-                        <ReactSelect
-                          options={allLedgerOptions}
-                          value={currentOption}
-                          onChange={(selected) =>
-                            handleAdditionalAdjustmentChange(
-                              f.key,
-                              selected ? selected.value : null,
-                            )
-                          }
-                          placeholder={`Select ledger for ${f.label.toLowerCase()}…`}
-                          isClearable
-                          isSearchable
-                          styles={selectStyles}
-                          menuPlacement="auto"
-                          menuPosition="fixed"
-                          formatOptionLabel={(o) => (
-                            <div className="flex flex-col leading-tight">
-                              <span className="text-[13px] text-slate-900 dark:text-white">
-                                {o.label}
+                        slots.map((slot) => {
+                          const currentOption =
+                            allLedgerOptions.find(
+                              (o) =>
+                                o.value ===
+                                (additionalAdjustmentsState[slot.key] || null),
+                            ) || null;
+                          return (
+                            <div key={slot.key} className="min-w-0">
+                              <span className="md:hidden block mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                {slot.side} ledger
                               </span>
-                              {o.parent && (
-                                <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                                  under {o.parent}
-                                </span>
-                              )}
+                              <ReactSelect
+                                options={allLedgerOptions}
+                                value={currentOption}
+                                onChange={(selected) =>
+                                  handleAdditionalAdjustmentChange(
+                                    slot.key,
+                                    selected ? selected.value : null,
+                                  )
+                                }
+                                placeholder={`${f.label} on ${slot.side}…`}
+                                isClearable
+                                isSearchable
+                                styles={selectStyles}
+                                menuPlacement="auto"
+                                menuPosition="fixed"
+                                formatOptionLabel={(o) => (
+                                  <div className="flex flex-col leading-tight">
+                                    <span className="text-[13px] text-slate-900 dark:text-white">
+                                      {o.label}
+                                    </span>
+                                    {o.parent && (
+                                      <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                                        under {o.parent}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                noOptionsMessage={() =>
+                                  "No ledgers in this org yet. Import from Tally or create one under Ledgers."
+                                }
+                              />
                             </div>
-                          )}
-                          noOptionsMessage={() =>
-                            "No ledgers in this org yet. Import from Tally or create one under Ledgers."
-                          }
-                        />
+                          );
+                        })
                       )}
                     </div>
                   );

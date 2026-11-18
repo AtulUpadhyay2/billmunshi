@@ -3005,6 +3005,11 @@ const TallyExpenseBillDetail = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
                     Party
+                  
+                    {/* The party is required on every voucher; the
+                        label says so rather than waiting for verify
+                        to reject the bill. */}
+                    <span aria-hidden="true" title="Required" className="text-rose-500 dark:text-rose-400">*</span>
                   </div>
                   <QuickAddGroup
                     kind="vendor"

@@ -35,7 +35,7 @@ export const FLAT_FIELD =
  * line, because a rejection nobody sees is a rejection that did not
  * happen.
  */
-export const FieldCell = ({ label, hint, error, children }) => (
+export const FieldCell = ({ label, hint, error, required, children }) => (
   <div className="bg-white dark:bg-slate-900 px-2.5 py-1.5 min-w-0">
     <span
       title={hint || undefined}
@@ -44,6 +44,20 @@ export const FieldCell = ({ label, hint, error, children }) => (
       }`}
     >
       {label}
+      {/* A required field says so on its label, before anyone fills
+          the form in. The only marker until now was the box turning
+          rose once it was found empty at verify time, which reads as
+          a mistake already made rather than a field still to fill. */}
+      {required && (
+        <span
+          aria-hidden="true"
+          title="Required"
+          className="ml-0.5 text-rose-500 dark:text-rose-400"
+        >
+          *
+        </span>
+      )}
+      {required && <span className="sr-only"> (required)</span>}
       {hint && <span aria-hidden="true"> ·</span>}
     </span>
     {children}

@@ -35,10 +35,22 @@ const QuickAddMaster = ({
   title,
   disabled = false,
   className = "",
-  // Vendor-only: seed the AddVendorModal with OCR-derived defaults
-  // (vendor name + GSTIN from the bill) so the user doesn't retype.
+  // Seed the AddVendorModal with OCR-derived defaults (party name +
+  // GSTIN from the bill) so the user doesn't retype what the scan
+  // already read.
+  //
+  // Both spellings are accepted. The sales and receipt pages pass
+  // ``customerDefault*`` — which reads correctly beside
+  // ``kind="customer"`` — and this component only ever destructured
+  // the vendor pair, so those props landed in the spread and were
+  // dropped on the floor. The modal then opened blank on exactly the
+  // two vouchers whose party is a customer, while the purchase side
+  // worked, which is why it looked like the automation had been built
+  // for purchases only.
   vendorDefaultName = "",
   vendorDefaultGstIn = "",
+  customerDefaultName = "",
+  customerDefaultGstIn = "",
   // Item-only: seed the AddItemModal with OCR-derived defaults from
   // the line row (item name, unit, GST rate, HSN).
   itemDefaultName = "",
@@ -48,6 +60,18 @@ const QuickAddMaster = ({
 }) => {
   const [open, setOpen] = useState(false);
   const label = title || KIND_TITLES[kind] || "Create new";
+
+  // Whichever spelling the caller used for this kind of party.
+  const partyDefaultName =
+    (kind === "customer" ? customerDefaultName : vendorDefaultName) ||
+    customerDefaultName ||
+    vendorDefaultName ||
+    "";
+  const partyDefaultGstIn =
+    (kind === "customer" ? customerDefaultGstIn : vendorDefaultGstIn) ||
+    customerDefaultGstIn ||
+    vendorDefaultGstIn ||
+    "";
 
   const close = () => setOpen(false);
   const handleCreated = (record) => onCreated?.(record);
@@ -72,8 +96,8 @@ const QuickAddMaster = ({
           isOpen={open}
           onClose={close}
           onCreated={handleCreated}
-          defaultName={vendorDefaultName}
-          defaultGstIn={vendorDefaultGstIn}
+          defaultName={partyDefaultName}
+          defaultGstIn={partyDefaultGstIn}
           party={kind}
         />
       )}

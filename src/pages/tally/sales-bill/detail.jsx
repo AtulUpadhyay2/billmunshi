@@ -1824,6 +1824,49 @@ const TallySalesBillDetail = () => {
     billSummaryForm.roundOffLedgerId,
   ]);
 
+  // The configured adjustment ledgers, finally read.
+  //
+  // TallyConfig has carried a ledger per adjustment for a while. The
+  // setup page saved them and displayed them, and no voucher ever
+  // looked at them: the operator mapped "Discount" to a ledger and
+  // every bill still opened with the field blank. This fills a slot
+  // the bill itself did not already name.
+  //
+  // A sale reads the SALES slots. A discount we give a
+  // customer is an expense; a discount a supplier gives us is
+  // income. They are not the same ledger, which is why the
+  // config now carries one of each.
+  useEffect(() => {
+    const cfg = configResponse?.data;
+    if (!cfg) return;
+    const cleared = userClearedLedgersRef.current;
+    const updates = {};
+    const slots = [
+      ["discount", "discountLedgerId", cfg.discount_ledger_sales],
+      ["cess", "cessLedgerId", cfg.cess_ledger_sales],
+      ["freight", "freightLedgerId", cfg.freight_ledger_sales],
+      ["round_off", "roundOffLedgerId", cfg.round_off_ledger_sales],
+    ];
+    slots.forEach(([name, formKey, ledgerId]) => {
+      if (!ledgerId || billSummaryForm[formKey] || cleared.has(name)) return;
+      // Only offer a ledger the dropdown actually lists, or the field
+      // would hold an id with no label and render blank.
+      if (discountLedgerOptions.some((o) => o.id === ledgerId)) {
+        updates[formKey] = ledgerId;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      setBillSummaryForm((prev) => ({ ...prev, ...updates }));
+    }
+  }, [
+    configResponse,
+    discountLedgerOptions,
+    billSummaryForm.discountLedgerId,
+    billSummaryForm.cessLedgerId,
+    billSummaryForm.freightLedgerId,
+    billSummaryForm.roundOffLedgerId,
+  ]);
+
   // Auto-select freight ledger when FREIGHT amount > 0 (not discount).
   // Previous logic keyed off discount by mistake; discount and freight
   // are independent adjustments and a bill can have one without the
@@ -3885,6 +3928,11 @@ const TallySalesBillDetail = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
                     Bill to
+                  
+                    {/* The party is required on every voucher; the
+                        label says so rather than waiting for verify
+                        to reject the bill. */}
+                    <span aria-hidden="true" title="Required" className="text-rose-500 dark:text-rose-400">*</span>
                   </div>
                   <QuickAddGroup
                     kind="customer"
@@ -3897,7 +3945,7 @@ const TallySalesBillDetail = () => {
                     customerDefaultGstIn={
                       analysedData?.to?.gst_number || ""
                     }
-                    className={`mb-2 ${
+                    className={`mb-2 max-w-md ${
                       isCustomerRequired && !isLocked
                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                         : ""
@@ -3959,29 +4007,14 @@ const TallySalesBillDetail = () => {
                       </div>
                     )} */}
 
-                  {/* Customer Not Found Warning */}
-                  {analysedData?.to?.name &&
-                    !customerForm.selectedCustomer && (
-                      <div className="mt-3">
-                        <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
-                          <svg
-                            className="w-3 h-3 mr-1.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                            />
-                          </svg>
-                          Customer not found in the list, please add new
-                          customer
-                        </div>
-                      </div>
-                    )}
+                  {/* The "customer not found" badge that used to sit
+                      here is gone. It fired whenever OCR had read a name
+                      and no Tally customer was picked yet — which is the
+                      ordinary state of every sales bill the moment it
+                      opens — so it read as an error on a bill that was
+                      merely unfinished. The blocking strip at the top
+                      already says a customer is needed, and the + button
+                      beside the picker is how one gets added. */}
 
                   {/* OCR customer cross-check (name vs GSTIN, customer vs customer) */}
                   <OcrVendorWarnings

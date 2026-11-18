@@ -31,6 +31,7 @@ import {
 import {
   useGetTallyCustomerLedgers,
   useGetTallyExpenseChartOfAccountsLedgers,
+  useGetTallySalesLedgers,
   useGetTallyCgstLedgers,
   useGetTallySgstLedgers,
   useGetTallyIgstLedgers,
@@ -269,11 +270,30 @@ const TallyReceiptVoucherDetail = () => {
     { enabled: !!selectedOrganization?.id && !!billId },
   );
 
-  // Fetch expense chart of accounts ledgers for Chart of Accounts dropdown
-  const { data: ledgersData, isLoading: ledgersLoading } =
+  // A receipt is money coming IN, so its line ledger is an income
+  // account — `sales_coa_parents`, the same group the sales voucher
+  // uses. This read the EXPENSE group, which is the other side of the
+  // books entirely: the column was labelled "Expense Ledger", and a
+  // ledger already saved on the voucher was not in the list the
+  // dropdown offered, so the field rendered blank and outlined red on
+  // a bill that was verified and complete.
+  //
+  // The expense list is kept as a fallback for an organisation that
+  // has configured expense parents but not sales ones, so nobody loses
+  // the dropdown they have today.
+  const { data: incomeLedgersData, isLoading: incomeLedgersLoading } =
+    useGetTallySalesLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
+  const { data: expenseLedgersData, isLoading: expenseLedgersLoading } =
     useGetTallyExpenseChartOfAccountsLedgers(selectedOrganization?.id, {
       enabled: !!selectedOrganization?.id,
     });
+  const hasIncomeLedgers = Object.keys(
+    incomeLedgersData?.grouped_ledgers || {},
+  ).length > 0;
+  const ledgersData = hasIncomeLedgers ? incomeLedgersData : expenseLedgersData;
+  const ledgersLoading = incomeLedgersLoading || expenseLedgersLoading;
 
   // Fetch customer ledgers for customer selection dropdown
   const { data: customerLedgersData, isLoading: customerLedgersLoading } =
@@ -551,7 +571,7 @@ const TallyReceiptVoucherDetail = () => {
     if (isReceiptModeRequired) errors.push("Please select a Receipt Mode");
     if (getItemsWithoutCOA().length > 0) {
       errors.push(
-        `${getItemsWithoutCOA().length} expense item(s) are missing Expense Ledger`,
+        `${getItemsWithoutCOA().length} line(s) are missing an Income Ledger`,
       );
     }
     if (expenseItems.length === 0)
@@ -2884,6 +2904,11 @@ const TallyReceiptVoucherDetail = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
                     Received from
+                  
+                    {/* The party is required on every voucher; the
+                        label says so rather than waiting for verify
+                        to reject the bill. */}
+                    <span aria-hidden="true" title="Required" className="text-rose-500 dark:text-rose-400">*</span>
                   </div>
                   <QuickAddGroup
                     kind="customer"
@@ -3065,6 +3090,7 @@ const TallyReceiptVoucherDetail = () => {
 
                   <FieldCell
                     label="Receipt Mode"
+                    required
                     hint="The Bank or Cash ledger this actually posts to"
                   >
                     <SearchableDropdown
@@ -3195,7 +3221,7 @@ const TallyReceiptVoucherDetail = () => {
                                 Item Details
                               </th>
                               <th className="px-3 py-2 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[200px]">
-                                Expense Ledger{" "}
+                                Income Ledger{" "}
                                 <span className="text-red-500">*</span>
                               </th>
                               <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[120px]">
@@ -3245,11 +3271,12 @@ const TallyReceiptVoucherDetail = () => {
                                   <QuickAddGroup
                                     kind="ledger"
                                     disabled={isLocked}
-                                    // Line-item column = Expense Ledger. Was
-                                    // wired to Bank / Cash by mistake so the
-                                    // + icon opened the wrong modal.
-                                    ledgerDefaultParent="Indirect Expenses"
-                                    ledgerTitle="Add New Expense Ledger"
+                                    // Line-item column = Income Ledger. A
+                                    // receipt credits revenue, so a ledger
+                                    // created from here belongs under the
+                                    // sales accounts, not under expenses.
+                                    ledgerDefaultParent="Sales Accounts"
+                                    ledgerTitle="Add New Income Ledger"
                                     title="Ledger not in the list? Create one"
                                     className={`${
                                       !item.chart_of_accounts_id && !isLocked
@@ -3270,8 +3297,8 @@ const TallyReceiptVoucherDetail = () => {
                                       onClear={() =>
                                         handleChartOfAccountsClear(index)
                                       }
-                                      placeholder="Select expense ledger..."
-                                      searchPlaceholder="Type to search expense ledgers..."
+                                      placeholder="Select income ledger..."
+                                      searchPlaceholder="Type to search income ledgers..."
                                       optionLabelKey="name"
                                       optionValueKey="id"
                                       loading={ledgersLoading}
@@ -3737,7 +3764,7 @@ const TallyReceiptVoucherDetail = () => {
                       onSelect: handleOtherAdjustmentLedgerSelect,
                       onClear: handleOtherAdjustmentLedgerClear,
                       loading: ledgersLoading,
-                      placeholder: "Expense ledger",
+                      placeholder: "Income ledger",
                     },
                     {
                       key: "round_off",

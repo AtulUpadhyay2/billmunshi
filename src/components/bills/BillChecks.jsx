@@ -44,41 +44,48 @@ const BillChecks = ({ blockers = [], isVerified = false, checks = [] }) => {
         box: "border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/25",
         icon: "text-amber-600 dark:text-amber-400",
         head: "text-amber-900 dark:text-amber-300",
-        dot: "text-amber-600 dark:text-amber-500",
         title: "Fix before verifying",
       }
     : {
         box: "border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40",
         icon: "text-slate-500 dark:text-slate-400",
         head: "text-slate-900 dark:text-slate-200",
-        dot: "text-slate-400 dark:text-slate-500",
         title: "Worth a look before this posts",
       };
 
+  // One line, not a panel.
+  //
+  // This was a titled box with a bulleted list under it, and on the
+  // common case — a single item, "Please select a customer" — it spent
+  // four lines and the full width of the form saying one short thing,
+  // pushing the bill itself below the fold. The field it refers to is
+  // already outlined in the form, so this only has to name what is
+  // missing, not explain it.
+  //
+  // Everything still gets said: the first two items read inline and
+  // the rest collapse into a count, with the full list in the title
+  // attribute for anyone who hovers.
+  const shown = items.slice(0, 2).join(" · ");
+  const rest = items.length - 2;
+
   return (
-    <div className={`mb-5 rounded-xl border px-4 py-3 ${tone.box}`}>
-      <div className="flex items-start gap-2.5">
-        <Icon
-          icon={blocking ? "heroicons:exclamation-triangle" : "heroicons:information-circle"}
-          className={`${tone.icon} text-base shrink-0 mt-0.5`}
-        />
-        <div className="min-w-0 text-xs leading-relaxed">
-          <p className={`font-bold ${tone.head}`}>{tone.title}</p>
-          <ul className="mt-1 space-y-0.5 text-slate-700 dark:text-slate-300">
-            {items.slice(0, 6).map((entry, i) => (
-              <li key={i} className="flex gap-1.5">
-                <span className={tone.dot}>·</span>
-                <span className="break-words">{entry}</span>
-              </li>
-            ))}
-          </ul>
-          {items.length > 6 && (
-            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-              …and {items.length - 6} more.
-            </p>
-          )}
-        </div>
-      </div>
+    <div
+      title={items.join("\n")}
+      className={`mb-3 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs ${tone.box}`}
+    >
+      <Icon
+        icon={blocking ? "heroicons:exclamation-triangle" : "heroicons:information-circle"}
+        className={`${tone.icon} text-sm shrink-0`}
+      />
+      <span className={`font-semibold shrink-0 ${tone.head}`}>{tone.title}:</span>
+      <span className="min-w-0 truncate text-slate-700 dark:text-slate-300">
+        {shown}
+        {rest > 0 && (
+          <span className="text-slate-500 dark:text-slate-400">
+            {" "}+{rest} more
+          </span>
+        )}
+      </span>
     </div>
   );
 };

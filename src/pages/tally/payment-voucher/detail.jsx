@@ -2891,6 +2891,11 @@ const TallyPaymentVoucherDetail = () => {
                 <div className="min-w-0 flex-1">
                   <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1">
                     Paid to
+                  
+                    {/* The party is required on every voucher; the
+                        label says so rather than waiting for verify
+                        to reject the bill. */}
+                    <span aria-hidden="true" title="Required" className="text-rose-500 dark:text-rose-400">*</span>
                   </div>
                   <QuickAddGroup
                     kind="vendor"
@@ -3072,6 +3077,7 @@ const TallyPaymentVoucherDetail = () => {
 
                   <FieldCell
                     label="Payment Mode"
+                    required
                     hint="The Bank or Cash ledger this actually posts to"
                   >
                     <SearchableDropdown
