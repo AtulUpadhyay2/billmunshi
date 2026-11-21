@@ -1,7 +1,7 @@
+import BillAdvisories from "@/components/bills/BillAdvisories";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
-import BillChecks from "@/components/bills/BillChecks";
 import BillRecordLayout from "@/components/bills/BillRecordLayout";
 import {
   FLAT_FIELD,
@@ -38,7 +38,6 @@ import { globalToast } from "@/utils/toast";
 import { currencySymbol } from "@/utils/currency";
 import { useForexRates, useSetBillCurrency } from "@/services/forexService";
 import { findVendorOption } from "@/utils/vendorMatch";
-import OcrVendorWarnings from "@/components/tally/OcrVendorWarnings";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
 import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
@@ -2776,12 +2775,12 @@ const TallyExpenseBillDetail = () => {
         billId={billId}
         scanOpen={scanOpen}
         onToggleScan={() => setScanOpen((v) => !v)}
-        notice={
-          <BillChecks
-          blockers={getValidationErrorMessages()}
-          isLocked={isLocked}
-        />
-        }
+        // No notice across the top any more. Everything it carried was
+        // either a blank mandatory field — which the field itself now
+        // says, by staying outlined — or a warning, which has moved to
+        // BillAdvisories beside the totals. A banner listing fields the
+        // operator can already see outlined is a second thing to read
+        // and it pushed the bill below the fold.
         scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {billInfo?.file ? (
@@ -3087,33 +3086,16 @@ const TallyExpenseBillDetail = () => {
                       </div>
                     )} */}
 
-                  {/* Vendor Not Found Warning */}
-                  {analysedData?.from?.name && !billForm.selectedVendor && (
-                    <div className="mt-3">
-                      <div className={`${BADGE} bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300`}>
-                        <svg
-                          className="w-3 h-3 mr-1.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                          />
-                        </svg>
-                        Vendor not found in the list, please add new vendor
-                      </div>
-                    </div>
-                  )}
+                  {/* The "not found in the list" badge is gone. It fired
+                      on every bill the moment it opened, before anyone
+                      had had the chance to pick a party, so it read as
+                      an error about an unfinished form. The picker is
+                      outlined until a party is chosen, which says the
+                      same thing without a sentence. */}
 
-                  {/* OCR vendor cross-check (name vs GSTIN, vendor vs customer) */}
-                  <OcrVendorWarnings
-                    analysedData={analysedData}
-                    organization={selectedOrganization}
-                  />
+                  {/* The OCR party cross-check used to sit here, under
+                      the picker. It reads beside the totals now, with
+                      the other advisories — see BillAdvisories. */}
 
                   {analysedData?.from?.address && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 max-w-[46ch]">
@@ -4214,8 +4196,16 @@ const TallyExpenseBillDetail = () => {
                         );
                         const agrees = billTotalMatch.isMatch;
                         return (
-                          <div className="flex justify-end px-3 pt-4 pb-3">
-                            <div className="w-full sm:max-w-[340px]">
+                          <div className="flex flex-col gap-4 px-3 pt-4 pb-3 lg:flex-row lg:items-start lg:justify-end">
+                            {/* The column that was blank on every voucher. */}
+                            <div className="min-w-0 lg:flex-1">
+                              <BillAdvisories
+                                analysedData={analysedData}
+                                organization={selectedOrganization}
+                                checks={analysedData?._extraction_checks}
+                              />
+                            </div>
+                            <div className="w-full sm:max-w-[340px] lg:shrink-0">
                               <TotalLine
                                 label="Line items"
                                 note={`${expenseItems.length} item${expenseItems.length === 1 ? "" : "s"}`}
