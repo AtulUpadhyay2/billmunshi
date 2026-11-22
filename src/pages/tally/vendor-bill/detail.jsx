@@ -33,6 +33,7 @@ import {
   useGetTallyCgstLedgers,
   useGetTallySgstLedgers,
   useGetTallyIgstLedgers,
+  useGetTallyRcmLedgers,
   useGetTallyMasters,
   useGetTallyConfig,
   useGetTallyPurchaseLedgers,
@@ -64,6 +65,21 @@ import {
   gstRateLabel,
   withCurrentRate,
 } from "@/constants/gstRates";
+
+// A discount reads as a negative figure wherever it appears.
+//
+// The line column is stored and synced as a positive magnitude — the
+// server takes abs() of it and subtracts — so this is about what the
+// operator sees and types, not about what posts. Showing 100 in a
+// column headed DISCOUNT, beside an AMOUNT that is also positive,
+// leaves the direction to be inferred; -100 states it.
+const asDiscount = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = parseFloat(value);
+  if (!Number.isFinite(n) || n === 0) return value;
+  return String(-Math.abs(n));
+};
+
 
 // Line-item GST dropdown: 0% / 5% / 18% / 40% / Exempted / N/A.
 const PRODUCT_GST_OPTIONS = [
@@ -445,6 +461,30 @@ const TallyVendorBillDetail = () => {
     useGetTallyIgstLedgers(selectedOrganization?.id, {
       enabled: !!selectedOrganization?.id,
     });
+
+  // Reverse charge: the ledgers a liability may be owed to. Its own
+  // config group — the input-credit ledger and the payable ledger are
+  // different accounts.
+  const { data: rcmLedgersData } = useGetTallyRcmLedgers(
+    selectedOrganization?.id,
+    { enabled: !!selectedOrganization?.id },
+  );
+  const rcmLedgerOptions = useMemo(() => {
+    const out = [];
+    Object.values(rcmLedgersData?.grouped_ledgers || {}).forEach((group) => {
+      (group.ledgers || []).forEach((l) =>
+        out.push({ id: l.id, name: l.name, parent_name: group.parent_name }),
+      );
+    });
+    return out;
+  }, [rcmLedgersData]);
+
+  // Which ledger the liability for each tax head is owed to. One per
+  // head, not per rate: CGST and SGST are owed to different
+  // governments, but 18% CGST and 5% CGST are owed to the same one.
+  const [rcmLedgerIds, setRcmLedgerIds] = useState({
+    igst: null, cgst: null, sgst: null,
+  });
 
   // Fetch Purchase ledgers for discount dropdown
   const { data: purchaseLedgersData, isLoading: purchaseLedgersLoading } =
@@ -1247,6 +1287,12 @@ const TallyVendorBillDetail = () => {
         is_tax: "TDS", // Default to TDS
       });
 
+      setRcmLedgerIds({
+        igst: tally?.igst_rcm_taxes || null,
+        cgst: tally?.cgst_rcm_taxes || null,
+        sgst: tally?.sgst_rcm_taxes || null,
+      });
+
       // Initialize Bill Summary Form - use analyzed_bill as primary source for total
       const cgstAmount = data.cgst || tally?.cgst || "";
       const sgstAmount = data.sgst || tally?.sgst || "";
@@ -1342,7 +1388,7 @@ const TallyVendorBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
-            discount: item.discount ?? "",
+            discount: asDiscount(item.discount),
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -2339,6 +2385,23 @@ const TallyVendorBillDetail = () => {
 
   // Handle Bill Summary form changes
   const handleBillSummaryChange = (name, value) => {
+    // A discount is a reduction, so it is held as a negative figure.
+    //
+    // Every adjustment on this panel is added exactly as entered —
+    // that is what makes Cess, Freight and Round Off read the same way
+    // — and the discount is the one where a positive number does the
+    // opposite of what the label says: typing 82 raised the bill by 82
+    // instead of lowering it, with nothing on screen to say so.
+    //
+    // Only a positive figure is flipped. An empty box, a lone minus
+    // sign mid-type, and a value already negative are left exactly as
+    // they are, so this never fights someone typing.
+    if (name === "discount") {
+      const entered = parseFloat(value);
+      if (Number.isFinite(entered) && entered > 0) {
+        value = String(-entered);
+      }
+    }
     setBillSummaryForm((prev) => ({
       ...prev,
       [name]: value,
@@ -2579,7 +2642,7 @@ const TallyVendorBillDetail = () => {
               // and the voucher can fall back to them when the stock
               // item master has no HSN of its own.
               hsn: item.hsn || "",
-              discount: item.discount ?? "",
+              discount: asDiscount(item.discount),
               unit: item.unit || "",
               cgst_ledger: item.cgst_ledger || null,
               sgst_ledger: item.sgst_ledger || null,
@@ -2680,7 +2743,7 @@ const TallyVendorBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
-            discount: item.discount ?? "",
+            discount: asDiscount(item.discount),
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -3011,6 +3074,11 @@ const TallyVendorBillDetail = () => {
           irn: vendorForm.irn || "",
           ack_no: vendorForm.ackNo || "",
           is_reverse_charge: Boolean(vendorForm.reverseCharge),
+          // Flat, beside `taxes`: the liability carries no amount of
+          // its own — it is the input row's, by definition.
+          igst_rcm_taxes: rcmLedgerIds.igst || null,
+          cgst_rcm_taxes: rcmLedgerIds.cgst || null,
+          sgst_rcm_taxes: rcmLedgerIds.sgst || null,
 
           // Send products to the appropriate key based on consolidate status
           ...(isConsolidated
@@ -4729,13 +4797,13 @@ const TallyVendorBillDetail = () => {
                                 <input
                                   type="number"
                                   step="0.01"
-                                  min="0"
+                                  max="0"
                                   value={product.discount ?? ""}
                                   onChange={(e) =>
                                     handleProductChange(
                                       index,
                                       "discount",
-                                      e.target.value,
+                                      asDiscount(e.target.value),
                                     )
                                   }
                                   placeholder="0.00"
@@ -5113,6 +5181,52 @@ const TallyVendorBillDetail = () => {
                     />
                   );
 
+                  // Reverse charge: the liability row that mirrors a
+                  // GST row.
+                  //
+                  // The server has always built these at sync time and
+                  // picked the ledger itself, so turning the switch on
+                  // changed nothing on screen and which account the
+                  // debt landed in was not the operator's call. Here
+                  // the row appears the moment the switch goes on,
+                  // carries the same figure by definition, and the
+                  // ledger is a dropdown.
+                  //
+                  // One ledger per tax head rather than per rate: CGST
+                  // and SGST are owed to different governments, but
+                  // 18% CGST and 5% CGST are owed to the same one.
+                  const rcmPick = (taxType) => (
+                    <SearchableDropdown
+                      options={rcmLedgerOptions}
+                      value={rcmLedgerIds[taxType] || null}
+                      onChange={(id) =>
+                        setRcmLedgerIds((prev) => ({ ...prev, [taxType]: id }))
+                      }
+                      onClear={() =>
+                        setRcmLedgerIds((prev) => ({ ...prev, [taxType]: null }))
+                      }
+                      placeholder={`${taxType.toUpperCase()} RCM ledger`}
+                      searchPlaceholder="Search RCM payable ledgers…"
+                      optionLabelKey="name"
+                      optionValueKey="id"
+                      disabled={isLocked}
+                      size="sm"
+                    />
+                  );
+
+                  const rcmLine = (bucket, taxType) =>
+                    vendorForm.reverseCharge &&
+                    Number(bucket[taxType] || 0) !== 0 ? (
+                      <TotalLine
+                        key={`rcm-${taxType}-${bucket.rate}`}
+                        label={`${taxType.toUpperCase()} RCM`}
+                        rate="payable — reverse charge"
+                        cur={cur}
+                        control={rcmPick(taxType)}
+                        value={Number(bucket[taxType] || 0).toFixed(2)}
+                      />
+                    ) : null;
+
                   const diff = billTotalMatch.diff;
                   const agrees = billTotalMatch.isMatch;
 
@@ -5180,8 +5294,8 @@ const TallyVendorBillDetail = () => {
 
                         {rated.map((b) =>
                           interState ? (
+                            <React.Fragment key={`igst-${b.rate}`}>
                             <TotalLine
-                              key={`igst-${b.rate}`}
                               label="IGST"
                               rate={`${Number(b.rate)}% on ${cur}${(b.taxable || 0).toFixed(2)}`}
                               cur={cur}
@@ -5196,6 +5310,8 @@ const TallyVendorBillDetail = () => {
                                 />
                               }
                             />
+                            {rcmLine(b, "igst")}
+                            </React.Fragment>
                           ) : (
                             <React.Fragment key={`gst-${b.rate}`}>
                               <TotalLine
@@ -5228,6 +5344,8 @@ const TallyVendorBillDetail = () => {
                                   />
                                 }
                               />
+                              {rcmLine(b, "cgst")}
+                              {rcmLine(b, "sgst")}
                             </React.Fragment>
                           ),
                         )}

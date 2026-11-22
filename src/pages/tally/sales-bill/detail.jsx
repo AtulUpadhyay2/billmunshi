@@ -64,6 +64,21 @@ import {
   withCurrentRate,
 } from "@/constants/gstRates";
 
+// A discount reads as a negative figure wherever it appears.
+//
+// The line column is stored and synced as a positive magnitude — the
+// server takes abs() of it and subtracts — so this is about what the
+// operator sees and types, not about what posts. Showing 100 in a
+// column headed DISCOUNT, beside an AMOUNT that is also positive,
+// leaves the direction to be inferred; -100 states it.
+const asDiscount = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = parseFloat(value);
+  if (!Number.isFinite(n) || n === 0) return value;
+  return String(-Math.abs(n));
+};
+
+
 // Line-item GST dropdown: 0% / 5% / 18% / 40% / Exempted / N/A.
 const PRODUCT_GST_OPTIONS = [
   ...GST_RATE_PERCENTS.map((r) => `${r}%`),
@@ -1346,7 +1361,7 @@ const TallySalesBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
-            discount: item.discount ?? "",
+            discount: asDiscount(item.discount),
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -2350,6 +2365,23 @@ const TallySalesBillDetail = () => {
 
   // Handle Bill Summary form changes
   const handleBillSummaryChange = (name, value) => {
+    // A discount is a reduction, so it is held as a negative figure.
+    //
+    // Every adjustment on this panel is added exactly as entered —
+    // that is what makes Cess, Freight and Round Off read the same way
+    // — and the discount is the one where a positive number does the
+    // opposite of what the label says: typing 82 raised the bill by 82
+    // instead of lowering it, with nothing on screen to say so.
+    //
+    // Only a positive figure is flipped. An empty box, a lone minus
+    // sign mid-type, and a value already negative are left exactly as
+    // they are, so this never fights someone typing.
+    if (name === "discount") {
+      const entered = parseFloat(value);
+      if (Number.isFinite(entered) && entered > 0) {
+        value = String(-entered);
+      }
+    }
     setBillSummaryForm((prev) => ({
       ...prev,
       [name]: value,
@@ -2590,7 +2622,7 @@ const TallySalesBillDetail = () => {
               // and the voucher can fall back to them when the stock
               // item master has no HSN of its own.
               hsn: item.hsn || "",
-              discount: item.discount ?? "",
+              discount: asDiscount(item.discount),
               unit: item.unit || "",
               cgst_ledger: item.cgst_ledger || null,
               sgst_ledger: item.sgst_ledger || null,
@@ -2691,7 +2723,7 @@ const TallySalesBillDetail = () => {
             // and the voucher can fall back to them when the stock
             // item master has no HSN of its own.
             hsn: item.hsn || "",
-            discount: item.discount ?? "",
+            discount: asDiscount(item.discount),
             unit: item.unit || "",
             cgst_ledger: item.cgst_ledger || null,
             sgst_ledger: item.sgst_ledger || null,
@@ -4706,13 +4738,13 @@ const TallySalesBillDetail = () => {
                                 <input
                                   type="number"
                                   step="0.01"
-                                  min="0"
+                                  max="0"
                                   value={product.discount ?? ""}
                                   onChange={(e) =>
                                     handleProductChange(
                                       index,
                                       "discount",
-                                      e.target.value,
+                                      asDiscount(e.target.value),
                                     )
                                   }
                                   placeholder="0.00"

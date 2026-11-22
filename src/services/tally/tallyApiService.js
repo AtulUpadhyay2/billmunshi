@@ -282,6 +282,30 @@ export const useGetTallySalesLedgers = (organizationId, options = {}) => {
   });
 };
 
+/**
+ * RCM payable ledgers — where a reverse-charge liability is owed,
+ * scoped by the ``rcm_parents`` config group.
+ *
+ * Deliberately its own group: the input-credit ledger and the payable
+ * ledger are different accounts even though both sit under Duties &
+ * Taxes, and posting the liability to the credit ledger would cancel
+ * the credit out instead of recording the debt.
+ */
+export const useGetTallyRcmLedgers = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ['tallyRcmLedgers', organizationId],
+    queryFn: async () => {
+      const response = await apiFetch(
+        `tally/org/${organizationId}/configs/ledgers/?parent_type=rcm_parents`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+      );
+      return response;
+    },
+    enabled: !!organizationId,
+    ...options,
+  });
+};
+
 export const useGetTallyVendorLedgers = (organizationId, options = {}) => {
   return useQuery({
     queryKey: ['tallyVendorLedgers', organizationId],
