@@ -288,7 +288,7 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
   const handleConfirm = async () => {
     if (!enhancedSrc) return;
     try {
-      const blob = await dataUrlToBlob(enhancedSrc);
+      const blob = dataUrlToBlob(enhancedSrc);
       const baseName = file.name.replace(/\.[^.]+$/, "");
       const newFile = new File([blob], `${baseName}_scanned.jpg`, {
         type: "image/jpeg",
@@ -296,7 +296,11 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
       onScanned(newFile);
     } catch (err) {
       console.error("apply failed", err);
-      setErrorMsg("Could not apply the scan. Please try again.");
+      setErrorMsg(
+        `Could not apply the scan: ${err?.message || err}. The enhanced ` +
+          "image is still shown above — use Skip scan to upload the " +
+          "original instead.",
+      );
     }
   };
 
@@ -326,10 +330,12 @@ const BillScanner = ({ file, onScanned, onSkip, onCancel, module = "tally" }) =>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Original + corner overlay (visible when showOverlay) */}
         <div className="relative bg-slate-100 dark:bg-slate-900/60 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 min-h-70">
-          <div className="absolute top-2 left-2 z-20 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-white/85 dark:bg-slate-900/85 backdrop-blur px-2 py-0.5 rounded ring-1 ring-slate-200 dark:ring-slate-700">
-            <Icon icon="heroicons:photo" className="text-xs" />
-            Original
-          </div>
+          {/* The "Original" badge used to sit here, absolutely placed at
+              top-2 left-2 with z-20 — directly over the top-left crop
+              handle, and above it in the stacking order, so that corner
+              could not be grabbed at all. The pane is captioned by the
+              heading beside it and by the enhanced pane opposite; a
+              label is not worth a handle the operator cannot reach. */}
           <canvas ref={canvasRef} className="block w-full h-auto select-none" />
           <canvas
             ref={overlayCanvasRef}
@@ -493,9 +499,43 @@ function loadImage(src) {
   });
 }
 
-async function dataUrlToBlob(dataUrl) {
-  const res = await fetch(dataUrl);
-  return await res.blob();
+/**
+ * Decode a ``data:`` URL into a Blob, in the page, without a request.
+ *
+ * This used to be ``fetch(dataUrl).then(r => r.blob())``, which reads
+ * naturally and is wrong here: the browser treats a data: URL fetch as
+ * a connection, so it is governed by ``connect-src``. The deployed page
+ * sends a policy that lists the API hosts and not ``data:``, so every
+ * Apply scan died with
+ *
+ *     Fetch API cannot load data:image/jpeg;base64,…
+ *     Refused to connect because it violates the document's
+ *     Content Security Policy.
+ *
+ * and the operator was told "Could not apply the scan. Please try
+ * again." — advice that could not work, because trying again did the
+ * same thing. The scan itself was fine; it was the handing-back that
+ * failed.
+ *
+ * Decoding here needs no network and no policy, so it holds whatever
+ * the connect-src list happens to say.
+ */
+function dataUrlToBlob(dataUrl) {
+  const comma = String(dataUrl || "").indexOf(",");
+  if (comma < 0) throw new Error("Not a data URL");
+
+  const header = dataUrl.slice(0, comma);
+  const body = dataUrl.slice(comma + 1);
+  const mime = (header.match(/^data:([^;,]+)/) || [])[1] || "image/jpeg";
+
+  // Base64 unless the URL says otherwise.
+  const raw = /;base64/i.test(header) ? atob(body) : decodeURIComponent(body);
+
+  // Chunked so a multi-megabyte scan does not blow the argument limit
+  // that String.fromCharCode(...bytes) would hit.
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
 }
 
 export default BillScanner;
