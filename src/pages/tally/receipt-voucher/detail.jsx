@@ -181,6 +181,10 @@ const TallyReceiptVoucherDetail = () => {
   // copied from the journal-entry page, where the product requirement is the
   // opposite (Correction 6), and the default came along with it.
   const [isConsolidated, setIsConsolidated] = useState(false);
+  // Line amounts that already hold their GST — MRP pricing on a retail
+  // or pharmacy document. Off unless the bill says otherwise, exactly
+  // as on the purchase and sales vouchers.
+  const [linesIncludeGst, setLinesIncludeGst] = useState(false);
 
   // Rows as they were before the last "consolidate ON", so switching back OFF
   // restores exactly what the user was looking at. Needed because a receipt
@@ -293,6 +297,41 @@ const TallyReceiptVoucherDetail = () => {
   ).length > 0;
   const ledgersData = hasIncomeLedgers ? incomeLedgersData : expenseLedgersData;
   const ledgersLoading = incomeLedgersLoading || expenseLedgersLoading;
+
+  // The ADJUSTMENT rows are not line ledgers.
+  //
+  // Round Off and Other Adjustment were sharing the line-item list.
+  // That was harmless while the list was the expense accounts, and
+  // became a bug the moment the line column was pointed at income,
+  // where a Round Off ledger does not live: the saved ledger was no
+  // longer among the options, so the box rendered blank — and because
+  // an id WAS set, it did not count as missing either, so it was not
+  // outlined. A field that is filled, looks empty, and is not flagged.
+  //
+  // These rows get both sides of the chart, which is what the sales
+  // and purchase vouchers already offer for the same adjustments.
+  const adjustmentLedgerOptions = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    for (const source of [incomeLedgersData, expenseLedgersData]) {
+      Object.values(source?.grouped_ledgers || {}).forEach((group) => {
+        (group.ledgers || []).forEach((ledger) => {
+          if (seen.has(ledger.id)) return;
+          seen.add(ledger.id);
+          out.push({
+            id: ledger.id,
+            name: ledger.name,
+            master_id: ledger.master_id,
+            alter_id: ledger.alter_id,
+            opening_balance: ledger.opening_balance,
+            company: ledger.company,
+            parent_name: group.parent_name,
+          });
+        });
+      });
+    }
+    return out;
+  }, [incomeLedgersData, expenseLedgersData]);
 
   // Fetch customer ledgers for customer selection dropdown
   const { data: customerLedgersData, isLoading: customerLedgersLoading } =
@@ -1006,6 +1045,7 @@ const TallyReceiptVoucherDetail = () => {
           ? false
           : Boolean(tally.consolidate);
       setIsConsolidated(consolidateStatus);
+      setLinesIncludeGst(Boolean(tally?.lines_include_gst));
 
       // Initialize expense items from consolidate_prod or expense_items based on consolidate status
       let sourceItems = [];
@@ -1412,12 +1452,12 @@ const TallyReceiptVoucherDetail = () => {
   // Calculate customer amount using double-entry accounting principle (Total Debit = Total Credit)
   useEffect(() => {
     // Calculate total debit amount from all expense items
-    const totalExpenseDebit = expenseItems
+    let totalExpenseDebit = expenseItems
       .filter((item) => item.debit_or_credit === "debit")
       .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
     // Calculate total credit amount from all expense items
-    const totalExpenseCredit = expenseItems
+    let totalExpenseCredit = expenseItems
       .filter((item) => item.debit_or_credit === "credit")
       .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
@@ -1435,6 +1475,32 @@ const TallyReceiptVoucherDetail = () => {
         totalTaxCredit += amt;
       } else {
         totalTaxDebit += amt;
+      }
+    }
+
+    // Lines that already hold their GST.
+    //
+    // The line ledger must post the NET, the GST rows post the tax, and
+    // the party row posts what the document actually says — otherwise
+    // the tax is counted twice and the party amount comes out over the
+    // printed total by exactly the GST. Taking the tax off the line
+    // side does all three at once: the party lands on the gross line
+    // total and the voucher still balances.
+    //
+    // The amounts on screen stay as printed. What changes is what each
+    // row posts, which is how the purchase and sales vouchers have
+    // treated MRP pricing since migration 0046.
+    if (linesIncludeGst) {
+      const taxTotal = gstLines.reduce(
+        (sum, line) => sum + (parseFloat(line.amount || 0) || 0),
+        0,
+      );
+      if (taxTotal) {
+        if (totalExpenseCredit >= totalExpenseDebit) {
+          totalExpenseCredit -= taxTotal;
+        } else {
+          totalExpenseDebit -= taxTotal;
+        }
       }
     }
 
@@ -1642,6 +1708,11 @@ const TallyReceiptVoucherDetail = () => {
 
   // Handle Tax Summary form changes
   const handleTaxSummaryChange = (name, value) => {
+    // A round off the operator typed is theirs. The auto-fill above
+    // only ever writes into a field nobody has touched.
+    if (name === "round_off" || name === "round_off_debit_or_credit") {
+      roundOffTouchedRef.current = true;
+    }
     setTaxSummaryForm((prev) => ({
       ...prev,
       [name]: value,
@@ -1784,6 +1855,49 @@ const TallyReceiptVoucherDetail = () => {
   // current to null and the effect re-applies the backend value,
   // defeating the × click.
   const userClearedLedgersRef = useRef(new Set());
+
+  // Auto round off, computed where the operator can see it.
+  //
+  // The backend fills round_off at analysis and at verify. In between —
+  // the whole time the voucher is open and being corrected — the
+  // Difference line is recomputed live from the form while Round Off
+  // stays whatever was stored. So a bill analysed before that backend
+  // fix, or one whose lines have just been edited, shows a stated
+  // difference of a few paise beside a Round Off of 0.00 and no way to
+  // close it. A client reported exactly that.
+  //
+  // Same rule as ``_journal_round_off`` on the server, deliberately:
+  // only inside ₹1, and the round off rides on the party row's side
+  // when the lines came to more than the bill says. Anything larger is
+  // an extraction error and must stay visible.
+  //
+  // Never fights the operator: it fills a blank field once, and a
+  // round off they cleared or typed themselves is left alone.
+  const roundOffTouchedRef = useRef(false);
+  useEffect(() => {
+    if (isLocked || roundOffTouchedRef.current) return;
+    if (!billTotalMatch.hasBillValue || billTotalMatch.isMatch) return;
+    if (parseFloat(taxSummaryForm.round_off || 0) !== 0) return;
+
+    const diff = billTotalMatch.diff;
+    if (!diff || Math.abs(diff) >= 1) return;
+
+    const partySide = taxSummaryForm.customerDebitCredit || "credit";
+    const other = partySide === "credit" ? "debit" : "credit";
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      round_off: Math.abs(diff).toFixed(2),
+      round_off_debit_or_credit: diff > 0 ? partySide : other,
+    }));
+  }, [
+    isLocked,
+    billTotalMatch.hasBillValue,
+    billTotalMatch.isMatch,
+    billTotalMatch.diff,
+    taxSummaryForm.round_off,
+    taxSummaryForm.customerDebitCredit,
+  ]);
+
 
   // Handle tax ledger selections. Selecting any value removes the
   // "user cleared" mark so the auto-match doesn't fight the choice;
@@ -1945,6 +2059,10 @@ const TallyReceiptVoucherDetail = () => {
         item_details: _labels.join(", ") || rest.item_details || "",
       };
     });
+  };
+
+  const handleLinesIncludeGstToggle = () => {
+    setLinesIncludeGst((v) => !v);
   };
 
   const handleConsolidateToggle = () => {
@@ -2150,6 +2268,7 @@ const TallyReceiptVoucherDetail = () => {
           };
         }),
         consolidate: isConsolidated,
+        lines_include_gst: linesIncludeGst,
         ...(isConsolidated
           ? {
               consolidate_prod: expenseItems.map((item) => {
@@ -2625,8 +2744,13 @@ const TallyReceiptVoucherDetail = () => {
         </div>
       )}
 
-      {/* Sync status banner */}
-      {billInfo?.tally_sync_message && (
+      {/* Only when the sync FAILED.
+          The green "Successfully synced to Tally" panel said what the
+          status chip beside the bill number already says, and it said
+          it in a full-width box above the document. A failure still
+          gets one: that is the case where there is something to read
+          and somewhere to go. */}
+      {billInfo?.tally_sync_message && !billInfo?.tally_synced && (
         <div
           className={`flex items-start gap-2.5 p-3 rounded-xl border ${
             billInfo?.tally_synced
@@ -2921,7 +3045,7 @@ const TallyReceiptVoucherDetail = () => {
                     customerDefaultGstIn={
                       analysedData?.to?.gst_number || ""
                     }
-                    className={`mb-2 ${
+                    className={`mb-2 max-w-md ${
                       isCustomerRequired && !isLocked
                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                         : ""
@@ -3155,6 +3279,20 @@ const TallyReceiptVoucherDetail = () => {
                       </h3>
                     </div>
                     <div className="flex items-center gap-3">
+                      {/* Lines that already hold their GST.
+                          The purchase and sales vouchers have had this
+                          since migration 0046; a receipt or payment can
+                          be raised against an MRP-priced document just
+                          as easily, and without the switch the operator
+                          had to restate every line by hand. */}
+                      <SwitchPill label="Lines include GST">
+                        <Switch
+                          value={linesIncludeGst}
+                          onChange={handleLinesIncludeGstToggle}
+                          disabled={isLocked}
+                          activeClass="bg-blue-600"
+                        />
+                      </SwitchPill>
                       <SwitchPill label="Consolidate items">
                         <Switch
                           value={isConsolidated}
@@ -3741,7 +3879,7 @@ const TallyReceiptVoucherDetail = () => {
                       missing: isOtherAdjustmentLedgerRequired(),
                       required:
                         parseFloat(taxSummaryForm.other_adjustment || 0) !== 0,
-                      options: ledgerOptions,
+                      options: adjustmentLedgerOptions,
                       ledgerId: taxSummaryForm.other_adjustment_taxes,
                       onSelect: handleOtherAdjustmentLedgerSelect,
                       onClear: handleOtherAdjustmentLedgerClear,
@@ -3764,7 +3902,7 @@ const TallyReceiptVoucherDetail = () => {
                       // Verify button and no clue which field to fix.
                       missing: isRoundOffLedgerRequired(),
                       required: parseFloat(taxSummaryForm.round_off || 0) !== 0,
-                      options: ledgerOptions,
+                      options: adjustmentLedgerOptions,
                       ledgerId: taxSummaryForm.round_off_taxes,
                       onSelect: handleRoundOffLedgerSelect,
                       onClear: handleRoundOffLedgerClear,
@@ -3968,6 +4106,7 @@ const TallyReceiptVoucherDetail = () => {
                                 analysedData={analysedData}
                                 organization={selectedOrganization}
                                 checks={analysedData?._extraction_checks}
+                          liveTotalsAgree={Boolean(billTotalMatch?.isMatch)}
                               />
                             </div>
                             <div className="w-full sm:max-w-[340px] lg:shrink-0">

@@ -47,6 +47,13 @@ import {
   withCurrentRate,
 } from "@/constants/gstRates";
 
+// A GST row the reverse-charge mirror created. The server marks these
+// the same way (``RCM <source rate>``) so both sides agree on which
+// rows are liability rows and which are input.
+const RCM_RATE_PREFIX = "RCM";
+const isRcmLine = (line) => String(line?.rate || "").startsWith(RCM_RATE_PREFIX);
+
+
 // Client Correction 49: always show amounts with both paise digits
 // (62816.10, not 62816.1). Falls back when the value isn't numeric.
 const toMoneyString = (value, fallback) => {
@@ -407,7 +414,11 @@ const TallyExpenseBillDetail = () => {
     // entries across rates (e.g. 18% + 28%), same for SGST + IGST.
     const sumLines = (taxType) =>
       gstLines
-        .filter((l) => l.tax_type === taxType)
+        // Input rows only. An RCM mirror carries the same figure on the
+        // liability side; summing it here would report twice the GST
+        // the bill actually has, and the balance check downstream reads
+        // these rollups.
+        .filter((l) => l.tax_type === taxType && !isRcmLine(l))
         .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
     const editedValues = {
       cgst: sumLines("CGST"),
@@ -1697,6 +1708,11 @@ const TallyExpenseBillDetail = () => {
 
   // Handle Tax Summary form changes
   const handleTaxSummaryChange = (name, value) => {
+    // A round off the operator typed is theirs. The auto-fill above
+    // only ever writes into a field nobody has touched.
+    if (name === "round_off" || name === "round_off_debit_or_credit") {
+      roundOffTouchedRef.current = true;
+    }
     setTaxSummaryForm((prev) => ({
       ...prev,
       [name]: value,
@@ -1799,6 +1815,67 @@ const TallyExpenseBillDetail = () => {
     "N/A",
   ];
 
+
+  // Reverse charge: the liability rows, where the operator can see them.
+  //
+  // The server has always built these — one credit row per input GST
+  // row, against the RCM payable ledger — but only on save, and it
+  // picked the ledger itself. So turning the switch on changed nothing
+  // on screen, and which ledger the liability landed in was not the
+  // operator's call. The client asked for both: duplicate the rows as
+  // soon as the switch goes on, carry the same amount, and let the
+  // ledger be chosen.
+  //
+  // The rate string carries the marker the server uses
+  // (``RCM <source rate>``) so these are recognisably the same rows.
+  // ``sync_rcm_lines`` counts what is already there and creates only
+  // the shortfall, so rows saved from here are left alone — including
+  // the ledger chosen for them.
+  useEffect(() => {
+    if (isLocked) return;
+    setGstLines((prev) => {
+      const mirrors = prev.filter(isRcmLine);
+
+      if (!isReverseCharge) {
+        // Switching back is a clean undo, not a half state.
+        return mirrors.length ? prev.filter((l) => !isRcmLine(l)) : prev;
+      }
+
+      const inputs = prev.filter(
+        (l) => !isRcmLine(l) && (parseFloat(l.amount || 0) || 0) !== 0,
+      );
+      const needed = [];
+      const spare = [...mirrors];
+      for (const input of inputs) {
+        const wantRate = `${RCM_RATE_PREFIX} ${input.rate || ""}`.trim();
+        const i = spare.findIndex(
+          (m) =>
+            m.tax_type === input.tax_type &&
+            String(m.rate || "") === wantRate &&
+            (parseFloat(m.amount || 0) || 0) ===
+              (parseFloat(input.amount || 0) || 0),
+        );
+        if (i >= 0) {
+          spare.splice(i, 1);
+          continue;
+        }
+        needed.push({
+          id: `rcm-${input.id}-${Date.now()}`,
+          rate: wantRate,
+          tax_type: input.tax_type,
+          amount: input.amount,
+          // Blank on purpose: this is the one the operator picks.
+          ledger_id: null,
+          debit_or_credit: "credit",
+        });
+      }
+
+      if (!needed.length && !spare.length) return prev;
+      const keep = prev.filter((l) => !spare.includes(l));
+      return [...keep, ...needed];
+    });
+  }, [isReverseCharge, isLocked, gstLines.length]);
+
   const handleGstLineAdd = () => {
     setGstLines((prev) => [
       ...prev,
@@ -1839,6 +1916,49 @@ const TallyExpenseBillDetail = () => {
   // current to null and the effect re-applies the backend value,
   // defeating the × click.
   const userClearedLedgersRef = useRef(new Set());
+
+  // Auto round off, computed where the operator can see it.
+  //
+  // The backend fills round_off at analysis and at verify. In between —
+  // the whole time the voucher is open and being corrected — the
+  // Difference line is recomputed live from the form while Round Off
+  // stays whatever was stored. So a bill analysed before that backend
+  // fix, or one whose lines have just been edited, shows a stated
+  // difference of a few paise beside a Round Off of 0.00 and no way to
+  // close it. A client reported exactly that.
+  //
+  // Same rule as ``_journal_round_off`` on the server, deliberately:
+  // only inside ₹1, and the round off rides on the party row's side
+  // when the lines came to more than the bill says. Anything larger is
+  // an extraction error and must stay visible.
+  //
+  // Never fights the operator: it fills a blank field once, and a
+  // round off they cleared or typed themselves is left alone.
+  const roundOffTouchedRef = useRef(false);
+  useEffect(() => {
+    if (isLocked || roundOffTouchedRef.current) return;
+    if (!billTotalMatch.hasBillValue || billTotalMatch.isMatch) return;
+    if (parseFloat(taxSummaryForm.round_off || 0) !== 0) return;
+
+    const diff = billTotalMatch.diff;
+    if (!diff || Math.abs(diff) >= 1) return;
+
+    const partySide = taxSummaryForm.vendorDebitCredit || "credit";
+    const other = partySide === "credit" ? "debit" : "credit";
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      round_off: Math.abs(diff).toFixed(2),
+      round_off_debit_or_credit: diff > 0 ? partySide : other,
+    }));
+  }, [
+    isLocked,
+    billTotalMatch.hasBillValue,
+    billTotalMatch.isMatch,
+    billTotalMatch.diff,
+    taxSummaryForm.round_off,
+    taxSummaryForm.vendorDebitCredit,
+  ]);
+
 
   // Handle tax ledger selections. Selecting any value removes the
   // "user cleared" mark so the auto-match doesn't fight the choice;
@@ -2187,7 +2307,7 @@ const TallyExpenseBillDetail = () => {
           igst: {
             amount: formatDecimal(
               gstLines
-                .filter((l) => l.tax_type === "IGST")
+                .filter((l) => l.tax_type === "IGST" && !isRcmLine(l))
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
             ledger: igstLedger?.name || "",
@@ -2196,7 +2316,7 @@ const TallyExpenseBillDetail = () => {
           cgst: {
             amount: formatDecimal(
               gstLines
-                .filter((l) => l.tax_type === "CGST")
+                .filter((l) => l.tax_type === "CGST" && !isRcmLine(l))
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
             ledger: cgstLedger?.name || "",
@@ -2205,7 +2325,7 @@ const TallyExpenseBillDetail = () => {
           sgst: {
             amount: formatDecimal(
               gstLines
-                .filter((l) => l.tax_type === "SGST")
+                .filter((l) => l.tax_type === "SGST" && !isRcmLine(l))
                 .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0),
             ),
             ledger: sgstLedger?.name || "",
@@ -2726,8 +2846,13 @@ const TallyExpenseBillDetail = () => {
         </div>
       )}
 
-      {/* Sync status banner */}
-      {billInfo?.tally_sync_message && (
+      {/* Only when the sync FAILED.
+          The green "Successfully synced to Tally" panel said what the
+          status chip beside the bill number already says, and it said
+          it in a full-width box above the document. A failure still
+          gets one: that is the case where there is something to read
+          and somewhere to go. */}
+      {billInfo?.tally_sync_message && !billInfo?.tally_synced && (
         <div
           className={`flex items-start gap-2.5 p-3 rounded-xl border ${
             billInfo?.tally_synced
@@ -3024,7 +3149,7 @@ const TallyExpenseBillDetail = () => {
                     vendorDefaultGstIn={
                       analysedData?.from?.gst_number || ""
                     }
-                    className={`mb-2 ${
+                    className={`mb-2 max-w-md ${
                       isVendorRequired && !isLocked
                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                         : ""
@@ -4203,6 +4328,7 @@ const TallyExpenseBillDetail = () => {
                                 analysedData={analysedData}
                                 organization={selectedOrganization}
                                 checks={analysedData?._extraction_checks}
+                          liveTotalsAgree={Boolean(billTotalMatch?.isMatch)}
                               />
                             </div>
                             <div className="w-full sm:max-w-[340px] lg:shrink-0">

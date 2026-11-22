@@ -61,6 +61,14 @@ const BillAdvisories = ({
   unmapped = [],
   // The server's arithmetic checks, written onto the bill at analysis.
   checks = [],
+  // Whether the figures ON SCREEN currently agree with the bill's own
+  // stated total. The checks are computed once, at analysis, from the
+  // data as extracted — so flipping "Lines include GST", or correcting
+  // a line, leaves a stored finding that contradicts the live total
+  // sitting an inch away from it. A client reported exactly that: the
+  // advisory said the lines plus tax came to 5,174.80 against a stated
+  // 4,489.90, while the totals panel beside it read "matches the bill".
+  liveTotalsAgree = false,
   className = "",
 }) => {
   const ocr = useMemo(
@@ -73,7 +81,18 @@ const BillAdvisories = ({
     [analysedData?.from, analysedData?.to, organization],
   );
 
+  // Findings the live figures have already answered are dropped rather
+  // than shown and disbelieved.
+  const STALE_WHEN_TOTALS_AGREE = new Set(["total_mismatch"]);
   const notes = (Array.isArray(checks) ? checks : [])
+    .filter(
+      (c) =>
+        !(
+          liveTotalsAgree &&
+          typeof c === "object" &&
+          STALE_WHEN_TOTALS_AGREE.has(c?.code)
+        ),
+    )
     .map((c) => (typeof c === "string" ? c : c?.message))
     .filter(Boolean);
 

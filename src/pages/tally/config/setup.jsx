@@ -1091,7 +1091,11 @@ const TallySetup = () => {
                       {mapped} mapped
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Auto-fill, not a fixed four. Purchase carries five
+                      groups and Sales three, so a hard four-column grid
+                      left the fifth card stranded on a row of its own
+                      with three columns of white space beside it. */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(215px,1fr))]">
                     {fields.map((f) => (
                       <React.Fragment key={f.key}>
                         {renderLedgerList(config[f.display] || [], f.label, f.icon, f.key)}

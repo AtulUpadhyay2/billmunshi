@@ -3627,8 +3627,13 @@ const TallyVendorBillDetail = () => {
         </div>
       </div>
 
-      {/* Sync status banner */}
-      {billInfo?.tally_sync_message && (
+      {/* Only when the sync FAILED.
+          The green "Successfully synced to Tally" panel said what the
+          status chip beside the bill number already says, and it said
+          it in a full-width box above the document. A failure still
+          gets one: that is the case where there is something to read
+          and somewhere to go. */}
+      {billInfo?.tally_sync_message && !billInfo?.tally_synced && (
         <div
           className={`flex items-start gap-2.5 p-3 rounded-xl border ${
             billInfo?.tally_synced
@@ -3937,7 +3942,7 @@ const TallyVendorBillDetail = () => {
                     vendorDefaultGstIn={
                       analysedData?.from?.gst_number || ""
                     }
-                    className={`mb-2 ${
+                    className={`mb-2 max-w-md ${
                       isVendorRequired && !isLocked
                         ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
                         : ""
@@ -5120,6 +5125,7 @@ const TallyVendorBillDetail = () => {
                           organization={selectedOrganization}
                           unmapped={unmapped}
                           checks={analysedData?._extraction_checks}
+                          liveTotalsAgree={Boolean(billTotalMatch?.isMatch)}
                         />
                       </div>
                       <div className="w-full lg:max-w-[640px] lg:shrink-0">
