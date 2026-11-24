@@ -44,8 +44,10 @@ import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONT
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
-  withCurrentRate,
+  gstRateOptionsFor,
 } from "@/constants/gstRates";
+import { useDeleteTallyExpenseBill } from "@/services/tally/tallyExpenseBillService";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
 
 // A GST row the reverse-charge mirror created. The server marks these
 // the same way (``RCM <source rate>``) so both sides agree on which
@@ -394,6 +396,34 @@ const TallyExpenseBillDetail = () => {
   // verified again. What closes the voucher for editing is it having
   // been posted to Tally, because after that the figures are history.
   const isLocked = billInfo?.tally_synced === true;
+
+  // Move this voucher to Trash, from inside the voucher.
+  //
+  // Until now the only way to bin a bill was to go back to the list,
+  // find the row again and select it — so the one screen where you can
+  // see that a document is a duplicate, or the wrong scan, was the one
+  // screen that could not act on it.
+  //
+  // Soft, like the list's own action: the row and its file are kept and
+  // the bill stays restorable from Trash.
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const { mutateAsync: trashThisBill, isPending: isTrashing } = useDeleteTallyExpenseBill();
+
+  const handleTrashBill = async () => {
+    try {
+      await trashThisBill({
+        organizationId: selectedOrganization?.id,
+        id: billId,
+      });
+      globalToast.success("Moved to Trash");
+      setIsTrashOpen(false);
+      navigate("/tally/journal-entry");
+    } catch (err) {
+      globalToast.error(
+        err?.response?.data?.message || err?.message || "Could not move to Trash",
+      );
+    }
+  };
 
   // Bill-image vs user-edited tax reconciliation. ``analysed_data``
   // carries the raw CGST/SGST/IGST values extracted from the original
@@ -2746,6 +2776,24 @@ const TallyExpenseBillDetail = () => {
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
+          {/* Trash, beside the other per-voucher actions. Disabled
+              once the bill has posted to Tally: binning it here would
+              leave the voucher standing in Tally with nothing on this
+              side to reconcile against. */}
+          <button
+            type="button"
+            onClick={() => setIsTrashOpen(true)}
+            disabled={isLocked || isTrashing}
+            className={`${BTN_SECONDARY} text-rose-700 dark:text-rose-400`}
+            title={
+              isLocked
+                ? "Already synced to Tally — cannot be trashed from here"
+                : "Move this voucher to Trash"
+            }
+          >
+            <Icon icon="heroicons:trash" className="text-sm" />
+            Trash
+          </button>
           <button
             type="button"
             onClick={() => navigate(`/tally/journal-entry/${expenseBillData?.next_bill}`)}
@@ -3816,9 +3864,10 @@ const TallyExpenseBillDetail = () => {
                                     disabled={isLocked}
                                     className={gstSelectCls}
                                   >
-                                    {withCurrentRate(
+                                    {gstRateOptionsFor(
                                       GST_RATE_OPTIONS,
                                       line.rate,
+                                      billForm.billDate,
                                     ).map((r) => (
                                       <option key={r} value={r}>
                                         {gstRateLabel(r)}
@@ -4604,6 +4653,16 @@ const TallyExpenseBillDetail = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={isTrashOpen}
+        onClose={() => setIsTrashOpen(false)}
+        onConfirm={handleTrashBill}
+        isLoading={isTrashing}
+        title="Move this voucher to Trash?"
+        message="The document and everything read from it are kept. You can restore it from Trash, or delete it permanently from there."
+        confirmText="Move to Trash"
+        variant="danger"
+      />
     </div>
   );
 };

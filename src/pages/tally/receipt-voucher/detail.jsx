@@ -46,8 +46,10 @@ import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONT
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
-  withCurrentRate,
+  gstRateOptionsFor,
 } from "@/constants/gstRates";
+import { useDeleteTallyReceiptVoucher } from "@/services/tally/tallyReceiptVoucherService";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
 
 // Client Correction 49: always show amounts with both paise digits
 // (62816.10, not 62816.1). Falls back when the value isn't numeric.
@@ -399,6 +401,34 @@ const TallyReceiptVoucherDetail = () => {
   // verified again. What closes the voucher for editing is it having
   // been posted to Tally, because after that the figures are history.
   const isLocked = billInfo?.tally_synced === true;
+
+  // Move this voucher to Trash, from inside the voucher.
+  //
+  // Until now the only way to bin a bill was to go back to the list,
+  // find the row again and select it — so the one screen where you can
+  // see that a document is a duplicate, or the wrong scan, was the one
+  // screen that could not act on it.
+  //
+  // Soft, like the list's own action: the row and its file are kept and
+  // the bill stays restorable from Trash.
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const { mutateAsync: trashThisBill, isPending: isTrashing } = useDeleteTallyReceiptVoucher();
+
+  const handleTrashBill = async () => {
+    try {
+      await trashThisBill({
+        organizationId: selectedOrganization?.id,
+        id: billId,
+      });
+      globalToast.success("Moved to Trash");
+      setIsTrashOpen(false);
+      navigate("/tally/receipt-voucher");
+    } catch (err) {
+      globalToast.error(
+        err?.response?.data?.message || err?.message || "Could not move to Trash",
+      );
+    }
+  };
 
   // Bill-image vs user-edited tax reconciliation. ``analysed_data``
   // carries the raw CGST/SGST/IGST values extracted from the original
@@ -1478,31 +1508,10 @@ const TallyReceiptVoucherDetail = () => {
       }
     }
 
-    // Lines that already hold their GST.
-    //
-    // The line ledger must post the NET, the GST rows post the tax, and
-    // the party row posts what the document actually says — otherwise
-    // the tax is counted twice and the party amount comes out over the
-    // printed total by exactly the GST. Taking the tax off the line
-    // side does all three at once: the party lands on the gross line
-    // total and the voucher still balances.
-    //
-    // The amounts on screen stay as printed. What changes is what each
-    // row posts, which is how the purchase and sales vouchers have
-    // treated MRP pricing since migration 0046.
-    if (linesIncludeGst) {
-      const taxTotal = gstLines.reduce(
-        (sum, line) => sum + (parseFloat(line.amount || 0) || 0),
-        0,
-      );
-      if (taxTotal) {
-        if (totalExpenseCredit >= totalExpenseDebit) {
-          totalExpenseCredit -= taxTotal;
-        } else {
-          totalExpenseDebit -= taxTotal;
-        }
-      }
-    }
+    // The line amounts ARE the taxable values while
+    // `linesIncludeGst` is on — the toggle rewrote them — so
+    // nothing is subtracted here. Subtracting again would take
+    // the tax off twice.
 
     // TDS no longer participates in the balance — the row is gone and the
     // payload sends a hard zero.
@@ -2062,7 +2071,56 @@ const TallyReceiptVoucherDetail = () => {
   };
 
   const handleLinesIncludeGstToggle = () => {
-    setLinesIncludeGst((v) => !v);
+    const next = !linesIncludeGst;
+    setLinesIncludeGst(next);
+
+    // Turning this on rewrites the line AMOUNTS to their taxable value.
+    //
+    // The earlier attempt left the amounts alone and quietly subtracted
+    // the tax from the running balance instead. Nothing on screen moved
+    // when the switch was flipped, so it read as a dead control — which
+    // is exactly how it was reported. It was also the wrong shape: what
+    // has to post is the line ledger at its NET and the GST rows at the
+    // tax, and the amount box is where the operator reads the net.
+    //
+    // The gross is kept on the row, so switching back restores the
+    // figures the document actually prints rather than a value derived
+    // twice.
+    const tax = (gstLines || []).reduce(
+      (sum, line) => sum + (parseFloat(line.amount || 0) || 0),
+      0,
+    );
+
+    setExpenseItems((prev) => {
+      if (!prev.length) return prev;
+
+      if (!next) {
+        return prev.map((item) =>
+          item.amount_gross === undefined || item.amount_gross === null
+            ? item
+            : { ...item, amount: item.amount_gross, amount_gross: undefined },
+        );
+      }
+
+      const gross = prev.reduce(
+        (sum, item) => sum + (parseFloat(item.amount || 0) || 0),
+        0,
+      );
+      if (!gross || !tax) return prev;
+
+      // Apportioned by share, because a voucher can carry several
+      // ledger lines under one tax figure and a flat split would move
+      // money between them.
+      return prev.map((item) => {
+        const amount = parseFloat(item.amount || 0) || 0;
+        const taxable = amount - (tax * amount) / gross;
+        return {
+          ...item,
+          amount_gross: item.amount,
+          amount: taxable.toFixed(2),
+        };
+      });
+    });
   };
 
   const handleConsolidateToggle = () => {
@@ -2643,6 +2701,24 @@ const TallyReceiptVoucherDetail = () => {
           >
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
+          </button>
+          {/* Trash, beside the other per-voucher actions. Disabled
+              once the bill has posted to Tally: binning it here would
+              leave the voucher standing in Tally with nothing on this
+              side to reconcile against. */}
+          <button
+            type="button"
+            onClick={() => setIsTrashOpen(true)}
+            disabled={isLocked || isTrashing}
+            className={`${BTN_SECONDARY} text-rose-700 dark:text-rose-400`}
+            title={
+              isLocked
+                ? "Already synced to Tally — cannot be trashed from here"
+                : "Move this voucher to Trash"
+            }
+          >
+            <Icon icon="heroicons:trash" className="text-sm" />
+            Trash
           </button>
           <button
             type="button"
@@ -3730,9 +3806,10 @@ const TallyReceiptVoucherDetail = () => {
                                     disabled={isLocked}
                                     className={gstSelectCls}
                                   >
-                                    {withCurrentRate(
+                                    {gstRateOptionsFor(
                                       GST_RATE_OPTIONS,
                                       line.rate,
+                                      billForm.billDate,
                                     ).map((r) => (
                                       <option key={r} value={r}>
                                         {gstRateLabel(r)}
@@ -4382,6 +4459,16 @@ const TallyReceiptVoucherDetail = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={isTrashOpen}
+        onClose={() => setIsTrashOpen(false)}
+        onConfirm={handleTrashBill}
+        isLoading={isTrashing}
+        title="Move this voucher to Trash?"
+        message="The document and everything read from it are kept. You can restore it from Trash, or delete it permanently from there."
+        confirmText="Move to Trash"
+        variant="danger"
+      />
     </div>
   );
 };

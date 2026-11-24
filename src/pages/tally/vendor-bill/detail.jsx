@@ -63,8 +63,10 @@ import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONT
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
-  withCurrentRate,
+  gstRateOptionsFor,
 } from "@/constants/gstRates";
+import { useDeleteTallyVendorBill } from "@/services/tally/tallyVendorBillService";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
 
 // A discount reads as a negative figure wherever it appears.
 //
@@ -803,6 +805,34 @@ const TallyVendorBillDetail = () => {
   // been posted to Tally, because after that the figures are history.
   const isLocked = billInfo?.tally_synced === true;
 
+  // Move this voucher to Trash, from inside the voucher.
+  //
+  // Until now the only way to bin a bill was to go back to the list,
+  // find the row again and select it — so the one screen where you can
+  // see that a document is a duplicate, or the wrong scan, was the one
+  // screen that could not act on it.
+  //
+  // Soft, like the list's own action: the row and its file are kept and
+  // the bill stays restorable from Trash.
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const { mutateAsync: trashThisBill, isPending: isTrashing } = useDeleteTallyVendorBill();
+
+  const handleTrashBill = async () => {
+    try {
+      await trashThisBill({
+        organizationId: selectedOrganization?.id,
+        id: billId,
+      });
+      globalToast.success("Moved to Trash");
+      setIsTrashOpen(false);
+      navigate("/tally/vendor-bill");
+    } catch (err) {
+      globalToast.error(
+        err?.response?.data?.message || err?.message || "Could not move to Trash",
+      );
+    }
+  };
+
   // Inter-state supply ⇒ IGST; intra-state ⇒ CGST + SGST split.
   //
   // The fallback must not read `billSummaryForm.igst`: another effect derives
@@ -810,8 +840,24 @@ const TallyVendorBillDetail = () => {
   // drove it to 0 and silently flipped an IGST bill to CGST+SGST on the next
   // edit. Decide from the analysed GST type, else from the figures as first
   // loaded, and hold that decision steady for the rest of the session.
+  // Which GST heads this bill carries, and who decides.
+  //
+  // Extraction decides it from the figures it read: any IGST above zero
+  // and the whole bill is inter-state. A bill that prints CGST and SGST
+  // then shows a single IGST row, and there was no way to say otherwise
+  // — the split is described in the code as "a server decision", so the
+  // operator looked at an intra-state invoice and an inter-state
+  // voucher and could only re-upload.
+  //
+  // So the head is now correctable. Switching it re-splits every line's
+  // tax, because the figures have to follow the heads: one IGST becomes
+  // an equal CGST and SGST, and back.
+  const [gstHeadOverride, setGstHeadOverride] = useState(null);
+
   const interStateRef = useRef(null);
   const isInterStateSupply = useMemo(() => {
+    if (gstHeadOverride === "IGST") return true;
+    if (gstHeadOverride === "CGST_SGST") return false;
     if (tallyAnalysedData?.gst_type === "IGST") return true;
     if (tallyAnalysedData?.gst_type === "CGST_SGST") return false;
     if (interStateRef.current !== null) return interStateRef.current;
@@ -821,7 +867,7 @@ const TallyVendorBillDetail = () => {
       (products || []).some((p) => (parseFloat(p.igst) || 0) > 0);
     if ((products || []).length > 0) interStateRef.current = seeded;
     return seeded;
-  }, [tallyAnalysedData, products]);
+  }, [tallyAnalysedData, products, gstHeadOverride]);
 
   // Whether a taxable base couples the lines together. Only then does
   // one line's amount change what another is taxed on.
@@ -857,11 +903,23 @@ const TallyVendorBillDetail = () => {
       ...computeLineTax(
         p.amount,
         p.gst,
-        isInterStateSupply,
+        overrides.interState ?? isInterStateSupply,
         lineTaxableValue(netLineAmount(p), gross, base),
         inclusive,
       ),
     }));
+  };
+
+  // Switch the bill between IGST and CGST+SGST.
+  //
+  // The amounts move with the heads: an IGST of 180 becomes CGST 90 and
+  // SGST 90, and back. Leaving the figures where they were would show
+  // the right labels over the wrong columns, which is the same fault
+  // wearing a different hat.
+  const handleGstHeadChange = (head) => {
+    const nextInterState = head === "IGST";
+    setGstHeadOverride(head);
+    setProducts((prev) => applyLineTaxes(prev, { interState: nextInterState }));
   };
 
   // Validation helper functions
@@ -3074,6 +3132,10 @@ const TallyVendorBillDetail = () => {
           irn: vendorForm.irn || "",
           ack_no: vendorForm.ackNo || "",
           is_reverse_charge: Boolean(vendorForm.reverseCharge),
+          // The heads the operator settled on, so a correction made
+          // here survives the save instead of being recomputed from
+          // the same figures that got it wrong.
+          gst_type: isInterStateSupply ? "IGST" : "CGST_SGST",
           // Flat, beside `taxes`: the liability carries no amount of
           // its own — it is the input row's, by definition.
           igst_rcm_taxes: rcmLedgerIds.igst || null,
@@ -3618,6 +3680,24 @@ const TallyVendorBillDetail = () => {
           >
             <Icon icon="heroicons:arrow-path" className={`text-sm ${isFetching ? "animate-spin" : ""}`} />
             Refresh
+          </button>
+          {/* Trash, beside the other per-voucher actions. Disabled
+              once the bill has posted to Tally: binning it here would
+              leave the voucher standing in Tally with nothing on this
+              side to reconcile against. */}
+          <button
+            type="button"
+            onClick={() => setIsTrashOpen(true)}
+            disabled={isLocked || isTrashing}
+            className={`${BTN_SECONDARY} text-rose-700 dark:text-rose-400`}
+            title={
+              isLocked
+                ? "Already synced to Tally — cannot be trashed from here"
+                : "Move this voucher to Trash"
+            }
+          >
+            <Icon icon="heroicons:trash" className="text-sm" />
+            Trash
           </button>
           <button
             type="button"
@@ -4520,7 +4600,7 @@ const TallyVendorBillDetail = () => {
                               <span className="text-red-500">*</span>
                             </th>
                             <th className="px-3 py-2 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[100px]">
-                              Price
+                              Rate
                             </th>
                             <th className="px-3 py-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] border-b border-slate-200 dark:border-slate-800 min-w-[80px]">
                               Quantity
@@ -4844,9 +4924,10 @@ const TallyVendorBillDetail = () => {
                                     style={CONTROL_SELECT_ARROW}
                                   >
                                     <option value="">Select GST</option>
-                                    {withCurrentRate(
+                                    {gstRateOptionsFor(
                                       PRODUCT_GST_OPTIONS,
                                       product.gst,
+                                      vendorForm.dateIssued,
                                     ).map((r) => (
                                       <option key={r} value={r}>
                                         {gstRateLabel(r)}
@@ -5292,6 +5373,37 @@ const TallyVendorBillDetail = () => {
                           />
                         )}
 
+                      {/* Which heads this bill carries. Extraction
+                          guesses from the figures and gets it wrong on
+                          a bill that prints CGST and SGST; this is how
+                          the operator says so. */}
+                      <div className="mb-2 flex items-center justify-end gap-1.5 text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          GST heads
+                        </span>
+                        {[
+                          { id: "CGST_SGST", label: "CGST + SGST" },
+                          { id: "IGST", label: "IGST" },
+                        ].map((opt) => {
+                          const active =
+                            opt.id === (isInterStateSupply ? "IGST" : "CGST_SGST");
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleGstHeadChange(opt.id)}
+                              className={`px-2 py-0.5 rounded-md font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                active
+                                  ? "bg-blue-600 text-white"
+                                  : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                         {rated.map((b) =>
                           interState ? (
                             <React.Fragment key={`igst-${b.rate}`}>
@@ -5623,6 +5735,16 @@ const TallyVendorBillDetail = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={isTrashOpen}
+        onClose={() => setIsTrashOpen(false)}
+        onConfirm={handleTrashBill}
+        isLoading={isTrashing}
+        title="Move this voucher to Trash?"
+        message="The document and everything read from it are kept. You can restore it from Trash, or delete it permanently from there."
+        confirmText="Move to Trash"
+        variant="danger"
+      />
     </div>
   );
 };

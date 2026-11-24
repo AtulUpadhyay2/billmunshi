@@ -83,6 +83,12 @@ const MOVE_LABELS = {
     // Tally has no separate journal module: its expense screen is
     // titled "Journal Entries".
     expense: "Journal Entry",
+    // The other three arrived once the move endpoint stopped being
+    // written as vendor/expense branches. A Payment wrongly filed as a
+    // Purchase had to be deleted and re-uploaded before this.
+    sales: "Sales Voucher",
+    payment: "Payment Voucher",
+    receipt: "Receipt Voucher",
   },
   zoho: {
     vendor: "Purchase Voucher",

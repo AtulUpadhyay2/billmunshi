@@ -10,6 +10,7 @@ import {
   useDownloadTallySalesReport,
 } from "@/services/tally/tallySalesBillService";
 import { useTallyUploadTargets } from "@/services/tally/useTallyUploadTargets";
+import { useMoveTallySalesBills } from "@/services/tally/tallySalesBillService";
 
 const TallySalesBill = () => {
   return (
@@ -32,10 +33,8 @@ const TallySalesBill = () => {
       useAnalyzeBill={useAnalyzeTallySalesBill}
       useSyncBill={useSyncTallySalesBill}
       useDownloadReport={useDownloadTallySalesReport}
-      // A sales invoice has a customer and revenue ledgers; the move
-      // targets are all payables-side vouchers, so there is nowhere for
-      // it to go.
-      allowMove={false}
+      useMoveBills={useMoveTallySalesBills}
+      moveFrom="sales"
     />
   );
 };

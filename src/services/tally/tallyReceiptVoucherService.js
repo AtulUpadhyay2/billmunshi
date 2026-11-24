@@ -309,3 +309,26 @@ export const useDownloadTallyReceiptReport = () =>
       );
     },
   });
+
+/**
+ * Move selected vouchers into another Tally voucher type.
+ *
+ * The endpoint takes any pair of the five now; it used to understand
+ * only vendor and expense, which is why this page had no Move.
+ */
+export const useMoveTallyReceiptVouchers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ organizationId, from, to, bill_ids }) =>
+      apiFetch(`tally/org/${organizationId}/bills/move/`, {
+        method: "POST",
+        body: { from, to, bill_ids },
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["tallyReceiptVouchers", variables.organizationId],
+      });
+    },
+  });
+};

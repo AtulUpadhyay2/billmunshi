@@ -10,6 +10,7 @@ import {
   useDownloadTallyReceiptReport,
 } from "@/services/tally/tallyReceiptVoucherService";
 import { useTallyUploadTargets } from "@/services/tally/useTallyUploadTargets";
+import { useMoveTallyReceiptVouchers } from "@/services/tally/tallyReceiptVoucherService";
 
 const TallyReceiptVoucher = () => {
   return (
@@ -32,9 +33,8 @@ const TallyReceiptVoucher = () => {
       useAnalyzeBill={useAnalyzeTallyReceiptVoucher}
       useSyncBill={useSyncTallyReceiptVoucher}
       useDownloadReport={useDownloadTallyReceiptReport}
-      // Every move target is a payables-side voucher; a receipt has
-      // nowhere to go.
-      allowMove={false}
+      useMoveBills={useMoveTallyReceiptVouchers}
+      moveFrom="receipt"
     />
   );
 };
