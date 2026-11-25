@@ -29,6 +29,7 @@ import {
 } from "@/services/tally/tallyReceiptVoucherService";
 import {
   useGetTallyCustomerLedgers,
+  useGetTallyTdsLedgers,
   useGetTallyExpenseChartOfAccountsLedgers,
   useGetTallySalesLedgers,
   useGetTallyCgstLedgers,
@@ -192,18 +193,29 @@ const TallyReceiptVoucherDetail = () => {
   const preConsolidateRowsRef = useRef(null);
 
   // Form state for tax summary.
-  // No `tds`/`tdsLedgerId`/`tdsDebitCredit` — TDS was removed from receipt
-  // vouchers, and the verify payload sends a hard zero for it.
+  //
+  // Tax is deducted at source on a receipt voucher: the payer withholds TDS
+  // and settles the rest. The amount, its ledger and its Dr/Cr side are all
+  // posted to Tally as their own ledger line, so all three are editable here.
   const [taxSummaryForm, setTaxSummaryForm] = useState({
     igst: "",
     cgst: "",
     sgst: "",
+    tds: "",
+    // The rate (%) behind the amount, chosen from the dropdown. Not a
+    // backend field — it is re-derived on load from tds / subtotal, so a
+    // rate that doesn't reproduce the stored amount is simply not claimed.
+    tdsRate: 0,
     igstLedgerId: null,
     cgstLedgerId: null,
     sgstLedgerId: null,
+    tdsLedgerId: null,
     igstDebitCredit: "debit",
     cgstDebitCredit: "debit",
     sgstDebitCredit: "debit",
+    // Withholding reduces what leaves the bank, so the default side is the
+    // credit one; the stored side always wins over this on load.
+    tdsDebitCredit: "credit",
     customerDebitCredit: "credit",
     customerAmount: "",
     other_adjustment: "0.00",
@@ -356,9 +368,14 @@ const TallyReceiptVoucherDetail = () => {
       enabled: !!selectedOrganization?.id,
     });
 
-  // The generic tax-ledger fetch was only ever used to populate the TDS
-  // dropdown. TDS is gone, and CGST/SGST/IGST have their own dedicated
-  // queries below, so the request is no longer issued.
+  // The TDS ledger, scoped by `tds_parents`. Only the TDS picker reads
+  // these — CGST/SGST/IGST have their own dedicated queries below — so the
+  // generic chart-of-accounts roster is deliberately not used here: a TDS
+  // ledger does not live under the purchase group.
+  const { data: tdsLedgersData, isLoading: tdsLedgersLoading } =
+    useGetTallyTdsLedgers(selectedOrganization?.id, {
+      enabled: !!selectedOrganization?.id,
+    });
 
   // Fetch CGST ledgers for CGST dropdown
   const { data: cgstLedgersData, isLoading: cgstLedgersLoading } =
@@ -490,8 +507,9 @@ const TallyReceiptVoucherDetail = () => {
   //   Line item subtotal + GST subtotal + Round off + Other Adjustment
   //     = Total Invoice Amount
   //
-  // No TDS term — receipt vouchers don't deduct tax at source (Correction 20),
-  // which is the one way this differs from the journal-entry formula.
+  // TDS has no term of its own here because it is not part of what the
+  // invoice came to — it is withheld out of the settlement. It is restored
+  // below, where the settled figure is converted back into an invoice total.
   //
   // This used to compare `billForm.totalAmount` against `analysedData.total`.
   // With the total pinned to the OCR figure that is a value against itself, so
@@ -499,14 +517,27 @@ const TallyReceiptVoucherDetail = () => {
   // The figure the voucher actually settles through the Bank/Cash ledger.
   //
   // This is the balancing amount the double-entry effect below maintains,
-  // which for the default sides works out to exactly the formula above:
-  // line items + GST + round off + other adjustment. Reading it from there
-  // rather than recomputing the sum keeps the Amount Paid row, the invoice
-  // check and the `customer_amount` that gets posted from ever disagreeing —
-  // a plain "+" of its own would drift the moment someone flipped a row to
-  // the credit side.
+  // which for the default sides works out to the formula above less any TDS
+  // withheld. Reading it from there rather than recomputing the sum keeps the
+  // Amount Paid row, the invoice check and the `customer_amount` that gets
+  // posted from ever disagreeing — a plain "+" of its own would drift the
+  // moment someone flipped a row to the credit side.
   const amountPaidComputed = Number(
     (parseFloat(taxSummaryForm.customerAmount) || 0).toFixed(2),
+  );
+
+  // What the invoice itself came to, which on a voucher carrying TDS is not
+  // what gets paid. Withholding on the credit side keeps that much in the
+  // payer's hands, so it is added back to recover the invoice figure; a TDS
+  // booked to the debit side inflated the settlement and comes off instead.
+  // Comparing the settled amount directly against the invoice total would
+  // read the withheld amount as a mismatch and block verification.
+  const invoiceTotalComputed = Number(
+    (
+      amountPaidComputed +
+      (parseFloat(taxSummaryForm.tds) || 0) *
+        (taxSummaryForm.tdsDebitCredit === "credit" ? 1 : -1)
+    ).toFixed(2),
   );
 
   const billTotalMatch = useMemo(() => {
@@ -515,15 +546,15 @@ const TallyReceiptVoucherDetail = () => {
     if (!billTotal || Number.isNaN(billTotal)) {
       return { hasBillValue: false };
     }
-    const diff = Number((amountPaidComputed - billTotal).toFixed(2));
+    const diff = Number((invoiceTotalComputed - billTotal).toFixed(2));
     return {
       hasBillValue: true,
       billTotal,
-      currentTotal: amountPaidComputed,
+      currentTotal: invoiceTotalComputed,
       diff,
       isMatch: Math.abs(diff) <= TOL,
     };
-  }, [billForm.totalAmount, amountPaidComputed]);
+  }, [billForm.totalAmount, invoiceTotalComputed]);
 
   // Validation helper functions
   const isCustomerRequired = !billForm.selectedCustomer;
@@ -557,6 +588,13 @@ const TallyReceiptVoucherDetail = () => {
 
   const isIgstLedgerRequired = () =>
     gstLinesOfTypeWithoutLedger("IGST").length > 0;
+
+  // A withheld amount has to land somewhere nameable in Tally, so the
+  // ledger is only mandatory once there is an amount to post.
+  const isTdsLedgerRequired = () => {
+    const tdsAmount = parseFloat(taxSummaryForm.tds || 0);
+    return tdsAmount > 0 && !taxSummaryForm.tdsLedgerId;
+  };
 
   const isOtherAdjustmentLedgerRequired = () => {
     const otherAdjustmentAmount = parseFloat(
@@ -606,6 +644,7 @@ const TallyReceiptVoucherDetail = () => {
       if (!a) return;
       (dc === "credit" ? (tCr += a) : (tDr += a));
     };
+    push(taxSummaryForm.tds, taxSummaryForm.tdsDebitCredit);
     push(taxSummaryForm.other_adjustment, taxSummaryForm.other_adjustment_debit_or_credit);
     push(taxSummaryForm.round_off, taxSummaryForm.round_off_debit_or_credit);
     push(taxSummaryForm.customerAmount, taxSummaryForm.customerDebitCredit);
@@ -624,6 +663,7 @@ const TallyReceiptVoucherDetail = () => {
     isCgstLedgerRequired() ||
     isSgstLedgerRequired() ||
     isIgstLedgerRequired() ||
+    isTdsLedgerRequired() ||
     isOtherAdjustmentLedgerRequired() ||
     isRoundOffLedgerRequired() ||
     getGstLinesWithoutLedger().length > 0 ||
@@ -660,6 +700,8 @@ const TallyReceiptVoucherDetail = () => {
     if (isCgstLedgerRequired()) errors.push(missingGstLedgerMessage("CGST"));
     if (isSgstLedgerRequired()) errors.push(missingGstLedgerMessage("SGST"));
     if (isIgstLedgerRequired()) errors.push(missingGstLedgerMessage("IGST"));
+    if (isTdsLedgerRequired())
+      errors.push("TDS ledger is required when TDS amount > 0");
     if (isOtherAdjustmentLedgerRequired())
       errors.push(
         "Other adjustment ledger is required when adjustment amount > 0",
@@ -847,6 +889,34 @@ const TallyReceiptVoucherDetail = () => {
     [receiptModeLedgersData],
   );
 
+  // Process TDS ledgers data for dropdown
+  const processTdsLedgers = () => {
+    if (!tdsLedgersData?.grouped_ledgers) return [];
+
+    const taxLedgers = [];
+    Object.values(tdsLedgersData.grouped_ledgers).forEach((group) => {
+      if (group.ledgers && Array.isArray(group.ledgers)) {
+        group.ledgers.forEach((ledger) => {
+          taxLedgers.push({
+            id: ledger.id,
+            name: ledger.name,
+            master_id: ledger.master_id,
+            alter_id: ledger.alter_id,
+            opening_balance: ledger.opening_balance,
+            company: ledger.company,
+            parent_name: group.parent_name,
+          });
+        });
+      }
+    });
+    return taxLedgers;
+  };
+
+  const tdsLedgerOptions = useMemo(
+    () => processTdsLedgers(),
+    [tdsLedgersData],
+  );
+
   // Process CGST ledgers data for dropdown
   const processCgstLedgers = () => {
     if (!cgstLedgersData?.grouped_ledgers) return [];
@@ -979,15 +1049,18 @@ const TallyReceiptVoucherDetail = () => {
         igst: tally?.igst || data?.igst || "",
         cgst: tally?.cgst || data?.cgst || "",
         sgst: tally?.sgst || data?.sgst || "",
-        // A TDS value on the analysed data is deliberately not loaded —
-        // there is no field to review or edit it in, so carrying it would
-        // post a line the operator can't see.
+        tds: tally?.tds || data?.tds || "",
+        // Placeholder — replaced below once the line rows, and so the
+        // subtotal the rate is derived against, are known.
+        tdsRate: 0,
         igstLedgerId: tally?.igst_taxes || null,
         cgstLedgerId: tally?.cgst_taxes || null,
         sgstLedgerId: tally?.sgst_taxes || null,
+        tdsLedgerId: tally?.tds_taxes || null,
         igstDebitCredit: tally?.igst_debit_or_credit || "debit",
         cgstDebitCredit: tally?.cgst_debit_or_credit || "debit",
         sgstDebitCredit: tally?.sgst_debit_or_credit || "debit",
+        tdsDebitCredit: tally?.tds_debit_or_credit || "credit",
         customerDebitCredit: tally?.customer_debit_or_credit || "credit",
         customerAmount: tally?.customer_amount || tally?.total || data?.total || "",
         other_adjustment: tally?.other_adjustment || "0.00",
@@ -1187,6 +1260,37 @@ const TallyReceiptVoucherDetail = () => {
       }
 
       setExpenseItems(sourceItems);
+
+      // Re-derive the rate dropdown from the loaded amount: the rate is a
+      // control, not a stored field, so on reload it is reconstructed from
+      // tds / subtotal * 100 and snapped to the nearest offered option.
+      //
+      // The snap is only accepted when it reproduces the stored amount to
+      // the paise. An OCR-extracted figure that is not a round percentage
+      // of the subtotal would otherwise be snapped to a neighbouring rate
+      // and then immediately recomputed from it by the sync effect below,
+      // silently replacing an extracted amount with a made-up one. Rate
+      // "None" leaves the amount exactly as it was stored.
+      const seededSubtotal = sourceItems.reduce(
+        (s, r) => s + (parseFloat(r.amount) || 0),
+        0,
+      );
+      const seededTds = parseFloat(tally?.tds || data?.tds || 0);
+      const supportedTdsRates = [0, 1, 2, 5, 10];
+      let derivedTdsRate = 0;
+      if (seededSubtotal > 0 && seededTds > 0) {
+        const rawRate = (seededTds / seededSubtotal) * 100;
+        const nearest = supportedTdsRates.reduce(
+          (closest, r) =>
+            Math.abs(r - rawRate) < Math.abs(closest - rawRate) ? r : closest,
+          0,
+        );
+        const impliedTds = Number(
+          ((seededSubtotal * nearest) / 100).toFixed(2),
+        );
+        if (Math.abs(impliedTds - seededTds) <= 0.01) derivedTdsRate = nearest;
+      }
+      setTaxSummaryForm((prev) => ({ ...prev, tdsRate: derivedTdsRate }));
     }
   }, [expenseBillData, analysedData, tallyAnalysedData]);
 
@@ -1328,8 +1432,22 @@ const TallyReceiptVoucherDetail = () => {
         }
       }
 
-      // TDS ledger auto-match REMOVED along with the TDS row — there is
-      // no TDS field left for it to populate.
+      // Match TDS ledger by ID
+      if (
+        tallyAnalysedData.tds_taxes &&
+        !taxSummaryForm.tdsLedgerId &&
+        !cleared.has("tds")
+      ) {
+        const matchedTdsLedger = tdsLedgerOptions.find(
+          (ledger) => ledger.id === tallyAnalysedData.tds_taxes,
+        );
+        if (matchedTdsLedger) {
+          setTaxSummaryForm((prev) => ({
+            ...prev,
+            tdsLedgerId: matchedTdsLedger.id,
+          }));
+        }
+      }
 
       // Match Other Adjustment ledger by ID
       if (
@@ -1369,11 +1487,13 @@ const TallyReceiptVoucherDetail = () => {
     cgstLedgerOptions,
     sgstLedgerOptions,
     igstLedgerOptions,
+    tdsLedgerOptions,
     ledgerOptions,
     tallyAnalysedData,
     taxSummaryForm.cgstLedgerId,
     taxSummaryForm.sgstLedgerId,
     taxSummaryForm.igstLedgerId,
+    taxSummaryForm.tdsLedgerId,
     taxSummaryForm.other_adjustment_taxes,
     taxSummaryForm.round_off_taxes,
   ]);
@@ -1511,8 +1631,17 @@ const TallyReceiptVoucherDetail = () => {
     // nothing is subtracted here. Subtracting again would take
     // the tax off twice.
 
-    // TDS no longer participates in the balance — the row is gone and the
-    // payload sends a hard zero.
+    // TDS is one side of the entry like any other adjustment — the backend's
+    // balance check counts it (receipt_bills.py), so the screen has to as
+    // well or the two would disagree on whether the voucher balances.
+    if (taxSummaryForm.tds) {
+      const tdsAmount = parseFloat(taxSummaryForm.tds || 0);
+      if (taxSummaryForm.tdsDebitCredit === "debit") {
+        totalTaxDebit += tdsAmount;
+      } else {
+        totalTaxCredit += tdsAmount;
+      }
+    }
 
     // Correction 46: signed, not absolute. `Math.abs()` here flipped every
     // negative entry — a round-off of -0.28 on the debit side landed as
@@ -1576,12 +1705,30 @@ const TallyReceiptVoucherDetail = () => {
   }, [
     expenseItems,
     gstLines,
+    taxSummaryForm.tds,
+    taxSummaryForm.tdsDebitCredit,
     taxSummaryForm.other_adjustment,
     taxSummaryForm.other_adjustment_debit_or_credit,
     taxSummaryForm.round_off,
     taxSummaryForm.round_off_debit_or_credit,
     taxSummaryForm.customerDebitCredit,
   ]);
+
+  // Keep the computed TDS amount in step with the line subtotal while a rate
+  // is selected. Guarded on rate > 0 so an amount that came from OCR and has
+  // no matching rate — the dropdown left at "None" — is never overwritten.
+  useEffect(() => {
+    const rate = parseFloat(taxSummaryForm.tdsRate || 0);
+    if (!rate) return;
+    const subtotal = expenseItems.reduce(
+      (sum, item) => sum + (parseFloat(item.amount) || 0),
+      0,
+    );
+    const computedTds = Number(((subtotal * rate) / 100).toFixed(2)).toString();
+    setTaxSummaryForm((prev) =>
+      prev.tds === computedTds ? prev : { ...prev, tds: computedTds },
+    );
+  }, [expenseItems, taxSummaryForm.tdsRate]);
 
   // Correction 46: the total is the invoice's own figure and stays put.
   // An effect here used to drag it toward the auto-balanced customer amount,
@@ -1970,6 +2117,34 @@ const TallyReceiptVoucherDetail = () => {
     setTaxSummaryForm((prev) => ({ ...prev, other_adjustment_taxes: null }));
   };
 
+  const handleTdsLedgerSelect = (ledgerId) => {
+    userClearedLedgersRef.current.delete("tds");
+    setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: ledgerId }));
+  };
+
+  const handleTdsLedgerClear = () => {
+    userClearedLedgersRef.current.add("tds");
+    setTaxSummaryForm((prev) => ({ ...prev, tdsLedgerId: null }));
+  };
+
+  // Picking a rate is how the amount is entered — it is withheld as a
+  // percentage of what is being paid, never typed in rupees. The companion
+  // effect above keeps it true as the line amounts change afterwards, so
+  // this only has to answer for the rate itself.
+  const handleTdsRateChange = (rateValue) => {
+    const numRate = parseFloat(rateValue) || 0;
+    const subtotal = expenseItems.reduce(
+      (sum, item) => sum + (parseFloat(item.amount) || 0),
+      0,
+    );
+    const computedTds = Number(((subtotal * numRate) / 100).toFixed(2));
+    setTaxSummaryForm((prev) => ({
+      ...prev,
+      tdsRate: numRate,
+      tds: computedTds.toString(),
+    }));
+  };
+
   const handleRoundOffLedgerSelect = (ledgerId) => {
     userClearedLedgersRef.current.delete("round_off");
     setTaxSummaryForm((prev) => ({
@@ -2213,6 +2388,9 @@ const TallyReceiptVoucherDetail = () => {
       "IGST",
       taxSummaryForm.igstLedgerId,
     );
+    const tdsLedger = tdsLedgerOptions.find(
+      (ledger) => ledger.id === taxSummaryForm.tdsLedgerId,
+    );
     const otherAdjustmentLedger = ledgerOptions.find(
       (ledger) => ledger.id === taxSummaryForm.other_adjustment_taxes,
     );
@@ -2281,14 +2459,19 @@ const TallyReceiptVoucherDetail = () => {
             ledger: sgstLedger?.name || "",
             debit_or_credit: taxSummaryForm.sgstDebitCredit || "debit",
           },
-          // TDS is removed from receipt vouchers. The key is still sent
-          // because the backend serializer expects the full ``taxes``
-          // block, but always as zero with no ledger — so no TDS line is
-          // ever posted to Tally.
+          // Tax deducted at source on this receipt. All three parts travel:
+          // the backend stores them on the analysed row and the sync payload
+          // emits the ledger line under Current Liabilities from them. This
+          // block used to be a hard zero, which wiped any extracted figure
+          // the moment the voucher was verified.
           tds: {
-            amount: "0.00",
-            ledger: "",
-            debit_or_credit: "debit",
+            amount: formatDecimal(taxSummaryForm.tds),
+            ledger: tdsLedger?.name || "",
+            debit_or_credit: taxSummaryForm.tdsDebitCredit || "credit",
+            // Carried for reload only. The backend's tax-field loop reads
+            // amount/ledger/debit_or_credit and ignores anything else, and
+            // the rate is re-derived on load rather than stored.
+            rate: parseFloat(taxSummaryForm.tdsRate) || 0,
           },
           other_adjustment: {
             amount: formatDecimal(taxSummaryForm.other_adjustment),
@@ -3935,13 +4118,20 @@ const TallyReceiptVoucherDetail = () => {
                   // managed via the dedicated GST Lines table rendered
                   // above this Adjustments block.
                   //
-                  // TDS row REMOVED — receipt vouchers don't deduct tax at
-                  // source, so the field only ever added a way to unbalance
-                  // the voucher. Nothing posts a TDS line any more (the
-                  // verify payload sends a hard zero).
-                  //
-                  // Only Other Adjustment and Round Off remain as
-                  // bill-level singletons.
+                  // TDS is rendered on its own below rather than through
+                  // ``rows``: it needs a rate control the generic row
+                  // template has no slot for.
+                  const itemsSubtotal = expenseItems.reduce(
+                    (sum, item) => sum + (parseFloat(item.amount) || 0),
+                    0,
+                  );
+                  const tdsRateOptions = [
+                    { label: "None", value: 0 },
+                    { label: "1%", value: 1 },
+                    { label: "2%", value: 2 },
+                    { label: "5%", value: 5 },
+                    { label: "10%", value: 10 },
+                  ];
                   const rows = [
                     {
                       key: "other_adjustment",
@@ -3990,7 +4180,7 @@ const TallyReceiptVoucherDetail = () => {
                       label: "Amount Paid",
                       hint: "auto",
                       hintTitle:
-                        "Line item subtotal + GST subtotal + Round off + Other Adjustment.",
+                        "Line item subtotal + GST subtotal + Round off + Other Adjustment, less any TDS withheld.",
                       readOnlyAmount: amountPaidComputed.toFixed(2),
                       // The real posting side, not a field of its own — a
                       // separate one would render a control that changed
@@ -4037,6 +4227,106 @@ const TallyReceiptVoucherDetail = () => {
 
                       {/* Tax / adjustment rows */}
                       <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {/* The amount cell carries both the rate picker and
+                            the figure it produces, so the row still lines up
+                            under the shared four-column grid. The figure is
+                            not typeable: TDS is a percentage of what is being
+                            paid, and a hand-typed amount could disagree with
+                            the rate shown beside it. */}
+                        <div className="grid grid-cols-[140px_140px_1fr_120px] gap-3 px-3 py-2 items-center">
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            TDS
+                            {parseFloat(taxSummaryForm.tds || 0) > 0 && (
+                              <span className="text-rose-500">*</span>
+                            )}
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={taxSummaryForm.tdsRate ?? 0}
+                              onChange={(e) =>
+                                handleTdsRateChange(e.target.value)
+                              }
+                              disabled={isLocked}
+                              title="TDS rate — amount is auto-computed as Items Subtotal × rate"
+                              className="w-14 shrink-0 px-1 py-1.5 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                            >
+                              {tdsRateOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <span
+                              className="flex-1 min-w-0 truncate px-2 py-1.5 text-left text-[13px] font-mono font-semibold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md"
+                              title={`Auto-computed: Items Subtotal (${cur}${itemsSubtotal.toFixed(2)}) × ${taxSummaryForm.tdsRate || 0}%`}
+                            >
+                              {cur}{(parseFloat(taxSummaryForm.tds) || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <QuickAddGroup
+                            kind="ledger"
+                            disabled={isLocked}
+                            ledgerDefaultParent="Duties & Taxes"
+                            ledgerTitle="Add New TDS Ledger"
+                            title="Ledger not in the list? Create one"
+                            onCreated={(ledger) =>
+                              ledger?.id && handleTdsLedgerSelect(ledger.id)
+                            }
+                            className={`relative ${
+                              isTdsLedgerRequired() && !isLocked
+                                ? "ring-2 ring-rose-300 dark:ring-rose-800 rounded-md"
+                                : ""
+                            }`}
+                          >
+                            <SearchableDropdown
+                              triggerClassName="rounded-r-none"
+                              options={tdsLedgerOptions}
+                              value={taxSummaryForm.tdsLedgerId || null}
+                              onChange={handleTdsLedgerSelect}
+                              onClear={handleTdsLedgerClear}
+                              placeholder={
+                                parseFloat(taxSummaryForm.tds || 0) > 0
+                                  ? "Select TDS ledger*"
+                                  : "Select TDS ledger"
+                              }
+                              searchPlaceholder="Search tds ledger…"
+                              optionLabelKey="name"
+                              optionValueKey="id"
+                              loading={tdsLedgersLoading}
+                              disabled={isLocked}
+                              renderOption={(ledger) => (
+                                <div className="flex flex-col py-1">
+                                  <div className="font-medium text-slate-900 dark:text-white text-sm">
+                                    {ledger.name}
+                                  </div>
+                                </div>
+                              )}
+                              size="sm"
+                            />
+                          </QuickAddGroup>
+                          <select
+                            value={taxSummaryForm.tdsDebitCredit || "credit"}
+                            onChange={(e) =>
+                              handleTaxSummaryChange(
+                                "tdsDebitCredit",
+                                e.target.value,
+                              )
+                            }
+                            disabled={isLocked}
+                            className={selectCls}
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                              backgroundPosition: "right 0.4rem center",
+                              backgroundRepeat: "no-repeat",
+                              backgroundSize: "1rem 1rem",
+                              paddingRight: "1.75rem",
+                            }}
+                          >
+                            <option value="debit">Debit</option>
+                            <option value="credit">Credit</option>
+                          </select>
+                        </div>
+
                         {rows.map((r) => (
                           <div
                             key={r.key}
