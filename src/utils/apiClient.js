@@ -2,6 +2,11 @@ import axios from "axios";
 import { API_CONFIG } from "../config/api";
 import { refreshAccessToken, isTokenExpiredError } from "./tokenRefresh";
 import { reportMaintenanceResponse } from "@/components/MaintenanceGate";
+import {
+  clearImpersonation,
+  getImpersonation,
+  mayImpersonate,
+} from "./impersonation";
 
 // Create axios instance
 const apiClient = axios.create({
@@ -15,7 +20,15 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access_token");
+    // In a tab that is acting inside a client's account, the client's
+    // token wins — except on the desk, which stays the agent's. See
+    // utils/impersonation.js for why the two live in different
+    // storages at all.
+    const acting = getImpersonation();
+    const token =
+      acting?.token && mayImpersonate(config.url)
+        ? acting.token
+        : localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,6 +45,23 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // An impersonation token must never be refreshed. The refresh
+    // endpoint mints an ordinary token for whoever holds the refresh
+    // cookie — the AGENT — so a silent refresh here would quietly
+    // promote a revoked, consent-bound session back into a full one.
+    // When it stops working, it is meant to stop working.
+    if (
+      error.response?.status === 401 &&
+      getImpersonation()?.token &&
+      mayImpersonate(originalRequest?.url)
+    ) {
+      clearImpersonation();
+      window.dispatchEvent(new CustomEvent("impersonation:ended", {
+        detail: { reason: "expired_or_revoked" },
+      }));
+      return Promise.reject(error);
+    }
 
     if (
       error.response?.status === 401 &&

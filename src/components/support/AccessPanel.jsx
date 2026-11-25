@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import { openImpersonatedTab } from "@/utils/impersonation";
 import {
   BADGE,
   BTN_SECONDARY_SM,
@@ -337,7 +338,26 @@ const EMPTY_GROUPS = Array.from({ length: ACCESS_CODE_GROUPS }, () => "");
 
 const RedeemForm = ({ ticket }) => {
   const [groups, setGroups] = useState(EMPTY_GROUPS);
-  const redeem = useRedeemAccessCode({ onSuccess: () => setGroups(EMPTY_GROUPS) });
+  // Redeeming returns the client's token. It is handed to a NEW TAB
+  // rather than installed here: this tab is the desk, and the agent has
+  // to keep their own identity to work the ticket they opened the
+  // account for. See utils/impersonation.js.
+  const [popupBlocked, setPopupBlocked] = useState(false);
+  const redeem = useRedeemAccessCode({
+    onSuccess: (data) => {
+      setGroups(EMPTY_GROUPS);
+      const opened = openImpersonatedTab({
+        token: data?.token,
+        sessionId: data?.session?.id,
+        scope: data?.scope || data?.grant?.scope,
+        grantLabel: data?.grant?.code_label,
+        expiresAt: data?.session?.expires_at || data?.grant?.expires_at,
+        organization: data?.organization,
+        actingAs: data?.acting_as,
+      });
+      setPopupBlocked(!opened);
+    },
+  });
   const complete = isCompleteCode(groups);
 
   const submit = () => {
@@ -347,6 +367,11 @@ const RedeemForm = ({ ticket }) => {
 
   const error = redeem.error;
   const lockedOut = error?.status === 429;
+  // The session is open on the server whether or not the tab appeared,
+  // so this is a "your browser stopped it" message, not a failure.
+  const blockedNote = popupBlocked
+    ? "The account opened, but your browser blocked the new tab. Allow pop-ups for this site, then use Open account on the live session below."
+    : null;
   const message = lockedOut
     ? "Too many wrong codes. Redemption is locked for 15 minutes — ask the client to read the code out again after that."
     : error
@@ -384,6 +409,12 @@ const RedeemForm = ({ ticket }) => {
           {redeem.isPending ? "Opening…" : "Open account"}
         </button>
       </div>
+      {blockedNote && (
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+          <Icon icon="heroicons:window" className="mt-px text-xs shrink-0" />
+          {blockedNote}
+        </p>
+      )}
       {message && (
         <p
           className={`mt-2 flex items-start gap-1.5 text-[11px] ${

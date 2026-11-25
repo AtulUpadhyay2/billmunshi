@@ -11,8 +11,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { CookieConsentProvider } from "./components/cookies";
 import MaintenanceGate from "./components/MaintenanceGate";
+import { claimHandoff } from "./utils/impersonation";
 import { addCollection } from "@iconify/react";
 import offlineIcons from "./icons/offline";
+
+// A tab opened by "Open account" arrives with a one-shot handoff key
+// waiting in localStorage. Claim it here, before React mounts and before
+// the first API call goes out — otherwise the opening render fires as
+// the agent and the screen briefly shows the agent's own (empty)
+// account instead of the client's.
+claimHandoff();
 
 // Register every icon the interface uses before React renders one.
 //
