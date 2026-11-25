@@ -57,7 +57,7 @@ const CurrencyPanel = ({ open, onClose, ...boxProps }) => {
               Currency
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              The rate this voucher posts at, frozen on save.
+              Rate is frozen on save.
             </p>
           </div>
           <button

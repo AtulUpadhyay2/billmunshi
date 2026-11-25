@@ -1,221 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
+import React, { useState, useEffect, useMemo } from "react";
+import { Icon } from "@iconify/react";
+import { BACKDROP_VIEWER } from "@/constants/ui";
+
+/**
+ * The document, full size, over the page.
+ *
+ * It showed "Unknown File Type" for everything. The type was read with
+ * `url.split('.').pop()`, and bill URLs are signed:
+ *
+ *   /media/bills/x.pdf?token=bills/x.pdf%1F7:1xW9pF:X2nC07459sio4…
+ *
+ * so the last dot-separated piece is the tail of the token, never the
+ * extension. Every file fell through to the unknown branch — including
+ * the PDFs, which the viewer could have rendered all along.
+ *
+ * Rebuilt rather than patched, because the old shell fought the
+ * content: a fixed h-96 frame inside a max-w-4xl dialog gave a PDF
+ * about a third of the screen, and the same two actions were printed
+ * twice, once under the file and again in the footer.
+ *
+ * Now the document gets the window and the chrome gets out of its way:
+ * one slim bar with the name and the actions, the file filling
+ * everything below it.
+ */
+
+const IMAGE_EXT = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "avif"];
+
+/** Extension from a URL, ignoring the query string and hash. */
+export const extensionOf = (url) => {
+  if (!url) return "";
+  const path = String(url).split(/[?#]/)[0];
+  const last = path.split("/").pop() || "";
+  const dot = last.lastIndexOf(".");
+  return dot === -1 ? "" : last.slice(dot + 1).toLowerCase();
+};
+
+const kindOf = (url, fileName) => {
+  const ext = extensionOf(url) || extensionOf(fileName);
+  if (IMAGE_EXT.includes(ext)) return "image";
+  if (ext === "pdf") return "pdf";
+  if (["doc", "docx", "xls", "xlsx"].includes(ext)) return "office";
+  return "other";
+};
 
 const FileViewerModal = ({ isOpen, onClose, fileUrl, fileName = "File" }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [fileType, setFileType] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const kind = useMemo(() => kindOf(fileUrl, fileName), [fileUrl, fileName]);
 
-    useEffect(() => {
-        if (fileUrl && isOpen) {
-            setIsLoading(true);
-            setError(null);
-            
-            // Determine file type from URL or file extension
-            const getFileType = (url) => {
-                const extension = url.split('.').pop().toLowerCase();
-                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
-                    return 'image';
-                } else if (extension === 'pdf') {
-                    return 'pdf';
-                } else if (['doc', 'docx'].includes(extension)) {
-                    return 'document';
-                } else {
-                    return 'unknown';
-                }
-            };
+  useEffect(() => {
+    if (isOpen) setFailed(false);
+  }, [isOpen, fileUrl]);
 
-            setFileType(getFileType(fileUrl));
-            setIsLoading(false);
-        }
-    }, [fileUrl, isOpen]);
+  // Escape closes, as it does on every other dialog in the app.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => e.key === "Escape" && onClose?.();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
 
-    const handleDownload = () => {
-        const link = document.createElement('a');
-        link.href = fileUrl;
-        link.download = fileName;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+  if (!isOpen) return null;
 
-    const handleExternalView = () => {
-        window.open(fileUrl, '_blank', 'noopener,noreferrer');
-    };
+  const openExternal = () =>
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
 
-    const renderFileContent = () => {
-        if (isLoading) {
-            return (
-                <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <span className="text-slate-600">Loading file...</span>
-                </div>
-            );
-        }
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = fileUrl;
+    a.download = fileName;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
-        if (error) {
-            return (
-                <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                    <svg className="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="text-center">
-                        <p className="text-red-600 font-medium">Failed to load file</p>
-                        <p className="text-sm text-slate-500 mt-2">{error}</p>
-                    </div>
-                    <Button
-                        text="Try External View"
-                        className="btn-outline-primary"
-                        onClick={handleExternalView}
-                    />
-                </div>
-            );
-        }
+  const barBtn =
+    "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[12px] " +
+    "font-semibold text-slate-200 border border-white/15 bg-white/5 " +
+    "hover:bg-white/10 hover:border-white/25 transition-colors cursor-pointer";
 
-        switch (fileType) {
-            case 'image':
-                return (
-                    <div className="flex justify-center">
-                        <img
-                            src={fileUrl}
-                            alt={fileName}
-                            className="max-w-full max-h-96 object-contain rounded-lg shadow-lg"
-                            onError={() => setError('Failed to load image')}
-                        />
-                    </div>
-                );
+  const body = () => {
+    if (failed || kind === "office" || kind === "other") {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-6">
+          <Icon
+            icon={failed ? "heroicons:exclamation-triangle" : "heroicons:document"}
+            className={`text-5xl ${failed ? "text-amber-400" : "text-slate-500"}`}
+          />
+          <div>
+            <p className="text-sm font-semibold text-slate-100">{fileName}</p>
+            <p className="mt-1 text-[12px] text-slate-400">
+              {failed
+                ? "This file could not be displayed here."
+                : `${(extensionOf(fileUrl) || "This file").toUpperCase()} cannot be previewed in the browser.`}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={openExternal} className={barBtn}>
+              <Icon icon="heroicons:arrow-top-right-on-square" />
+              Open in new tab
+            </button>
+            <button type="button" onClick={download} className={barBtn}>
+              <Icon icon="heroicons:arrow-down-tray" />
+              Download
+            </button>
+          </div>
+        </div>
+      );
+    }
 
-            case 'pdf':
-                return (
-                    <div className="w-full">
-                        <iframe
-                            src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                            className="w-full h-96 border rounded-lg"
-                            title={fileName}
-                            onError={() => setError('Failed to load PDF')}
-                        />
-                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>
-                                    If the PDF doesn't display properly, you can{' '}
-                                    <button 
-                                        onClick={handleExternalView}
-                                        className="font-medium underline hover:no-underline"
-                                    >
-                                        open it in a new tab
-                                    </button>
-                                    {' '}or download it.
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                );
-
-            case 'document':
-                return (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                        <div className="flex flex-col items-center space-y-3">
-                            <svg className="w-16 h-16 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                            </svg>
-                            <div className="text-center">
-                                <p className="text-lg font-medium text-slate-900 dark:text-slate-100">{fileName}</p>
-                                <p className="text-sm text-slate-500 mt-1">Document Preview</p>
-                            </div>
-                        </div>
-                        
-                        <div className="text-center">
-                            <p className="text-slate-600 dark:text-slate-400 mb-4">
-                                This document type cannot be previewed in the browser.
-                            </p>
-                            <div className="flex gap-3 justify-center">
-                                <Button
-                                    text="Open in New Tab"
-                                    className="btn-primary"
-                                    onClick={handleExternalView}
-                                />
-                                <Button
-                                    text="Download"
-                                    className="btn-outline-primary"
-                                    onClick={handleDownload}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                );
-
-            default:
-                return (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                        <div className="flex flex-col items-center space-y-3">
-                            <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <div className="text-center">
-                                <p className="text-lg font-medium text-slate-900 dark:text-slate-100">{fileName}</p>
-                                <p className="text-sm text-slate-500 mt-1">Unknown File Type</p>
-                            </div>
-                        </div>
-                        
-                        <div className="text-center">
-                            <p className="text-slate-600 dark:text-slate-400 mb-4">
-                                This file type cannot be previewed.
-                            </p>
-                            <div className="flex gap-3 justify-center">
-                                <Button
-                                    text="Open in New Tab"
-                                    className="btn-primary"
-                                    onClick={handleExternalView}
-                                />
-                                <Button
-                                    text="Download"
-                                    className="btn-outline-primary"
-                                    onClick={handleDownload}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                );
-        }
-    };
+    if (kind === "image") {
+      return (
+        <div className="flex h-full items-center justify-center p-4">
+          <img
+            src={fileUrl}
+            alt={fileName}
+            onError={() => setFailed(true)}
+            className="max-h-full max-w-full object-contain rounded-md"
+          />
+        </div>
+      );
+    }
 
     return (
-        <Modal
-            title={`File Viewer - ${fileName}`}
-            activeModal={isOpen}
-            onClose={onClose}
-            className="max-w-4xl"
-            scrollContent={false}
-            footerContent={
-                <div className="flex gap-3">
-                    <Button
-                        text="Download"
-                        className="btn-outline-primary"
-                        onClick={handleDownload}
-                    />
-                    <Button
-                        text="Open in New Tab"
-                        className="btn-outline-secondary"
-                        onClick={handleExternalView}
-                    />
-                    <Button
-                        text="Close"
-                        className="btn-secondary"
-                        onClick={onClose}
-                    />
-                </div>
-            }
-        >
-            <div className="min-h-[400px]">
-                {renderFileContent()}
-            </div>
-        </Modal>
+      <iframe
+        src={fileUrl}
+        title={fileName}
+        onError={() => setFailed(true)}
+        className="h-full w-full bg-white"
+      />
     );
+  };
+
+  return (
+    <div
+      className={BACKDROP_VIEWER}
+      role="dialog"
+      aria-modal="true"
+      aria-label={fileName}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
+    >
+      <div className="flex h-[92vh] w-[94vw] max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl">
+        <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2">
+          <Icon
+            icon={kind === "image" ? "heroicons:photo" : "heroicons:document-text"}
+            className="shrink-0 text-base text-slate-400"
+          />
+          <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-100">
+            {fileName}
+          </p>
+          <button type="button" onClick={openExternal} className={barBtn}>
+            <Icon icon="heroicons:arrow-top-right-on-square" />
+            <span className="hidden sm:inline">Open</span>
+          </button>
+          <button type="button" onClick={download} className={barBtn}>
+            <Icon icon="heroicons:arrow-down-tray" />
+            <span className="hidden sm:inline">Download</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+          >
+            <Icon icon="heroicons:x-mark" className="text-lg" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 bg-slate-950">{body()}</div>
+      </div>
+    </div>
+  );
 };
 
 export default FileViewerModal;

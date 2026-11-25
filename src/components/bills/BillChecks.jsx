@@ -50,7 +50,7 @@ const BillChecks = ({ blockers = [], isVerified = false, checks = [] }) => {
         box: "border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40",
         icon: "text-slate-500 dark:text-slate-400",
         head: "text-slate-900 dark:text-slate-200",
-        title: "Worth a look before this posts",
+        title: "Before you post",
       };
 
   // One line, not a panel.

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { useQuickCreateItem } from "@/services/tally/tallyQuickCreateService";
 import { useSelector } from "react-redux";
-import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_SELECT, CONTROL_SELECT_ARROW, FIELD_LABEL } from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_SELECT, CONTROL_SELECT_ARROW } from "@/constants/ui";
 import { GST_RATE_PERCENTS } from "@/constants/gstRates";
 
 /**
@@ -22,6 +22,11 @@ import { GST_RATE_PERCENTS } from "@/constants/gstRates";
  */
 const GST_RATES = [...GST_RATE_PERCENTS.map((r) => `${r}%`), "Exempted"];
 const COMMON_UNITS = ["Nos", "Pcs", "Kgs", "Ltrs", "Mtrs", "Box", "Set", "Pkt"];
+
+/** Field label in a dialog body — see the note in `AddVendorModal`. */
+const LABEL =
+  "block mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] " +
+  "text-slate-500 dark:text-slate-400";
 
 const AddItemModal = ({
   isOpen,
@@ -48,6 +53,10 @@ const AddItemModal = ({
   const [hsnCode, setHsnCode] = useState(defaultHsnCode || "");
   const [parent, setParent] = useState("Primary");
   const [submitting, setSubmitting] = useState(false);
+
+  // The submit button sits in the dialog footer, outside the <form>, and
+  // reaches it by id.
+  const formId = useId();
 
   const create = useQuickCreateItem();
 
@@ -97,98 +106,8 @@ const AddItemModal = ({
       activeModal={isOpen}
       onClose={submitting ? () => {} : onClose}
       className="max-w-lg"
-    >
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className={FIELD_LABEL}>
-            Item Name <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Cable 10m, Printer Cartridge"
-            className={CONTROL}
-            autoFocus
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={FIELD_LABEL}>
-              Item Unit
-            </label>
-            <input
-              type="text"
-              list="item-unit-options"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="Nos"
-              className={CONTROL}
-            />
-            <datalist id="item-unit-options">
-              {COMMON_UNITS.map((u) => (
-                <option key={u} value={u} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className={FIELD_LABEL}>
-              GST Rate
-            </label>
-            <select
-              value={gstRate}
-              onChange={(e) => setGstRate(e.target.value)}
-              className={CONTROL_SELECT}
-              style={CONTROL_SELECT_ARROW}
-            >
-              {GST_RATES.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={FIELD_LABEL}>
-              HSN Code
-            </label>
-            <input
-              type="text"
-              value={hsnCode}
-              onChange={(e) => setHsnCode(e.target.value)}
-              placeholder="e.g. 8544"
-              className={CONTROL}
-              maxLength={12}
-            />
-          </div>
-
-          <div>
-            <label className={FIELD_LABEL}>
-              Stock Group (parent)
-            </label>
-            <input
-              type="text"
-              value={parent}
-              onChange={(e) => setParent(e.target.value)}
-              placeholder="Primary"
-              className={CONTROL}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5 text-[12px] text-blue-800 dark:text-blue-300 flex items-start gap-2">
-          <Icon icon="heroicons:information-circle" className="text-lg shrink-0 mt-0.5" />
-          <span>
-            Tally will use the GST Rate + HSN Code above when it creates
-            the stock item on its side. Both are recommended for accurate
-            tax classification.
-          </span>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+      footerContent={
+        <>
           <button
             type="button"
             onClick={onClose}
@@ -199,6 +118,7 @@ const AddItemModal = ({
           </button>
           <button
             type="submit"
+            form={formId}
             disabled={!name.trim() || submitting}
             className={BTN_PRIMARY}
           >
@@ -214,7 +134,110 @@ const AddItemModal = ({
               </>
             )}
           </button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-3.5">
+        <div>
+          <label className={LABEL} htmlFor={`${formId}-name`}>
+            Item Name
+            <span aria-hidden="true" className="ml-0.5 text-rose-500 dark:text-rose-400">
+              *
+            </span>
+            <span className="sr-only"> (required)</span>
+          </label>
+          <input
+            id={`${formId}-name`}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Cable 10m, Printer Cartridge"
+            className={CONTROL}
+            autoFocus
+          />
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-unit`}>
+              Item Unit
+            </label>
+            <input
+              id={`${formId}-unit`}
+              type="text"
+              list="item-unit-options"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="Nos"
+              className={CONTROL}
+            />
+            <datalist id="item-unit-options">
+              {COMMON_UNITS.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-gst`}>
+              GST Rate
+            </label>
+            <select
+              id={`${formId}-gst`}
+              value={gstRate}
+              onChange={(e) => setGstRate(e.target.value)}
+              className={CONTROL_SELECT}
+              style={CONTROL_SELECT_ARROW}
+            >
+              {GST_RATES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-hsn`}>
+              HSN Code
+            </label>
+            <input
+              id={`${formId}-hsn`}
+              type="text"
+              value={hsnCode}
+              onChange={(e) => setHsnCode(e.target.value)}
+              placeholder="e.g. 8544"
+              className={CONTROL}
+              maxLength={12}
+            />
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-parent`}>
+              Stock Group
+            </label>
+            <input
+              id={`${formId}-parent`}
+              type="text"
+              value={parent}
+              onChange={(e) => setParent(e.target.value)}
+              placeholder="Primary"
+              className={CONTROL}
+            />
+          </div>
+        </div>
+
+        {/* A footnote, not a tinted panel — it says why the two tax fields
+            above are worth filling in, and is read once. */}
+        <p className="flex items-start gap-1.5 border-t border-slate-200 dark:border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+          <Icon
+            icon="heroicons:information-circle"
+            className="mt-px shrink-0 text-sm text-slate-400 dark:text-slate-500"
+          />
+          <span>
+            Tally uses the GST Rate and HSN Code above when it creates the
+            stock item on its side. Both are recommended for accurate tax
+            classification.
+          </span>
+        </p>
       </form>
     </Modal>
   );

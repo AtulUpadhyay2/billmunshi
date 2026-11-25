@@ -1,6 +1,5 @@
 import React from "react";
 import { Icon } from "@iconify/react";
-import ActivityTimeline from "@/components/bills/ActivityTimeline";
 
 /**
  * The shell every bill detail page is laid out in.
@@ -32,12 +31,6 @@ const BillRecordLayout = ({
   prevDisabled,
   nextDisabled,
   actions,
-  // Tabs
-  tab = "bill",
-  onTabChange,
-  historyLabel = "Comments & History",
-  organizationId,
-  billId,
   // Content
   notice,
   scan,
@@ -45,7 +38,6 @@ const BillRecordLayout = ({
   onToggleScan,
   children,
 }) => {
-  const isBill = tab !== "history";
   const hasToolbar = Boolean(backTo || position || onPrev || onNext || actions);
 
   const navBtn =
@@ -57,7 +49,7 @@ const BillRecordLayout = ({
   return (
     <div>
       {hasToolbar && (
-        <div className="flex items-center gap-2 flex-wrap bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-xl px-3 py-2">
+        <div className="flex items-center gap-2 flex-wrap bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-xl px-3 py-1.5">
           {backTo && (
             <a
               href={backTo}
@@ -93,49 +85,37 @@ const BillRecordLayout = ({
               </button>
             </>
           )}
+          {/* The scan toggle used to sit on a tab row of its own. With
+              the tabs gone it moves in here — on the left, because the
+              right of this bar is where the page puts Verify and Sync,
+              and a row that ends in two primary actions pushes anything
+              after them off the edge on a narrow window. */}
+          {scan && (
+            <button
+              type="button"
+              onClick={onToggleScan}
+              className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 hover:border-blue-500 hover:text-blue-600 cursor-pointer whitespace-nowrap"
+            >
+              {scanOpen ? "Hide scan" : "Show scan"}
+            </button>
+          )}
           <span className="flex-1 min-w-[8px]" />
           {actions}
         </div>
       )}
 
+      {/* The Bill / Comments & History tabs are gone. History was
+          reachable two ways — this tab and the clock button in the
+          toolbar, which opens ActivityPanel over the record — and the
+          tab cost a whole row of chrome to duplicate a control sitting
+          an inch above it. The slide-over won: it keeps the voucher on
+          screen behind it, which the tab did not. */}
       <div
-        className={`flex gap-1 px-3 bg-white dark:bg-slate-900 border-x border-t border-slate-200 dark:border-slate-800 ${
-          hasToolbar ? "border-t-0" : "rounded-t-xl"
+        className={`bg-white dark:bg-slate-900 border-x border-b border-slate-200 dark:border-slate-800 rounded-b-xl overflow-hidden ${
+          hasToolbar ? "" : "border-t rounded-t-xl"
         }`}
       >
-        {[
-          { key: "bill", label: "Bill" },
-          { key: "history", label: historyLabel },
-        ].map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => onTabChange?.(t.key)}
-            className={`px-3 py-2 text-xs border-b-2 cursor-pointer ${
-              tab === t.key
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 font-bold"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-        <span className="flex-1" />
-        {scan && isBill && (
-          <button
-            type="button"
-            onClick={onToggleScan}
-            className="self-center text-[11px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 mb-1 hover:border-blue-500 hover:text-blue-600 cursor-pointer"
-          >
-            {scanOpen ? "Hide scan" : "Show scan"}
-          </button>
-        )}
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 border-x border-b border-slate-200 dark:border-slate-800 rounded-b-xl overflow-hidden">
-        {isBill ? (
+        {(
           <div
             className={
               scan && scanOpen
@@ -147,18 +127,14 @@ const BillRecordLayout = ({
               /* Sticky, so the document stays put while the voucher
                  beside it scrolls. Today it scrolls away exactly when
                  the operator needs to read a figure off it. */
-              <aside className="border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 lg:sticky lg:top-4 lg:self-start min-w-0 p-3">
+              <aside className="border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 lg:sticky lg:top-4 lg:self-start min-w-0 p-2.5">
                 {scan}
               </aside>
             )}
             <div className="min-w-0">
-              {notice && <div className="px-4 md:px-5 pt-4 md:pt-5">{notice}</div>}
+              {notice && <div className="px-4 md:px-5 pt-3 md:pt-3.5">{notice}</div>}
               {children}
             </div>
-          </div>
-        ) : (
-          <div className="p-4 md:p-5">
-            <ActivityTimeline organizationId={organizationId} billId={billId} />
           </div>
         )}
       </div>

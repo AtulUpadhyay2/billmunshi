@@ -29,8 +29,8 @@ const chipBase =
 // Table head / body cell padding, shared so a column can never drift out of
 // alignment with its header.
 const thBase =
-  "px-3 py-2 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
-const tdBase = "px-3 py-1.5";
+  "px-3 py-1.5 ltr:text-left rtl:text-right text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 whitespace-nowrap";
+const tdBase = "px-3 py-1";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -900,7 +900,7 @@ const BillsList = ({
     // now viewport-locked and hands this page a definite height, so measuring
     // the chrome here would subtract it twice and leave a dead gap under the
     // card. The card body below is the only scroller.
-    <div className="h-full flex flex-col gap-3">
+    <div className="h-full flex flex-col gap-2.5">
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 shrink-0">
         <div className="min-w-0">
@@ -1069,7 +1069,7 @@ const BillsList = ({
       {/* Table card — the only thing on the page that scrolls */}
       <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="px-3 md:px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2 shrink-0">
+        <div className="px-3 md:px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-2 shrink-0">
           <div className="relative w-full md:max-w-xs">
             <Icon icon="heroicons:magnifying-glass" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
             <input

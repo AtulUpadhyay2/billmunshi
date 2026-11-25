@@ -101,7 +101,7 @@ export const getOcrVendorWarnings = ({ from, to, organization } = {}) => {
 
   if (fromName && nameMatchesGstin(fromName, fromGst) === false) {
     warnings.push(
-      `Vendor name "${fromName}" doesn't match GSTIN ${fromGst} — that GSTIN belongs to a business whose name starts with "${gstinNameInitial(fromGst)}". OCR may have picked the customer or the invoice software's name; check the vendor on the bill before creating it.`,
+      `Vendor name "${fromName}" does not match GSTIN ${fromGst}, which belongs to a name starting with "${gstinNameInitial(fromGst)}".`,
     );
   }
 
@@ -110,7 +110,7 @@ export const getOcrVendorWarnings = ({ from, to, organization } = {}) => {
     (fromName && toName && normalizeName(fromName) && normalizeName(fromName) === normalizeName(toName));
   if (sameAsCustomer) {
     warnings.push(
-      "The vendor and the customer (bill-to) on this bill look like the same party — OCR may have mixed them up.",
+      "Vendor and customer look like the same party.",
     );
   }
 
@@ -121,7 +121,7 @@ export const getOcrVendorWarnings = ({ from, to, organization } = {}) => {
     (fromName && orgName && normalizeName(fromName) && normalizeName(fromName) === normalizeName(orgName));
   if (isOwnOrg) {
     warnings.push(
-      `The vendor looks like your own organisation (${orgName || orgGst}) — OCR probably read the bill-to party as the vendor.`,
+      `Vendor looks like your own organisation (${orgName || orgGst}).`,
     );
   }
   return warnings;

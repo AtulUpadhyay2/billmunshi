@@ -3,7 +3,12 @@ import Modal from "@/components/ui/Modal";
 import { useChangePasswordMutation } from "@/store/api/auth/authApiSlice";
 import { toast } from "sonner";
 import Icon from "@/components/ui/Icon";
-import { BTN_PRIMARY, BTN_SECONDARY, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL_VALIDATED } from "@/constants/ui";
+
+/** Field label in a dialog body — see the note in `AddVendorModal`. */
+const LABEL =
+  "block mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] " +
+  "text-slate-500 dark:text-slate-400";
 
 /**
  * One field, used three times.
@@ -29,8 +34,12 @@ const PasswordField = ({
   autoFocus,
 }) => (
   <div>
-    <label className={FIELD_LABEL}>
-      {label} <span className="text-rose-500">*</span>
+    <label className={LABEL}>
+      {label}
+      <span aria-hidden="true" className="ml-0.5 text-rose-500 dark:text-rose-400">
+        *
+      </span>
+      <span className="sr-only"> (required)</span>
     </label>
     <div className="relative">
       <input
@@ -56,12 +65,12 @@ const PasswordField = ({
       >
         <Icon
           icon={show ? "heroicons:eye-slash" : "heroicons:eye"}
-          className="text-xs"
+          className="text-sm"
         />
       </button>
     </div>
     {error ? (
-      <p className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+      <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">
         {error}
       </p>
     ) : (
@@ -214,7 +223,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
       onClose={handleClose}
       className="max-w-md"
       footerContent={
-        <div className="flex justify-end gap-2">
+        <>
           <button
             type="button"
             onClick={handleClose}
@@ -241,10 +250,10 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               </>
             )}
           </button>
-        </div>
+        </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
         <PasswordField
           label="Current Password"
           placeholder="Enter your current password"
@@ -277,13 +286,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
           onToggle={() => togglePasswordVisibility("confirm_password")}
         />
 
-        {/* Requirements. Was `bg-blue-50 border-blue-200 text-blue-900` with no
-            dark variants, i.e. a light panel with dark text on the dark page. */}
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5">
-          <h4 className="text-[11px] font-semibold text-blue-800 dark:text-blue-300 mb-1">
+        {/* Requirements. A footnote on a hairline rather than a tinted panel —
+            a rule the operator has not broken yet is not a notice. */}
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
+          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-1.5">
             Password requirements
           </h4>
-          <ul className="text-[11px] text-blue-700 dark:text-blue-400 space-y-0.5 list-disc pl-4">
+          <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-500 dark:text-slate-400">
             <li>At least 8 characters long</li>
             <li>Different from your current password</li>
             <li>Should be strong and unique</li>

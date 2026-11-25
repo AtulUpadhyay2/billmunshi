@@ -107,7 +107,7 @@ const MobileMenu = ({ className = "custom-class" }) => {
             </div>
           </div>
           <div className="mt-6">
-            <button className="btn bg-white hover:bg-opacity-80 text-slate-900 btn-sm w-full block">
+            <button className="btn bg-white hover:bg-white/80 text-slate-900 btn-sm w-full block">
               Upgrade
             </button>
           </div>

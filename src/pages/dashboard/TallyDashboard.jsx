@@ -4,10 +4,13 @@ import {
   useGetTallyFunnel,
   useGetTallyOverview,
   useGetTallyUsage,
+  useGetTallyInsights,
 } from "@/services/tally/tallyDashboardService";
 import { useUploadTallyVendorBills } from "@/services/tally/tallyVendorBillService";
 import { useUploadTallyExpenseBills } from "@/services/tally/tallyExpenseBillService";
 import { useUploadTallyPaymentVouchers } from "@/services/tally/tallyPaymentVoucherService";
+import { useUploadTallySalesBills } from "@/services/tally/tallySalesBillService";
+import { useUploadTallyReceiptVouchers } from "@/services/tally/tallyReceiptVoucherService";
 import { globalToast } from "@/utils/toast";
 import { notifyUploadResult, notifyUploadError } from "@/utils/uploadFeedback";
 import DashboardLayout from "./_shared/DashboardLayout";
@@ -41,14 +44,23 @@ const TallyDashboard = () => {
     refetch: refetchUsage,
   } = useGetTallyUsage(selectedOrganization?.id, { refetchOnMount: true });
 
+  const {
+    data: insightsData,
+    isLoading: isInsightsLoading,
+    refetch: refetchInsights,
+  } = useGetTallyInsights(selectedOrganization?.id, { refetchOnMount: true });
+
   const { mutateAsync: uploadVendorBills } = useUploadTallyVendorBills();
   const { mutateAsync: uploadExpenseBills } = useUploadTallyExpenseBills();
   const { mutateAsync: uploadPaymentVouchers } = useUploadTallyPaymentVouchers();
+  const { mutateAsync: uploadSalesBills } = useUploadTallySalesBills();
+  const { mutateAsync: uploadReceiptVouchers } = useUploadTallyReceiptVouchers();
 
   const refetchAll = () => {
     refetchFunnel();
     refetchOverview();
     refetchUsage();
+    refetchInsights();
   };
 
   const handleVendorUpload = async (formData) => {
@@ -90,6 +102,32 @@ const TallyDashboard = () => {
     }
   };
 
+  const handleSalesUpload = async (formData) => {
+    try {
+      const result = await uploadSalesBills({
+        organizationId: selectedOrganization?.id,
+        formData,
+      });
+      notifyUploadResult(result, "Sales vouchers uploaded successfully");
+      refetchAll();
+    } catch (error) {
+      notifyUploadError(error, "Failed to upload sales vouchers");
+    }
+  };
+
+  const handleReceiptUpload = async (formData) => {
+    try {
+      const result = await uploadReceiptVouchers({
+        organizationId: selectedOrganization?.id,
+        formData,
+      });
+      notifyUploadResult(result, "Receipt vouchers uploaded successfully");
+      refetchAll();
+    } catch (error) {
+      notifyUploadError(error, "Failed to upload receipt vouchers");
+    }
+  };
+
   return (
     <DashboardLayout
       module="tally"
@@ -104,6 +142,10 @@ const TallyDashboard = () => {
       onVendorUpload={handleVendorUpload}
       onExpenseUpload={handleExpenseUpload}
       onPaymentUpload={handlePaymentUpload}
+      onSalesUpload={handleSalesUpload}
+      onReceiptUpload={handleReceiptUpload}
+      insightsData={insightsData}
+      isInsightsLoading={isInsightsLoading}
     />
   );
 };

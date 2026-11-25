@@ -103,7 +103,7 @@ const BillAdvisories = ({
       {ocr.length > 0 && (
         <Advisory
           tone="warn"
-          title="Check the party — OCR may have picked the wrong one"
+          title="Check the party"
         >
           <div className="space-y-1">
             {ocr.map((warning) => (
@@ -117,14 +117,13 @@ const BillAdvisories = ({
 
       {unmapped.length > 0 && (
         <Advisory tone="warn" title="No tax ledger mapped">
-          For {unmapped.join(", ")}. Set it once in{" "}
-          <span className="font-semibold">Tally setup → Tax &amp; Adjustments</span>{" "}
-          and every bill at that rate is done.
+          {unmapped.join(", ")} — set it in{" "}
+          <span className="font-semibold">Tally setup → Tax &amp; Adjustments</span>.
         </Advisory>
       )}
 
       {notes.length > 0 && (
-        <Advisory tone="info" title="Worth a look before this posts">
+        <Advisory tone="info" title="Before you post">
           <ul className="space-y-0.5">
             {notes.slice(0, 6).map((note, i) => (
               <li key={i} className="flex gap-1.5">

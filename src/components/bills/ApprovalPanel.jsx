@@ -137,14 +137,14 @@ const ApprovalPanel = ({ organizationId, billId }) => {
           )}
           {!approval && (
             <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
-              This workspace posts a bill only after a Manager approves it.
+              Needs Manager approval before posting.
             </p>
           )}
         </div>
       </div>
 
       {(!approval || approval.state === "rejected") && can(ACTIONS.VERIFY_BILLS) && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
           <input
             type="text"
             value={note}
@@ -172,7 +172,7 @@ const ApprovalPanel = ({ organizationId, billId }) => {
       )}
 
       {approval?.state === "pending" && canApprove && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
           {rejecting && (
             <input
               type="text"
@@ -224,7 +224,7 @@ const ApprovalPanel = ({ organizationId, billId }) => {
 
       {approval?.state === "pending" && !canApprove && (
         <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
-          A Manager or Admin has to decide on it before it can be posted.
+          Waiting on a Manager or Admin.
         </p>
       )}
     </div>

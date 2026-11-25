@@ -36,10 +36,10 @@ export const FLAT_FIELD =
  * happen.
  */
 export const FieldCell = ({ label, hint, error, required, children }) => (
-  <div className="bg-white dark:bg-slate-900 px-2.5 py-1.5 min-w-0">
+  <div className="bg-white dark:bg-slate-900 px-2.5 py-1 min-w-0">
     <span
       title={hint || undefined}
-      className={`block text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400 mb-1 ${
+      className={`block text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400 mb-0.5 ${
         hint ? "cursor-help" : ""
       }`}
     >
@@ -80,7 +80,7 @@ export const FieldCell = ({ label, hint, error, required, children }) => (
  * so the rounding goes instead. It reads as what it is: a table.
  */
 export const FieldGrid = ({ children }) => (
-  <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
+  <div className="mt-1.5 grid grid-cols-2 md:grid-cols-3 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
     {children}
   </div>
 );
@@ -129,14 +129,19 @@ export const TotalLine = ({
   grand,
   compare,
   tone,
+  // Optional rows are added from the "+ Cess / + Freight" links, and
+  // until now there was no way back: once a row was open it stayed,
+  // and an operator who added one by mistake had to reload the page.
+  onRemove,
+  removeTitle,
 }) => (
   <div
     className={`flex items-center gap-3 ${
       grand
-        ? "border-t-2 border-slate-300 dark:border-slate-600 mt-2 pt-3"
+        ? "border-t-2 border-slate-300 dark:border-slate-600 mt-1.5 pt-2"
         : compare
-          ? "border-t border-dashed border-slate-300 dark:border-slate-600 mt-1.5 pt-2 text-[11px]"
-          : "py-1.5"
+          ? "border-t border-dashed border-slate-300 dark:border-slate-600 mt-1 pt-1.5 text-[11px]"
+          : "py-1"
     }`}
   >
     <span
@@ -185,6 +190,25 @@ export const TotalLine = ({
           {cur}
           {value}
         </>
+      )}
+    </span>
+
+    {/* Kept outside the amount cell so the figures stay in one column
+        and the rows without a remove still line up with the rest. */}
+    <span className="shrink-0 w-4">
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          title={removeTitle || "Remove this row"}
+          aria-label={removeTitle || "Remove this row"}
+          className="flex items-center justify-center w-4 h-4 rounded text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+        >
+          <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M2 2l8 8M10 2l-8 8" />
+          </svg>
+        </button>
       )}
     </span>
   </div>

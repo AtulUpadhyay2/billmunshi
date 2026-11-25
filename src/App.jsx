@@ -1,6 +1,8 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import PerBill from "@/components/bills/PerBill";
+import { SupportAccessBanner as ImpersonationBanner } from "@/components/support/AccessPanel";
+import { useIsSupportAgent } from "@/services/support/supportDeskService";
 
 // Dashboard
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -102,16 +104,62 @@ const Accuracy = lazy(() => import("./pages/workspace/accuracy"));
 
 // Settings
 const Members = lazy(() => import("./pages/settings/members"));
+const SupportAccess = lazy(() => import("./pages/settings/support-access"));
 
 // Clients
 const Clients = lazy(() => import("./pages/client"));
 const SupportTicketList = lazy(() => import("./pages/support/TicketList"));
 
+// Support desk — the agent-facing side of support. Gated below by
+// RequireSupportAgent, and lazy so a client's bundle never carries it.
+const SupportDeskQueue = lazy(() => import("./pages/support-desk"));
+const SupportDeskTicket = lazy(() => import("./pages/support-desk/detail"));
+
 import Loading from "@/components/Loading";
+// The CLIENT-side live-session bar: what an account member sees while a
+// support agent is inside their books. Not lazy, and deliberately outside
+// <Routes>, so it is not tied to a route and does not remount — and restart
+// its poll — on navigation. It renders nothing unless the access-status
+// endpoint reports a live session, so mounting it app-wide costs one
+// 30-second poll per signed-in tab.
+//
+// `AccessPanel` exports a banner for the other side of the same session,
+// imported above as `ImpersonationBanner`: that one is gated on
+// `useIsSupportAgent` and tells the *agent* whose account they are in. Two
+// audiences, two bars; agents are never members of a client organisation,
+// so in practice only one of them is ever on screen.
+import SupportAccessBanner from "@/components/support/SupportAccessBanner";
+
+/**
+ * Route gate for the support desk.
+ *
+ * `is_staff` is the only half of the agent check a browser can see — the
+ * active `SupportAgent` row lives server-side, and every desk endpoint
+ * answers 403 without one, which the desk screens render as "you are not an
+ * active support agent". So this is not the security boundary; it is what
+ * keeps the desk out of sight of the clients who make up almost everyone
+ * signed in. A non-agent who types the URL lands on /404.
+ */
+const RequireSupportAgent = () => {
+  const isAgent = useIsSupportAgent();
+  if (!isAgent) return <Navigate to="/404" replace />;
+  return <Outlet />;
+};
 
 function App() {
   return (
     <main className="App  relative">
+      {/* Two banners, two audiences, both outside the route tree so
+          neither depends on which page you are on.
+
+          ImpersonationBanner — tells a SUPPORT AGENT they are working
+          inside a client's account right now.
+          SupportAccessBanner — tells a CLIENT that support is in
+          theirs, and gives them the button to end it.
+
+          Each renders nothing for the other audience. */}
+      <ImpersonationBanner />
+      <SupportAccessBanner />
       <Routes>
         <Route
           path="/"
@@ -322,10 +370,17 @@ function App() {
 
           {/** Settings */}
           <Route path="members" element={<Members />} />
+          <Route path="settings/support-access" element={<SupportAccess />} />
 
           {/* Clients */}
           <Route path="clients" element={<Clients />} />
           <Route path="support/tickets" element={<SupportTicketList />} />
+
+          {/* Support desk */}
+          <Route element={<RequireSupportAgent />}>
+            <Route path="support-desk" element={<SupportDeskQueue />} />
+            <Route path="support-desk/:id" element={<SupportDeskTicket />} />
+          </Route>
 
           <Route path="*" element={<Navigate to="/404" />} />
         </Route>

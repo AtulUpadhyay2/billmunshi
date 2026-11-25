@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
-import BillChecks from "@/components/bills/BillChecks";
 import BillRecordLayout from "@/components/bills/BillRecordLayout";
 import { currencySymbol } from "@/utils/currency";
 import {
@@ -34,7 +33,7 @@ import {
 import { useSelector } from "react-redux";
 import Loading from "@/components/Loading";
 import { globalToast } from "@/utils/toast";
-import { BADGE, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BACKDROP_VIEWER, BADGE, CONTROL, CONTROL_NUM, CONTROL_READONLY, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 
 const ZohoVendorBillDetail = () => {
   const [mobileMenu, setMobileMenu] = useMobileMenu();
@@ -105,7 +104,6 @@ const ZohoVendorBillDetail = () => {
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   // Which tab of the record is showing, and whether the scan pane is
   // open. Both are view state only.
-  const [recordTab, setRecordTab] = useState("bill");
   const [scanOpen, setScanOpen] = useState(true);
 
   // State for verification
@@ -1162,18 +1160,10 @@ const ZohoVendorBillDetail = () => {
       </div>
 
       <BillRecordLayout
-        tab={recordTab}
-        onTabChange={setRecordTab}
         organizationId={selectedOrganization?.id}
         billId={billId}
         scanOpen={scanOpen}
         onToggleScan={() => setScanOpen((v) => !v)}
-        notice={
-                  <BillChecks
-                  blockers={getValidationErrorMessages()}
-                  isLocked={isLocked}
-                />
-        }
         scan={
             <div className="bg-slate-50 dark:bg-slate-900/60 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-[400px] lg:h-[calc(100vh-10.5rem)] flex flex-col">
               {vendorBillData?.file ? (
@@ -2482,7 +2472,7 @@ const ZohoVendorBillDetail = () => {
       {/* Fullscreen Modal */}
       {isFullscreen && vendorBillData?.file && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          className={BACKDROP_VIEWER}
           onClick={(e) => {
             // Close fullscreen when clicking on the background overlay
             if (e.target === e.currentTarget) {
@@ -2493,7 +2483,7 @@ const ZohoVendorBillDetail = () => {
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header - Fixed */}
             <div
-              className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10"
+              className="flex items-center justify-between px-6 py-4 bg-black/70 backdrop-blur-sm flex-shrink-0 z-10"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-4">
@@ -2502,10 +2492,10 @@ const ZohoVendorBillDetail = () => {
                   {analysedData.invoiceNumber || zohoData.bill_no || "Unknown"}
                 </h3>
                 {!isPDF(vendorBillData.file) && (
-                  <div className="flex items-center gap-2 bg-white bg-opacity-10 rounded-lg px-3 py-2 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
                     <button
                       onClick={handleZoomOut}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Zoom Out (Ctrl + -)"
                       disabled={zoomLevel <= 0.25}
                     >
@@ -2528,7 +2518,7 @@ const ZohoVendorBillDetail = () => {
                     </span>
                     <button
                       onClick={handleZoomIn}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Zoom In (Ctrl + +)"
                       disabled={zoomLevel >= 3}
                     >
@@ -2548,7 +2538,7 @@ const ZohoVendorBillDetail = () => {
                     </button>
                     <button
                       onClick={handleResetZoom}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors"
                       title="Reset Zoom (Ctrl + 0)"
                     >
                       <svg

@@ -1,9 +1,16 @@
 import React from "react";
-import { BTN_BASE_SHAPE, PAGE_TITLE } from "@/constants/ui";
+import { BACKDROP, BTN_BASE_SHAPE, BTN_SECONDARY } from "@/constants/ui";
 
 /**
  * Reusable confirmation dialog component.
  * Replaces SweetAlert2 with a native modal approach.
+ *
+ * Laid out the way the shared `<Modal>` shell lays a dialog out — a body on
+ * `px-4 py-4` and a slim hairline footer — but it keeps its own panel,
+ * because it is thrown in front of someone mid-action and must not wait on
+ * HeadlessUI's transitions. It stays two lines tall: a tinted glyph, the
+ * question, and the one sentence of consequence. Anything longer belongs in
+ * the page that opened it.
  *
  * @param {boolean} open - Whether the dialog is visible
  * @param {function} onClose - Called when dialog is dismissed
@@ -27,15 +34,18 @@ const ConfirmDialog = ({
   isLoading = false,
 }) => {
   const iconColors = {
-    danger: "text-red-500 bg-red-100",
-    warning: "text-yellow-500 bg-yellow-100",
-    info: "text-blue-500 bg-blue-100",
+    danger:
+      "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60",
+    warning:
+      "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-100 dark:ring-amber-900/60",
+    info:
+      "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-100 dark:ring-blue-900/60",
   };
 
   const buttonColors = {
-    danger: "bg-red-600 hover:bg-red-700 focus:ring-red-500",
-    warning: "bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500",
-    info: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
+    danger: "text-white bg-rose-600 hover:bg-rose-700 ring-1 ring-rose-700/20",
+    warning: "text-white bg-amber-600 hover:bg-amber-700 ring-1 ring-amber-700/20",
+    info: "text-white bg-blue-600 hover:bg-blue-700 ring-1 ring-blue-700/20",
   };
 
   const icons = {
@@ -58,59 +68,74 @@ const ConfirmDialog = ({
 
   if (!open) return null;
 
+  const tint = iconColors[variant] || iconColors.info;
+  const confirmSkin = buttonColors[variant] || buttonColors.info;
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+        className={BACKDROP}
         onClick={onClose}
       />
 
-      {/* Dialog */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-in fade-in zoom-in duration-200">
-        <div className="flex flex-col items-center text-center">
+      {/* Dialog. role/aria are not decoration here: this one does not go
+          through Headless UI's Dialog, so without them a screen reader
+          reads it as a div and nothing announces that the page is
+          blocked. */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="relative w-full max-w-md overflow-hidden rounded-xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 animate-in fade-in zoom-in duration-200"
+      >
+        <div className="flex items-start gap-3 px-4 py-4">
           {/* Icon */}
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${iconColors[variant]}`}>
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tint}`}
+          >
             {icons[variant]}
           </div>
 
-          {/* Title */}
-          <h3 className={`${PAGE_TITLE} mb-2`}>
-            {title}
-          </h3>
+          <div className="min-w-0 flex-1 pt-0.5">
+            {/* Title */}
+            <h3 className="text-[13px] font-bold tracking-tight text-slate-900 dark:text-white">
+              {title}
+            </h3>
 
-          {/* Message */}
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-            {message}
-          </p>
-
-          {/* Actions */}
-          <div className="flex gap-3 w-full">
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className={`${BTN_BASE_SHAPE} flex-1 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600`}
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isLoading}
-              className={`${BTN_BASE_SHAPE} flex-1 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${buttonColors[variant]}`}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Processing...
-                </span>
-              ) : (
-                confirmText
-              )}
-            </button>
+            {/* Message */}
+            <p className="mt-1 text-[12px] leading-relaxed text-slate-600 dark:text-slate-400">
+              {message}
+            </p>
           </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 px-4 py-3">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className={BTN_SECONDARY}
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`${BTN_BASE_SHAPE} ${confirmSkin}`}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Processing...
+              </span>
+            ) : (
+              confirmText
+            )}
+          </button>
         </div>
       </div>
     </div>

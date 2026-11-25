@@ -1,4 +1,3 @@
-import BillAdvisories from "@/components/bills/BillAdvisories";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
@@ -59,7 +58,7 @@ import {
   netOfTax,
 } from "@/utils/taxBase";
 import { toast } from "sonner";
-import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BACKDROP_VIEWER, BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
@@ -279,7 +278,6 @@ const TallyVendorBillDetail = () => {
   // Adjustment rows the operator opened although the bill has no
   // amount for them yet. A row with an amount is always shown.
   const [openAdjustments, setOpenAdjustments] = useState([]);
-  const [recordTab, setRecordTab] = useState("bill");
   const [scanOpen, setScanOpen] = useState(true);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
@@ -3823,8 +3821,6 @@ const TallyVendorBillDetail = () => {
       )}
 
       <BillRecordLayout
-        tab={recordTab}
-        onTabChange={setRecordTab}
         organizationId={selectedOrganization?.id}
         billId={billId}
         scanOpen={scanOpen}
@@ -4226,10 +4222,7 @@ const TallyVendorBillDetail = () => {
                           </div>
                           {billGstUnreadable && (
                             <div className="mt-1 text-[11px] opacity-90">
-                              It is not a valid GSTIN, so this is almost
-                              certainly a scan error rather than a
-                              different party. Check the invoice and
-                              correct the GST Number field above.
+                              Not a valid GSTIN — likely a scan error.
                             </div>
                           )}
                         </div>
@@ -4628,7 +4621,14 @@ const TallyVendorBillDetail = () => {
                           {products.map((product, index) => (
                             <tr
                               key={product.id}
-                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
+                              /* Top-aligned, because the Amount cell carries a
+                                 caption under its input and the others do not.
+                                 Cells default to vertical-align: middle, so
+                                 that one taller block centred itself and left
+                                 its input sitting a few pixels above Rate and
+                                 Quantity — the row read as if the figures were
+                                 on different lines. */
+                              className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150 [&>td]:align-top"
                             >
                               {/* Item Name - Only show if productSync is true */}
                               {productSync && (
@@ -5134,6 +5134,23 @@ const TallyVendorBillDetail = () => {
                           key={row.key}
                           label={row.label}
                           control={ledgerPick(row)}
+                          // Clearing the figure AND the ledger is what
+                          // "remove" has to mean here: a row is on the
+                          // bill because it carries an amount, so
+                          // closing it without zeroing would leave the
+                          // amount in the voucher but off the screen.
+                          onRemove={
+                            isLocked
+                              ? undefined
+                              : () => {
+                                  handleBillSummaryChange(row.key, 0);
+                                  row.onClear?.();
+                                  setOpenAdjustments((prev) =>
+                                    prev.filter((k) => k !== row.key),
+                                  );
+                                }
+                          }
+                          removeTitle={`Remove ${row.label}`}
                           extra={
                             row.taxBase === "discount" ? (
                               <TaxBaseToggle
@@ -5315,13 +5332,6 @@ const TallyVendorBillDetail = () => {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-end">
                       {/* The column that was blank on every voucher. */}
                       <div className="min-w-0 lg:flex-1">
-                        <BillAdvisories
-                          analysedData={analysedData}
-                          organization={selectedOrganization}
-                          unmapped={unmapped}
-                          checks={analysedData?._extraction_checks}
-                          liveTotalsAgree={Boolean(billTotalMatch?.isMatch)}
-                        />
                       </div>
                       <div className="w-full lg:max-w-[640px] lg:shrink-0">
                         <TotalLine
@@ -5584,7 +5594,7 @@ const TallyVendorBillDetail = () => {
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          className={BACKDROP_VIEWER}
           onClick={(e) => {
             // Close fullscreen when clicking on the background overlay
             if (e.target === e.currentTarget) {
@@ -5595,7 +5605,7 @@ const TallyVendorBillDetail = () => {
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header - Fixed */}
             <div
-              className="flex items-center justify-between px-6 py-4 bg-black bg-opacity-70 backdrop-blur-sm flex-shrink-0 z-10"
+              className="flex items-center justify-between px-6 py-4 bg-black/70 backdrop-blur-sm flex-shrink-0 z-10"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-4">
@@ -5606,10 +5616,10 @@ const TallyVendorBillDetail = () => {
                     "Unknown"}
                 </h3>
                 {!isPDF(billInfo.file) && (
-                  <div className="flex items-center gap-2 bg-white bg-opacity-10 rounded-lg px-3 py-2 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
                     <button
                       onClick={handleZoomOut}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Zoom Out (Ctrl + -)"
                       disabled={zoomLevel <= 0.25}
                     >
@@ -5632,7 +5642,7 @@ const TallyVendorBillDetail = () => {
                     </span>
                     <button
                       onClick={handleZoomIn}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Zoom In (Ctrl + +)"
                       disabled={zoomLevel >= 3}
                     >
@@ -5652,7 +5662,7 @@ const TallyVendorBillDetail = () => {
                     </button>
                     <button
                       onClick={handleResetZoom}
-                      className="p-1.5 rounded text-white hover:bg-white hover:bg-opacity-20 transition-colors"
+                      className="p-1.5 rounded text-white hover:bg-white/20 transition-colors"
                       title="Reset Zoom (Ctrl + 0)"
                     >
                       <svg
@@ -5741,7 +5751,7 @@ const TallyVendorBillDetail = () => {
         onConfirm={handleTrashBill}
         isLoading={isTrashing}
         title="Move this voucher to Trash?"
-        message="The document and everything read from it are kept. You can restore it from Trash, or delete it permanently from there."
+        message="Kept in Trash — you can restore it or delete it permanently."
         confirmText="Move to Trash"
         variant="danger"
       />

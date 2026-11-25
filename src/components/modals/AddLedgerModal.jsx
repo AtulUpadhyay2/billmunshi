@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { useQuickCreateLedger } from "@/services/tally/tallyQuickCreateService";
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
-import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, FIELD_LABEL } from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL } from "@/constants/ui";
 
 /**
  * AddLedgerModal — creates a Purchase / Expense ledger (i.e., anything
@@ -15,6 +15,12 @@ import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, FIELD_LABEL } from "@/constants/ui
  * ``defaultParent`` prop lets the caller override the placeholder
  * (e.g. "Purchase Accounts" from a Purchase Voucher context).
  */
+
+/** Field label in a dialog body — see the note in `AddVendorModal`. */
+const LABEL =
+  "block mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] " +
+  "text-slate-500 dark:text-slate-400";
+
 const AddLedgerModal = ({
   isOpen,
   onClose,
@@ -28,6 +34,10 @@ const AddLedgerModal = ({
   const [name, setName] = useState("");
   const [parentName, setParentName] = useState(defaultParent);
   const [submitting, setSubmitting] = useState(false);
+
+  // The submit button sits in the dialog footer, outside the <form>, and
+  // reaches it by id. Generated so two mounted copies can't collide.
+  const formId = useId();
 
   const { data: parentsData } = useGetParentLedgers(orgId, { enabled: isOpen });
   const parents = parentsData?.results || parentsData || [];
@@ -74,54 +84,8 @@ const AddLedgerModal = ({
       activeModal={isOpen}
       onClose={submitting ? () => {} : onClose}
       className="max-w-md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className={FIELD_LABEL}>
-            Ledger Name <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Freight Charges, Office Rent"
-            className={CONTROL}
-            autoFocus
-          />
-        </div>
-
-        <div>
-          <label className={FIELD_LABEL}>
-            Parent Ledger
-          </label>
-          <input
-            type="text"
-            list="ledger-parent-options"
-            value={parentName}
-            onChange={(e) => setParentName(e.target.value)}
-            placeholder={defaultParent}
-            className={CONTROL}
-          />
-          <datalist id="ledger-parent-options">
-            {parentOptions.map((p) => (
-              <option key={p} value={p} />
-            ))}
-          </datalist>
-          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-            Tip: pick an existing parent, or type a new one — it will be created on the fly.
-          </p>
-        </div>
-
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5 text-[12px] text-blue-800 dark:text-blue-300 flex items-start gap-2">
-          <Icon icon="heroicons:information-circle" className="text-lg shrink-0 mt-0.5" />
-          <span>
-            The ledger will be created in Bill Munshi immediately and queued
-            for Tally sync. You can select it in bill forms right away — Tally
-            will import it before the next bill sync fires.
-          </span>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+      footerContent={
+        <>
           <button
             type="button"
             onClick={onClose}
@@ -132,6 +96,7 @@ const AddLedgerModal = ({
           </button>
           <button
             type="submit"
+            form={formId}
             disabled={!name.trim() || submitting}
             className={BTN_PRIMARY}
           >
@@ -147,7 +112,67 @@ const AddLedgerModal = ({
               </>
             )}
           </button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-name`}>
+              Ledger Name
+              <span aria-hidden="true" className="ml-0.5 text-rose-500 dark:text-rose-400">
+                *
+              </span>
+              <span className="sr-only"> (required)</span>
+            </label>
+            <input
+              id={`${formId}-name`}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Freight Charges"
+              className={CONTROL}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-parent`}>
+              Parent Ledger
+            </label>
+            <input
+              id={`${formId}-parent`}
+              type="text"
+              list="ledger-parent-options"
+              value={parentName}
+              onChange={(e) => setParentName(e.target.value)}
+              placeholder={defaultParent}
+              className={CONTROL}
+            />
+            <datalist id="ledger-parent-options">
+              {parentOptions.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Pick an existing parent, or type a new one.
+            </p>
+          </div>
         </div>
+
+        {/* A footnote, not a tinted panel: the same sentence on every open
+            should not outweigh the two fields above it. */}
+        <p className="flex items-start gap-1.5 border-t border-slate-200 dark:border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+          <Icon
+            icon="heroicons:information-circle"
+            className="mt-px shrink-0 text-sm text-slate-400 dark:text-slate-500"
+          />
+          <span>
+            The ledger is created in Bill Munshi immediately and queued for
+            Tally sync. You can select it in bill forms right away — Tally will
+            import it before the next bill sync fires.
+          </span>
+        </p>
       </form>
     </Modal>
   );

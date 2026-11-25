@@ -61,7 +61,7 @@ const ActivityPanel = ({ open, onClose, organizationId, billId }) => {
               Activity
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Who did what to this bill, newest first.
+              Newest first.
             </p>
           </div>
           <button

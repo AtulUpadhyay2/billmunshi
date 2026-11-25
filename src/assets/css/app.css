@@ -2,15 +2,34 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+  Geist, because this screen is mostly numbers.
+
+  Plus Jakarta Sans is a display face: a geometric 'a', a single-storey
+  'g', generous counters — good for headings, loose for a column of
+  figures. Geist was drawn for product UI and ships proper tabular
+  figures, which is what a totals column actually needs: every digit on
+  the same advance width, so 1,364.55 and 11,306.90 stack with their
+  decimal points aligned. With proportional digits they do not, and the
+  eye cannot scan the column.
+
+  tnum is set globally rather than on the money cells alone, because
+  amounts appear in table cells, inputs, badges and headings, and
+  chasing them one by one guarantees the one that is missed is the one
+  in the total.
+*/
 @theme {
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-inter: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-inter: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 html, body {
-  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /*
@@ -110,6 +129,52 @@ html, body {
   --color-gray-700: var(--gray-700);
   --color-gray-800: var(--gray-800);
   --color-gray-900: var(--gray-900);
+}
+
+/*
+  Dark mode: neutral black, not navy.
+
+  The app writes `slate-*` in about 6,900 places, so the colour of the
+  dark theme is the colour of Tailwind's slate scale — and slate is a
+  blue-tinted grey (slate-900 is hsl(222 47% 11%), a navy). On a full
+  screen of it the cast reads as purple, which is what it was reported
+  as.
+
+  Re-pointing the scale here rethemes every one of those 6,900 class
+  names at once. Rewriting the markup instead would be thousands of
+  edits for the same result, and would drift the moment anyone wrote
+  `slate-800` again out of habit.
+
+  The values are a true neutral ramp — zero saturation, the way Vercel's
+  surfaces are built: black page, near-black panels, grey hairline
+  borders. Light mode is untouched; only the `.dark` scope moves.
+*/
+.dark {
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f0f0f0;
+  --color-slate-200: #e4e4e4;
+  --color-slate-300: #d1d1d1;
+  --color-slate-400: #a1a1a1;
+  --color-slate-500: #707070;
+  --color-slate-600: #3d3d3d;
+  --color-slate-700: #262626;
+  --color-slate-800: #141414;
+  --color-slate-900: #0a0a0a;
+  --color-slate-950: #000000;
+
+  /* gray is used in a few older screens; keep the two in step so a
+     page does not change temperature halfway down. */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f0f0f0;
+  --color-gray-200: #e4e4e4;
+  --color-gray-300: #d1d1d1;
+  --color-gray-400: #a1a1a1;
+  --color-gray-500: #707070;
+  --color-gray-600: #3d3d3d;
+  --color-gray-700: #262626;
+  --color-gray-800: #141414;
+  --color-gray-900: #0a0a0a;
+  --color-gray-950: #000000;
 }
 
 :root {

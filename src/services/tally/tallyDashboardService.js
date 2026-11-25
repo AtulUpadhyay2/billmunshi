@@ -33,3 +33,17 @@ export const useGetTallyUsage = (organizationId, options = {}) => {
     ...options,
   });
 };
+
+// GST position, the queue needing attention, and who we trade with most.
+// Separate from overview because it aggregates the analysed rows rather
+// than counting bills, and overview is on a 5-minute cache the operator
+// does not want for a work queue.
+export const useGetTallyInsights = (organizationId, options = {}) => {
+  return useQuery({
+    queryKey: ["tallyInsights", organizationId],
+    queryFn: () => apiFetch(`organizations/${organizationId}/tally/insights/`),
+    enabled: !!organizationId,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+};

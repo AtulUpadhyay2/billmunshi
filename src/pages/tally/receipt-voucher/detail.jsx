@@ -1,4 +1,3 @@
-import BillAdvisories from "@/components/bills/BillAdvisories";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import ActivityPanel from "@/components/bills/ActivityPanel";
 import ApprovalPanel from "@/components/bills/ApprovalPanel";
@@ -42,7 +41,7 @@ import { globalToast } from "@/utils/toast";
 import { findVendorOption } from "@/utils/vendorMatch";
 import { QuickAddGroup } from "@/components/tally/QuickAddMaster";
 import { tallySyncWithMastersGuard } from "@/utils/tallySyncGuard";
-import { BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
+import { BACKDROP_VIEWER, BADGE, BTN_PRIMARY, BTN_SECONDARY, BTN_SOFT, CONTROL, CONTROL_NUM, CONTROL_SELECT, CONTROL_SELECT_ARROW, CONTROL_TEXTAREA, CONTROL_VALIDATED } from "@/constants/ui";
 import {
   GST_RATE_PERCENTS,
   gstRateLabel,
@@ -139,7 +138,6 @@ const TallyReceiptVoucherDetail = () => {
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   // Which tab of the record is showing, and whether the scan pane is
   // open. Both are view state only.
-  const [recordTab, setRecordTab] = useState("bill");
   const [scanOpen, setScanOpen] = useState(true);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const { id: billId } = useParams();
@@ -2868,8 +2866,6 @@ const TallyReceiptVoucherDetail = () => {
       )}
 
       <BillRecordLayout
-        tab={recordTab}
-        onTabChange={setRecordTab}
         organizationId={selectedOrganization?.id}
         billId={billId}
         scanOpen={scanOpen}
@@ -3128,7 +3124,7 @@ const TallyReceiptVoucherDetail = () => {
                     }`}
                   >
                     <SearchableDropdown
-                      triggerClassName="rounded-r-none"
+                      triggerSkin={PARTY_TITLE_SKIN}
                       options={customerOptions}
                       value={billForm.selectedCustomer?.id || null}
                       onChange={handleCustomerSelect}
@@ -3343,10 +3339,10 @@ const TallyReceiptVoucherDetail = () => {
               {/* Line Items Section */}
               <div className="relative p-5 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                        Line items
+                        Line items{" "}
                         {isConsolidated && (
                           <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60 text-[10px] font-bold normal-case tracking-normal">
                             Consolidated
@@ -3369,7 +3365,7 @@ const TallyReceiptVoucherDetail = () => {
                           activeClass="bg-blue-600"
                         />
                       </SwitchPill>
-                      <SwitchPill label="Consolidate items">
+                      <SwitchPill label="Consolidate Items">
                         <Switch
                           value={isConsolidated}
                           onChange={handleConsolidateToggle}
@@ -3435,7 +3431,7 @@ const TallyReceiptVoucherDetail = () => {
                             {expenseItems.map((item, index) => (
                               <tr
                                 key={item.id}
-                                className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150"
+                                className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors duration-150 [&>td]:align-top"
                               >
                                 {/* Item Details */}
                                 <td className="px-3 py-2">
@@ -4179,12 +4175,6 @@ const TallyReceiptVoucherDetail = () => {
                           <div className="flex flex-col gap-4 px-3 pt-4 pb-3 lg:flex-row lg:items-start lg:justify-end">
                             {/* The column that was blank on every voucher. */}
                             <div className="min-w-0 lg:flex-1">
-                              <BillAdvisories
-                                analysedData={analysedData}
-                                organization={selectedOrganization}
-                                checks={analysedData?._extraction_checks}
-                          liveTotalsAgree={Boolean(billTotalMatch?.isMatch)}
-                              />
                             </div>
                             <div className="w-full sm:max-w-[340px] lg:shrink-0">
                               <TotalLine
@@ -4315,7 +4305,7 @@ const TallyReceiptVoucherDetail = () => {
       {/* Fullscreen Modal */}
       {isFullscreen && billInfo?.file && (
         <div
-          className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center"
+          className={BACKDROP_VIEWER}
           onClick={(e) => {
             // Close fullscreen when clicking on the background overlay
             if (e.target === e.currentTarget) {
@@ -4465,7 +4455,7 @@ const TallyReceiptVoucherDetail = () => {
         onConfirm={handleTrashBill}
         isLoading={isTrashing}
         title="Move this voucher to Trash?"
-        message="The document and everything read from it are kept. You can restore it from Trash, or delete it permanently from there."
+        message="Kept in Trash — you can restore it or delete it permanently."
         confirmText="Move to Trash"
         variant="danger"
       />

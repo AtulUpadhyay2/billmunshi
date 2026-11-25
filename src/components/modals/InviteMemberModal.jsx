@@ -1,11 +1,53 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
-import Textinput from "@/components/ui/Textinput";
-import Select from "@/components/ui/Select";
 import Icon from "@/components/ui/Icon";
+import {
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  CONTROL_SELECT_ARROW,
+} from "@/constants/ui";
 import { useInviteMember } from "@/services/memberService";
 import { toast } from "sonner";
+
+/**
+ * Invite someone into the current organisation.
+ *
+ * The form used to be built from the DashCode `<Textinput>` / `<Select>`
+ * wrappers, which carry their own `.form-label` and `.form-control`
+ * geometry — a 14px capitalised label over a ~48px box, inside a dialog
+ * whose every other control is 32-36px. The two fields are now plain
+ * controls on the app's own scale, and the role explainer is a quiet
+ * advisory under the picker rather than a blue card competing with it.
+ */
+
+/** Label over a field — the dialog field scale, one step up from SUBTLE_LABEL. */
+const LABEL =
+  "block text-[11px] font-bold uppercase tracking-[0.14em] " +
+  "text-slate-500 dark:text-slate-400 mb-1.5";
+
+/**
+ * Field box with no border *colour* — the call site appends exactly one,
+ * for the same reason `CONTROL_VALIDATED` in `@/constants/ui` exists: two
+ * `border-color` utilities of equal specificity are resolved by their order
+ * in the generated stylesheet, not in the attribute.
+ */
+const FIELD_BASE =
+  "w-full h-9 px-2.5 text-[13px] rounded-md border transition-colors " +
+  "bg-white dark:bg-slate-900 text-slate-900 dark:text-white " +
+  "placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
+  "focus:outline-none focus:ring-2 " +
+  "disabled:cursor-not-allowed disabled:opacity-60 " +
+  "disabled:bg-slate-50 dark:disabled:bg-slate-800/60";
+
+const FIELD_OK =
+  "border-slate-200 dark:border-slate-700 hover:border-slate-300 " +
+  "dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20";
+
+const FIELD_ERR =
+  "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20";
+
+const fieldClass = (hasError) =>
+  `${FIELD_BASE} ${hasError ? FIELD_ERR : FIELD_OK}`;
 
 const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
   const [formData, setFormData] = useState({
@@ -108,102 +150,122 @@ const InviteMemberModal = ({ isOpen, onClose, organizationId }) => {
     onClose();
   };
 
+  const roleError =
+    typeof errors.role === "string" ? errors.role : errors.role?.message;
+
   return (
     <Modal
       title="Invite Member"
       activeModal={isOpen}
       onClose={handleClose}
+      className="max-w-md"
       footerContent={
-        <div className="flex justify-end space-x-3">
-          <Button
-            text="Cancel"
-            btnClass="btn-outline-secondary"
+        <>
+          <button
+            type="button"
             onClick={handleClose}
             disabled={isLoading}
-          />
-          <Button
-            text={isLoading ? "Sending..." : "Send Invitation"}
-            btnClass="btn-primary"
+            className={BTN_SECONDARY}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
             onClick={handleSubmit}
             disabled={isLoading}
-            isLoading={isLoading}
-            icon="heroicons:envelope"
-          />
-        </div>
+            className={BTN_PRIMARY}
+          >
+            {isLoading ? (
+              <>
+                <Icon icon="heroicons:arrow-path" className="text-sm animate-spin" />
+                Sending…
+              </>
+            ) : (
+              <>
+                <Icon icon="heroicons:envelope" className="text-sm" />
+                Send Invitation
+              </>
+            )}
+          </button>
+        </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Email Input */}
-        <div>
-          <label className="form-label" htmlFor="user_email">
-            Email Address *
-          </label>
-          <Textinput
-            type="email"
-            placeholder="Enter member's email address"
-            value={formData.user_email}
-            onChange={(e) => handleInputChange("user_email", e.target.value)}
-            error={errors.user_email ? { message: errors.user_email } : null}
-            icon="heroicons:envelope"
-            disabled={isLoading}
-          />
-          <p className="text-xs text-slate-500 mt-1">
-            An invitation will be sent to this email address
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
+          {/* Email Input */}
+          <div className="min-w-0">
+            <label className={LABEL} htmlFor="user_email">
+              Email address <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="user_email"
+              type="email"
+              placeholder="name@company.com"
+              value={formData.user_email}
+              onChange={(e) => handleInputChange("user_email", e.target.value)}
+              disabled={isLoading}
+              className={fieldClass(!!errors.user_email)}
+            />
+            {errors.user_email && (
+              <p className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                {errors.user_email}
+              </p>
+            )}
+          </div>
+
+          {/* Role Selection */}
+          <div className="min-w-0">
+            <label className={LABEL} htmlFor="role">
+              Role <span className="text-rose-500">*</span>
+            </label>
+            <select
+              id="role"
+              value={formData.role}
+              onChange={(e) => handleInputChange("role", e.target.value)}
+              disabled={isLoading}
+              className={`${fieldClass(!!roleError)} pr-8 appearance-none cursor-pointer`}
+              style={CONTROL_SELECT_ARROW}
+            >
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {roleError && (
+              <p className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                {roleError}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Role Selection */}
-        <div>
-          <label className="form-label" htmlFor="role">
-            Role *
-          </label>
-          <Select
-            options={roleOptions}
-            value={roleOptions.find((option) => option.value === formData.role)}
-            onChange={(selectedOption) =>
-              handleInputChange("role", selectedOption.value)
-            }
-            placeholder="Select role"
-            error={errors.role}
-            disabled={isLoading}
-          />
-          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <div className="flex items-start gap-2">
-              <Icon
-                icon="heroicons:information-circle"
-                className="w-4 h-4 text-blue-600 mt-0.5"
-              />
-              <div className="text-xs text-blue-700 dark:text-blue-300">
-                <div className="font-medium mb-1">Role Permissions:</div>
-                <ul className="space-y-1">
-                  <li>
-                    <strong>Member:</strong> Can view and manage bills, access
-                    reports
-                  </li>
-                  <li>
-                    <strong>Admin:</strong> Full access including member
-                    management and settings
-                  </li>
-                </ul>
-              </div>
+        {/* What each role can do, and where the member lands */}
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 px-3 py-2 text-[12px]">
+          <div className="flex items-start gap-2">
+            <Icon
+              icon="heroicons:information-circle"
+              className="text-slate-500 dark:text-slate-400 text-sm shrink-0 mt-0.5"
+            />
+            <div className="min-w-0 text-slate-700 dark:text-slate-300 leading-relaxed">
+              <p>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  Member
+                </span>{" "}
+                — view and manage bills, access reports.
+              </p>
+              <p>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  Admin
+                </span>{" "}
+                — full access, including members and settings.
+              </p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">
+                An invitation is emailed to this address; the member is added to
+                your current organisation.
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Organization Info */}
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon
-              icon="heroicons:building-office-2"
-              className="w-4 h-4 text-slate-600"
-            />
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Organization
-            </span>
-          </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            This member will be added to your current organization
-          </p>
         </div>
       </form>
     </Modal>

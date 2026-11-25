@@ -382,13 +382,18 @@ export const MENU_HEADER =
  * headers, 57 of 77 cells); the stragglers were `px-4 py-3.5` / `px-4 py-4`,
  * which made one table on the org picker visibly looser than every other
  * table in the app.
+ *
+ * The vertical step is now `py-1.5`, one notch down from that audit: an
+ * operator works through dozens of rows a day and the extra 4px per row
+ * bought nothing legibility needs — the type scale is unchanged, so a
+ * single-line cell still clears its box by 6px top and bottom.
  */
 export const TH =
-  "px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] " +
+  "px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] " +
   "text-slate-500 dark:text-slate-400 " +
   "border-b border-slate-200 dark:border-slate-800";
 
-export const TD = "px-3 py-2 text-xs text-slate-700 dark:text-slate-300";
+export const TD = "px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300";
 
 /**
  * Status pill. Colour is the caller's — a badge is always coloured by what it
@@ -397,3 +402,111 @@ export const TD = "px-3 py-2 text-xs text-slate-700 dark:text-slate-300";
 export const BADGE =
   "inline-flex items-center gap-1 px-2 py-0.5 rounded-full " +
   "text-[10px] font-semibold";
+
+/**
+ * Modal backdrops.
+ *
+ * There were four of them: `bg-black bg-opacity-95`, `bg-black/95
+ * backdrop-blur-sm`, `bg-slate-900/50 backdrop-filter backdrop-blur-xs`
+ * and `bg-black/50 backdrop-blur-xs`. The first was not translucent at
+ * all — `bg-opacity-*` was removed in Tailwind v4 and compiled to
+ * nothing, so eleven overlays rendered as solid black while the dialogs
+ * beside them were half-transparent. That is most of what "the modals
+ * are inconsistent" was.
+ *
+ * Two kinds, because they do different jobs:
+ *   BACKDROP — a dialog over the page; the page stays readable behind it
+ *   BACKDROP_VIEWER — a document viewer; the page should get out of the way
+ */
+export const BACKDROP = "fixed inset-0 bg-black/60 backdrop-blur-sm";
+
+export const BACKDROP_VIEWER =
+  "fixed inset-0 bg-black/95 backdrop-blur-sm z-50 " +
+  "flex items-center justify-center";
+
+/* ---------------------------------------------------------------------------
+ * Support-access screens
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The caps label used by the consent-gated support-access screens — the
+ * grant dialog, the live-session banner and the grant history.
+ *
+ * `SECTION_TITLE` is the same geometry in `slate-700`, which reads as a
+ * section *heading*; this is one step quieter, for labelling a field or a
+ * block of facts inside a card. Named rather than inlined because the
+ * three files would otherwise hold three copies of it and drift the way
+ * the control geometry above did.
+ */
+export const LABEL_CAPS =
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400";
+
+/* ---------------------------------------------------------------------------
+ * Support desk
+ *
+ * The desk screens sit on a 36px control tier rather than the app's 32px
+ * one, and are the only place that does. Two reasons, both specific to a
+ * queue an agent stares at all day:
+ *
+ *   - The access code is typed from dictation while the client reads it out
+ *     over the phone. That field is the one control in the app where a
+ *     mistyped character costs a 15-minute lockout, and it is set in mono
+ *     at `text-[13px]`; a 32px box with 12px type is not the control to
+ *     transcribe into.
+ *   - The reply composer and the status / priority / assignee row sit side
+ *     by side with it, and a row of mixed 32px and 36px boxes is the exact
+ *     drift the tokens above exist to prevent. One tier per screen.
+ *
+ * Everything else — radius, colour, state classes, the single blue accent —
+ * is the same recipe as the tokens above, so the desk reads as the same
+ * app. Do not reach for these outside `support-desk`.
+ * ------------------------------------------------------------------------ */
+
+/** The desk's field label. */
+export const DESK_LABEL =
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400";
+
+/** 36px single-line input. */
+export const DESK_CONTROL = `w-full h-9 px-2.5 text-[13px] ${SKIN}`;
+
+/** 36px `<select>` — pair with `CONTROL_SELECT_ARROW`. */
+export const DESK_SELECT =
+  `w-full h-9 pl-2.5 pr-7 text-[13px] appearance-none cursor-pointer ${SKIN}`;
+
+/** 36px search box — the magnifier is absolutely positioned over it. */
+export const DESK_SEARCH = `w-full h-9 pl-8 pr-3 text-[13px] ${SKIN}`;
+
+/** Composer textarea. `rows` drives the height. */
+export const DESK_TEXTAREA =
+  `w-full px-2.5 py-2 text-[13px] leading-relaxed resize-none ${SKIN_BASE}`;
+
+const DESK_BTN =
+  "inline-flex items-center justify-center gap-1.5 h-9 px-3 text-[13px] font-semibold " +
+  "whitespace-nowrap rounded-md transition-all cursor-pointer " +
+  "disabled:opacity-50 disabled:cursor-not-allowed";
+
+export const DESK_BTN_PRIMARY =
+  `${DESK_BTN} text-white bg-blue-600 hover:bg-blue-700 ` +
+  "shadow-sm shadow-blue-600/20 ring-1 ring-blue-700/20";
+
+export const DESK_BTN_SECONDARY =
+  `${DESK_BTN} text-slate-700 dark:text-slate-300 ` +
+  "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 " +
+  "hover:border-slate-300 dark:hover:border-slate-600 " +
+  "hover:bg-slate-50 dark:hover:bg-slate-800";
+
+export const DESK_BTN_DANGER =
+  `${DESK_BTN} text-rose-700 dark:text-rose-400 ` +
+  "bg-rose-50 dark:bg-rose-950/40 ring-1 ring-rose-100 dark:ring-rose-900/60 " +
+  "hover:bg-rose-100 dark:hover:bg-rose-950/60";
+
+/**
+ * The internal-note action. Amber throughout the desk means "held back from
+ * the client", and it is deliberately not the blue accent: the two buttons
+ * in the composer must not be able to be confused for each other at a
+ * glance, and colour is the first thing read.
+ */
+export const DESK_BTN_INTERNAL =
+  `${DESK_BTN} text-amber-900 dark:text-amber-200 ` +
+  "bg-amber-400 dark:bg-amber-500/80 ring-1 ring-amber-500/40 " +
+  "hover:bg-amber-500 dark:hover:bg-amber-500";

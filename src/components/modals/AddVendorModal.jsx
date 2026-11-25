@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
@@ -9,7 +9,7 @@ import {
 import { useGetParentLedgers } from "@/services/tally/tallyApiService";
 import { useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
-import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_VALIDATED, FIELD_LABEL } from "@/constants/ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CONTROL, CONTROL_VALIDATED } from "@/constants/ui";
 import { gstinNameInitial, nameMatchesGstin } from "@/utils/gstin";
 
 /**
@@ -44,6 +44,25 @@ const PARTY = {
   },
 };
 
+/**
+ * Field label in a dialog body — the same wide-tracked small caps the
+ * record pages set over a field, so a dialog reads as part of the same
+ * product rather than as a form bolted onto it.
+ */
+const LABEL =
+  "block mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] " +
+  "text-slate-500 dark:text-slate-400";
+
+/** The red asterisk that marks a field as required. */
+const Required = () => (
+  <>
+    <span aria-hidden="true" className="ml-0.5 text-rose-500 dark:text-rose-400">
+      *
+    </span>
+    <span className="sr-only"> (required)</span>
+  </>
+);
+
 const AddVendorModal = ({
   isOpen,
   onClose,
@@ -60,6 +79,11 @@ const AddVendorModal = ({
   const [gstIn, setGstIn] = useState((defaultGstIn || "").toUpperCase());
   const [parentName, setParentName] = useState("Sundry Creditors");
   const [submitting, setSubmitting] = useState(false);
+
+  // The submit button lives in the dialog footer, outside the <form>, so it
+  // reaches the form by id. Generated rather than hard-coded because the
+  // vendor and customer copies of this modal can be mounted at once.
+  const formId = useId();
 
   const { data: parentsData } = useGetParentLedgers(orgId, { enabled: isOpen });
   const parents = parentsData?.results || parentsData || [];
@@ -141,88 +165,8 @@ const AddVendorModal = ({
       // submit blocks backdrop/ESC close without crashing.
       onClose={submitting ? () => {} : onClose}
       className="max-w-md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className={FIELD_LABEL}>
-            {partyConfig.noun} Name <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. ABC Enterprises"
-            className={CONTROL}
-            autoFocus
-          />
-          {nameGstMismatch && (
-            <p className="mt-1 text-[11px] leading-snug text-amber-700 dark:text-amber-400">
-              This GSTIN belongs to a business whose name starts with
-              "{gstinNameInitial(gstIn)}". Check the party name on the bill —
-              OCR may have picked the customer or the invoice software's name.
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className={FIELD_LABEL}>
-            {partyConfig.noun} GSTIN
-          </label>
-          <input
-            type="text"
-            value={gstIn}
-            onChange={(e) => setGstIn(e.target.value.toUpperCase())}
-            placeholder="15-char GSTIN (optional)"
-            // `CONTROL_VALIDATED` deliberately carries no border colour, so
-            // both branches have to name one — appending a rose border to a
-            // token that already had `border-slate-200` would be decided by
-            // stylesheet order, not by which class comes last here.
-            className={`${CONTROL_VALIDATED} ${
-              gstInValid
-                ? "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
-                : "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20"
-            }`}
-            maxLength={15}
-          />
-          {!gstInValid && (
-            <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
-              GSTIN should be 15 chars (2 digits + 10 alphanumerics + 3 alphanumerics).
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className={FIELD_LABEL}>
-            Parent Ledger
-          </label>
-          <input
-            type="text"
-            list="vendor-parent-options"
-            value={parentName}
-            onChange={(e) => setParentName(e.target.value)}
-            placeholder={partyConfig.defaultParent}
-            className={CONTROL}
-          />
-          <datalist id="vendor-parent-options">
-            {parentOptions.map((p) => (
-              <option key={p} value={p} />
-            ))}
-          </datalist>
-          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-            Tip: pick an existing parent, or type a new one — it will be created on the fly.
-          </p>
-        </div>
-
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/60 px-3 py-2.5 text-[12px] text-blue-800 dark:text-blue-300 flex items-start gap-2">
-          <Icon icon="heroicons:information-circle" className="text-lg shrink-0 mt-0.5" />
-          <span>
-            The {partyConfig.noun.toLowerCase()} will be created in Bill Munshi immediately and queued
-            for Tally sync. Tally's TCP will import it in the next poll cycle
-            (usually within ~30 seconds).
-          </span>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+      footerContent={
+        <>
           <button
             type="button"
             onClick={onClose}
@@ -233,6 +177,7 @@ const AddVendorModal = ({
           </button>
           <button
             type="submit"
+            form={formId}
             disabled={!name.trim() || !gstInValid || submitting}
             className={BTN_PRIMARY}
           >
@@ -248,7 +193,100 @@ const AddVendorModal = ({
               </>
             )}
           </button>
+        </>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-3.5">
+        <div>
+          <label className={LABEL} htmlFor={`${formId}-name`}>
+            {partyConfig.noun} Name
+            <Required />
+          </label>
+          <input
+            id={`${formId}-name`}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. ABC Enterprises"
+            className={CONTROL}
+            autoFocus
+          />
+          {nameGstMismatch && (
+            <p className="mt-1 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              This GSTIN belongs to a business whose name starts with
+              "{gstinNameInitial(gstIn)}". Check the party name on the bill —
+              OCR may have picked the customer or the invoice software's name.
+            </p>
+          )}
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-gstin`}>
+              {partyConfig.noun} GSTIN
+            </label>
+            <input
+              id={`${formId}-gstin`}
+              type="text"
+              value={gstIn}
+              onChange={(e) => setGstIn(e.target.value.toUpperCase())}
+              placeholder="15-char (optional)"
+              // `CONTROL_VALIDATED` deliberately carries no border colour, so
+              // both branches have to name one — appending a rose border to a
+              // token that already had `border-slate-200` would be decided by
+              // stylesheet order, not by which class comes last here.
+              className={`${CONTROL_VALIDATED} ${
+                gstInValid
+                  ? "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
+                  : "border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20"
+              }`}
+              maxLength={15}
+            />
+            {!gstInValid && (
+              <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">
+                Should be 15 chars — 2 digits, then 13 alphanumerics.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor={`${formId}-parent`}>
+              Parent Ledger
+            </label>
+            <input
+              id={`${formId}-parent`}
+              type="text"
+              list="vendor-parent-options"
+              value={parentName}
+              onChange={(e) => setParentName(e.target.value)}
+              placeholder={partyConfig.defaultParent}
+              className={CONTROL}
+            />
+            <datalist id="vendor-parent-options">
+              {parentOptions.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Pick an existing parent, or type a new one.
+            </p>
+          </div>
+        </div>
+
+        {/* The sync notice reads as a footnote rather than a tinted panel:
+            it is the same sentence on every open and should not compete
+            with the fields above it. */}
+        <p className="flex items-start gap-1.5 border-t border-slate-200 dark:border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+          <Icon
+            icon="heroicons:information-circle"
+            className="mt-px shrink-0 text-sm text-slate-400 dark:text-slate-500"
+          />
+          <span>
+            The {partyConfig.noun.toLowerCase()} is created in Bill Munshi immediately and
+            queued for Tally sync. Tally's TCP will import it in the next poll
+            cycle, usually within ~30 seconds.
+          </span>
+        </p>
       </form>
     </Modal>
   );

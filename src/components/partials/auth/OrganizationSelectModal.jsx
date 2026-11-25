@@ -60,29 +60,17 @@ const OrganizationSelectModal = ({
     }
   };
 
-  const getRoleColor = (role) => {
-    switch (role?.toUpperCase()) {
-      case 'ADMIN':
-        return 'text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-300';
-      case 'MANAGER':
-        return 'text-blue-600 bg-blue-100 dark:bg-blue-900 dark:text-blue-300';
-      case 'MEMBER':
-        return 'text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300';
-      default:
-        return 'text-gray-600 bg-gray-100 dark:bg-gray-900 dark:text-gray-300';
-    }
-  };
-
+  // Only the colour that carries meaning survives: membership status.
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE':
-        return 'text-green-600';
+        return 'text-emerald-600 dark:text-emerald-400';
       case 'INACTIVE':
-        return 'text-red-600';
+        return 'text-rose-600 dark:text-rose-400';
       case 'PENDING':
-        return 'text-yellow-600';
+        return 'text-amber-600 dark:text-amber-400';
       default:
-        return 'text-gray-600';
+        return 'text-slate-400 dark:text-slate-500';
     }
   };
 
@@ -94,7 +82,7 @@ const OrganizationSelectModal = ({
       centered
       scrollContent={false}
       footerContent={
-        <div className="flex justify-end space-x-3">
+        <>
           <Button
             text="Cancel"
             btnClass="btn-outline-secondary"
@@ -108,84 +96,92 @@ const OrganizationSelectModal = ({
             isLoading={isLoading}
             icon="heroicons-outline:arrow-right"
           />
-        </div>
+        </>
       }
     >
-      <div className="space-y-4">
-        <div className="text-slate-600 dark:text-slate-300 text-sm">
-          You are a member of multiple organizations. Please select which organization you'd like to access.
-        </div>
-        
-        <div className="space-y-3 max-h-60 overflow-y-auto">
-          {organizations.map((org) => (
-            <div
-              key={org.id}
-              className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700 ${
-                selectedOrgId === org.id
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-slate-200 dark:border-slate-600'
-              }`}
-              onClick={() => setSelectedOrgId(org.id)}
-            >
-              <div className="flex items-center space-x-3">
+      <div className="space-y-3">
+        <p className="text-[13px] text-slate-600 dark:text-slate-400">
+          You belong to more than one organization. Choose the one to open.
+        </p>
+
+        {organizations.length > 0 ? (
+          <div className="max-h-72 overflow-y-auto rounded-md border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+            {organizations.map((org) => {
+              const selected = selectedOrgId === org.id;
+              // Muted second line: the org's handle, the caller's role in
+              // it, and who owns it — whichever of the three exist.
+              const meta = [
+                org.unique_name,
+                org.role,
+                org.owner && `Owner: ${org.owner.full_name || org.owner.email}`,
+              ].filter(Boolean);
+              return (
                 <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    selectedOrgId === org.id
-                      ? 'border-primary-500 bg-primary-500'
-                      : 'border-slate-300 dark:border-slate-600'
+                  key={org.id}
+                  onClick={() => setSelectedOrgId(org.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors ${
+                    selected
+                      ? 'bg-blue-50/70 dark:bg-blue-950/30'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
                 >
-                  {selectedOrgId === org.id && (
-                    <Icon icon="heroicons:check" className="text-white text-xs" />
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-slate-900 dark:text-white">
+                  <span
+                    className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                      selected
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-slate-300 dark:border-slate-600'
+                    }`}
+                  >
+                    {selected && (
+                      <Icon icon="heroicons:check" className="text-[10px] text-white" />
+                    )}
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={`truncate text-[13px] font-semibold ${
+                        selected
+                          ? 'text-blue-700 dark:text-blue-400'
+                          : 'text-slate-900 dark:text-white'
+                      }`}
+                    >
                       {org.name}
-                    </h4>
-                    <div className="flex items-center space-x-2">
-                      {org.unique_name && (
-                        <span className="px-2 py-1 text-xs rounded-full font-medium text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
-                          {org.unique_name}
-                        </span>
-                      )}
-                      {org.role && (
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getRoleColor(org.role)}`}>
-                          {org.role}
-                        </span>
-                      )}
-                      {org.status && (
-                        <Icon 
-                          icon={org.status === 'ACTIVE' ? 'heroicons:check-circle' : 'heroicons:exclamation-circle'} 
-                          className={`text-sm ${getStatusColor(org.status)}`}
-                        />
-                      )}
                     </div>
+                    {meta.length > 0 && (
+                      <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                        {meta.join(' · ')}
+                      </div>
+                    )}
                   </div>
-                  
-                  {org.owner && (
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      Owner: {org.owner.full_name || org.owner.email}
-                    </p>
+
+                  {org.status && (
+                    <span
+                      className={`shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] ${getStatusColor(
+                        org.status,
+                      )}`}
+                    >
+                      {org.status}
+                    </span>
                   )}
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {organizations.length === 0 && (
-          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-            <Icon icon="heroicons:building-office" className="text-3xl mx-auto mb-2" />
-            <p>No organizations available</p>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 px-4 py-8 text-center">
+            <Icon
+              icon="heroicons:building-office"
+              className="mx-auto text-xl text-slate-400 dark:text-slate-500"
+            />
+            <p className="mt-1.5 text-[13px] text-slate-500 dark:text-slate-400">
+              No organizations available
+            </p>
           </div>
         )}
-        
-        <div className="text-xs text-slate-500 dark:text-slate-400 mt-4">
+
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
           You can switch organizations later from the dashboard header.
-        </div>
+        </p>
       </div>
     </Modal>
   );

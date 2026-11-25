@@ -102,7 +102,7 @@ const Profile = () => {
               onClick={() => !item.isStatus && item.action && item.action()}
               className={`${
                 isActive && !item.isStatus
-                  ? "bg-slate-100 text-slate-900 dark:bg-slate-600 dark:text-slate-300 dark:bg-opacity-50"
+                  ? "bg-slate-100 text-slate-900 dark:bg-slate-600/50 dark:text-slate-300"
                   : "text-slate-600 dark:text-slate-300"
               } block ${
                 item.hasDivider

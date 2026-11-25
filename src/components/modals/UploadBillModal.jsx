@@ -2,7 +2,30 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import Modal from "@/components/ui/Modal";
 import BillScanner from "@/components/scanner/BillScanner";
-import { BTN_PRIMARY, BTN_SECONDARY } from "@/constants/ui";
+import {
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  BTN_SECONDARY_SM,
+  CONTROL_SELECT_ARROW,
+} from "@/constants/ui";
+
+/** Field label — the app's small-caps label, muted. */
+const LABEL =
+  "text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400";
+
+/**
+ * The target `<select>`. Same skin as `CONTROL_SELECT` in `constants/ui`,
+ * on the 36px dialog tier rather than the 32px toolbar tier, so it sits
+ * with the dialog's 13px body text instead of the table scale.
+ */
+const SELECT =
+  "w-full h-9 pl-2.5 pr-8 text-[13px] appearance-none cursor-pointer " +
+  "bg-white dark:bg-slate-900 text-slate-900 dark:text-white " +
+  "border border-slate-200 dark:border-slate-700 rounded-md transition-colors " +
+  "hover:border-slate-300 dark:hover:border-slate-600 " +
+  "focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 " +
+  "disabled:cursor-not-allowed disabled:opacity-60 " +
+  "disabled:bg-slate-50 dark:disabled:bg-slate-800/60";
 
 /**
  * UploadBillModal — 2-click upload flow.
@@ -351,6 +374,8 @@ const UploadBillModal = ({
     if (!isUploading) onClose();
   };
 
+  const scanning = Boolean(activeTuneItem && activeTuneItem.kind === "image");
+
   return (
     <Modal
       title={title}
@@ -358,310 +383,310 @@ const UploadBillModal = ({
       activeModal={isOpen}
       onClose={handleClose}
       className="max-w-3xl"
-    >
-      <div className="space-y-3">
-        {/* Advanced per-file scanner (opens only when user asks to fine-tune) */}
-        {activeTuneItem && activeTuneItem.kind === "image" ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Fine-tune scan
-                </h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {activeTuneItem.originalFile.name}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={cancelTuning}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
-              >
-                <Icon icon="heroicons:x-mark" className="text-sm" />
-                Cancel
-              </button>
-            </div>
-            <BillScanner
-              key={activeTuneItem.id}
-              file={activeTuneItem.originalFile}
-              module={module}
-              onScanned={(tunedFile) => applyTuned(activeTuneItem.id, tunedFile)}
-              onSkip={cancelTuning}
-              onCancel={cancelTuning}
-            />
-          </div>
-        ) : (
-          /* No file-type toggle here any more — uploads are always
-             "Single Invoice/File" (see the `fileType` const above), so the
-             two-way switch was removed upstream along with FILE_TYPES. */
-          <div className="space-y-3">
-            {/* Voucher type. One upload button serves every voucher, so the
-                destination is chosen here rather than by which page you
-                happened to be on. Grouped exactly like the sidebar. */}
-            {targets.length > 1 && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Create as
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {groupedTargets.map(([groupName, groupTargets]) => (
-                    <div
-                      key={groupName}
-                      className="rounded-lg border border-slate-200 dark:border-slate-800 px-2.5 py-2"
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mb-1.5">
-                        {groupName}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {groupTargets.map((t) => {
-                          const active = t.value === target;
-                          return (
-                            <button
-                              key={t.value}
-                              type="button"
-                              disabled={isUploading}
-                              onClick={() => setTarget(t.value)}
-                              aria-pressed={active}
-                              className={`px-2.5 py-1.5 rounded-md text-[11px] font-semibold border transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${
-                                active
-                                  ? "border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400"
-                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                              }`}
-                            >
-                              {t.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Drop zone */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Select bill files
-              </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={[...ACCEPTED_IMAGE_EXT, ...ACCEPTED_PDF_EXT].join(",")}
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => fileInputRef.current?.click()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    fileInputRef.current?.click();
-                  }
-                }}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg px-6 py-8 text-center cursor-pointer transition-all ${
-                  isDragOver
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                    : "border-slate-300 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <span className="inline-flex w-12 h-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-900/60">
-                    <Icon icon="heroicons:cloud-arrow-up" className="text-lg" />
-                  </span>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {isDragOver ? "Drop files here" : "Drag & drop bill files here"}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    or <span className="text-blue-700 dark:text-blue-400 font-semibold">click to browse</span>
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    JPG · JPEG · PNG · PDF
-                  </p>
-                </div>
-              </div>
-
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
-                <Icon
-                  icon="heroicons:shield-check"
-                  className="text-emerald-600 dark:text-emerald-400 text-sm mt-0.5"
-                />
-                <span>
-                  Images are auto-enhanced for OCR before upload — no
-                  auto-cropping, so nothing gets cut off. Use
-                  <span className="mx-1 font-semibold">Fine-tune scan</span>
-                  per file if you want CamScanner-style perspective correction.
-                </span>
-              </p>
-
-              {rejected.length > 0 && (
-                <div className="mt-2 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2 flex items-start gap-2">
-                  <Icon
-                    icon="heroicons:exclamation-triangle"
-                    className="text-amber-600 dark:text-amber-400 text-base mt-0.5"
-                  />
-                  {/* Each entry now carries its own reason — unsupported
-                      type, over the per-file size, or past the batch
-                      count/total. A single blanket line would be wrong for
-                      most of them. */}
-                  <div className="text-[12px] text-amber-800 dark:text-amber-300 min-w-0">
-                    <span className="font-semibold">
-                      {rejected.length} file{rejected.length > 1 ? "s" : ""} skipped
-                    </span>
-                    <ul className="mt-0.5 space-y-0.5 list-disc list-inside">
-                      {rejected.slice(0, 5).map((r, i) => (
-                        <li key={i} className="break-words">
-                          {r}
-                        </li>
-                      ))}
-                      {rejected.length > 5 && (
-                        <li className="list-none opacity-80">
-                          …and {rejected.length - 5} more
-                        </li>
-                      )}
-                    </ul>
-                    <button
-                      type="button"
-                      onClick={() => setRejected([])}
-                      className="mt-1 underline hover:no-underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
+      footerContent={
+        scanning ? null : (
+          <>
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isUploading}
+              className={BTN_SECONDARY}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={items.length === 0 || isUploading}
+              className={BTN_PRIMARY}
+            >
+              {isUploading ? (
+                <>
+                  <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
+                  {uploadStage || "Uploading…"}
+                </>
+              ) : (
+                <>
+                  <Icon icon="heroicons:cloud-arrow-up" className="text-sm" />
+                  Upload {items.length || ""} {items.length === 1 ? "file" : items.length > 1 ? "files" : ""}
+                </>
               )}
+            </button>
+          </>
+        )
+      }
+    >
+      {/* Advanced per-file scanner (opens only when user asks to fine-tune) */}
+      {scanning ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className={LABEL}>Fine-tune scan</p>
+              <p className="mt-0.5 truncate text-[13px] font-medium text-slate-900 dark:text-white">
+                {activeTuneItem.originalFile.name}
+              </p>
             </div>
-
-            {/* Selected files list */}
-            {items.length > 0 && (
-              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-800">
-                  {/* Show the batch against its budget. Without this the
-                      only way to discover the limit is to hit it. */}
-                  <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
-                    Ready to upload · {items.length}/{MAX_FILES}
-                    <span
-                      className={`ml-2 font-semibold normal-case tracking-normal ${
-                        stagedBytes > MAX_TOTAL_BYTES * 0.8
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-slate-500 dark:text-slate-400"
-                      }`}
-                    >
-                      {bytesToMb(stagedBytes)} / {bytesToMb(MAX_TOTAL_BYTES)} MB
-                    </span>
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setItems([])}
-                    className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline"
-                  >
-                    Clear all
-                  </button>
-                </div>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
-                  {items.map((it) => {
-                    const tuned = Boolean(it.tunedFile);
-                    return (
-                      <div
-                        key={it.id}
-                        className="flex items-center gap-3 px-3 py-2"
-                      >
-                        <span
-                          className={`inline-flex w-7 h-7 items-center justify-center rounded-md ring-1 shrink-0 ${
-                            tuned
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-emerald-100 dark:ring-emerald-900/60"
-                              : it.kind === "pdf"
-                                ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 ring-rose-100 dark:ring-rose-900/60"
-                                : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 ring-blue-100 dark:ring-blue-900/60"
-                          }`}
-                        >
-                          <Icon
-                            icon={
-                              tuned
-                                ? "heroicons:check-badge"
-                                : it.kind === "pdf"
-                                  ? "heroicons:document-text"
-                                  : "heroicons:photo"
-                            }
-                            className="text-sm"
-                          />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate">
-                            {it.originalFile.name}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {tuned
-                              ? `Fine-tuned · ${bytesToMb(it.tunedFile.size)} MB`
-                              : it.kind === "pdf"
-                                ? `PDF · ${bytesToMb(it.originalFile.size)} MB`
-                                : `Auto-enhance on upload · ${bytesToMb(it.originalFile.size)} MB`}
-                          </div>
-                        </div>
-                        {it.kind === "image" && (
-                          <button
-                            type="button"
-                            onClick={() => setTuningId(it.id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md cursor-pointer"
-                            title="Open CamScanner-style perspective correction"
-                          >
-                            <Icon icon="heroicons:adjustments-horizontal" className="text-sm" />
-                            {tuned ? "Re-tune" : "Fine-tune scan"}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeItem(it.id)}
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                          title="Remove"
-                        >
-                          <Icon icon="heroicons:x-mark" className="text-sm" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isUploading}
-                className={BTN_SECONDARY}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleUpload}
-                disabled={items.length === 0 || isUploading}
-                className={BTN_PRIMARY}
-              >
-                {isUploading ? (
-                  <>
-                    <Icon icon="heroicons:arrow-path" className="text-base animate-spin" />
-                    {uploadStage || "Uploading…"}
-                  </>
+            <button
+              type="button"
+              onClick={cancelTuning}
+              className={`${BTN_SECONDARY_SM} shrink-0`}
+            >
+              <Icon icon="heroicons:x-mark" className="text-sm" />
+              Cancel
+            </button>
+          </div>
+          <BillScanner
+            key={activeTuneItem.id}
+            file={activeTuneItem.originalFile}
+            module={module}
+            onScanned={(tunedFile) => applyTuned(activeTuneItem.id, tunedFile)}
+            onSkip={cancelTuning}
+            onCancel={cancelTuning}
+          />
+        </div>
+      ) : (
+        /* No file-type toggle here any more — uploads are always
+           "Single Invoice/File" (see the `fileType` const above), so the
+           two-way switch was removed upstream along with FILE_TYPES. */
+        <div className="space-y-4">
+          {/* Drop zone — the focus of the dialog. */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={[...ACCEPTED_IMAGE_EXT, ...ACCEPTED_PDF_EXT].join(",")}
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center cursor-pointer transition-colors ${
+                isDragOver
+                  ? "border-blue-500 bg-blue-50/70 dark:bg-blue-950/30"
+                  : "border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+              }`}
+            >
+              <Icon
+                icon="heroicons:cloud-arrow-up"
+                className={`text-xl ${
+                  isDragOver
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-slate-400 dark:text-slate-500"
+                }`}
+              />
+              <p className="text-[13px] text-slate-700 dark:text-slate-300">
+                {isDragOver ? (
+                  <span className="font-semibold text-blue-700 dark:text-blue-400">
+                    Drop files here
+                  </span>
                 ) : (
                   <>
-                    <Icon icon="heroicons:cloud-arrow-up" className="text-sm" />
-                    Upload {items.length || ""} {items.length === 1 ? "file" : items.length > 1 ? "files" : ""}
+                    Drag bills here, or{" "}
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      browse
+                    </span>
                   </>
                 )}
-              </button>
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                JPG · JPEG · PNG · PDF · up to {MAX_FILES} files, {bytesToMb(MAX_FILE_BYTES)} MB each
+              </p>
             </div>
+
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+              <Icon
+                icon="heroicons:shield-check"
+                className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400 text-sm"
+              />
+              <span>
+                Images are auto-enhanced for OCR before upload — no
+                auto-cropping, so nothing gets cut off. Use
+                <span className="mx-1 font-semibold">Fine-tune scan</span>
+                per file if you want CamScanner-style perspective correction.
+              </span>
+            </p>
           </div>
-        )}
-      </div>
+
+          {rejected.length > 0 && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 px-3 py-2">
+              <Icon
+                icon="heroicons:exclamation-triangle"
+                className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400 text-sm"
+              />
+              {/* Each entry now carries its own reason — unsupported
+                  type, over the per-file size, or past the batch
+                  count/total. A single blanket line would be wrong for
+                  most of them. */}
+              <div className="min-w-0 text-[11px] text-amber-800 dark:text-amber-300">
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
+                  {rejected.length} file{rejected.length > 1 ? "s" : ""} skipped
+                </span>
+                <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                  {rejected.slice(0, 5).map((r, i) => (
+                    <li key={i} className="break-words">
+                      {r}
+                    </li>
+                  ))}
+                  {rejected.length > 5 && (
+                    <li className="list-none opacity-80">
+                      …and {rejected.length - 5} more
+                    </li>
+                  )}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setRejected([])}
+                  className="mt-1 font-semibold underline hover:no-underline cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Selected files — compact rows, not cards. */}
+          {items.length > 0 && (
+            <div className="rounded-md border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 px-3 py-2">
+                {/* Show the batch against its budget. Without this the
+                    only way to discover the limit is to hit it. */}
+                <p className={LABEL}>
+                  {items.length} of {MAX_FILES} files
+                  <span
+                    className={`ml-2 font-semibold normal-case tracking-normal ${
+                      stagedBytes > MAX_TOTAL_BYTES * 0.8
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
+                  >
+                    {bytesToMb(stagedBytes)} / {bytesToMb(MAX_TOTAL_BYTES)} MB
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setItems([])}
+                  className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="max-h-56 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto">
+                {items.map((it) => {
+                  const tuned = Boolean(it.tunedFile);
+                  return (
+                    <div
+                      key={it.id}
+                      className="flex items-center gap-2.5 px-3 py-1.5"
+                    >
+                      <Icon
+                        icon={
+                          tuned
+                            ? "heroicons:check-badge"
+                            : it.kind === "pdf"
+                              ? "heroicons:document-text"
+                              : "heroicons:photo"
+                        }
+                        className={`shrink-0 text-base ${
+                          tuned
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-slate-900 dark:text-white">
+                        {it.originalFile.name}
+                      </span>
+                      <span className="shrink-0 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
+                        {tuned
+                          ? `Fine-tuned · ${bytesToMb(it.tunedFile.size)} MB`
+                          : it.kind === "pdf"
+                            ? `PDF · ${bytesToMb(it.originalFile.size)} MB`
+                            : `${bytesToMb(it.originalFile.size)} MB`}
+                      </span>
+                      {it.kind === "image" && (
+                        <button
+                          type="button"
+                          onClick={() => setTuningId(it.id)}
+                          className="shrink-0 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          title="Open CamScanner-style perspective correction"
+                        >
+                          {tuned ? "Re-tune" : "Fine-tune scan"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeItem(it.id)}
+                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                        title="Remove"
+                      >
+                        <Icon icon="heroicons:x-mark" className="text-sm" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Voucher type. One upload button serves every voucher, so the
+              destination is chosen here rather than by which page you
+              happened to be on. Grouped exactly like the sidebar. */}
+          {targets.length > 1 && (
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
+              <label htmlFor="upload-bill-target" className={`${LABEL} block mb-1.5`}>
+                Create as
+              </label>
+              <div className="relative sm:max-w-xs">
+                <select
+                  id="upload-bill-target"
+                  value={target ?? ""}
+                  disabled={isUploading}
+                  onChange={(e) => setTarget(e.target.value)}
+                  style={CONTROL_SELECT_ARROW}
+                  className={SELECT}
+                >
+                  {/* Only when the caller gave no default: without it the
+                      select would *show* the first option while `target`
+                      is still null. */}
+                  {!target && (
+                    <option value="" disabled>
+                      Choose a voucher type…
+                    </option>
+                  )}
+                  {groupedTargets.map(([groupName, groupTargets]) =>
+                    groupName ? (
+                      <optgroup key={groupName} label={groupName}>
+                        {groupTargets.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : (
+                      groupTargets.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))
+                    ),
+                  )}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </Modal>
   );
 };
